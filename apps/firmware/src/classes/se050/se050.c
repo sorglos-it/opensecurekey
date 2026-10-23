@@ -12,8 +12,24 @@
 #include "se050_tlv.h"
 #include "se050_platform.h"
 
-/* Kennung des PIN-Objekts im Baustein. Fest, weil es genau eines gibt. */
+/* Kennungen im Baustein. Fest, weil es je genau eines gibt.
+ *
+ * Die PIN ist ein AESKey-ANMELDEOBJEKT, keine UserID. Grund: der SE050
+ * meldet den Fehlversuchszaehler fuer UserID-Objekte nicht
+ * (AN12413 3.2.4.4, Erratasheet APP.3), und docs/threat-model.md sagt zu,
+ * dass der Zaehler im Chip liegt und sich nicht durch Loeschen des Flash
+ * umgehen laesst. Ein Zaehler, den der Chip fuehrt aber nicht herausgibt,
+ * traegt diese Zusage nur halb - die Sperre haengte dann an der Firmware,
+ * und genau davor schuetzt der SE050 nicht. Fuer AESKey-Objekte wird er
+ * gemeldet. Entscheidung des Master-Threads, siehe docs/se050.md. */
 #define OSK_PIN_OBJECT_ID 0x0F000001u
+
+/* Schluesselpaar, mit dem der Baustein beglaubigte Antworten unterschreibt.
+ * Ohne beglaubigtes Lesen gibt er die Objektattribute nicht heraus, und
+ * darin steckt der Fehlversuchszaehler (AN12413 3.2.7.2). Wird beim
+ * Einrichten angelegt und braucht die Richtlinie
+ * POLICY_OBJ_ALLOW_ATTESTATION. */
+#define OSK_ATTEST_KEY_ID 0x0F000002u
 
 /* Hoechstzahl Fehlversuche, die der SE050 selbst zaehlt. Der Zaehler liegt
  * im Chip, nicht im Flash - Flash loeschen setzt ihn nicht zurueck. Das
@@ -147,10 +163,14 @@ osk_result_t osk_se050_open(void)
 	/* Jetzt der verschluesselte Kanal. Ohne ihn geht es nicht weiter:
 	 * ein offener I2C-Bus zwischen den zwei Chips waere genau das Loch,
 	 * das der SE050 schliessen soll. */
+	uint32_t chan_obj = 0;
 	osk_scp03_static_keys_t keys;
-	r = osk_se050_platform_scp_keys(&keys);
+	r = osk_se050_platform_channel_obj(&chan_obj);
 	if (r == OSK_OK) {
-		r = osk_se050_apdu_open_channel(&g_apdu, &keys);
+		r = osk_se050_platform_scp_keys(&keys);
+	}
+	if (r == OSK_OK) {
+		r = osk_se050_apdu_session_open(&g_apdu, &g_apdu.chan, chan_obj, &keys);
 	}
 	/* Die Kopie der festen Schluessel verschwindet sofort - der
 	 * nRF52840 soll kein Geheimnis halten. */
@@ -635,126 +655,98 @@ osk_result_t osk_se050_hmac(osk_key_id_t id, const uint8_t *msg, size_t msg_len,
 
 /* ------------------------------------------------------------------ PIN */
 
-/* Die PIN liegt als UserID-Objekt im SE050 (AN12413 4.7.1.5), angelegt mit
- * INS_AUTH_OBJECT und einer Hoechstzahl von Versuchen. Geprueft wird sie
- * mit VerifySessionUserID (4.5.2.1): der Vergleich findet IM CHIP statt,
- * der Wirt erfaehrt nur Ja oder Nein, und der Fehlversuchszaehler liegt
- * ebenfalls dort. Flash loeschen setzt ihn nicht zurueck. */
+/* Aus der PIN einen AES-128-Schluessel machen.
+ *
+ * Nicht selbst erfunden: AES-CMAC aus der geprueften Bibliothek, benutzt als
+ * Pseudozufallsfunktion ueber einen festen Trenntext und die PIN. Ein
+ * langsames Verfahren (PBKDF2, Argon2) waere hier sinnlos: der Schluessel
+ * laesst sich nur GEGEN DEN CHIP ausprobieren, und der zaehlt mit und sperrt
+ * nach OSK_PIN_MAX_ATTEMPTS. Es gibt kein Chiffrat, gegen das jemand offline
+ * raten koennte.
+ *
+ * Der abgeleitete Schluessel lebt nur fuer die Dauer der Pruefung im RAM des
+ * nRF52840 und wird danach geloescht. Die PIN selbst tippt der Nutzer
+ * ohnehin am Rechner ein - das steht so in docs/threat-model.md. */
+static osk_result_t pin_to_key(const uint8_t *pin, size_t len, uint8_t key_out[OSK_AES_KEY_LEN])
+{
+	/* Fester Trenntext, damit derselbe PIN-Wert in einem anderen
+	 * Zusammenhang nie denselben Schluessel ergibt. */
+	static const uint8_t label[OSK_AES_KEY_LEN] = "osk-pin-key-v1";
+
+	uint8_t msg[OSK_PIN_MAX_LEN];
+	memcpy(msg, pin, len);
+
+	uint8_t mac[OSK_AES_BLOCK];
+	const osk_result_t r = osk_aes_cmac(label, msg, len, mac);
+	osk_wipe(msg, sizeof(msg));
+	if (r != OSK_OK) {
+		osk_wipe(mac, sizeof(mac));
+		return r;
+	}
+	memcpy(key_out, mac, OSK_AES_KEY_LEN);
+	osk_wipe(mac, sizeof(mac));
+	return OSK_OK;
+}
+
+/* Einen Schluesselsatz aus der PIN bauen. Alle drei Sitzungsschluessel
+ * stammen beim SE050 aus EINEM AESKey-Objekt - AN12413 3.6.3.2 sagt, dieses
+ * eine Objekt dient als Hauptschluessel fuer alle drei und geht dreimal in
+ * die Ableitung ein. Dreimal derselbe Wert ist hier also richtig und kein
+ * Versehen. */
+static osk_result_t pin_to_keyset(const uint8_t *pin, size_t len, osk_scp03_static_keys_t *keys_out)
+{
+	uint8_t k[OSK_AES_KEY_LEN];
+	const osk_result_t r = pin_to_key(pin, len, k);
+	if (r != OSK_OK) {
+		return r;
+	}
+	memcpy(keys_out->enc, k, OSK_AES_KEY_LEN);
+	memcpy(keys_out->mac, k, OSK_AES_KEY_LEN);
+	memcpy(keys_out->dek, k, OSK_AES_KEY_LEN);
+	osk_wipe(k, sizeof(k));
+	return OSK_OK;
+}
+
+static bool pin_len_ok(const uint8_t *pin, size_t len)
+{
+	return pin != NULL && len >= OSK_PIN_MIN_LEN && len <= OSK_PIN_MAX_LEN;
+}
 
 osk_result_t osk_se050_pin_verify(const uint8_t *pin, size_t len)
 {
 	if (!g_open) {
 		return OSK_ERR_IO;
 	}
-	if (pin == NULL || len < OSK_PIN_MIN_LEN || len > OSK_PIN_MAX_LEN) {
+	if (!pin_len_ok(pin, len)) {
 		return OSK_ERR_ARG;
 	}
 
-	/* Erst eine Sitzung auf dem PIN-Objekt oeffnen, dann darin die PIN
-	 * vorlegen (AN12413 4.5.1.1 und 4.5.2.1). */
-	uint8_t payload[8];
-	osk_tlv_writer_t w;
-	osk_tlv_init(&w, payload, sizeof(payload));
-	osk_tlv_put_u32(&w, TAG_1, OSK_PIN_OBJECT_ID);
-
-	size_t pl = 0;
-	osk_result_t r = osk_tlv_done(&w, &pl);
+	/* Pruefen heisst: eine AESKey-Sitzung gegen das PIN-Objekt aufbauen.
+	 * Gelingt sie, war die PIN richtig - der Beweis ist das Kryptogramm
+	 * des Bausteins, das nur mit dem richtigen Schluessel stimmt. Der
+	 * Vergleich findet also IM CHIP statt, und der Chip zaehlt die
+	 * Fehlversuche selbst. */
+	osk_scp03_static_keys_t keys;
+	osk_result_t r = pin_to_keyset(pin, len, &keys);
 	if (r != OSK_OK) {
 		return r;
 	}
 
-	uint8_t rsp[32];
-	size_t n = 0;
-	r = osk_se050_apdu_exchange(&g_apdu, INS_MGMT, P1_DEFAULT, P2_SESSION_CREATE, payload, pl,
-				    rsp, sizeof(rsp), &n);
-	if (r != OSK_OK) {
-		return r;
-	}
+	osk_se050_session_t pin_session;
+	memset(&pin_session, 0, sizeof(pin_session));
+	r = osk_se050_apdu_session_open(&g_apdu, &pin_session, OSK_PIN_OBJECT_ID, &keys);
+	osk_wipe(&keys, sizeof(keys));
 
-	uint8_t session[8];
-	size_t session_len = 0;
-	{
-		osk_tlv_reader_t rd;
-		osk_tlv_reader_init(&rd, rsp, n);
-		r = osk_tlv_copy(&rd, TAG_1, session, sizeof(session), &session_len);
-	}
-	if (r != OSK_OK) {
-		return r;
-	}
-	if (session_len != sizeof(session)) {
-		return OSK_ERR_FORMAT;
-	}
+	/* Die Sitzung wird sofort wieder geschlossen. Sie ist nur der
+	 * Beweis; Rechte haengen bei uns nicht an ihr, und der Baustein hat
+	 * nur zwei Plaetze (AN12413 Tabelle 16) - einen braucht der
+	 * Geraetekanal. */
+	osk_se050_apdu_session_close(&g_apdu, &pin_session);
 
-	/* VerifySessionUserID, eingepackt in ProcessSessionCmd. */
-	uint8_t inner[5u + 2u + OSK_PIN_MAX_LEN];
-	size_t inner_len = 0;
-	{
-		uint8_t ip[2u + OSK_PIN_MAX_LEN];
-		osk_tlv_writer_t iw;
-		osk_tlv_init(&iw, ip, sizeof(ip));
-		osk_tlv_put(&iw, TAG_1, pin, len);
-
-		size_t ipl = 0;
-		r = osk_tlv_done(&iw, &ipl);
-		if (r != OSK_OK) {
-			osk_wipe(ip, sizeof(ip));
-			return r;
-		}
-
-		inner[0] = SE050_CLA;
-		inner[1] = INS_MGMT;
-		inner[2] = P1_DEFAULT;
-		inner[3] = P2_SESSION_USERID;
-		inner[4] = (uint8_t)ipl;
-		memcpy(&inner[5], ip, ipl);
-		inner_len = 5u + ipl;
-		osk_wipe(ip, sizeof(ip));
-	}
-
-	uint8_t outer[16u + sizeof(inner)];
-	size_t outer_len = 0;
-	{
-		osk_tlv_writer_t ow;
-		osk_tlv_init(&ow, outer, sizeof(outer));
-		osk_tlv_put(&ow, TAG_SESSION_ID, session, session_len);
-		osk_tlv_put(&ow, TAG_1, inner, inner_len);
-		r = osk_tlv_done(&ow, &outer_len);
-	}
-	osk_wipe(inner, sizeof(inner));
-	if (r != OSK_OK) {
-		osk_wipe(outer, sizeof(outer));
-		return r;
-	}
-
-	n = 0;
-	r = osk_se050_apdu_exchange(&g_apdu, INS_PROCESS, P1_DEFAULT, P2_DEFAULT, outer, outer_len,
-				    rsp, sizeof(rsp), &n);
-	osk_wipe(outer, sizeof(outer));
-
-	/* Die Sitzung wird in jedem Fall geschlossen - auch bei falscher
-	 * PIN. Eine offen gelassene Sitzung waere eine halb offene Tuer,
-	 * und der Baustein hat nur zwei davon (Tabelle 16). */
-	{
-		uint8_t cp[16];
-		osk_tlv_writer_t cw;
-		osk_tlv_init(&cw, cp, sizeof(cp));
-		osk_tlv_put(&cw, TAG_SESSION_ID, session, session_len);
-
-		size_t cl = 0;
-		if (osk_tlv_done(&cw, &cl) == OSK_OK) {
-			size_t dummy = 0;
-			(void)osk_se050_apdu_exchange(&g_apdu, INS_MGMT, P1_DEFAULT,
-						      P2_SESSION_CLOSE, cp, cl, NULL, 0, &dummy);
-		}
-	}
-	osk_wipe(session, sizeof(session));
-
-	/* Der Baustein meldet eine falsche PIN als
-	 * SW_CONDITIONS_NOT_SATISFIED, was die APDU-Schicht zu
-	 * OSK_ERR_DENIED macht - genau der richtige Wert. Ist der Zaehler
-	 * abgelaufen, kommt dasselbe Statuswort; wir koennen die zwei
-	 * Faelle nicht unterscheiden, und das ist in Ordnung: der Nutzer
-	 * fragt dann osk_se050_pin_tries_left(). */
+	/* Falsche PIN kommt als OSK_ERR_DENIED heraus: entweder stimmt das
+	 * Kryptogramm nicht, oder der Baustein lehnt die Sitzung ab, weil
+	 * der Zaehler abgelaufen ist. Welches von beiden, sagt
+	 * osk_se050_pin_tries_left(). */
 	return r;
 }
 
@@ -764,16 +756,15 @@ osk_result_t osk_se050_pin_set(const uint8_t *old_pin, size_t old_len, const uin
 	if (!g_open) {
 		return OSK_ERR_IO;
 	}
-	if (new_pin == NULL || new_len < OSK_PIN_MIN_LEN || new_len > OSK_PIN_MAX_LEN) {
+	if (!pin_len_ok(new_pin, new_len)) {
 		return OSK_ERR_ARG;
 	}
 
-	/* Gibt es schon eine PIN, muss die alte stimmen, bevor die neue
-	 * gilt. Beim ersten Einrichten ist old_pin NULL - dann wird das
-	 * Objekt neu angelegt, und der Baustein lehnt ein Ueberschreiben
-	 * eines vorhandenen Objekts ohne Freigabe ohnehin ab. */
+	/* Gibt es schon eine PIN, muss die alte stimmen. Beim ersten
+	 * Einrichten ist old_pin NULL; der Baustein lehnt ein Ueberschreiben
+	 * eines vorhandenen Anmeldeobjekts ohne Freigabe ohnehin ab. */
 	if (old_pin != NULL) {
-		if (old_len < OSK_PIN_MIN_LEN || old_len > OSK_PIN_MAX_LEN) {
+		if (!pin_len_ok(old_pin, old_len)) {
 			return OSK_ERR_ARG;
 		}
 		const osk_result_t vr = osk_se050_pin_verify(old_pin, old_len);
@@ -782,26 +773,33 @@ osk_result_t osk_se050_pin_set(const uint8_t *old_pin, size_t old_len, const uin
 		}
 	}
 
-	/* WriteUserID (AN12413 4.7.1.5). INS_AUTH_OBJECT macht daraus ein
-	 * Anmeldeobjekt - nur dann zaehlt der Baustein Fehlversuche
-	 * (Abschnitt 3.2.4.4). TAG_MAX_ATTEMPTS und TAG_POLICY greifen nur
-	 * beim Anlegen; bei einem vorhandenen Objekt werden sie uebergangen. */
-	uint8_t payload[16u + OSK_PIN_MAX_LEN];
+	uint8_t key[OSK_AES_KEY_LEN];
+	osk_result_t r = pin_to_key(new_pin, new_len, key);
+	if (r != OSK_OK) {
+		return r;
+	}
+
+	/* WriteSymmKey (AN12413 4.7.1.3) mit INS_AUTH_OBJECT: das macht
+	 * daraus ein Anmeldeobjekt, und nur dann zaehlt der Baustein die
+	 * Fehlversuche (Abschnitt 3.2.4.4). TAG_MAX_ATTEMPTS greift beim
+	 * Anlegen; bei einem vorhandenen Objekt wird es uebergangen. */
+	uint8_t payload[16u + OSK_AES_KEY_LEN];
 	osk_tlv_writer_t w;
 	osk_tlv_init(&w, payload, sizeof(payload));
 	osk_tlv_put_u16(&w, TAG_MAX_ATTEMPTS, OSK_PIN_MAX_ATTEMPTS);
 	osk_tlv_put_u32(&w, TAG_1, OSK_PIN_OBJECT_ID);
-	osk_tlv_put(&w, TAG_2, new_pin, new_len);
+	osk_tlv_put(&w, TAG_2, key, sizeof(key));
 
 	size_t pl = 0;
-	osk_result_t r = osk_tlv_done(&w, &pl);
+	r = osk_tlv_done(&w, &pl);
+	osk_wipe(key, sizeof(key));
 	if (r != OSK_OK) {
 		osk_wipe(payload, sizeof(payload));
 		return r;
 	}
 
 	size_t dummy = 0;
-	r = osk_se050_apdu_exchange(&g_apdu, (uint8_t)(INS_WRITE | INS_AUTH_OBJECT), P1_USERID,
+	r = osk_se050_apdu_exchange(&g_apdu, (uint8_t)(INS_WRITE | INS_AUTH_OBJECT), P1_AES,
 				    P2_DEFAULT, payload, pl, NULL, 0, &dummy);
 	osk_wipe(payload, sizeof(payload));
 	return r;
@@ -817,26 +815,86 @@ osk_result_t osk_se050_pin_tries_left(uint8_t *tries_out)
 	}
 	*tries_out = 0;
 
-	/* HIER GEHT ES NICHT WEITER, und zwar nicht aus Bequemlichkeit:
+	/* Der Zaehler steckt in den Objektattributen, und die gibt der
+	 * Baustein nur beim BEGLAUBIGTEN Lesen heraus: INS_READ mit
+	 * INS_ATTEST, dazu ein Unterschriftsschluessel, ein Verfahren und
+	 * 16 Byte Frische (AN12413 3.2.7.2 und 4.7.3.1).
 	 *
-	 * AN12413 Abschnitt 3.2.4.4 sagt ausdruecklich, dass der SE050 den
-	 * Fehlversuchszaehler fuer Objekte des Typs UserID NICHT meldet -
-	 * der Wert bleibt 0, auch beim beglaubigten Lesen. Das Erratasheet
-	 * fuehrt dasselbe als APP.3 und nennt als einzigen Ausweg, ein
-	 * AESKey-Objekt zur Anmeldung zu nehmen statt einer UserID.
-	 *
-	 * Der Zaehler EXISTIERT und wirkt: nach OSK_PIN_MAX_ATTEMPTS
-	 * Fehlversuchen sperrt der Baustein das Objekt. Nur ABLESEN laesst
-	 * er ihn nicht. Eine erratene Zahl zurueckzugeben waere das
-	 * Schlimmste von allem - der Nutzer saehe "3 Versuche uebrig" und
-	 * waere beim naechsten Versuch ausgesperrt.
-	 *
-	 * Richtige Loesung, sobald jemand sie entscheidet: PIN als
-	 * AESKey-Anmeldeobjekt (Schluessel aus der PIN abgeleitet) statt als
-	 * UserID. Dann liefert ein beglaubigtes ReadObject die Attribute mit
-	 * Zaehler und Hoechstzahl. Das aendert den PIN-Pfad vollstaendig und
-	 * ist dem Master gemeldet - siehe docs/se050.md. */
-	return OSK_ERR_UNSUPPORTED;
+	 * Die Unterschrift selbst pruefen wir nicht nach. Das klingt
+	 * nachlaessig, ist es aber nicht: die Antwort kommt schon durch den
+	 * SCP03-gesicherten Kanal, ist also gegen Veraenderung geschuetzt.
+	 * Die Beglaubigung ist hier nur der Weg, ueberhaupt an die Attribute
+	 * zu kommen - nicht die Sicherung. */
+	uint8_t freshness[16];
+	osk_result_t r = osk_random(freshness, sizeof(freshness));
+	if (r != OSK_OK) {
+		return r;
+	}
+
+	uint8_t payload[48];
+	osk_tlv_writer_t w;
+	osk_tlv_init(&w, payload, sizeof(payload));
+	osk_tlv_put_u32(&w, TAG_1, OSK_PIN_OBJECT_ID);
+	osk_tlv_put_u32(&w, TAG_5, OSK_ATTEST_KEY_ID);
+	osk_tlv_put_u8(&w, TAG_6, SIG_ECDSA_SHA_256);
+	osk_tlv_put(&w, TAG_7, freshness, sizeof(freshness));
+
+	size_t pl = 0;
+	r = osk_tlv_done(&w, &pl);
+	osk_wipe(freshness, sizeof(freshness));
+	if (r != OSK_OK) {
+		return r;
+	}
+
+	uint8_t rsp[320];
+	size_t n = 0;
+	r = osk_se050_apdu_exchange(&g_apdu, (uint8_t)(INS_READ | INS_ATTEST), P1_DEFAULT,
+				    P2_DEFAULT, payload, pl, rsp, sizeof(rsp), &n);
+	if (r != OSK_OK) {
+		return r;
+	}
+
+	osk_tlv_reader_t rd;
+	osk_tlv_reader_init(&rd, rsp, n);
+
+	const uint8_t *attr = NULL;
+	size_t attr_len = 0;
+	r = osk_tlv_get(&rd, TAG_2, &attr, &attr_len);
+	if (r != OSK_OK) {
+		return r;
+	}
+
+	/* Aufbau nach AN12413 Tabelle 3:
+	 *   0..3   Objektkennung
+	 *   4      Objektklasse
+	 *   5      Anmeldekennzeichen
+	 *   6..7   Fehlversuchszaehler
+	 *   8..11  Kennung des Besitzers
+	 *   12..13 Hoechstzahl Versuche
+	 * danach die Richtlinie (veraenderliche Laenge) und der Ursprung.
+	 * Beide Werte, die wir brauchen, liegen VOR dem veraenderlichen
+	 * Teil - darum sind feste Abstaende hier richtig. */
+	if (attr_len < 14u) {
+		return OSK_ERR_FORMAT;
+	}
+	const uint16_t used = (uint16_t)(((uint16_t)attr[6] << 8) | attr[7]);
+	const uint16_t max_tries = (uint16_t)(((uint16_t)attr[12] << 8) | attr[13]);
+
+	if (max_tries == 0u) {
+		/* 0 heisst beim SE050 "unbegrenzt" (Abschnitt 3.2.4.6). Dann
+		 * gibt es keine verbleibenden Versuche zu melden, und eine
+		 * Zahl zu erfinden waere falsch. Nach dem Anlegen mit
+		 * TAG_MAX_ATTEMPTS darf das nicht vorkommen. */
+		return OSK_ERR_UNSUPPORTED;
+	}
+	if (used >= max_tries) {
+		*tries_out = 0;
+		return OSK_ERR_LOCKED;
+	}
+
+	const uint16_t left = (uint16_t)(max_tries - used);
+	*tries_out = (left > 0xFFu) ? 0xFFu : (uint8_t)left;
+	return OSK_OK;
 }
 
 /* ------------------------------------------- Fluechtige Ableitung */
@@ -900,7 +958,7 @@ osk_result_t osk_se050_pin_clear(void)
 	}
 
 	/* DeleteSecureObject auf das PIN-Objekt (AN12413 4.7.4.5). Der
-	 * Fehlversuchszaehler verschwindet mit dem Objekt - das ist beim
+	 * Fehlversuchszaehler verschwindet mit dem AESKey-Objekt - das ist beim
 	 * Zuruecksetzen auf Werkszustand gewollt und genau der Grund, warum
 	 * diese Funktion eine Freigabe am Geraet voraussetzt. Geprueft wird
 	 * sie hier nicht, so steht es im Vertrag.

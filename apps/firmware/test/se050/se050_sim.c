@@ -19,6 +19,11 @@ const osk_scp03_static_keys_t *sim_keys(void)
 	return &SIM_KEYS;
 }
 
+void sim_set_auth_keys(se050_sim_t *sim, const osk_scp03_static_keys_t *keys)
+{
+	sim->next_auth_keys = *keys;
+}
+
 void sim_set_reply(se050_sim_t *sim, const uint8_t *body, size_t len, uint16_t sw)
 {
 	sim->next_body_len = 0;
@@ -226,8 +231,54 @@ static size_t handle_apdu(se050_sim_t *sim, const uint8_t *apdu, size_t len, uin
 		return 2u;
 	}
 
+	/* CreateSession (AN12413 4.5.1.1): Kennung des Anmeldeobjekts herein,
+	 * 8 Byte Sitzungskennung hinaus. */
+	if (cla == SE050_CLA && ins == INS_MGMT && apdu[3] == P2_SESSION_CREATE) {
+		if (len < 5u + 6u) {
+			return 0;
+		}
+		/* TLV[TAG_1] mit 4 Byte Objektkennung. */
+		const uint8_t *v = &apdu[7];
+		sim->session_obj =
+		    ((uint32_t)v[0] << 24) | ((uint32_t)v[1] << 16) | ((uint32_t)v[2] << 8) | v[3];
+
+		for (size_t i = 0; i < sizeof(sim->session_id); i++) {
+			sim->session_id[i] = (uint8_t)(0x50u + i);
+		}
+		sim->session_created = true;
+		sim->channel = false;
+		osk_scp03_close(&sim->scp);
+
+		if (cap < 12u) {
+			return 0;
+		}
+		out[0] = TAG_1;
+		out[1] = (uint8_t)sizeof(sim->session_id);
+		memcpy(&out[2], sim->session_id, sizeof(sim->session_id));
+		out[10] = 0x90u;
+		out[11] = 0x00u;
+		return 12u;
+	}
+
+	/* CloseSession. */
+	if (cla == SE050_CLA && ins == INS_MGMT && apdu[3] == P2_SESSION_CLOSE) {
+		sim->session_created = false;
+		sim->channel = false;
+		osk_scp03_close(&sim->scp);
+		out[0] = 0x90u;
+		out[1] = 0x00u;
+		return 2u;
+	}
+
 	/* INITIALIZE UPDATE. */
 	if (cla == SE050_CLA && ins == 0x50u) {
+		if (!sim->session_created) {
+			/* Ohne CreateSession gibt es keine AESKey-Sitzung
+			 * (AN12413 3.6.3.2). Genau das soll auffallen. */
+			out[0] = 0x69u;
+			out[1] = 0x85u;
+			return 2u;
+		}
 		if (len < 5u + 8u) {
 			return 0;
 		}
@@ -235,8 +286,8 @@ static size_t handle_apdu(se050_sim_t *sim, const uint8_t *apdu, size_t len, uin
 
 		uint8_t card_cg[8];
 		uint8_t host_cg[8];
-		if (osk_scp03_derive(&sim->scp, &sim->keys, host_challenge, sim->card_challenge,
-				     card_cg, host_cg) != OSK_OK) {
+		if (osk_scp03_derive(&sim->scp, &sim->next_auth_keys, host_challenge,
+				     sim->card_challenge, card_cg, host_cg) != OSK_OK) {
 			return 0;
 		}
 
@@ -285,6 +336,80 @@ static size_t handle_apdu(se050_sim_t *sim, const uint8_t *apdu, size_t len, uin
 		out[0] = 0x90u;
 		out[1] = 0x00u;
 		return 2u;
+	}
+
+	/* ProcessSessionCmd (AN12413 4.5.1.3): Sitzungskennung pruefen, dann
+	 * den inneren Befehl behandeln. Die Antwort ist die innere Antwort,
+	 * ohne eigenen Umschlag (Tabelle 61). */
+	if (cla == SE050_CLA && ins == INS_PROCESS) {
+		if (!sim->session_created || len < 5u) {
+			out[0] = 0x69u;
+			out[1] = 0x85u;
+			return 2u;
+		}
+		/* TLV[TAG_SESSION_ID] (8 Byte), dann TLV[TAG_1]. */
+		const uint8_t *p = &apdu[5];
+		if (p[0] != TAG_SESSION_ID || p[1] != 8u ||
+		    memcmp(&p[2], sim->session_id, 8) != 0) {
+			out[0] = 0x69u;
+			out[1] = 0x85u;
+			return 2u;
+		}
+		p += 10;
+		if (p[0] != TAG_1) {
+			out[0] = 0x6Au;
+			out[1] = 0x80u;
+			return 2u;
+		}
+		size_t il;
+		if (p[1] < 0x80u) {
+			il = p[1];
+			p += 2;
+		} else if (p[1] == 0x82u) {
+			il = ((size_t)p[2] << 8) | p[3];
+			p += 4;
+		} else {
+			out[0] = 0x6Au;
+			out[1] = 0x80u;
+			return 2u;
+		}
+
+		if (sim->channel) {
+			/* Im Kanal: innen auspacken, behandeln, wieder
+			 * einpacken. Das prueft den C-MAC des Treibers
+			 * wirklich nach. */
+			uint8_t inner[300];
+			size_t inner_len = 0;
+			if (!unwrap_command(sim, p, il, inner, sizeof(inner), &inner_len)) {
+				out[0] = 0x69u;
+				out[1] = 0x82u;
+				return 2u;
+			}
+			uint8_t rebuilt[310];
+			rebuilt[0] = SE050_CLA;
+			rebuilt[1] = p[1];
+			rebuilt[2] = p[2];
+			rebuilt[3] = p[3];
+			size_t rl = 4u;
+			if (inner_len > 0) {
+				rebuilt[4] = (uint8_t)inner_len;
+				memcpy(&rebuilt[5], inner, inner_len);
+				rl = 5u + inner_len;
+			}
+
+			uint8_t reply[300];
+			const size_t rn = handle_apdu(sim, rebuilt, rl, reply, sizeof(reply));
+			if (rn < 2u) {
+				return 0;
+			}
+			const uint16_t isw =
+			    (uint16_t)(((uint16_t)reply[rn - 2u] << 8) | reply[rn - 1u]);
+			return wrap_reply(sim, reply, rn - 2u, isw, out, cap);
+		}
+
+		/* Noch kein Kanal: der innere Befehl geht offen durch - das
+		 * sind genau INITIALIZE UPDATE und EXTERNAL AUTHENTICATE. */
+		return handle_apdu(sim, p, il, out, cap);
 	}
 
 	/* Alles andere ist ein normaler Befehl. */
@@ -347,6 +472,7 @@ static size_t sim_respond(void *ctx, const uint8_t *frame, size_t len, uint8_t *
 			osk_scp03_close(&sim->scp);
 			sim->applet_selected = false;
 			sim->channel = false;
+			sim->session_created = false;
 			memset(sim->cmd_counter, 0, sizeof(sim->cmd_counter));
 
 			/* Kennblock - der Treiber wertet ihn nicht aus. */
@@ -374,51 +500,12 @@ static size_t sim_respond(void *ctx, const uint8_t *frame, size_t len, uint8_t *
 		return 0;
 	}
 
+	/* Der I-Block traegt eine Klartext-APDU. Die SCP03-Sicherung liegt
+	 * eine Ebene weiter innen, im TAG_1 eines ProcessSessionCmd - das
+	 * packt handle_apdu() selbst aus. */
 	uint8_t body[320];
-	size_t body_len = 0;
-	const uint8_t *plain = inf;
-	size_t plain_len = inf_len;
-
-	if (sim->channel) {
-		uint8_t inner[300];
-		size_t inner_len = 0;
-		if (!unwrap_command(sim, inf, inf_len, inner, sizeof(inner), &inner_len)) {
-			/* Falscher MAC: der echte Baustein reisst dann den
-			 * Kanal ab. Hier nur ein Fehlerstatus. */
-			static const uint8_t err[] = {0x69, 0x82};
-			return osk_se050_t1_build(out, cap, SE050_NAD_TO_HOST, SE050_PCB_TYPE_I,
-						  err, sizeof(err));
-		}
-		/* Die ausgepackte Nutzlast ist der Klartext-Befehl ohne Kopf;
-		 * den Kopf liefert der aeussere Rahmen. */
-		uint8_t rebuilt[310];
-		rebuilt[0] = SE050_CLA;
-		rebuilt[1] = inf[1];
-		rebuilt[2] = inf[2];
-		rebuilt[3] = inf[3];
-		size_t rl = 4u;
-		if (inner_len > 0) {
-			rebuilt[4] = (uint8_t)inner_len;
-			memcpy(&rebuilt[5], inner, inner_len);
-			rl = 5u + inner_len;
-		}
-
-		uint8_t reply[300];
-		const size_t rn = handle_apdu(sim, rebuilt, rl, reply, sizeof(reply));
-		if (rn < 2u) {
-			return 0;
-		}
-		const uint16_t sw = (uint16_t)(((uint16_t)reply[rn - 2u] << 8) | reply[rn - 1u]);
-		body_len = wrap_reply(sim, reply, rn - 2u, sw, body, sizeof(body));
-		if (body_len == 0) {
-			return 0;
-		}
-		return osk_se050_t1_build(out, cap, SE050_NAD_TO_HOST, SE050_PCB_TYPE_I, body,
-					  (uint8_t)body_len);
-	}
-
-	body_len = handle_apdu(sim, plain, plain_len, body, sizeof(body));
-	if (body_len == 0) {
+	const size_t body_len = handle_apdu(sim, inf, inf_len, body, sizeof(body));
+	if (body_len == 0 || body_len > SE050_T1_MAX_INF) {
 		return 0;
 	}
 	return osk_se050_t1_build(out, cap, SE050_NAD_TO_HOST, SE050_PCB_TYPE_I, body,
@@ -429,6 +516,7 @@ void sim_attach(se050_sim_t *sim, fake_bus_t *fb)
 {
 	memset(sim, 0, sizeof(*sim));
 	sim->keys = SIM_KEYS;
+	sim->next_auth_keys = SIM_KEYS;
 	sim->next_sw = SW_NO_ERROR;
 	for (size_t i = 0; i < sizeof(sim->card_challenge); i++) {
 		sim->card_challenge[i] = (uint8_t)(0xC0u + i);

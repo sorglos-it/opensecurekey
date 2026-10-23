@@ -35,6 +35,50 @@ osk_result_t osk_se050_platform_scp_keys(osk_scp03_static_keys_t *keys_out)
 	return OSK_OK;
 }
 
+/* Kennung des Anmeldeobjekts fuer den Geraetekanal. Auf dem Geraet legt das
+ * die Platine fest; hier ein fester Wert, den der Test nachprueft. */
+#define TEST_CHANNEL_OBJ 0x0F0000FFu
+
+osk_result_t osk_se050_platform_channel_obj(uint32_t *obj_id_out)
+{
+	*obj_id_out = TEST_CHANNEL_OBJ;
+	return OSK_OK;
+}
+
+/* Den Schluessel aus der PIN nachrechnen - derselbe Weg wie in se050.c.
+ * Absichtlich hier noch einmal und nicht aus dem Treiber geholt: so prueft
+ * der Test die Ableitung mit, statt sie zu uebernehmen. Weicht der Treiber
+ * ab, scheitert der Sitzungsaufbau und der Test faellt durch. */
+static void pin_keyset_for_test(const uint8_t *pin, size_t len, osk_scp03_static_keys_t *out)
+{
+	static const uint8_t label[16] = "osk-pin-key-v1";
+	uint8_t mac[16];
+
+	TT_EQ_INT(osk_aes_cmac(label, pin, len, mac), OSK_OK, "PIN-Schluessel gerechnet");
+	memcpy(out->enc, mac, 16);
+	memcpy(out->mac, mac, 16);
+	memcpy(out->dek, mac, 16);
+}
+
+/* Die Objektattribute bauen, wie der Baustein sie beim beglaubigten Lesen
+ * in TAG_2 liefert (AN12413 Tabelle 3). */
+static size_t attrs_for_test(uint8_t *out, uint16_t used, uint16_t max_tries)
+{
+	uint8_t a[14];
+	memset(a, 0, sizeof(a));
+	a[4] = TYPE_AES_KEY;
+	a[5] = SE050_SET;
+	a[6] = (uint8_t)(used >> 8);
+	a[7] = (uint8_t)(used & 0xFFu);
+	a[12] = (uint8_t)(max_tries >> 8);
+	a[13] = (uint8_t)(max_tries & 0xFFu);
+
+	out[0] = TAG_2;
+	out[1] = (uint8_t)sizeof(a);
+	memcpy(&out[2], a, sizeof(a));
+	return 2u + sizeof(a);
+}
+
 /* Bus und Nachbau aufsetzen und den Chip anmelden. */
 static int boot(fake_bus_t *fb, se050_sim_t *sim)
 {
@@ -58,6 +102,13 @@ void test_contract(void)
 		TT_TRUE(sim.applet_selected, "Applet ausgewaehlt");
 		TT_TRUE(sim.channel, "SCP03 steht");
 		TT_TRUE(fb_clean(&fb), "Testbus ohne Beanstandung");
+
+		/* Die Sitzung muss ueber CreateSession gegen das genannte
+		 * Anmeldeobjekt aufgebaut worden sein (AN12413 3.6.3.2) -
+		 * nicht mit einem INITIALIZE UPDATE ins Blaue. */
+		TT_TRUE(sim.session_created, "CreateSession ist gelaufen");
+		TT_EQ_INT(sim.session_obj, TEST_CHANNEL_OBJ,
+			  "und zwar gegen das genannte Anmeldeobjekt");
 
 		/* Zweimal anmelden gibt es nicht. */
 		TT_EQ_INT(osk_se050_open(), OSK_ERR_EXISTS, "kein zweites Mal");
@@ -318,7 +369,7 @@ void test_contract(void)
 		osk_se050_close();
 	}
 
-	TT_CASE("Vertrag: PIN setzen und pruefen");
+	TT_CASE("Vertrag: PIN als AESKey-Anmeldeobjekt setzen");
 	{
 		fake_bus_t fb;
 		se050_sim_t sim;
@@ -326,23 +377,60 @@ void test_contract(void)
 
 		static const uint8_t pin[] = {'1', '2', '3', '4', '5', '6'};
 
-		/* Erstes Einrichten: ohne alte PIN. */
 		sim_set_reply(&sim, NULL, 0, SW_NO_ERROR);
 		TT_EQ_INT(osk_se050_pin_set(NULL, 0, pin, sizeof(pin)), OSK_OK, "eingerichtet");
-		TT_EQ_INT(sim.last_ins, INS_WRITE | INS_AUTH_OBJECT, "als Anmeldeobjekt angelegt");
-		TT_EQ_INT(sim.last_p1, P1_USERID, "P1_USERID");
 
-		/* Pruefen: der Nachbau gibt eine Sitzungskennung zurueck. */
-		uint8_t sess[2 + 8];
-		sess[0] = TAG_1;
-		sess[1] = 8u;
-		memset(&sess[2], 0x77, 8);
-		sim_set_reply(&sim, sess, sizeof(sess), SW_NO_ERROR);
+		/* Entscheidend: als AESKey-Anmeldeobjekt, nicht als UserID -
+		 * nur dann meldet der Baustein den Fehlversuchszaehler
+		 * (AN12413 3.2.4.4). */
+		TT_EQ_INT(sim.last_ins, INS_WRITE | INS_AUTH_OBJECT, "Anmeldeobjekt");
+		TT_EQ_INT(sim.last_p1, P1_AES, "P1_AES, nicht P1_USERID");
 
-		TT_EQ_INT(osk_se050_pin_verify(pin, sizeof(pin)), OSK_OK, "geprueft");
+		/* Und mit einer Hoechstzahl Versuche - ohne die zaehlt der
+		 * Baustein gar nicht (3.2.4.4). */
+		TT_TRUE(sim.last_payload_len > 4u, "Nutzlast vorhanden");
+		TT_EQ_INT(sim.last_payload[0], TAG_MAX_ATTEMPTS, "TAG_MAX_ATTEMPTS zuerst");
+		TT_EQ_INT(sim.last_payload[1], 2u, "zwei Byte");
 
-		/* Zu kurze und zu lange PIN werden abgelehnt, ohne dass ein
-		 * Befehl hinausgeht. */
+		/* Die PIN selbst darf nirgends im Befehl stehen. */
+		bool leaked = false;
+		for (size_t i = 0; i + sizeof(pin) <= sim.last_payload_len; i++) {
+			if (memcmp(&sim.last_payload[i], pin, sizeof(pin)) == 0) {
+				leaked = true;
+			}
+		}
+		TT_TRUE(!leaked, "die PIN steht nicht im Befehl");
+
+		osk_se050_close();
+	}
+
+	TT_CASE("Vertrag: richtige PIN oeffnet die Sitzung, falsche nicht");
+	{
+		fake_bus_t fb;
+		se050_sim_t sim;
+		TT_TRUE(boot(&fb, &sim), "angemeldet");
+
+		static const uint8_t pin[] = {'1', '2', '3', '4', '5', '6'};
+		static const uint8_t wrong[] = {'1', '2', '3', '4', '5', '7'};
+
+		/* Der Nachbau erwartet ab jetzt den aus der PIN abgeleiteten
+		 * Satz - wie ein Baustein, in dem diese PIN gesetzt ist. */
+		osk_scp03_static_keys_t pin_keys;
+		pin_keyset_for_test(pin, sizeof(pin), &pin_keys);
+		sim_set_auth_keys(&sim, &pin_keys);
+
+		TT_EQ_INT(osk_se050_pin_verify(pin, sizeof(pin)), OSK_OK, "richtige PIN");
+
+		/* Gegen das PIN-Objekt, nicht gegen den Geraetekanal. */
+		TT_EQ_INT(sim.session_obj, 0x0F000001u, "Sitzung gegen das PIN-Objekt");
+
+		/* Falsche PIN: das Kryptogramm des Bausteins stimmt dann
+		 * nicht, der Aufbau scheitert. Der Vergleich findet im Chip
+		 * statt - der Wirt erfaehrt nur Ja oder Nein. */
+		TT_EQ_INT(osk_se050_pin_verify(wrong, sizeof(wrong)), OSK_ERR_DENIED,
+			  "falsche PIN abgewiesen");
+
+		/* Zu kurz und zu lang werden vorher abgefangen, ohne Befehl. */
 		const size_t before = sim.commands;
 		TT_EQ_INT(osk_se050_pin_verify(pin, 2u), OSK_ERR_ARG, "zu kurz");
 		uint8_t longpin[32];
@@ -515,21 +603,49 @@ void test_contract(void)
 		TT_TRUE(memcmp(kcv, kcv2, 3) != 0, "verschiedene Pruefwerte");
 	}
 
-	TT_CASE("Vertrag: Fehlversuche sind am SE050 nicht ablesbar");
+	TT_CASE("Vertrag: verbleibende Versuche kommen aus dem Chip");
 	{
 		fake_bus_t fb;
 		se050_sim_t sim;
 		TT_TRUE(boot(&fb, &sim), "angemeldet");
 
-		/* AN12413 Abschnitt 3.2.4.4 und Erratasheet APP.3: fuer ein
-		 * Objekt des Typs UserID meldet der Baustein den Zaehler
-		 * nicht. Der Treiber gibt darum OSK_ERR_UNSUPPORTED statt
-		 * einer geratenen Zahl - eine falsche "3 Versuche uebrig"
-		 * waere schlimmer als keine Auskunft. */
-		uint8_t tries = 42u;
-		TT_EQ_INT(osk_se050_pin_tries_left(&tries), OSK_ERR_UNSUPPORTED,
-			  "ehrlich nicht lieferbar");
-		TT_EQ_INT(tries, 0u, "keine geratene Zahl");
+		/* Der Baustein liefert die Attribute in TAG_2 des
+		 * beglaubigten Lesens: 2 Fehlversuche von 8 erlaubt. */
+		uint8_t body[32];
+		const size_t bl = attrs_for_test(body, 2u, 8u);
+		sim_set_reply(&sim, body, bl, SW_NO_ERROR);
+
+		uint8_t tries = 0;
+		TT_EQ_INT(osk_se050_pin_tries_left(&tries), OSK_OK, "gelesen");
+		TT_EQ_INT(tries, 6u, "8 erlaubt minus 2 verbraucht");
+
+		/* Beglaubigt gelesen - ohne INS_ATTEST gibt der Baustein die
+		 * Attribute nicht heraus (AN12413 3.2.7.2). */
+		TT_EQ_INT(sim.last_ins, INS_READ | INS_ATTEST, "INS_READ mit INS_ATTEST");
+
+		/* Zaehler voll: gesperrt, und 0 Versuche. */
+		const size_t bl2 = attrs_for_test(body, 8u, 8u);
+		sim_set_reply(&sim, body, bl2, SW_NO_ERROR);
+		tries = 42u;
+		TT_EQ_INT(osk_se050_pin_tries_left(&tries), OSK_ERR_LOCKED, "gesperrt");
+		TT_EQ_INT(tries, 0u, "keine Versuche uebrig");
+
+		/* Hoechstzahl 0 heisst beim SE050 "unbegrenzt" - dann gibt es
+		 * keine verbleibenden Versuche, und eine Zahl zu erfinden
+		 * waere falsch. */
+		const size_t bl3 = attrs_for_test(body, 0u, 0u);
+		sim_set_reply(&sim, body, bl3, SW_NO_ERROR);
+		TT_EQ_INT(osk_se050_pin_tries_left(&tries), OSK_ERR_UNSUPPORTED, "unbegrenzt");
+
+		/* Zu kurze Attribute werden gemeldet, nicht ausgelesen. */
+		uint8_t stub[6];
+		stub[0] = TAG_2;
+		stub[1] = 4u;
+		memset(&stub[2], 0, 4);
+		sim_set_reply(&sim, stub, sizeof(stub), SW_NO_ERROR);
+		TT_EQ_INT(osk_se050_pin_tries_left(&tries), OSK_ERR_FORMAT, "zu kurz");
+
+		TT_EQ_INT(osk_se050_pin_tries_left(NULL), OSK_ERR_ARG, "NULL");
 
 		osk_se050_close();
 	}

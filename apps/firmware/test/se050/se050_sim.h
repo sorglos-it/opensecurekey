@@ -24,10 +24,22 @@ typedef struct {
 	/* Feste Schluessel - dieselben, die der Testhaken dem Treiber gibt. */
 	osk_scp03_static_keys_t keys;
 
-	/* Sitzungszustand der Gegenseite. */
+	/* Sitzungszustand der Gegenseite. Der Nachbau haelt eine Sitzung -
+	 * mehr brauchen die Tests nicht, und der echte Baustein haelt zwei. */
 	osk_scp03_t scp;
 	bool applet_selected;
 	bool channel;
+
+	/* Kennung der offenen Sitzung und das Anmeldeobjekt, gegen das sie
+	 * aufgebaut wurde. Letzteres pruefen die Tests. */
+	uint8_t session_id[8];
+	bool session_created;
+	uint32_t session_obj;
+
+	/* Schluessel, die der Nachbau fuer das naechste CreateSession
+	 * erwartet. Vorgabe sind die festen Schluessel; der PIN-Test setzt
+	 * hier den aus der PIN abgeleiteten Satz ein. */
+	osk_scp03_static_keys_t next_auth_keys;
 
 	/* Zufallszahl, die der Nachbau liefert. Fest, damit ein Fehlerbild
 	 * wiederholbar ist. */
@@ -58,6 +70,10 @@ void sim_attach(se050_sim_t *sim, fake_bus_t *fb);
 
 /* Antwort fuer den naechsten Befehl festlegen. body darf NULL sein. */
 void sim_set_reply(se050_sim_t *sim, const uint8_t *body, size_t len, uint16_t sw);
+
+/* Die Schluessel festlegen, die der Nachbau beim naechsten Sitzungsaufbau
+ * als richtig ansieht - so laesst sich eine falsche PIN pruefen. */
+void sim_set_auth_keys(se050_sim_t *sim, const osk_scp03_static_keys_t *keys);
 
 /* Die festen Schluessel, die Nachbau und Testhaken gemeinsam benutzen. */
 const osk_scp03_static_keys_t *sim_keys(void);

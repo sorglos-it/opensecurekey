@@ -83,6 +83,8 @@
 #define TAG_3 0x43u
 #define TAG_4 0x44u
 #define TAG_5 0x45u
+#define TAG_6 0x46u
+#define TAG_7 0x47u
 
 /* Kurven (Tabelle 37). Kurven unter 0x40 sind Weierstrass-Kurven;
  * nur die listet ReadECCurveList auf (Abschnitt 4.8.4). */

@@ -30,4 +30,11 @@ osk_result_t osk_se050_platform_bus(osk_se050_bus_t **bus_out);
  * Der Treiber loescht die Kopie sofort nach dem Aufbau wieder. */
 osk_result_t osk_se050_platform_scp_keys(osk_scp03_static_keys_t *keys_out);
 
+/* Kennung des AESKey-Anmeldeobjekts, gegen das der Geraetekanal aufgebaut
+ * wird. Eine AESKey-Sitzung laeuft beim SE050 immer gegen ein benanntes
+ * Objekt (AN12413 3.6.3.2) - es gibt keinen namenlosen Kanal. Das Objekt
+ * entsteht beim Einrichten; die Kennung gehoert zur Platine, nicht zum
+ * Treiber. */
+osk_result_t osk_se050_platform_channel_obj(uint32_t *obj_id_out);
+
 #endif
