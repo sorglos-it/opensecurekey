@@ -165,7 +165,19 @@ def check_web(root):
 
 # --- Firmware ---------------------------------------------------------------------
 
-TEST_LINE = re.compile(r'^(\S+): (\d+) Faelle, (\d+) Fehler$', re.M)
+# Die Pruefsaetze melden ihre Zahl unterschiedlich - beide Formen zaehlen.
+# ctest rueckt die Ausgabe des Programms ein ("1: 5875 Pruefungen"), darum
+# darf der Zeilenanfang nicht verlangt werden.
+TEST_LINES = (re.compile(r'^\S+: (\d+) Faelle, \d+ Fehler$', re.M),
+              re.compile(r'(?:^|:\s*)(\d+) Pruefungen, \d+ Fehler\s*$', re.M))
+
+
+def count_cases(output):
+    for pattern in TEST_LINES:
+        found = [int(m.group(1)) for m in pattern.finditer(output or '')]
+        if found:
+            return sum(found)
+    return 0
 
 SAN_FLAGS = ['-fsanitize=address,undefined', '-fno-omit-frame-pointer']
 
@@ -191,6 +203,24 @@ def sanitizers_work():
                 pass
 
 
+def build_and_run_cmake(folder, extra):
+    """Einen CMake-Pruefsatz uebersetzen und laufen lassen. Die Ausgabe des
+    Programms wird durchgereicht, damit die Fallzahl gezaehlt werden kann -
+    ctest allein meldet nur 'ein Test', nicht die Tausende darin."""
+    out_dir = os.path.join(folder, 'build')
+    flags = [] if extra else ['-DCMAKE_C_FLAGS=' + ' '.join(SAN_FLAGS),
+                              '-DCMAKE_EXE_LINKER_FLAGS=' + ' '.join(SAN_FLAGS)]
+    code, out = common.run(['cmake', '-S', folder, '-B', out_dir] + flags, capture=True)
+    if code != 0:
+        return code, out
+    code, build_out = common.run(['cmake', '--build', out_dir], capture=True)
+    if code != 0:
+        return code, (out or '') + (build_out or '')
+    code, test_out = common.run(['ctest', '--test-dir', out_dir, '--output-on-failure', '-V'],
+                                capture=True)
+    return code, test_out
+
+
 def check_firmware_tests(root):
     """Die Pruefungen der Firmware laufen am PC mit gcc und make - sie brauchen
     das nRF Connect SDK NICHT. Frueher haengten sie am SDK und wurden deshalb
@@ -200,12 +230,25 @@ def check_firmware_tests(root):
     part, base = 'firmware', os.path.join(common.part_dir('firmware', root), 'test')
     if not os.path.isdir(base):
         return [Result(part, 'tests', SKIPPED, 'apps/firmware/test fehlt')]
-    suites = sorted(d for d in os.listdir(base)
-                    if os.path.isfile(os.path.join(base, d, 'Makefile')))
+    # Zwei Bauweisen sind im Umlauf: Makefile (CTAP) und CMake (Tresor).
+    # Beide muessen laufen, sonst faellt ein Pruefsatz still unter den Tisch -
+    # genau das ist dem CTAP-Satz schon einmal passiert.
+    suites = []
+    for name in sorted(os.listdir(base)):
+        folder = os.path.join(base, name)
+        if os.path.isfile(os.path.join(folder, 'Makefile')):
+            suites.append((name, 'make'))
+        elif os.path.isfile(os.path.join(folder, 'CMakeLists.txt')):
+            suites.append((name, 'cmake'))
     if not suites:
-        return [Result(part, 'tests', SKIPPED, 'kein Makefile unter apps/firmware/test/')]
-    if common.run(['make', '--version'], capture=True)[0] != 0:
-        return [Result(part, 'tests', SKIPPED, 'make fehlt - unter Windows etwa ueber WSL')]
+        return [Result(part, 'tests', SKIPPED, 'kein Makefile und kein CMakeLists.txt unter apps/firmware/test/')]
+
+    needed = sorted({'make' if kind == 'make' else 'cmake' for _, kind in suites})
+    missing = [tool for tool in needed
+               if common.run([tool, '--version'], capture=True)[0] != 0]
+    if missing:
+        return [Result(part, 'tests', SKIPPED,
+                       '%s fehlt - unter Windows etwa ueber WSL' % ' und '.join(missing))]
 
     # Die Sanitizer finden Ueberlaeufe, die kein Test sieht - aber MinGW kann sie
     # nicht binden. Probe statt Annahme: scheitert sie, laufen die Pruefungen ohne,
@@ -215,17 +258,20 @@ def check_firmware_tests(root):
         extra, suffix = ['SAN='], ' ohne Sanitizer'
 
     results, total = [], 0
-    for suite in suites:
-        step = 'tests/' + suite
-        code, out = common.run(['make'] + extra, cwd=os.path.join(base, suite), capture=True)
-        count = sum(int(m.group(2)) for m in TEST_LINE.finditer(out or ''))
+    for suite, kind in suites:
+        step, folder = 'tests/' + suite, os.path.join(base, suite)
+        if kind == 'make':
+            code, out = common.run(['make'] + extra, cwd=folder, capture=True)
+        else:
+            code, out = build_and_run_cmake(folder, extra)
+        count = count_cases(out)
         if code != 0:
             results.append(fail(part, step, 'Pruefungen rot', out))
         elif count == 0:
             # Gruener Code ohne eine einzige Pruefung ist kein Erfolg.
             results.append(fail(part, step, 'keine Pruefung ausgefuehrt', out))
         else:
-            results.append(Result(part, step, OK, 'make (%d Faelle)%s' % (count, suffix), count))
+            results.append(Result(part, step, OK, '%s (%d Faelle)%s' % (kind, count, suffix), count))
             total += count
     return results
 
