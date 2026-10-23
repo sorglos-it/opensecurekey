@@ -240,6 +240,56 @@ osk_result_t osk_se050_curves(uint32_t *mask_out)
 	return OSK_OK;
 }
 
+/* --------------------------------------------------------- Freier Platz */
+
+osk_result_t osk_se050_free_memory(uint16_t *bytes_out)
+{
+	if (!g_open) {
+		return OSK_ERR_IO;
+	}
+	if (bytes_out == NULL) {
+		return OSK_ERR_ARG;
+	}
+	*bytes_out = 0;
+
+	/* GetFreeMemory (AN12413 4.19.3). Gefragt wird nach dauerhaftem
+	 * Speicher: fluechtiger hilft nicht bei der Frage, wie viele
+	 * Schluessel noch hineinpassen. */
+	uint8_t payload[8];
+	osk_tlv_writer_t w;
+	osk_tlv_init(&w, payload, sizeof(payload));
+	osk_tlv_put_u8(&w, TAG_1, MEM_PERSISTENT);
+
+	size_t pl = 0;
+	osk_result_t r = osk_tlv_done(&w, &pl);
+	if (r != OSK_OK) {
+		return r;
+	}
+
+	uint8_t rsp[32];
+	size_t n = 0;
+	r = osk_se050_apdu_exchange(&g_apdu, INS_MGMT, P1_DEFAULT, P2_MEMORY, payload, pl, rsp,
+				    sizeof(rsp), &n);
+	if (r != OSK_OK) {
+		return r;
+	}
+
+	osk_tlv_reader_t rd;
+	osk_tlv_reader_init(&rd, rsp, n);
+
+	/* Zwei Byte, hoechstwertiges zuerst. 0x7FFF heisst "32768 oder
+	 * mehr" - der Chip sagt nicht, wie viel genau. Das wird so
+	 * durchgereicht, statt eine genauere Zahl zu erfinden. */
+	uint16_t free_bytes = 0;
+	r = osk_tlv_get_u16(&rd, TAG_1, &free_bytes);
+	if (r != OSK_OK) {
+		return r;
+	}
+
+	*bytes_out = free_bytes;
+	return OSK_OK;
+}
+
 /* ------------------------------------------------------------- Zufall */
 
 osk_result_t osk_se050_random(uint8_t *out, size_t len)

@@ -157,6 +157,59 @@ void test_contract(void)
 		memset(&b, 0x22, sizeof(b));
 		TT_EQ_INT(osk_se050_rotate_scp_keys(0x0Bu, &a, &b), OSK_ERR_IO, "rotate_scp_keys");
 		TT_EQ_INT(osk_se050_require_scp(), OSK_ERR_IO, "require_scp");
+
+		uint16_t bytes = 0;
+		TT_EQ_INT(osk_se050_free_memory(&bytes), OSK_ERR_IO, "free_memory");
+	}
+
+	TT_CASE("Vertrag: freier Platz im Chip");
+	{
+		fake_bus_t fb;
+		se050_sim_t sim;
+		TT_TRUE(boot(&fb, &sim), "angemeldet");
+
+		/* GetFreeMemory antwortet mit zwei Byte in TAG_1. */
+		uint8_t give[4];
+		give[0] = TAG_1;
+		give[1] = 2u;
+		give[2] = 0x12u;
+		give[3] = 0x34u;
+		sim_set_reply(&sim, give, sizeof(give), SW_NO_ERROR);
+
+		uint16_t bytes = 0;
+		TT_EQ_INT(osk_se050_free_memory(&bytes), OSK_OK, "abgefragt");
+		TT_EQ_INT(bytes, 0x1234u, "hoechstwertiges Byte zuerst");
+		TT_EQ_INT(sim.last_ins, INS_MGMT, "INS_MGMT");
+		TT_EQ_INT(sim.last_p2, P2_MEMORY, "P2_MEMORY");
+
+		/* Gefragt werden muss nach DAUERHAFTEM Speicher - fluechtiger
+		 * sagt nichts darueber, wie viele Schluessel noch passen. */
+		TT_EQ_INT(sim.last_payload_len, 3u, "ein TLV mit einem Byte");
+		TT_EQ_INT(sim.last_payload[0], TAG_1, "TAG_1");
+		TT_EQ_INT(sim.last_payload[2], MEM_PERSISTENT, "MEM_PERSISTENT");
+
+		/* 0x7FFF heisst "32768 oder mehr". Das wird durchgereicht,
+		 * nicht zu einer genaueren Zahl erfunden. */
+		give[2] = 0x7Fu;
+		give[3] = 0xFFu;
+		sim_set_reply(&sim, give, sizeof(give), SW_NO_ERROR);
+		TT_EQ_INT(osk_se050_free_memory(&bytes), OSK_OK, "obere Grenze");
+		TT_EQ_INT(bytes, 0x7FFFu, "unveraendert gemeldet");
+
+		/* Ein Chip, der nur ein Byte schickt, ist ein Formatfehler
+		 * und keine 0 - sonst meldete das Geraet "voll", obwohl es
+		 * nur die Antwort nicht verstanden hat. */
+		uint8_t bad[3];
+		bad[0] = TAG_1;
+		bad[1] = 1u;
+		bad[2] = 0x05u;
+		sim_set_reply(&sim, bad, sizeof(bad), SW_NO_ERROR);
+		bytes = 0xAAAAu;
+		TT_EQ_INT(osk_se050_free_memory(&bytes), OSK_ERR_FORMAT, "ein Byte abgelehnt");
+
+		TT_EQ_INT(osk_se050_free_memory(NULL), OSK_ERR_ARG, "NULL");
+
+		osk_se050_close();
 	}
 
 	TT_CASE("Vertrag: Kurven werden abgefragt, nicht angenommen");

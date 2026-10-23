@@ -62,6 +62,7 @@
 #define P2_SESSION_CREATE 0x1Bu
 #define P2_SESSION_CLOSE 0x1Cu
 #define P2_VERSION 0x20u
+#define P2_MEMORY 0x22u
 #define P2_LIST 0x25u
 #define P2_TYPE 0x26u
 #define P2_DELETE_OBJECT 0x28u
@@ -113,6 +114,12 @@
 #define SW_CONDITIONS_NOT_SATISFIED 0x6985u
 #define SW_COMMAND_NOT_ALLOWED 0x6986u
 #define SW_WRONG_DATA 0x6A80u
+
+/* Speicherart (Tabelle 25). Fuer die Frage "wie viele Schluessel passen
+ * noch" zaehlt nur der dauerhafte Speicher. */
+#define MEM_PERSISTENT 0x01u
+#define MEM_TRANSIENT_RESET 0x02u
+#define MEM_TRANSIENT_DESELECT 0x03u
 
 /* Objekttyp (Tabelle 24) - nur was gelesen wird. */
 #define TYPE_EC_KEY_PAIR 0x01u

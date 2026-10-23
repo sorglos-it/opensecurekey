@@ -81,6 +81,21 @@ osk_result_t osk_se050_pin_tries_left(uint8_t *tries_out);
  * osk_se050_pin_clear() prueft das nicht, es loescht. */
 osk_result_t osk_se050_pin_clear(void);
 
+/* Freier dauerhafter Speicher im Chip, in Byte.
+ *
+ * HINZUGEFUEGT vom se050-Strang, vom Master angefordert.
+ *
+ * Wird gebraucht, weil jeder Dienst ein eigenes, dauerhaftes Schluesselpaar
+ * im Chip belegt: der private Teil darf ihn nicht verlassen, und auslagern
+ * kann der SE05x nicht (siehe docs/se050.md). Die Zahl der Dienste ist
+ * damit durch den Chipspeicher begrenzt - 104 kB beim SE051C2. Ohne diese
+ * Abfrage merkt das Geraet die Grenze erst, wenn das Anlegen scheitert.
+ *
+ * Meldet der Chip 32768 Byte oder mehr, kommt 0x7FFF heraus - mehr sagt er
+ * nicht. Der Wert ist eine Untergrenze mit 16 Byte Koernung, keine genaue
+ * Angabe; zum Warnen reicht er, zum Rechnen nicht. */
+osk_result_t osk_se050_free_memory(uint16_t *bytes_out);
+
 /* --- Erstinbetriebnahme: Werksschluessel ersetzen ------------------------
  *
  * HINZUGEFUEGT vom se050-Strang, dem Master gemeldet. Ohne diese zwei
