@@ -37,6 +37,17 @@ the program then says in plain words which function is missing.
 | 13 | `update` — signed firmware image | yes |
 | 14 | `attest` — challenge/response for dongle use | configurable |
 
+## Setup: one question that cannot be taken back
+
+Before a device holds any secret, the wizard asks which mode the profile uses —
+"mirrored" (a spare device is possible) or "this device only" (nothing ever
+leaves the chip). The answer decides how the root secret is created, so it has
+to be given first and cannot be changed afterwards; see `docs/architecture.md`.
+
+The program must put this in plain words, say that it is final, and not offer a
+default that quietly decides it. `hello` reports the mode of each profile so the
+interface can show it without asking the device to reveal anything.
+
 ## Rules
 
 - The program never sees a key. It sees metadata, and secrets only through
