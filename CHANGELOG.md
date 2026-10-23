@@ -46,6 +46,20 @@
   — reverse-polarity protection instead; 150 mAh cell instead of 100 mAh;
   0.71" display instead of 0.96"; 3 V flash variant (`W25Q512JVEIQ`) instead
   of the 1.8 V one.
+- **Stage 1 is built without a fingerprint sensor**; release is confirmed with
+  button and PIN. With FIDO2 the biometric *replaces* the PIN — it is not an
+  additional factor — so a sensor would make the key more convenient, not more
+  secure. On top of that no available sensor met all four requirements:
+  matching on the sensor, buyable in single units, openly documented without an
+  NDA, and small enough. The board still routes the pin header and its load
+  switch, so stage 2 can fit a sensor without a new board.
+- Transmit power is capped at 4 dBm, which keeps the 25 mA `IEXT` limit of the
+  nRF52840's REG0 stage valid and saves a second voltage converter; the display
+  and the fingerprint rail get load switches so that two large consumers never
+  run at once.
+- Board grows to 70 × 24 mm so that battery and NFC antenna sit in different
+  thirds, with a ferrite foil between cell and antenna. If the enclosure turns
+  out too large, the capacity gives way, not the distance.
 
 ### Security
 - First commissioning **must** replace the platform SCP03 keys of the secure

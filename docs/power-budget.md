@@ -159,8 +159,7 @@ Hundertfache:**
 
 ### Ruhestrom, zusammengerechnet
 
-**Variante A — OLED und Sensor über Lastschalter ganz abgeschaltet
-(empfohlen):**
+**Variante A — OLED über den Lastschalter ganz abgeschaltet (empfohlen):**
 
 | Posten | Strom |
 | --- | --- |
@@ -171,19 +170,22 @@ Hundertfache:**
 | Flash Deep Power Down | 1,00 µA |
 | Laderegler Rückentladung | < 2,00 µA |
 | OLED abgeschaltet | ~0 |
-| Fingerabdrucksensor abgeschaltet | ~0 |
+| Fingerabdrucksensor — in Stufe 1 nicht bestückt | 0 |
 | **Summe** | **≈ 9,5 µA** |
 
-**Variante B — OLED und Sensor dauernd versorgt:**
+**Variante B — OLED dauernd versorgt (Stufe 1 hat keinen Sensor):**
 
 | zusätzlich | Strom |
 | --- | --- |
 | OLED-Controller im Sleep (ungünstigster Fall) | 20 µA |
-| BM-Lite im Sleep | 13 µA |
-| **Summe** | **≈ 42,5 µA** |
+| **Summe** | **≈ 29,5 µA** |
 
-**Das ist Faktor 4,5 — allein durch zwei Lastschalter.** Zwei P-Kanal-MOSFETs
-sind billiger als die vierfache Akkukapazität.
+**Das ist Faktor 3 — allein durch einen Lastschalter.** Ein P-Kanal-MOSFET ist
+billiger als die dreifache Akkukapazität.
+
+Käme in Stufe 2 der Fingerabdrucksensor dazu, brächte er **13 µA** im Schlaf
+mit — mehr als unser gesamtes Ruhebudget. Der Lastschalter Q5 ist darum schon
+jetzt im Schaltplan vorgesehen, auch wenn der Sensor nicht bestückt wird.
 
 **`ungeprueft` an dieser Summe:** Das Datenblatt gibt die Weck-Szenarien als
 **Entweder-oder** an. Ein Gerät, das gleichzeitig per RTC **und** per Taster
@@ -234,19 +236,34 @@ Dazu kommt der Rechenstrom: CPU 3,3 mA plus SE051 14,4 mA für die Signatur.
 Ein NFC-Vorgang ist also stromstärker als die 400 µA des NFC-Blocks vermuten
 lassen — aber er dauert nur Sekunden.
 
-### Stromstoß beim Fingerabdruck-Scan und beim OLED
+### Stromstoß beim OLED und bei der Signatur
+
+Stufe 1 hat **keinen Fingerabdrucksensor** (Entscheidung in
+[hardware.md](hardware.md)). Der Scan-Stromstoß fällt damit aus der Rechnung
+heraus; er steht unten nur noch als Vorgriff auf Stufe 2.
 
 | Vorgang | Strom | Dauer | Ladung |
 | --- | --- | --- | --- |
-| BM-Lite Aufnahme + Vergleich | **12 mA** | **0,4 s** (Herstellerangabe) | 4,8 mA·s |
 | OLED 0,71" an (ungünstigster Fall) | **25 mA** | 3 s (**Annahme**) | 75 mA·s |
+| CPU wach | 3,3 mA | 3 s | 9,9 mA·s |
 | SE051C2 Signatur | **14,4 mA** | 0,2 s (**Annahme**, `ungeprueft`) | 2,9 mA·s |
 | Flash lesen, stoßweise | 20 mA | 0,1 s (**Annahme**) | 2 mA·s |
-| CPU wach | 3,3 mA | 3 s | 9,9 mA·s |
-| **Eine vollständige Freigabe** | | **≈ 3 s** | **≈ 94,6 mA·s = 26,3 µAh** |
+| **Eine vollständige Freigabe (Stufe 1)** | | **≈ 3 s** | **≈ 89,8 mA·s = 24,9 µAh** |
+
+Nur als Vorgriff, **nicht in der Summe oben**:
+
+| Vorgang | Strom | Dauer | Ladung |
+| --- | --- | --- | --- |
+| BM-Lite Aufnahme + Vergleich (Stufe 2) | 12 mA | 0,4 s (Herstellerangabe) | 4,8 mA·s |
+
+Käme der Sensor in Stufe 2 dazu, stiege die Ladung je Benutzung von 24,9 auf
+26,3 µAh — also um **5 %**. Dazu kämen 13 µA Schlafstrom, falls er nicht über
+den Lastschalter Q5 abgeschaltet wird; **das** wäre der teure Teil, nicht der
+Scan.
 
 **Der OLED ist mit Abstand der größte Einzelposten einer Benutzung** — mehr als
-der Fingerabdrucksensor, die Signatur und der Flash zusammen. Zwei Folgerungen:
+Signatur und Flash zusammen, und mehr als der Sensor je gekostet hätte. Zwei
+Folgerungen:
 
 - **Die Anzeige so kurz wie möglich einschalten.** Jede Sekunde Anzeige kostet
   etwa so viel wie 45 Minuten Ruhe.
@@ -254,9 +271,10 @@ der Fingerabdrucksensor, die Signatur und der Flash zusammen. Zwei Folgerungen:
   **typisch 12,0 mA und höchstens 25,0 mA** (Crystalfontz CFAL4864A-071BW,
   Ausgabe 2017-07-05, Abschnitt „Electrical Characteristics"). Das Budget hier
   rechnet mit den **25 mA**, also mit der Obergrenze — bei 12 mA sinkt die
-  Ladung je Benutzung von 26,3 auf etwa 15,5 µAh und die Laufzeit steigt von
-  etwa 6,7 auf etwa **8 Monate**. Welcher Wert bei unserer Bildschirmbelegung
-  gilt, hängt davon ab, wie viele Pixel leuchten; **das ist zu messen.**
+  Ladung je Benutzung von 24,9 auf etwa **14,1 µAh** und die Laufzeit steigt
+  von etwa 6,8 auf etwa **8,4 Monate**. Welcher Wert bei unserer
+  Bildschirmbelegung gilt, hängt davon ab, wie viele Pixel leuchten; **das ist
+  zu messen.**
 
 ### Spitzenstrom — und die Lücke, die bleibt
 
@@ -316,7 +334,8 @@ für dieses Gehäuse viel und muss noch nachgerechnet werden.
 
 - nutzbar 80 % der Nennkapazität (Abschaltung oberhalb der Zellschutzschwelle
   von 3,0 V)
-- 10 Benutzungen am Tag, je 3 s, nach der Rechnung oben 26,3 µAh
+- 10 Benutzungen am Tag, je 3 s, nach der Rechnung oben **24,9 µAh**
+  (Stufe 1, ohne Fingerabdruck-Scan)
 - **Selbstentladung 2 % im Monat** — **in keinem Datenblatt belegt.** Beide
   gelesenen Zelldatenblätter nennen nur „Kapazitätserhalt nach 28 Tagen"
 - Bluetooth nicht dauernd an
@@ -326,37 +345,44 @@ für dieses Gehäuse viel und muss noch nachgerechnet werden.
 | Posten | je Tag |
 | --- | --- |
 | Ruhe (9,5 µA × 24 h) | 0,228 mAh |
-| 10 Benutzungen × 26,3 µAh | 0,263 mAh |
+| 10 Benutzungen × 24,9 µAh | 0,249 mAh |
 | Selbstentladung (2 %/Monat von 150 mAh) | 0,100 mAh |
-| **Summe** | **0,591 mAh** |
+| **Summe** | **0,577 mAh** |
 
-**120 mAh / 0,591 mAh ≈ 203 Tage ≈ 6,7 Monate**
+**120 mAh / 0,577 mAh ≈ 208 Tage ≈ 6,8 Monate**
 
 ### Dieselbe Zelle, Bluetooth dauernd bereit (1 s)
 
-Ruhe steigt um 12 µA → +0,288 mAh/Tag → 0,879 mAh/Tag
-→ **136 Tage ≈ 4,5 Monate**
+Ruhe steigt um 12 µA → +0,288 mAh/Tag → 0,865 mAh/Tag
+→ **139 Tage ≈ 4,6 Monate**
 
 ### BerryBase LP-401230, 100 mAh → 80 mAh nutzbar
 
-**80 / 0,591 ≈ 135 Tage ≈ 4,5 Monate**
+**80 / 0,577 ≈ 139 Tage ≈ 4,6 Monate**
 
-### Was passiert, wenn man die Lastschalter weglässt (Variante B)
+### Was passiert, wenn man den Lastschalter weglässt (Variante B)
 
-Ruhe 42,5 µA → 1,02 mAh/Tag → mit 150 mAh: **0,891 mAh/Tag + ...**
-→ 120 / 1,386 ≈ **87 Tage ≈ 2,9 Monate**
+Ruhe 29,5 µA → 0,708 mAh/Tag; mit Benutzungen und Selbstentladung
+1,057 mAh/Tag → 120 / 1,057 ≈ **114 Tage ≈ 3,7 Monate**
 
 ### Übersicht
 
 | Fall | Zelle | Laufzeit |
 | --- | --- | --- |
-| **Lastschalter, BLE auf Abruf** | **150 mAh** | **≈ 6,7 Monate** |
-| Lastschalter, BLE auf Abruf | 100 mAh | ≈ 4,5 Monate |
-| Lastschalter, BLE dauernd bereit | 150 mAh | ≈ 4,5 Monate |
-| ohne Lastschalter, BLE auf Abruf | 150 mAh | ≈ 2,9 Monate |
-| 2 Benutzungen/Tag statt 10 | 150 mAh | ≈ 11 Monate |
-| 30 Benutzungen/Tag | 150 mAh | ≈ 3,5 Monate |
+| **Lastschalter, BLE auf Abruf** | **150 mAh** | **≈ 6,8 Monate** |
+| dito, aber Anzeige nur 12 mA (Typ.-Wert) | 150 mAh | ≈ 8,4 Monate |
+| Lastschalter, BLE auf Abruf | 100 mAh | ≈ 4,6 Monate |
+| Lastschalter, BLE dauernd bereit | 150 mAh | ≈ 4,6 Monate |
+| ohne Lastschalter, BLE auf Abruf | 150 mAh | ≈ 3,7 Monate |
+| 2 Benutzungen/Tag statt 10 | 150 mAh | ≈ 10,4 Monate |
+| 30 Benutzungen/Tag | 150 mAh | ≈ 3,7 Monate |
 | theoretische Obergrenze (nur Ruhe, keine Selbstentladung) | 150 mAh | 150 mAh / 9,5 µA ≈ **1,8 Jahre** |
+
+Der Wegfall des Fingerabdrucksensors bringt in der Laufzeit **etwa fünf Tage**
+(203 → 208 Tage). Das ist der ehrliche Befund: **der Sensor war energetisch
+nie das Problem** — solange er über einen Lastschalter abgeschaltet worden
+wäre. Hätte man ihn dauernd versorgt, wären es 13 µA und damit über zwei
+Monate gewesen. Entschieden wurde er aus anderen Gründen, nicht aus diesem.
 
 ## Die Antwort auf „wie groß muss der Akku sein"
 
@@ -364,20 +390,21 @@ Ruhe 42,5 µA → 1,02 mAh/Tag → mit 150 mAh: **0,891 mAh/Tag + ...**
 
 Begründung:
 
-- Mit 150 mAh und sauberer Firmware hält das Gerät **gut ein halbes Jahr** ohne
+- Mit 150 mAh und sauberer Firmware hält das Gerät **knapp sieben Monate** ohne
   Rechner. Das ist für einen Schlüssel, der fast täglich am USB hängt und dabei
   nachlädt, mehr als genug — in der Praxis wird er nie leer.
 - Die Zelle ist mit **3,8 mm** die dünnste belegte und bestimmt damit die
   Bauhöhe des Geräts. 250 mAh gäbe es nur mit 5,3 mm (+40 % Dicke) für +67 %
   Kapazität — bei einem Schlüsselanhänger ist Dicke teurer als Laufzeit.
 - **Die Laufzeit hängt nicht an der Kapazität, sondern an drei
-  Entscheidungen:** Lastschalter für OLED und Sensor (Faktor 4,5),
+  Entscheidungen:** Lastschalter für die Anzeige (Faktor 3),
   GPIOTE-PORT statt Event (Faktor 7 im Weckpfad), Bluetooth auf Abruf statt
   dauernd (Faktor 1,5). Alle drei kosten nichts. Eine größere Zelle kostet
   Bauhöhe und löst keines der drei Probleme.
 
 **Wenn es dünner sein muss:** BerryBase LP-401230, 100 mAh, nur 12 mm breit —
-4,5 Monate. Für ein schmales Anhängergehäuse der bessere Kompromiss.
+4,6 Monate. Für ein schmales Anhängergehäuse der bessere Kompromiss, und sie
+schafft zugleich Platz für den Abstand zur NFC-Antenne.
 
 ## Was gemessen werden muss, bevor diese Zahlen gelten
 

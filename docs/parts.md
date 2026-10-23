@@ -15,7 +15,7 @@ beweisen. **Zielplatine** ist, was später auf die eigene Platine kommt.
 | Sicherheitschip | MIKROE-5392 "SE051 Plug & Trust Click" | SE051C2HQ1/Z01XDZ (HX2QFN20, 3 × 3 mm) |
 | Flash | auf dem DK vorhanden | **W25Q512JVEIQ** (3 V, 512 Mbit = 64 MByte, WSON8) |
 | OLED | Crystalfontz **CFAL12864N-A-B4** (0,96") | **CFAL4864A-071BW** (0,71", 13,9 × 22 × 1,26 mm) |
-| Fingerabdruck | FPC BM-Lite Entwicklungskit | **offener Punkt** — Vorschlag: Stufe 1 ohne Sensor |
+| Fingerabdruck | — | **nicht bestückt** (Stufe 1 ohne Sensor, Stiftfeld J5 vorgesehen) |
 | Laderegler | — (DK läuft am USB) | **MCP73832T-2ACI/OT** + diskrete Lastumschaltung |
 | Akkuschutz | — | **keiner** — Zelle mit PCM + Verpolschutz |
 | Akku | — | **Adafruit 1317** (150 mAh) oder BerryBase **LP-401230-J** (100 mAh) |
@@ -148,9 +148,11 @@ MIKROE-5392** — es trägt den Zielchip SE051C2 und kostet weniger als die Häl
 Alle Preise und Bestände in diesem Abschnitt sind Momentaufnahmen aus dem
 Suchindex und **ungeprueft**; vor der Bestellung die Händlerseite ansehen.
 
-## Fingerabdrucksensor — ehrlich: kein Kandidat erfüllt alles
+## Fingerabdrucksensor — kein Kandidat erfüllt alles
 
-Das war der schwerste Punkt, und er bleibt offen. Gefordert waren vier Dinge:
+Das war der schwerste Punkt. **Entschieden: Stufe 1 ohne Sensor** (Begründung
+am Ende des Abschnitts). Die Recherche steht hier vollständig, weil Stufe 2
+sie braucht. Gefordert waren vier Dinge:
 
 1. Der Sensor rechnet den Vergleich **selbst** und liefert nur ja/nein.
 2. In Einzelstücken bei einem echten Händler zu bekommen.
@@ -242,20 +244,30 @@ Token2 PIN+ Bio3 und Kensington VeriMark Guard haben einen Sensor, nennen den
 Hersteller aber nicht. Beim YubiKey Bio ließ sich kein Teardown finden, der den
 Chip benennt; Yubico spricht nur von einer "Drei-Chip-Architektur".
 
-### Vorschlag
+### Entschieden: Stufe 1 ohne Sensor
 
-**Den Fingerabdruck in Stufe 1 weglassen und Taster + PIN bauen.** Begründung:
+**Der Freigabeweg ist Taster + PIN. In Stufe 1 wird kein Fingerabdrucksensor
+bestückt.**
 
-- Bei FIDO2 ersetzt die Biometrie die PIN; sie ist **kein zusätzlicher Faktor**.
-  Der Sicherheitsgewinn ist Bequemlichkeit, nicht Härte.
+**Der tragende Grund: Bei FIDO2 ersetzt die Biometrie die PIN — sie ist kein
+zusätzlicher Faktor.** Das Gerät wird durch einen Sensor nicht sicherer,
+sondern bequemer. Es gibt keine Stelle im Protokoll, an der Finger **und** PIN
+zusammen gefordert werden. Der Verzicht ist darum keine Sparmaßnahme.
+
+Dazu:
+
 - Taster + PIN ist der Weg jedes offenen Projekts und zertifizierbar.
 - Es kostet keinen Platz, keinen Strom und keine Angriffsfläche.
-- Die Platine kann den Sensor **vorsehen** (4 Leitungen plus Versorgung auf einem
-  Stiftfeld), ohne dass er bestückt wird. Dann entscheidet Stufe 2.
+- Die Beschaffungslage ist ungelöst: Das aussichtsreichste Teil (BM-Lite) hat
+  keinen offenen Befehlssatz, das offene Teil (R503-M22) ist 15 mm dick und
+  gibt Rohbilder heraus.
 
-So bleibt das Gerät klein und offen, und die Frage "BM-Lite ohne NDA?" blockiert
-den Baubeginn nicht. Diese Entscheidung ist nicht meine — sie gehört dem Nutzer;
-ich lege sie vor.
+**Die Platine sieht den Sensor trotzdem vor:** vier Leitungen plus Versorgung
+auf dem Stiftfeld J5, verlegt aber nicht bestückt. **Stufe 2 kann nachrüsten,
+ohne dass eine neue Platine nötig wird.**
+
+**Nicht bestellen:** das BM-Lite-Entwicklungskit (160–178 USD) — in Stufe 1
+wird es nicht gebraucht.
 
 ## Flash: W25Q512JVEIQ (3 V), nicht die 1,8-V-Fassung
 

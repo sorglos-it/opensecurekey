@@ -62,24 +62,39 @@ dass nie zwei große Verbraucher gleichzeitig laufen.** Das kostet Funkreichweit
 und spart einen zusätzlichen Wandler. Die Alternativen stehen in
 [power-budget.md](power-budget.md).
 
-### 3. Der Fingerabdrucksensor bleibt offen — und das ist die ehrliche Antwort
+### 3. Entschieden: Stufe 1 ohne Fingerabdrucksensor
 
-**Kein geprüfter Kandidat erfüllt alle vier Anforderungen** (Vergleich im
-Sensor, Kleinmenge, offene Beschreibung, klein genug).
+**Der Freigabeweg ist Taster + PIN. Ein Fingerabdrucksensor wird in Stufe 1
+nicht bestückt.**
 
-- **FPC BM-Lite** ist technisch die erste Wahl: 15 × 15 × 2,8 mm, 12 mA bei der
-  Aufnahme, 13 µA im Schlaf, bei Mouser lagernd. Aber der **Host-Befehlssatz
-  ist „proprietary"** — für ein MIT-Projekt ein echtes Problem.
+**Der tragende Grund: Bei FIDO2 ersetzt die Biometrie die PIN — sie ist kein
+zusätzlicher Faktor.** Das Gerät wird durch einen Sensor also nicht sicherer,
+sondern bequemer. Wer den Finger hat, braucht die PIN nicht; wer ihn nicht
+hat, nimmt die PIN. Es gibt keine Stelle, an der beide zusammen gefordert
+werden. Darum ist der Verzicht **keine Sparmaßnahme**, sondern der Verzicht auf
+Bequemlichkeit zugunsten von Platz, Strom und Angriffsfläche.
+
+Dazu kam die Beschaffungslage: **kein geprüfter Kandidat erfüllt alle vier
+Anforderungen** (Vergleich im Sensor, Kleinmenge, offene Beschreibung, klein
+genug).
+
+- **FPC BM-Lite** wäre technisch die erste Wahl: 15 × 15 × 2,8 mm, 12 mA bei
+  der Aufnahme, 13 µA im Schlaf, bei Mouser lagernd. Aber der
+  **Host-Befehlssatz ist „proprietary"** — für ein MIT-Projekt ein echtes
+  Problem.
 - **Grow R503-M22** hat ein vollständig offenes Protokoll und 2 µA
   Bereitschaft, ist aber **15 mm dick** und liefert auf Befehl auch Rohbilder.
 - **Kein einziges offenes FIDO-Projekt** (Nitrokey 3, Solo2, OpenSK) hat
   überhaupt einen Fingerabdrucksensor. Es gibt keinen erprobten Weg.
 
-**Vorschlag: Stufe 1 ohne Sensor, nur Taster und PIN.** Bei FIDO2 ersetzt die
-Biometrie die PIN, sie ist **kein zusätzlicher Faktor** — der Gewinn ist
-Bequemlichkeit, nicht Sicherheit. Die Platine sieht den Sensor auf einem
-Stiftfeld vor, ohne ihn zu bestücken. Das hält den Schlüssel klein und
-blockiert den Baubeginn nicht.
+**Was die Platine trotzdem vorsieht:** das Stiftfeld J5 und seine vier
+Leitungen werden verlegt, aber nicht bestückt. Stufe 2 kann den Sensor dann
+nachrüsten, **ohne dass eine neue Platine nötig wird**.
+
+**Was der Verzicht einbringt:** Bauhöhe und Seitenaufteilung richten sich nicht
+mehr nach dem 2,8 mm dicken Sensor. Der freie Platz im mittleren Drittel geht
+in den Abstand zwischen Akku und NFC-Antenne — siehe
+[../hardware/layout-notes.md](../hardware/layout-notes.md).
 
 ## Teststand (jetzt zu bestellen)
 
@@ -95,8 +110,9 @@ Grob **50–80 €** statt der im Entwurf geschätzten 190–220 € — weil da
 Sicherheitschip-Board ein Viertel des NXP-Kits kostet und die NFC-Antenne
 beiliegt. Alle Preise `ungeprueft`.
 
-**Nicht bestellen, bis entschieden ist:** Fingerabdrucksensor (siehe oben) und
-die Zielplatinen-Teile (erst nach dem Teststand).
+**Kein Fingerabdruck-Entwicklungskit bestellen** — das wären 160–178 USD für
+etwas, das in Stufe 1 nicht verbaut wird. Die Zielplatinen-Teile erst nach dem
+Teststand.
 
 ## Zielplatine (später)
 
@@ -124,13 +140,18 @@ Die Bluetooth-Fassung ist laut Herstellerdokument **5.2**; Händler werben mit
 
 ## Laufzeit
 
-Mit 150 mAh, Lastschaltern für Anzeige und Sensor und Bluetooth auf Abruf:
-**etwa 6,7 Monate** bei zehn Benutzungen am Tag. Gerechnet, nicht gemessen;
+Mit 150 mAh, Lastschalter für die Anzeige und Bluetooth auf Abruf:
+**etwa 6,8 Monate** bei zehn Benutzungen am Tag — und etwa 8,4 Monate, falls
+die Anzeige nur ihren Typ.-Wert von 12 mA zieht. Gerechnet, nicht gemessen;
 Rechenweg und Annahmen in [power-budget.md](power-budget.md).
 
 **Die Laufzeit hängt nicht an der Akkugröße, sondern an drei Entscheidungen,
-die nichts kosten:** Lastschalter (Faktor 4,5), Wecken per GPIOTE-PORT statt
-Event (Faktor 7 im Weckpfad), Bluetooth auf Abruf statt dauernd (Faktor 1,5).
+die nichts kosten:** Lastschalter für die Anzeige (Faktor 3), Wecken per
+GPIOTE-PORT statt Event (Faktor 7 im Weckpfad), Bluetooth auf Abruf statt
+dauernd (Faktor 1,5).
+
+Der Wegfall des Fingerabdrucksensors bringt dabei nur **etwa fünf Tage** — er
+war energetisch nie das Problem, solange er abschaltbar gewesen wäre.
 
 Der Akku ist ein Verschleißteil. Bei 300 belegten Ladezyklen und einem
 Nachladen je Woche sind das etwa sechs Jahre — er sollte als Verschleißteil
@@ -175,18 +196,24 @@ die Panelspannung selbst aus `VBAT`; bestätigt durch die Strommessung, die mit
 **typisch 12 mA, höchstens 25 mA** — der obere Wert, mit dem das Energiebudget
 rechnet, ist also die echte Obergrenze.
 
-### Fingerabdrucksensor: die Platine kann beides
+### Fingerabdrucksensor: Stufe 1 ohne, Stufe 2 nachrüstbar
 
-Die Entscheidung liegt beim Nutzer. Die Platine wartet nicht darauf: das
-Stiftfeld J5 und seine vier Leitungen werden **jetzt verlegt, aber nicht
-bestückt**, und das Gehäuse bekommt an der Stelle eine Aussparung mit
-Blindstück. So ist später nur ein Gehäuseteil zu ändern, nicht die Platine.
+Entschieden, Begründung unter Befund 3. Die Platine verlegt das Stiftfeld J5
+und seine vier Leitungen, **bestückt sie aber nicht**. Das Gehäuse bekommt an
+der Stelle eine Aussparung mit Blindstück — so ist für Stufe 2 nur ein
+Gehäuseteil zu ändern, nicht die Platine.
 
-## Was als Nächstes entschieden werden muss
+## Alle Entscheidungen sind gefallen
 
-**Nur noch der Fingerabdrucksensor** — mein Vorschlag steht oben unter
-Befund 3, die Entscheidung liegt beim Nutzer. Alles andere ist entschieden und
-eingearbeitet.
+Nichts wartet mehr auf eine Antwort. Was bleibt, sind Rechen- und
+Messaufgaben — die Feinpunkte stehen in
+[../hardware/schematic.md](../hardware/schematic.md) und
+[../hardware/layout-notes.md](../hardware/layout-notes.md), die Messungen
+unten.
+
+Der nächste Schritt ist das Zeichnen in EasyEDA, nach
+[../hardware/schematic.md](../hardware/schematic.md) und
+[../hardware/pinout.md](../hardware/pinout.md).
 
 ## Was gemessen werden muss, bevor die Zahlen gelten
 

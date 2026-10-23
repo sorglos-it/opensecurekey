@@ -606,12 +606,15 @@ unbestückt und R43/R45 mit 0 Ω gebrückt** werden. Im DK-Schaltplan sollen
 > DevZone-Beitrag und der Board-Dokumentation, **nicht aus einem selbst
 > geöffneten Schaltplan**. Am Schaltplan der eigenen Board-Revision nachsehen.
 
-## Netzliste: Fingerabdrucksensor (vorgesehen, nicht bestückt)
+## Netzliste: Fingerabdrucksensor (Stufe 2, Platz vorgesehen)
 
-J5, Stiftfeld 1 × 6 im Raster 1,27 mm. **In Stufe 1 nicht bestückt** —
-Begründung in `../docs/parts.md`: kein Kandidat erfüllt alle vier
-Anforderungen, und der Host-Befehlssatz des aussichtsreichsten Teils (FPC
-BM-Lite) ist nicht offen.
+J5, Stiftfeld 1 × 6 im Raster 1,27 mm. **Entschieden: in Stufe 1 nicht
+bestückt.** Der Freigabeweg ist Taster + PIN.
+
+Der tragende Grund steht in `../docs/hardware.md`: **bei FIDO2 ersetzt die
+Biometrie die PIN, sie ist kein zusätzlicher Faktor.** Dazu kam, dass kein
+Kandidat alle vier Anforderungen erfüllt und der Host-Befehlssatz des
+aussichtsreichsten Teils (FPC BM-Lite) nicht offen ist (`../docs/parts.md`).
 
 | J5 Pin | Signal | nach |
 | --- | --- | --- |
@@ -628,9 +631,11 @@ BM-Lite) ist nicht offen.
 | Q5 Gate | `P1.15` | über R17 = 100 kΩ |
 | `P1.03` | FP_IRQ | eigener Draht oder Testpunkt |
 
-Das Stiftfeld kostet fast nichts und hält die Tür offen. Der Lastschalter Q5 ist
-auch dann sinnvoll, wenn der Sensor später kommt: 13 µA Schlafstrom des BM-Lite
-wären mehr als unser gesamtes Ruhebudget.
+**Was trotzdem bestückt wird: Q5 und R17.** Der Lastschalter kostet zwei
+Bauteile und spart Stufe 2 eine Änderung — ohne ihn brächte der Sensor 13 µA
+Dauerstrom mit, mehr als unser gesamtes Ruhebudget von 9,5 µA. Das Stiftfeld J5
+und die sechs Leitungen werden **verlegt, aber nicht bestückt**; das kostet
+fast nichts und hält die Tür offen.
 
 ## SWD-Programmierstecker
 

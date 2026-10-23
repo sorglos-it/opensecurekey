@@ -58,17 +58,25 @@ mit Akku und ohne NFC hätte den Akku umsonst.
 
 ### Die Aufteilung
 
+Weil Stufe 1 **ohne Fingerabdrucksensor** gebaut wird, ist das Feld neben dem
+Akku frei geworden, das vorher der Sensor belegt hätte (15 × 15 mm). **Dieser
+Platz geht in den Abstand zwischen Akku und Antenne** — der Akku rückt zum
+Modul hin, das Antennendrittel wird größer.
+
 ```
    ┌──────────────────────────────────────────────────────┐
-   │ USB-C │  Modul U1  │   Akku unten    │  NFC-Antenne  │
-   │  J1   │  (Antenne  │   + Ferritfolie │  als Schleife │
-   │       │   nach     │   OLED oben     │  + Taster     │
-   │       │   außen)   │   SE051, Flash  │               │
+   │ USB-C │  Modul U1  │  Akku unten   │   NFC-Antenne   │
+   │  J1   │  (Antenne  │  + Ferritfolie│   als Schleife  │
+   │       │   nach     │  OLED oben    │   + Taster      │
+   │       │   außen)   │  SE051, Flash │                 │
    └──────────────────────────────────────────────────────┘
-     0    9        25            48              70 mm
+     0    9        25           44                 70 mm
+            └─ Akku endet bei 44 mm ─┘
+                                 └─ 26 mm Antennenfeld ─┘
 ```
 
-- Antenne und Akku liegen in **verschiedenen Dritteln** der Platine.
+- Antenne und Akku liegen in **verschiedenen Dritteln** der Platine, mit
+  **etwa 26 mm** für das Antennenfeld statt der vorher geplanten 22 mm.
 - **Ferritfolie auf der Akkuseite**, zwischen Zelle und Platine, überdeckt die
   Zellfläche und reicht in Richtung Antenne über. Genaue Fläche ergibt sich
   beim Zeichnen.
@@ -78,12 +86,17 @@ mit Akku und ohne NFC hätte den Akku umsonst.
 70 × 24 mm ist noch Schlüsselanhängerformat — etwa so groß wie ein
 Autoschlüssel.
 
+**Die Bauhöhe richtet sich jetzt nach dem Akku (3,8 mm), nicht mehr nach dem
+Sensor (2,8 mm plus Fassung).** Damit ist die Höhe von der Sensorfrage
+entkoppelt: Stufe 2 kann den Sensor nachrüsten, ohne dass das Gehäuse dicker
+werden muss, solange er neben dem Akku und nicht über ihm sitzt.
+
 ### Wenn das Gehäuse dadurch zu groß wird
 
 Dann **nicht** den Abstand opfern, sondern die **schmale Zelle** nehmen:
 BerryBase LP-401230, 100 mAh, **4,05 × 12,0 × 30,5 mm**. Sie ist nur 12 mm
 breit statt 19,75 mm und lässt neben sich Platz, sodass die Platine kürzer
-werden kann. Preis: Laufzeit sinkt von etwa 6,7 auf etwa 4,5 Monate
+werden kann. Preis: Laufzeit sinkt von etwa 6,8 auf etwa 4,6 Monate
 (`../docs/power-budget.md`).
 
 **Die Reihenfolge ist also: Abstand behalten, Kapazität opfern** — nicht
@@ -185,29 +198,35 @@ einer, der statt sieben nur viereinhalb Monate hält, schon.
 - Drei getrennte Leitungen (sechs Pins, keine gemeinsame Elektrode), also drei
   Vorwiderstände dicht an der LED.
 
-### Fingerabdrucksensor: die Platine muss beides können
+### Fingerabdrucksensor: Stufe 1 ohne, Platz für Stufe 2
 
-**Vorgabe: so planen, dass mit und ohne Sensor dieselbe Platine taugt.** Das
-Stiftfeld J5 wird vorgesehen, aber **nicht bestückt**. Die Entscheidung über
-den Sensor liegt noch beim Nutzer; die Platine wartet nicht darauf.
+**Entschieden: Stufe 1 wird ohne Sensor gebaut** (Begründung in
+`../docs/hardware.md`). Der Freigabeweg ist Taster + PIN.
 
-Was das konkret heißt:
+Was die Platine dennoch tut, damit Stufe 2 keine neue Platine braucht:
 
-- Das FPC BM-Lite ist **15 × 15 × 2,8 mm** — das größte Einzelteil nach dem
-  Akku und **dicker als der Akku**. Es würde die Bauhöhe bestimmen.
-- Es gehört auf die **Seite, die der Finger berührt**. Die Anzeige liegt
-  gegenüber dem Akku; der Sensor kommt auf die **Akkuseite**, in das freie
-  Stück des mittleren Drittels neben der Zelle. Mit der schmalen Zelle (12 mm)
-  passt er dort; mit der 19,75 mm breiten wird es eng.
-- **Das Gehäuse bekommt an dieser Stelle von Anfang an eine Aussparung**, die
-  in Stufe 1 mit einem Blindstück geschlossen wird. So ist nur ein
-  Gehäuseteil zu ändern, nicht die Platine.
-- J5 (Stiftfeld 1 × 6, 1,27 mm) gehört an die **Kante dieses Felds**, damit in
-  Stufe 1 ein Flachbandkabel zum Ausprobieren herausgeführt werden kann, ohne
-  dass das Gehäuse im Weg ist.
-- Die vier schnellen Leitungen zum Stiftfeld (`P0.13`–`P0.16`) werden **jetzt
-  schon verlegt**, nicht später nachgetragen — nachträgliches Verlegen in ein
-  fertiges Layout ist teurer als ein paar ungenutzte Leiterbahnen.
+- **J5 (Stiftfeld 1 × 6, 1,27 mm) wird verlegt, aber nicht bestückt**, samt den
+  vier schnellen Leitungen `P0.13`–`P0.16`, der Versorgung über Q5 und
+  `FP_IRQ`. Nachträgliches Verlegen in ein fertiges Layout ist teurer als ein
+  paar ungenutzte Leiterbahnen.
+- **Der Lastschalter Q5 wird bestückt**, auch ohne Sensor. Er kostet ein
+  Bauteil und spart Stufe 2 eine Änderung; ohne ihn brächte der Sensor 13 µA
+  Dauerstrom mit — mehr als unser gesamtes Ruhebudget.
+- **Das Sensorfeld bleibt frei von hohen Bauteilen.** Es liegt auf der
+  **Akkuseite**, im Stück des mittleren Drittels neben der Zelle — dort, wo der
+  Finger später hinfasst. Mit der schmalen Zelle (12 mm) passt das BM-Lite
+  (15 × 15 mm) bequem; mit der 19,75 mm breiten wird es eng.
+- **Das Gehäuse bekommt an dieser Stelle von Anfang an eine Aussparung**, in
+  Stufe 1 mit einem Blindstück geschlossen. So ist für Stufe 2 nur ein
+  Gehäuseteil zu ändern.
+- J5 gehört an die **Kante dieses Felds**, damit zum Ausprobieren ein
+  Flachbandkabel herausgeführt werden kann, ohne dass das Gehäuse im Weg ist.
+
+**Wichtig für Stufe 2:** Das BM-Lite muss **neben** die Zelle, nicht über sie.
+Mit 2,8 mm ist es dünner als der Akku (3,8 mm) — nebeneinander bestimmt also
+weiter der Akku die Höhe, und das Gehäuse bleibt gleich. Übereinander wären es
+3,8 + 2,8 = **6,6 mm** auf dieser Seite, und das Gehäuse müsste neu entworfen
+werden. Darum liegt das Sensorfeld neben dem Akku.
 
 ### Lagenaufbau
 
@@ -257,6 +276,8 @@ Sie stehen hier, weil sie schon einmal Zeit gekostet haben:
 
 **Entschieden und eingearbeitet:** Akku und NFC-Antenne werden räumlich
 getrennt **und** durch eine Ferritfolie entkoppelt (Platine 70 statt 62 mm);
-wird das Gehäuse zu groß, weicht die Kapazität, nicht der Abstand. Die Platine
-nimmt den Fingerabdrucksensor auf, ohne auf die Entscheidung zu warten. Die
-Ladungspumpen-Kondensatoren der Anzeige entfallen.
+wird das Gehäuse zu groß, weicht die Kapazität, nicht der Abstand.
+**Stufe 1 wird ohne Fingerabdrucksensor gebaut** — das Stiftfeld samt
+Leitungen und Lastschalter Q5 wird verlegt, der Sensor nicht bestückt, und der
+dadurch frei gewordene Platz geht in den Abstand zur Antenne (Antennenfeld
+26 statt 22 mm). Die Ladungspumpen-Kondensatoren der Anzeige entfallen.
