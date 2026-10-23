@@ -2,7 +2,7 @@
  *
  * Alle aus AN12413 "SE050 APDU Specification" Rev. 2.12 vom 24.03.2021.
  * Tabelle und Abschnitt stehen je Gruppe dabei, damit jeder Wert
- * nachschlagbar bleibt. Anders als se050_wire.h ist hier NICHTS geraten -
+ * nachschlagbar bleibt. Anders als se050_t1_wire.h ist hier NICHTS geraten -
  * dieses Dokument ist frei herunterladbar und vollstaendig.
  *
  * Aufgenommen ist nur, was dieser Treiber wirklich sendet. Der Baustein

@@ -4,7 +4,7 @@
  * Diese Schicht kennt nur Bytefolgen. Was darin steht - eine APDU - ist ihr
  * gleichgueltig. Darunter liegt se050_bus.h, darueber se050_apdu.h.
  *
- * Alle Zahlenwerte des Drahtprotokolls stehen in se050_wire.h. */
+ * Alle Zahlenwerte des Drahtprotokolls stehen in se050_t1_wire.h. */
 #ifndef SE050_T1_H
 #define SE050_T1_H
 
@@ -13,7 +13,7 @@
 #include <stdbool.h>
 #include "osk_result.h"
 #include "se050_bus.h"
-#include "se050_wire.h"
+#include "se050_t1_wire.h"
 
 typedef struct {
 	osk_se050_bus_t *bus;

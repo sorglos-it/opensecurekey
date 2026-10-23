@@ -1,7 +1,7 @@
 #include <string.h>
 #include "se050_sim.h"
 #include "se050_t1.h"
-#include "se050_wire.h"
+#include "se050_t1_wire.h"
 #include "se050_crypto.h"
 #include "se050_cmd.h"
 

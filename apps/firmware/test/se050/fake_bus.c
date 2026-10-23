@@ -1,7 +1,7 @@
 #include <string.h>
 #include "fake_bus.h"
 #include "se050_t1.h"
-#include "se050_wire.h"
+#include "se050_t1_wire.h"
 
 static fake_bus_t *self_of(osk_se050_bus_t *bus)
 {

@@ -1,13 +1,23 @@
 /* T=1': Rahmenbau, Pruefung, Kettenbildung, Wiederholung, Zeitlimit.
  *
- * Alle Erwartungen stehen in se050_wire.h. Wird dort ein Wert nach dem
+ * Alle Erwartungen stehen in se050_t1_wire.h. Wird dort ein Wert nach dem
  * Lesen von UM11225 berichtigt, bleiben diese Tests gueltig - sie pruefen
  * das VERHALTEN, nicht die Zahlen. */
 #include "tiny_test.h"
 #include "fake_bus.h"
 #include "se050_t1.h"
 #include "se050_crc.h"
-#include "se050_wire.h"
+#include "se050_t1_wire.h"
+
+/* Die Gruppe "Drahtwerte" prueft Konstanten gegeneinander, also sind die
+ * Bedingungen dort zur Uebersetzungszeit bekannt. Genau das ist der Zweck:
+ * ein Tippfehler in se050_t1_wire.h soll auffallen. MSVC warnt darueber
+ * (C4127), und /WX macht daraus einen Fehler - hier abgeschaltet, nur fuer
+ * diese Datei. Es ist die einzige Stelle, an der eine Warnung weggeschaltet
+ * wird. */
+#ifdef _MSC_VER
+#pragma warning(disable: 4127)
+#endif
 
 /* Einen I-Block als Antwort anhaengen. */
 static void add_i(fake_bus_t *fb, uint8_t seq, bool more,
@@ -35,6 +45,118 @@ static void add_r(fake_bus_t *fb, uint8_t seq, uint8_t err)
 
 void test_t1(void)
 {
+	/* Diese erste Gruppe prueft nicht den Treiber, sondern die
+	 * Drahtdatei selbst auf innere Stimmigkeit. Sie ist dafuer da, dass
+	 * ein Tippfehler beim Nachtragen aus UM11225 sofort auffaellt und
+	 * nicht erst als unerklaerliches Verhalten am Geraet. */
+
+	TT_CASE("Drahtwerte: die drei Blockarten schliessen sich aus");
+	{
+		/* Jedes der 256 moeglichen PCB-Bytes muss genau EINER Art
+		 * zugeordnet sein. Ueberschneiden sich die Pruefungen, wird
+		 * irgendwo ein Block falsch behandelt. */
+		for (unsigned p = 0; p < 256u; p++) {
+			const uint8_t pcb = (uint8_t)p;
+			const int n = (SE050_PCB_IS_I(pcb) ? 1 : 0) +
+				      (SE050_PCB_IS_R(pcb) ? 1 : 0) +
+				      (SE050_PCB_IS_S(pcb) ? 1 : 0);
+			TT_EQ_INT(n, 1, "genau eine Blockart je PCB-Byte");
+		}
+	}
+
+	TT_CASE("Drahtwerte: Art, Folgenummer und Kennzeichen stoeren sich nicht");
+	{
+		/* Ein I-Block bleibt einer, egal wie Folgenummer und
+		 * Kettenbit stehen. Genau das war beim Bau einmal falsch. */
+		TT_TRUE(SE050_PCB_IS_I(SE050_PCB_TYPE_I), "I schlicht");
+		TT_TRUE(SE050_PCB_IS_I(SE050_PCB_TYPE_I | SE050_PCB_I_SEQ),
+			"I mit Folgenummer 1");
+		TT_TRUE(SE050_PCB_IS_I(SE050_PCB_TYPE_I | SE050_PCB_I_MORE),
+			"I mit Kettenbit");
+		TT_TRUE(SE050_PCB_IS_I(SE050_PCB_TYPE_I | SE050_PCB_I_SEQ |
+				       SE050_PCB_I_MORE),
+			"I mit beidem");
+
+		/* Ein R-Block bleibt einer, egal welche Folgenummer und
+		 * welcher Fehlergrund darin stehen. */
+		TT_TRUE(SE050_PCB_IS_R(SE050_PCB_TYPE_R), "R schlicht");
+		TT_TRUE(SE050_PCB_IS_R(SE050_PCB_TYPE_R | SE050_PCB_R_SEQ),
+			"R mit Folgenummer 1");
+		for (uint8_t e = 0; e <= SE050_PCB_R_ERR_MASK; e++) {
+			TT_TRUE(SE050_PCB_IS_R(SE050_PCB_TYPE_R | e),
+				"R mit jedem Fehlergrund");
+		}
+
+		/* Ein S-Block bleibt einer, egal welcher Code darin steht
+		 * und ob es Anfrage oder Antwort ist. */
+		TT_TRUE(SE050_PCB_IS_S(SE050_PCB_TYPE_S), "S schlicht");
+		TT_TRUE(SE050_PCB_IS_S(SE050_PCB_TYPE_S | SE050_PCB_S_RESPONSE),
+			"S als Antwort");
+	}
+
+	TT_CASE("Drahtwerte: S-Block-Codes passen in ihr Feld und sind verschieden");
+	{
+		/* Alle Codes muessen in SE050_PCB_S_CODE_MASK passen -
+		 * sonst wandert ein Bit in das Antwortbit oder in die
+		 * Blockart und macht aus dem Befehl einen anderen. */
+		static const uint8_t codes[] = {
+			SE050_S_RESYNC, SE050_S_IFS, SE050_S_ABORT,
+			SE050_S_WTX, SE050_S_END_APDU, SE050_S_CHIP_RESET,
+			SE050_S_GET_ATR, SE050_S_IF_SOFT_RESET,
+		};
+		for (size_t i = 0; i < sizeof(codes); i++) {
+			TT_EQ_INT(codes[i] & ~SE050_PCB_S_CODE_MASK, 0,
+				  "Code passt in das Codefeld");
+
+			/* Und der fertige S-Block muss noch als S erkannt
+			 * werden, als Anfrage wie als Antwort. */
+			const uint8_t req = (uint8_t)(SE050_PCB_TYPE_S | codes[i]);
+			const uint8_t rsp = (uint8_t)(req | SE050_PCB_S_RESPONSE);
+			TT_TRUE(SE050_PCB_IS_S(req), "Anfrage bleibt S-Block");
+			TT_TRUE(SE050_PCB_IS_S(rsp), "Antwort bleibt S-Block");
+			TT_EQ_INT(req & SE050_PCB_S_CODE_MASK, codes[i],
+				  "Code kommt unveraendert heraus");
+			TT_TRUE((req & SE050_PCB_S_RESPONSE) == 0,
+				"Anfrage hat das Antwortbit nicht");
+
+			/* Keine zwei Codes duerfen gleich sein - sonst
+			 * beantwortet der Treiber den falschen S-Block. */
+			for (size_t j = i + 1u; j < sizeof(codes); j++) {
+				TT_TRUE(codes[i] != codes[j],
+					"S-Block-Codes sind paarweise verschieden");
+			}
+		}
+	}
+
+	TT_CASE("Drahtwerte: Laengen und Grenzen sind stimmig");
+	{
+		TT_EQ_INT(SE050_T1_OVERHEAD,
+			  SE050_T1_PROLOGUE_LEN + SE050_T1_EPILOGUE_LEN,
+			  "Prolog plus Epilog");
+		TT_EQ_INT(SE050_T1_PROLOGUE_LEN, 3u, "NAD, PCB, LEN");
+		TT_EQ_INT(SE050_T1_EPILOGUE_LEN, 2u, "zwei CRC-Bytes");
+
+		/* Was der Treiber selbst sendet, muss in ein LEN-Byte
+		 * passen - sonst baut er Rahmen, die er nicht beschreiben
+		 * kann. */
+		TT_TRUE(SE050_IFSD_DEFAULT <= SE050_T1_MAX_INF,
+			"Vorgabelaenge passt in ein LEN-Byte");
+		TT_TRUE(SE050_T1_MAX_INF <= 0xFEu,
+			"ein LEN-Byte deckt hoechstens 0xFE");
+
+		/* Hin- und Rueckrichtung muessen unterscheidbar sein. */
+		TT_TRUE(SE050_NAD_TO_SE != SE050_NAD_TO_HOST,
+			"die beiden NAD-Bytes sind verschieden");
+
+		/* Zeitgrenzen muessen in der richtigen Ordnung stehen. */
+		TT_TRUE(SE050_T_WTX_MAX_MS >= SE050_T_ANSWER_MS,
+			"Obergrenze nicht unter dem Grundbudget");
+		TT_TRUE(SE050_T_POLL_MS >= 1u,
+			"Pause zwischen Leseversuchen nicht Null");
+		TT_TRUE(SE050_MAX_RETRY >= 1u,
+			"mindestens eine Wiederholung");
+	}
+
 	TT_CASE("Rahmenbau: Prolog, Nutzlast, Pruefsumme");
 	{
 		static const uint8_t inf[] = { 0xAA, 0xBB, 0xCC };
@@ -49,10 +171,21 @@ void test_t1(void)
 		TT_EQ_INT(frame[2], sizeof(inf), "LEN");
 		TT_EQ_MEM(&frame[3], inf, sizeof(inf), "Nutzlast");
 
-		/* Pruefsumme laeuft ueber Prolog UND Nutzlast. */
+		/* Pruefsumme laeuft ueber Prolog UND Nutzlast. Welches der
+		 * zwei Bytes vorn steht, sagt SE050_CRC_LSB_FIRST - der Test
+		 * liest den Schalter, statt eine Reihenfolge anzunehmen.
+		 * Sonst wuerde er fehlschlagen, wenn UM11225 die andere
+		 * Reihenfolge nennt und der Schalter richtig umgestellt ist. */
 		const uint16_t crc = osk_se050_crc16(frame, 3u + sizeof(inf));
-		TT_EQ_INT(frame[6], (uint8_t)(crc & 0xFFu), "CRC niederwertig");
-		TT_EQ_INT(frame[7], (uint8_t)(crc >> 8), "CRC hoeherwertig");
+		const uint8_t lo = (uint8_t)(crc & 0xFFu);
+		const uint8_t hi = (uint8_t)(crc >> 8);
+#if SE050_CRC_LSB_FIRST
+		TT_EQ_INT(frame[6], lo, "CRC: niederwertiges Byte vorn");
+		TT_EQ_INT(frame[7], hi, "CRC: hoeherwertiges Byte hinten");
+#else
+		TT_EQ_INT(frame[6], hi, "CRC: hoeherwertiges Byte vorn");
+		TT_EQ_INT(frame[7], lo, "CRC: niederwertiges Byte hinten");
+#endif
 
 		TT_EQ_INT(osk_se050_t1_check(frame, n), OSK_OK, "prueft sich selbst");
 	}
@@ -217,10 +350,14 @@ void test_t1(void)
 		fb_init(&fb);
 		fb_add_open_reply(&fb);
 
-		/* Zweimal abweisen, dann annehmen - der Treiber darf nach
-		 * SE050_MAX_RETRY Versuchen aufgeben, also reichen zwei. */
-		add_r(&fb, 0, SE050_PCB_R_ERR_CRC);
-		add_r(&fb, 0, SE050_PCB_R_ERR_OTHER);
+		/* So oft abweisen, wie der Treiber nach SE050_MAX_RETRY noch
+		 * durchhalten muss, dann annehmen. Die Zahl kommt aus der
+		 * Drahtdatei, damit das Nachtragen aus UM11225 den Test
+		 * mitzieht statt ihn zu brechen. */
+		for (uint32_t i = 0; i < SE050_MAX_RETRY; i++) {
+			add_r(&fb, 0, (i % 2u == 0u) ? SE050_PCB_R_ERR_CRC
+						     : SE050_PCB_R_ERR_OTHER);
+		}
 		static const uint8_t answer[] = { 0x90, 0x00 };
 		add_i(&fb, 0, false, answer, sizeof(answer));
 		fb_add_close_reply(&fb);
@@ -233,9 +370,11 @@ void test_t1(void)
 		size_t n = 0;
 		TT_EQ_INT(osk_se050_t1_transceive(&t1, cmd, sizeof(cmd),
 						  rsp, sizeof(rsp), &n),
-			  OSK_OK, "nach zwei Wiederholungen durch");
-		/* Soft-Reset und drei Versuche. */
-		TT_EQ_INT(fb.writes, 4u, "dreimal gesendet");
+			  OSK_OK, "nach allen erlaubten Wiederholungen durch");
+		/* Soft-Reset, dann der Erstversuch plus SE050_MAX_RETRY
+		 * Wiederholungen. */
+		TT_EQ_INT(fb.writes, 1u + 1u + SE050_MAX_RETRY,
+			  "Erstversuch und alle Wiederholungen gesendet");
 
 		(void)osk_se050_t1_close(&t1);
 		TT_TRUE(fb_clean(&fb), "Testbus ohne Beanstandung");

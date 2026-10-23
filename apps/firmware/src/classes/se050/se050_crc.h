@@ -6,7 +6,7 @@
  *   Ein- und Ausgabe gespiegelt, am Ende mit 0xFFFF verknuepft.
  * Pruefwert fuer "123456789" ist 0x906E - genau das prueft test_crc.c.
  *
- * Im Rahmen stehen die zwei Bytes niederwertig zuerst (siehe se050_wire.h). */
+ * Im Rahmen stehen die zwei Bytes niederwertig zuerst (siehe se050_t1_wire.h). */
 #ifndef SE050_CRC_H
 #define SE050_CRC_H
 

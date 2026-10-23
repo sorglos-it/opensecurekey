@@ -4,7 +4,7 @@
  *
  * Was NICHT geprueft wird, weil es ohne Geraet nicht geht: ob der echte
  * SE050 die Rahmen annimmt, die dieser Treiber baut. Die Rahmenwerte in
- * se050_wire.h stammen aus ISO/IEC 7816-3, weil NXPs eigene Beschreibung
+ * se050_t1_wire.h stammen aus ISO/IEC 7816-3, weil NXPs eigene Beschreibung
  * UM11225 nur nach Anmeldung bei NXP zu bekommen ist. Steht in
  * docs/se050.md, Abschnitt "Was geprueft ist". */
 #include "tiny_test.h"
