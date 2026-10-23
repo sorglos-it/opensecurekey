@@ -167,6 +167,29 @@ def check_web(root):
 
 TEST_LINE = re.compile(r'^(\S+): (\d+) Faelle, (\d+) Fehler$', re.M)
 
+SAN_FLAGS = ['-fsanitize=address,undefined', '-fno-omit-frame-pointer']
+
+
+def sanitizers_work():
+    """Kann diese Werkzeugkette die Sanitizer wirklich binden? MinGW uebersetzt
+    sie, scheitert aber beim Binden - das muss man probieren, nicht raten."""
+    probe_c = os.path.join(HERE, '_san_probe.c')
+    probe_x = os.path.join(HERE, '_san_probe.out')
+    try:
+        with io.open(probe_c, 'w', encoding='utf-8') as handle:
+            handle.write('int main(void) { return 0; }\n')
+        code, _ = common.run([os.environ.get('CC', 'cc')] + SAN_FLAGS +
+                             [probe_c, '-o', probe_x], capture=True)
+        return code == 0
+    except OSError:
+        return False
+    finally:
+        for path in (probe_c, probe_x):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
 
 def check_firmware_tests(root):
     """Die Pruefungen der Firmware laufen am PC mit gcc und make - sie brauchen
@@ -184,10 +207,17 @@ def check_firmware_tests(root):
     if common.run(['make', '--version'], capture=True)[0] != 0:
         return [Result(part, 'tests', SKIPPED, 'make fehlt - unter Windows etwa ueber WSL')]
 
+    # Die Sanitizer finden Ueberlaeufe, die kein Test sieht - aber MinGW kann sie
+    # nicht binden. Probe statt Annahme: scheitert sie, laufen die Pruefungen ohne,
+    # und das steht dann auch in der Meldung. Lieber flacher pruefen als gar nicht.
+    extra, suffix = [], ''
+    if not sanitizers_work():
+        extra, suffix = ['SAN='], ' ohne Sanitizer'
+
     results, total = [], 0
     for suite in suites:
         step = 'tests/' + suite
-        code, out = common.run(['make'], cwd=os.path.join(base, suite), capture=True)
+        code, out = common.run(['make'] + extra, cwd=os.path.join(base, suite), capture=True)
         count = sum(int(m.group(2)) for m in TEST_LINE.finditer(out or ''))
         if code != 0:
             results.append(fail(part, step, 'Pruefungen rot', out))
@@ -195,7 +225,7 @@ def check_firmware_tests(root):
             # Gruener Code ohne eine einzige Pruefung ist kein Erfolg.
             results.append(fail(part, step, 'keine Pruefung ausgefuehrt', out))
         else:
-            results.append(Result(part, step, OK, 'make (%d Faelle)' % count, count))
+            results.append(Result(part, step, OK, 'make (%d Faelle)%s' % (count, suffix), count))
             total += count
     return results
 
