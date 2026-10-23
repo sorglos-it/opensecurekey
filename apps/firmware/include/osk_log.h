@@ -13,8 +13,8 @@
 typedef struct {
 	uint64_t when_utc;
 	osk_link_t link;
-	uint16_t what;        /* Anlass, siehe shared/protocol.md */
-	uint32_t item_id;     /* 0 = kein Eintrag beteiligt */
+	uint16_t what;	  /* Anlass, siehe shared/protocol.md */
+	uint32_t item_id; /* 0 = kein Eintrag beteiligt */
 	char asked_by[32];
 } osk_log_entry_t;
 

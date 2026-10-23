@@ -1,0 +1,37 @@
+{{define "head"}}<!doctype html>
+<html lang="{{.Lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}} &middot; {{.Texts.Get "app.name"}}</title>
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body data-wipe-ms="{{.WipeMs}}">
+<a class="skip" href="#main">{{.Texts.Get "nav.skip"}}</a>
+<header class="bar">
+  <span class="brand">{{.Texts.Get "app.name"}}</span>
+  <span class="state" id="state" role="status">{{.Texts.Get "state.checking"}}</span>
+  <button type="button" id="lock" class="plain">{{.Texts.Get "action.lock"}}</button>
+</header>
+<nav aria-label="{{.Texts.Get "nav.label"}}">
+  <ul>
+  {{$active := .Active}}{{$texts := .Texts}}
+  {{range .Pages}}<li><a href="{{.Path}}"{{if eq .Path $active}} aria-current="page"{{end}}>{{$texts.Get .Title}}</a></li>
+  {{end}}
+  </ul>
+</nav>
+<p class="claim">{{.Texts.Get "claim.appname"}}</p>
+<main id="main">
+<h1>{{.Title}}</h1>
+<p class="problem" id="problem" role="alert" hidden></p>
+{{end}}
+
+{{define "foot"}}
+</main>
+<footer class="bar">
+  <span>{{.Texts.Get "app.name"}} {{.Version}}</span>
+</footer>
+<script src="/assets/app.js"></script>
+</body>
+</html>
+{{end}}

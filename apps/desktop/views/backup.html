@@ -1,0 +1,13 @@
+{{template "head" .}}
+<p>{{.Texts.Get "backup.intro"}}</p>
+<button type="button" id="backup-save">{{.Texts.Get "action.backup.save"}}</button>
+<h2>{{.Texts.Get "backup.load"}}</h2>
+<form id="restore">
+  <p>
+    <label for="blob">{{.Texts.Get "field.backupfile"}}</label>
+    <input type="file" id="blob" name="blob" accept=".oskbak">
+  </p>
+  <p class="hint">{{.Texts.Get "backup.hint"}}</p>
+  <button type="submit">{{.Texts.Get "action.backup.load"}}</button>
+</form>
+{{template "foot" .}}
