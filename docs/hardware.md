@@ -239,6 +239,31 @@ Teststand-Platine trägt, wird vor der Bestellung geklärt.
 Alle drei sind Einstellungen am fertigen Chip, kein Grund für ein anderes Teil.
 Aber sie müssen in die Erstinbetriebnahme, sonst fallen sie erst am Gerät auf.
 
+## Warum 64 MB und nicht mehr
+
+Geprüft am 23.10.2026, Preise bei Menge 1, alle `ungeprüft` (Momentaufnahme):
+
+| Größe | Teil | Preis | Lager |
+| --- | --- | --- | --- |
+| 32 MB | `W25Q256JVEIQ` | ca. 6,08 USD | 1.269 |
+| **64 MB** | **`W25Q512JVEIQ`** | **ca. 15,35 USD** | 1.455 |
+| 128 MB | — | kein belegter Einzelchip in dieser Bauform gefunden | — |
+
+Der Sprung von 32 auf 64 MB kostet also das Zweieinhalbfache, nicht „kaum mehr".
+Oberhalb von 64 MB wird serieller NOR-Flash unverhältnismäßig: billiger wäre
+dort nur serieller NAND, und der bringt Bad-Block-Verwaltung, Fehlerkorrektur
+und Seitenverwaltung mit — für ein Gerät, dessen Tresor nie eine halbe Datei
+hinterlassen darf, ein schlechter Tausch.
+
+**Der Bedarf liegt bei rund 35 MB:** drei portable Programme zu je etwa 8–12 MB,
+der Tresor im einstelligen MB-Bereich, dazu rund 1 MB für den zweiten
+Update-Platz von MCUboot. Bei 32 MB wäre das zu knapp, bei 64 MB ist Luft.
+
+**Entschieden: 64 MB bleiben — und im Layout ist Platz für einen zweiten
+Flash-Baustein vorgesehen, der nicht bestückt wird.** Ein unbestückter
+Fußabdruck kostet nichts außer ein paar Quadratmillimetern. Reicht der Platz
+eines Tages nicht, wird er bestückt, statt eine neue Platine zu zeichnen.
+
 ## Was gemessen werden muss, bevor die Zahlen gelten
 
 - der tatsächliche Gesamt-Ruhestrom (das Datenblatt gibt die Weck-Szenarien nur
