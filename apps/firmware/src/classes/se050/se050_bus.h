@@ -14,11 +14,11 @@
 #include <stddef.h>
 
 /* Noch nichts da - erneut versuchen. Nicht als Fehler behandeln. */
-#define OSK_BUS_AGAIN   (-1)
+#define OSK_BUS_AGAIN (-1)
 /* Leitung gestoert, Baustein antwortet nicht (NACK), Bus haengt. */
-#define OSK_BUS_IO      (-2)
+#define OSK_BUS_IO (-2)
 /* Aufrufparameter unbrauchbar. */
-#define OSK_BUS_ARG     (-3)
+#define OSK_BUS_ARG (-3)
 
 typedef struct osk_se050_bus osk_se050_bus_t;
 

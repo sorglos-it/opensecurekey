@@ -16,12 +16,11 @@
  * diese Datei. Es ist die einzige Stelle, an der eine Warnung weggeschaltet
  * wird. */
 #ifdef _MSC_VER
-#pragma warning(disable: 4127)
+#pragma warning(disable : 4127)
 #endif
 
 /* Einen I-Block als Antwort anhaengen. */
-static void add_i(fake_bus_t *fb, uint8_t seq, bool more,
-		  const uint8_t *inf, uint8_t len)
+static void add_i(fake_bus_t *fb, uint8_t seq, bool more, const uint8_t *inf, uint8_t len)
 {
 	uint8_t pcb = SE050_PCB_TYPE_I;
 	if (seq) {
@@ -58,8 +57,7 @@ void test_t1(void)
 		for (unsigned p = 0; p < 256u; p++) {
 			const uint8_t pcb = (uint8_t)p;
 			const int n = (SE050_PCB_IS_I(pcb) ? 1 : 0) +
-				      (SE050_PCB_IS_R(pcb) ? 1 : 0) +
-				      (SE050_PCB_IS_S(pcb) ? 1 : 0);
+				      (SE050_PCB_IS_R(pcb) ? 1 : 0) + (SE050_PCB_IS_S(pcb) ? 1 : 0);
 			TT_EQ_INT(n, 1, "genau eine Blockart je PCB-Byte");
 		}
 	}
@@ -69,29 +67,23 @@ void test_t1(void)
 		/* Ein I-Block bleibt einer, egal wie Folgenummer und
 		 * Kettenbit stehen. Genau das war beim Bau einmal falsch. */
 		TT_TRUE(SE050_PCB_IS_I(SE050_PCB_TYPE_I), "I schlicht");
-		TT_TRUE(SE050_PCB_IS_I(SE050_PCB_TYPE_I | SE050_PCB_I_SEQ),
-			"I mit Folgenummer 1");
-		TT_TRUE(SE050_PCB_IS_I(SE050_PCB_TYPE_I | SE050_PCB_I_MORE),
-			"I mit Kettenbit");
-		TT_TRUE(SE050_PCB_IS_I(SE050_PCB_TYPE_I | SE050_PCB_I_SEQ |
-				       SE050_PCB_I_MORE),
+		TT_TRUE(SE050_PCB_IS_I(SE050_PCB_TYPE_I | SE050_PCB_I_SEQ), "I mit Folgenummer 1");
+		TT_TRUE(SE050_PCB_IS_I(SE050_PCB_TYPE_I | SE050_PCB_I_MORE), "I mit Kettenbit");
+		TT_TRUE(SE050_PCB_IS_I(SE050_PCB_TYPE_I | SE050_PCB_I_SEQ | SE050_PCB_I_MORE),
 			"I mit beidem");
 
 		/* Ein R-Block bleibt einer, egal welche Folgenummer und
 		 * welcher Fehlergrund darin stehen. */
 		TT_TRUE(SE050_PCB_IS_R(SE050_PCB_TYPE_R), "R schlicht");
-		TT_TRUE(SE050_PCB_IS_R(SE050_PCB_TYPE_R | SE050_PCB_R_SEQ),
-			"R mit Folgenummer 1");
+		TT_TRUE(SE050_PCB_IS_R(SE050_PCB_TYPE_R | SE050_PCB_R_SEQ), "R mit Folgenummer 1");
 		for (uint8_t e = 0; e <= SE050_PCB_R_ERR_MASK; e++) {
-			TT_TRUE(SE050_PCB_IS_R(SE050_PCB_TYPE_R | e),
-				"R mit jedem Fehlergrund");
+			TT_TRUE(SE050_PCB_IS_R(SE050_PCB_TYPE_R | e), "R mit jedem Fehlergrund");
 		}
 
 		/* Ein S-Block bleibt einer, egal welcher Code darin steht
 		 * und ob es Anfrage oder Antwort ist. */
 		TT_TRUE(SE050_PCB_IS_S(SE050_PCB_TYPE_S), "S schlicht");
-		TT_TRUE(SE050_PCB_IS_S(SE050_PCB_TYPE_S | SE050_PCB_S_RESPONSE),
-			"S als Antwort");
+		TT_TRUE(SE050_PCB_IS_S(SE050_PCB_TYPE_S | SE050_PCB_S_RESPONSE), "S als Antwort");
 	}
 
 	TT_CASE("Drahtwerte: S-Block-Codes passen in ihr Feld und sind verschieden");
@@ -100,9 +92,8 @@ void test_t1(void)
 		 * sonst wandert ein Bit in das Antwortbit oder in die
 		 * Blockart und macht aus dem Befehl einen anderen. */
 		static const uint8_t codes[] = {
-			SE050_S_RESYNC, SE050_S_IFS, SE050_S_ABORT,
-			SE050_S_WTX, SE050_S_END_APDU, SE050_S_CHIP_RESET,
-			SE050_S_GET_ATR, SE050_S_IF_SOFT_RESET,
+		    SE050_S_RESYNC,   SE050_S_IFS,	  SE050_S_ABORT,   SE050_S_WTX,
+		    SE050_S_END_APDU, SE050_S_CHIP_RESET, SE050_S_GET_ATR, SE050_S_IF_SOFT_RESET,
 		};
 		for (size_t i = 0; i < sizeof(codes); i++) {
 			TT_EQ_INT(codes[i] & ~SE050_PCB_S_CODE_MASK, 0,
@@ -130,8 +121,7 @@ void test_t1(void)
 
 	TT_CASE("Drahtwerte: Laengen und Grenzen sind stimmig");
 	{
-		TT_EQ_INT(SE050_T1_OVERHEAD,
-			  SE050_T1_PROLOGUE_LEN + SE050_T1_EPILOGUE_LEN,
+		TT_EQ_INT(SE050_T1_OVERHEAD, SE050_T1_PROLOGUE_LEN + SE050_T1_EPILOGUE_LEN,
 			  "Prolog plus Epilog");
 		TT_EQ_INT(SE050_T1_PROLOGUE_LEN, 3u, "NAD, PCB, LEN");
 		TT_EQ_INT(SE050_T1_EPILOGUE_LEN, 2u, "zwei CRC-Bytes");
@@ -141,8 +131,7 @@ void test_t1(void)
 		 * kann. */
 		TT_TRUE(SE050_IFSD_DEFAULT <= SE050_T1_MAX_INF,
 			"Vorgabelaenge passt in ein LEN-Byte");
-		TT_TRUE(SE050_T1_MAX_INF <= 0xFEu,
-			"ein LEN-Byte deckt hoechstens 0xFE");
+		TT_TRUE(SE050_T1_MAX_INF <= 0xFEu, "ein LEN-Byte deckt hoechstens 0xFE");
 
 		/* Hin- und Rueckrichtung muessen unterscheidbar sein. */
 		TT_TRUE(SE050_NAD_TO_SE != SE050_NAD_TO_HOST,
@@ -151,20 +140,16 @@ void test_t1(void)
 		/* Zeitgrenzen muessen in der richtigen Ordnung stehen. */
 		TT_TRUE(SE050_T_WTX_MAX_MS >= SE050_T_ANSWER_MS,
 			"Obergrenze nicht unter dem Grundbudget");
-		TT_TRUE(SE050_T_POLL_MS >= 1u,
-			"Pause zwischen Leseversuchen nicht Null");
-		TT_TRUE(SE050_MAX_RETRY >= 1u,
-			"mindestens eine Wiederholung");
+		TT_TRUE(SE050_T_POLL_MS >= 1u, "Pause zwischen Leseversuchen nicht Null");
+		TT_TRUE(SE050_MAX_RETRY >= 1u, "mindestens eine Wiederholung");
 	}
 
 	TT_CASE("Rahmenbau: Prolog, Nutzlast, Pruefsumme");
 	{
-		static const uint8_t inf[] = { 0xAA, 0xBB, 0xCC };
+		static const uint8_t inf[] = {0xAA, 0xBB, 0xCC};
 		uint8_t frame[16];
-		const size_t n = osk_se050_t1_build(frame, sizeof(frame),
-						    SE050_NAD_TO_SE,
-						    SE050_PCB_TYPE_I,
-						    inf, sizeof(inf));
+		const size_t n = osk_se050_t1_build(frame, sizeof(frame), SE050_NAD_TO_SE,
+						    SE050_PCB_TYPE_I, inf, sizeof(inf));
 		TT_EQ_INT(n, SE050_T1_OVERHEAD + sizeof(inf), "Gesamtlaenge");
 		TT_EQ_INT(frame[0], SE050_NAD_TO_SE, "NAD");
 		TT_EQ_INT(frame[1], SE050_PCB_TYPE_I, "PCB");
@@ -193,8 +178,7 @@ void test_t1(void)
 	TT_CASE("Rahmenbau: Rahmen ohne Nutzlast ist erlaubt");
 	{
 		uint8_t frame[8];
-		const size_t n = osk_se050_t1_build(frame, sizeof(frame),
-						    SE050_NAD_TO_SE,
+		const size_t n = osk_se050_t1_build(frame, sizeof(frame), SE050_NAD_TO_SE,
 						    SE050_PCB_TYPE_R, NULL, 0);
 		TT_EQ_INT(n, SE050_T1_OVERHEAD, "nur Prolog und Epilog");
 		TT_EQ_INT(frame[2], 0u, "LEN ist 0");
@@ -204,42 +188,33 @@ void test_t1(void)
 	TT_CASE("Rahmenbau: zu kleiner Puffer gibt 0");
 	{
 		uint8_t frame[4];
-		static const uint8_t inf[] = { 1, 2, 3 };
-		TT_EQ_INT(osk_se050_t1_build(frame, sizeof(frame),
-					     SE050_NAD_TO_SE, 0, inf,
-					     sizeof(inf)),
-			  0u, "passt nicht");
-		TT_EQ_INT(osk_se050_t1_build(NULL, 64, 0, 0, NULL, 0), 0u,
-			  "NULL-Puffer");
-		TT_EQ_INT(osk_se050_t1_build(frame, sizeof(frame), 0, 0, NULL, 3),
-			  0u, "Laenge ohne Daten");
+		static const uint8_t inf[] = {1, 2, 3};
+		TT_EQ_INT(
+		    osk_se050_t1_build(frame, sizeof(frame), SE050_NAD_TO_SE, 0, inf, sizeof(inf)),
+		    0u, "passt nicht");
+		TT_EQ_INT(osk_se050_t1_build(NULL, 64, 0, 0, NULL, 0), 0u, "NULL-Puffer");
+		TT_EQ_INT(osk_se050_t1_build(frame, sizeof(frame), 0, 0, NULL, 3), 0u,
+			  "Laenge ohne Daten");
 	}
 
 	TT_CASE("Rahmenpruefung: verdorbene Pruefsumme faellt auf");
 	{
-		static const uint8_t inf[] = { 0x11, 0x22 };
+		static const uint8_t inf[] = {0x11, 0x22};
 		uint8_t frame[16];
-		const size_t n = osk_se050_t1_build(frame, sizeof(frame),
-						    SE050_NAD_TO_HOST,
-						    SE050_PCB_TYPE_I,
-						    inf, sizeof(inf));
+		const size_t n = osk_se050_t1_build(frame, sizeof(frame), SE050_NAD_TO_HOST,
+						    SE050_PCB_TYPE_I, inf, sizeof(inf));
 		frame[n - 1u] ^= 0x80u;
-		TT_EQ_INT(osk_se050_t1_check(frame, n), OSK_ERR_FORMAT,
-			  "Pruefsumme falsch");
+		TT_EQ_INT(osk_se050_t1_check(frame, n), OSK_ERR_FORMAT, "Pruefsumme falsch");
 	}
 
 	TT_CASE("Rahmenpruefung: LEN passt nicht zur Laenge");
 	{
 		uint8_t frame[16];
-		const size_t n = osk_se050_t1_build(frame, sizeof(frame),
-						    SE050_NAD_TO_HOST, 0,
-						    NULL, 0);
-		TT_EQ_INT(osk_se050_t1_check(frame, n - 1u), OSK_ERR_FORMAT,
-			  "zu kurz");
-		TT_EQ_INT(osk_se050_t1_check(frame, n + 1u), OSK_ERR_FORMAT,
-			  "zu lang");
-		TT_EQ_INT(osk_se050_t1_check(frame, 2), OSK_ERR_FORMAT,
-			  "kuerzer als der Prolog");
+		const size_t n =
+		    osk_se050_t1_build(frame, sizeof(frame), SE050_NAD_TO_HOST, 0, NULL, 0);
+		TT_EQ_INT(osk_se050_t1_check(frame, n - 1u), OSK_ERR_FORMAT, "zu kurz");
+		TT_EQ_INT(osk_se050_t1_check(frame, n + 1u), OSK_ERR_FORMAT, "zu lang");
+		TT_EQ_INT(osk_se050_t1_check(frame, 2), OSK_ERR_FORMAT, "kuerzer als der Prolog");
 		TT_EQ_INT(osk_se050_t1_check(NULL, 8), OSK_ERR_FORMAT, "NULL");
 	}
 
@@ -249,19 +224,17 @@ void test_t1(void)
 		fb_init(&fb);
 		fb_add_open_reply(&fb);
 
-		static const uint8_t answer[] = { 0x41, 0x02, 0xDE, 0xAD,
-						  0x90, 0x00 };
+		static const uint8_t answer[] = {0x41, 0x02, 0xDE, 0xAD, 0x90, 0x00};
 		add_i(&fb, 0, false, answer, sizeof(answer));
 		fb_add_close_reply(&fb);
 
 		osk_se050_t1_t t1;
 		TT_EQ_INT(osk_se050_t1_open(&t1, &fb.bus), OSK_OK, "geoeffnet");
 
-		static const uint8_t cmd[] = { 0x80, 0x04, 0x00, 0x20, 0x00 };
+		static const uint8_t cmd[] = {0x80, 0x04, 0x00, 0x20, 0x00};
 		uint8_t rsp[64];
 		size_t n = 0;
-		TT_EQ_INT(osk_se050_t1_transceive(&t1, cmd, sizeof(cmd),
-						  rsp, sizeof(rsp), &n),
+		TT_EQ_INT(osk_se050_t1_transceive(&t1, cmd, sizeof(cmd), rsp, sizeof(rsp), &n),
 			  OSK_OK, "ausgetauscht");
 		TT_EQ_INT(n, sizeof(answer), "Antwortlaenge");
 		TT_EQ_MEM(rsp, answer, sizeof(answer), "Antwortinhalt");
@@ -285,7 +258,7 @@ void test_t1(void)
 
 		/* Erster Block: Quittung. Zweiter Block: die Antwort. */
 		add_r(&fb, 1, SE050_PCB_R_ERR_NONE);
-		static const uint8_t answer[] = { 0x90, 0x00 };
+		static const uint8_t answer[] = {0x90, 0x00};
 		add_i(&fb, 0, false, answer, sizeof(answer));
 		fb_add_close_reply(&fb);
 
@@ -294,8 +267,7 @@ void test_t1(void)
 
 		uint8_t rsp[32];
 		size_t n = 0;
-		TT_EQ_INT(osk_se050_t1_transceive(&t1, cmd, sizeof(cmd),
-						  rsp, sizeof(rsp), &n),
+		TT_EQ_INT(osk_se050_t1_transceive(&t1, cmd, sizeof(cmd), rsp, sizeof(rsp), &n),
 			  OSK_OK, "lange Nachricht durch");
 		TT_EQ_INT(n, sizeof(answer), "Antwortlaenge");
 
@@ -329,16 +301,14 @@ void test_t1(void)
 		osk_se050_t1_t t1;
 		TT_EQ_INT(osk_se050_t1_open(&t1, &fb.bus), OSK_OK, "geoeffnet");
 
-		static const uint8_t cmd[] = { 0x80, 0x02, 0x00, 0x00, 0x00 };
+		static const uint8_t cmd[] = {0x80, 0x02, 0x00, 0x00, 0x00};
 		uint8_t rsp[512];
 		size_t n = 0;
-		TT_EQ_INT(osk_se050_t1_transceive(&t1, cmd, sizeof(cmd),
-						  rsp, sizeof(rsp), &n),
+		TT_EQ_INT(osk_se050_t1_transceive(&t1, cmd, sizeof(cmd), rsp, sizeof(rsp), &n),
 			  OSK_OK, "Kette eingesammelt");
 		TT_EQ_INT(n, sizeof(part1) + sizeof(part2), "Gesamtlaenge");
 		TT_EQ_MEM(rsp, part1, sizeof(part1), "erstes Stueck");
-		TT_EQ_MEM(&rsp[sizeof(part1)], part2, sizeof(part2),
-			  "zweites Stueck");
+		TT_EQ_MEM(&rsp[sizeof(part1)], part2, sizeof(part2), "zweites Stueck");
 
 		(void)osk_se050_t1_close(&t1);
 		TT_TRUE(fb_clean(&fb), "Testbus ohne Beanstandung");
@@ -355,21 +325,19 @@ void test_t1(void)
 		 * Drahtdatei, damit das Nachtragen aus UM11225 den Test
 		 * mitzieht statt ihn zu brechen. */
 		for (uint32_t i = 0; i < SE050_MAX_RETRY; i++) {
-			add_r(&fb, 0, (i % 2u == 0u) ? SE050_PCB_R_ERR_CRC
-						     : SE050_PCB_R_ERR_OTHER);
+			add_r(&fb, 0, (i % 2u == 0u) ? SE050_PCB_R_ERR_CRC : SE050_PCB_R_ERR_OTHER);
 		}
-		static const uint8_t answer[] = { 0x90, 0x00 };
+		static const uint8_t answer[] = {0x90, 0x00};
 		add_i(&fb, 0, false, answer, sizeof(answer));
 		fb_add_close_reply(&fb);
 
 		osk_se050_t1_t t1;
 		TT_EQ_INT(osk_se050_t1_open(&t1, &fb.bus), OSK_OK, "geoeffnet");
 
-		static const uint8_t cmd[] = { 0x80, 0x04, 0x00, 0x20, 0x00 };
+		static const uint8_t cmd[] = {0x80, 0x04, 0x00, 0x20, 0x00};
 		uint8_t rsp[32];
 		size_t n = 0;
-		TT_EQ_INT(osk_se050_t1_transceive(&t1, cmd, sizeof(cmd),
-						  rsp, sizeof(rsp), &n),
+		TT_EQ_INT(osk_se050_t1_transceive(&t1, cmd, sizeof(cmd), rsp, sizeof(rsp), &n),
 			  OSK_OK, "nach allen erlaubten Wiederholungen durch");
 		/* Soft-Reset, dann der Erstversuch plus SE050_MAX_RETRY
 		 * Wiederholungen. */
@@ -386,21 +354,20 @@ void test_t1(void)
 		fb_init(&fb);
 		fb_add_open_reply(&fb);
 
-		static const uint8_t answer[] = { 0x90, 0x00 };
+		static const uint8_t answer[] = {0x90, 0x00};
 		/* Erst eine Antwort mit falscher Pruefsumme, dann eine gute. */
-		fb_add_frame(&fb, FB_BAD_CRC, SE050_NAD_TO_HOST,
-			     SE050_PCB_TYPE_I, answer, sizeof(answer));
+		fb_add_frame(&fb, FB_BAD_CRC, SE050_NAD_TO_HOST, SE050_PCB_TYPE_I, answer,
+			     sizeof(answer));
 		add_i(&fb, 0, false, answer, sizeof(answer));
 		fb_add_close_reply(&fb);
 
 		osk_se050_t1_t t1;
 		TT_EQ_INT(osk_se050_t1_open(&t1, &fb.bus), OSK_OK, "geoeffnet");
 
-		static const uint8_t cmd[] = { 0x80, 0x04, 0x00, 0x20, 0x00 };
+		static const uint8_t cmd[] = {0x80, 0x04, 0x00, 0x20, 0x00};
 		uint8_t rsp[32];
 		size_t n = 0;
-		TT_EQ_INT(osk_se050_t1_transceive(&t1, cmd, sizeof(cmd),
-						  rsp, sizeof(rsp), &n),
+		TT_EQ_INT(osk_se050_t1_transceive(&t1, cmd, sizeof(cmd), rsp, sizeof(rsp), &n),
 			  OSK_OK, "nach Wiederholung durch");
 		TT_EQ_MEM(rsp, answer, sizeof(answer), "Antwort");
 
@@ -419,18 +386,17 @@ void test_t1(void)
 		const uint8_t wtx = SE050_PCB_TYPE_S | SE050_S_WTX;
 		fb_add_frame(&fb, FB_OK, SE050_NAD_TO_HOST, wtx, &units, 1);
 
-		static const uint8_t answer[] = { 0x90, 0x00 };
+		static const uint8_t answer[] = {0x90, 0x00};
 		add_i(&fb, 0, false, answer, sizeof(answer));
 		fb_add_close_reply(&fb);
 
 		osk_se050_t1_t t1;
 		TT_EQ_INT(osk_se050_t1_open(&t1, &fb.bus), OSK_OK, "geoeffnet");
 
-		static const uint8_t cmd[] = { 0x80, 0x03, 0x0C, 0x09, 0x00 };
+		static const uint8_t cmd[] = {0x80, 0x03, 0x0C, 0x09, 0x00};
 		uint8_t rsp[32];
 		size_t n = 0;
-		TT_EQ_INT(osk_se050_t1_transceive(&t1, cmd, sizeof(cmd),
-						  rsp, sizeof(rsp), &n),
+		TT_EQ_INT(osk_se050_t1_transceive(&t1, cmd, sizeof(cmd), rsp, sizeof(rsp), &n),
 			  OSK_OK, "mit Verlaengerung durch");
 		/* Der Befehl selbst darf NICHT noch einmal gesendet werden -
 		 * nur die Bestaetigung der Verlaengerung kommt dazu:
@@ -454,11 +420,10 @@ void test_t1(void)
 		osk_se050_t1_t t1;
 		TT_EQ_INT(osk_se050_t1_open(&t1, &fb.bus), OSK_OK, "geoeffnet");
 
-		static const uint8_t cmd[] = { 0x80, 0x02, 0x00, 0x00, 0x00 };
+		static const uint8_t cmd[] = {0x80, 0x02, 0x00, 0x00, 0x00};
 		uint8_t rsp[16];
 		size_t n = 123u;
-		TT_EQ_INT(osk_se050_t1_transceive(&t1, cmd, sizeof(cmd),
-						  rsp, sizeof(rsp), &n),
+		TT_EQ_INT(osk_se050_t1_transceive(&t1, cmd, sizeof(cmd), rsp, sizeof(rsp), &n),
 			  OSK_ERR_FORMAT, "zu gross gemeldet");
 		TT_EQ_INT(n, 0u, "keine halbe Antwort");
 		TT_EQ_INT(fb.empty_writes, 0u, "kein leerer Rahmen");

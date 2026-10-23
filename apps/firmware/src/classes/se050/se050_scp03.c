@@ -4,17 +4,17 @@
 /* Ableitungskonstanten, Amendment D Tabelle 4-1. */
 #define DD_CARD_CRYPTOGRAM 0x00u
 #define DD_HOST_CRYPTOGRAM 0x01u
-#define DD_S_ENC           0x04u
-#define DD_S_MAC           0x06u
-#define DD_S_RMAC          0x07u
+#define DD_S_ENC 0x04u
+#define DD_S_MAC 0x06u
+#define DD_S_RMAC 0x07u
 
 /* Laenge der abgeleiteten Daten in BIT, Amendment D 4.1.5. */
-#define DD_L_64            0x0040u   /* Kryptogramm, 8 Byte  */
-#define DD_L_128           0x0080u   /* Schluessel, 16 Byte  */
+#define DD_L_64 0x0040u	 /* Kryptogramm, 8 Byte  */
+#define DD_L_128 0x0080u /* Schluessel, 16 Byte  */
 
 /* CLA mit gesetztem Bit fuer die eigene gesicherte Uebertragung
  * (Amendment D 6.2.4). */
-#define CLA_SECURE         0x84u
+#define CLA_SECURE 0x84u
 
 /* ----------------------------------------------------------- Ableitung */
 
@@ -26,9 +26,8 @@
  * Anmeldeobjekte nur AES-128 (AN12413 3.2.3), und die Kryptogramme sind
  * 8 Byte. Darum gibt es die zweite Runde absichtlich nicht - toter Code
  * waere hier eine Falle, nicht Vorsorge. */
-osk_result_t osk_scp03_derivation_data(uint8_t out[32], size_t *out_len,
-				       uint8_t constant, uint16_t l_bits,
-				       const uint8_t *context, size_t context_len)
+osk_result_t osk_scp03_derivation_data(uint8_t out[32], size_t *out_len, uint8_t constant,
+				       uint16_t l_bits, const uint8_t *context, size_t context_len)
 {
 	if (out == NULL || out_len == NULL) {
 		return OSK_ERR_ARG;
@@ -52,17 +51,16 @@ osk_result_t osk_scp03_derivation_data(uint8_t out[32], size_t *out_len,
 /* Einen Schluessel oder ein Kryptogramm ableiten. take ist 16 fuer einen
  * Schluessel und 8 fuer ein Kryptogramm - in beiden Faellen die vorderen
  * Bytes des CMAC-Ergebnisses. */
-static osk_result_t derive_one(const uint8_t key[OSK_AES_KEY_LEN],
-			       uint8_t constant, uint16_t l_bits,
-			       const uint8_t *context, size_t context_len,
+static osk_result_t derive_one(const uint8_t key[OSK_AES_KEY_LEN], uint8_t constant,
+			       uint16_t l_bits, const uint8_t *context, size_t context_len,
 			       uint8_t *out, size_t take)
 {
 	/* 16 Byte Kopf plus der Kontext aus zwei Zufallszahlen. */
 	uint8_t dd[32];
 	size_t dd_len = 0;
 
-	osk_result_t r = osk_scp03_derivation_data(dd, &dd_len, constant, l_bits,
-						   context, context_len);
+	osk_result_t r =
+	    osk_scp03_derivation_data(dd, &dd_len, constant, l_bits, context, context_len);
 	if (r != OSK_OK) {
 		return r;
 	}
@@ -78,16 +76,14 @@ static osk_result_t derive_one(const uint8_t key[OSK_AES_KEY_LEN],
 	return OSK_OK;
 }
 
-osk_result_t osk_scp03_derive(osk_scp03_t *s,
-			      const osk_scp03_static_keys_t *keys,
+osk_result_t osk_scp03_derive(osk_scp03_t *s, const osk_scp03_static_keys_t *keys,
 			      const uint8_t host_challenge[SCP03_CHALLENGE_LEN],
 			      const uint8_t card_challenge[SCP03_CHALLENGE_LEN],
 			      uint8_t card_cryptogram_out[SCP03_CRYPTOGRAM_LEN],
 			      uint8_t host_cryptogram_out[SCP03_CRYPTOGRAM_LEN])
 {
-	if (s == NULL || keys == NULL || host_challenge == NULL ||
-	    card_challenge == NULL || card_cryptogram_out == NULL ||
-	    host_cryptogram_out == NULL) {
+	if (s == NULL || keys == NULL || host_challenge == NULL || card_challenge == NULL ||
+	    card_cryptogram_out == NULL || host_cryptogram_out == NULL) {
 		return OSK_ERR_ARG;
 	}
 
@@ -99,27 +95,25 @@ osk_result_t osk_scp03_derive(osk_scp03_t *s,
 	memcpy(&ctx[0], host_challenge, SCP03_CHALLENGE_LEN);
 	memcpy(&ctx[SCP03_CHALLENGE_LEN], card_challenge, SCP03_CHALLENGE_LEN);
 
-	osk_result_t r = derive_one(keys->enc, DD_S_ENC, DD_L_128,
-				    ctx, sizeof(ctx), s->s_enc, sizeof(s->s_enc));
+	osk_result_t r =
+	    derive_one(keys->enc, DD_S_ENC, DD_L_128, ctx, sizeof(ctx), s->s_enc, sizeof(s->s_enc));
 	if (r == OSK_OK) {
-		r = derive_one(keys->mac, DD_S_MAC, DD_L_128,
-			       ctx, sizeof(ctx), s->s_mac, sizeof(s->s_mac));
+		r = derive_one(keys->mac, DD_S_MAC, DD_L_128, ctx, sizeof(ctx), s->s_mac,
+			       sizeof(s->s_mac));
 	}
 	if (r == OSK_OK) {
-		r = derive_one(keys->mac, DD_S_RMAC, DD_L_128,
-			       ctx, sizeof(ctx), s->s_rmac, sizeof(s->s_rmac));
+		r = derive_one(keys->mac, DD_S_RMAC, DD_L_128, ctx, sizeof(ctx), s->s_rmac,
+			       sizeof(s->s_rmac));
 	}
 	/* Beide Kryptogramme haengen am Sitzungsschluessel S-MAC, nicht am
 	 * festen Schluessel (Amendment D 6.2.2.2 und 6.2.2.3). */
 	if (r == OSK_OK) {
-		r = derive_one(s->s_mac, DD_CARD_CRYPTOGRAM, DD_L_64,
-			       ctx, sizeof(ctx), card_cryptogram_out,
-			       SCP03_CRYPTOGRAM_LEN);
+		r = derive_one(s->s_mac, DD_CARD_CRYPTOGRAM, DD_L_64, ctx, sizeof(ctx),
+			       card_cryptogram_out, SCP03_CRYPTOGRAM_LEN);
 	}
 	if (r == OSK_OK) {
-		r = derive_one(s->s_mac, DD_HOST_CRYPTOGRAM, DD_L_64,
-			       ctx, sizeof(ctx), host_cryptogram_out,
-			       SCP03_CRYPTOGRAM_LEN);
+		r = derive_one(s->s_mac, DD_HOST_CRYPTOGRAM, DD_L_64, ctx, sizeof(ctx),
+			       host_cryptogram_out, SCP03_CRYPTOGRAM_LEN);
 	}
 
 	osk_wipe(ctx, sizeof(ctx));
@@ -156,8 +150,8 @@ void osk_scp03_close(osk_scp03_t *s)
  * die vollen 16 werden der neue Verkettungswert.
  *
  * apdu zeigt auf den Befehl mit bereits richtigem CLA und Lc. */
-static osk_result_t cmac_over_command(osk_scp03_t *s, const uint8_t *apdu,
-				      size_t apdu_len, uint8_t mac_out[OSK_AES_BLOCK])
+static osk_result_t cmac_over_command(osk_scp03_t *s, const uint8_t *apdu, size_t apdu_len,
+				      uint8_t mac_out[OSK_AES_BLOCK])
 {
 	/* Der groesste Befehl, den der SE050 annimmt, ist 894 Byte
 	 * (AN12413 4.3.2); mit 16 Byte Verkettung bleibt das knapp unter 1 kB. */
@@ -169,8 +163,7 @@ static osk_result_t cmac_over_command(osk_scp03_t *s, const uint8_t *apdu,
 	memcpy(buf, s->chain, SCP03_CHAIN_LEN);
 	memcpy(&buf[SCP03_CHAIN_LEN], apdu, apdu_len);
 
-	const osk_result_t r = osk_aes_cmac(s->s_mac, buf,
-					    SCP03_CHAIN_LEN + apdu_len, mac_out);
+	const osk_result_t r = osk_aes_cmac(s->s_mac, buf, SCP03_CHAIN_LEN + apdu_len, mac_out);
 	osk_wipe(buf, SCP03_CHAIN_LEN + apdu_len);
 	return r;
 }
@@ -179,11 +172,9 @@ static osk_result_t cmac_over_command(osk_scp03_t *s, const uint8_t *apdu,
 
 osk_result_t osk_scp03_build_external_auth(osk_scp03_t *s,
 					   const uint8_t host_cryptogram[SCP03_CRYPTOGRAM_LEN],
-					   uint8_t *apdu, size_t cap,
-					   size_t *len_out)
+					   uint8_t *apdu, size_t cap, size_t *len_out)
 {
-	if (s == NULL || host_cryptogram == NULL || apdu == NULL ||
-	    len_out == NULL) {
+	if (s == NULL || host_cryptogram == NULL || apdu == NULL || len_out == NULL) {
 		return OSK_ERR_ARG;
 	}
 	if (s->established) {
@@ -199,7 +190,7 @@ osk_result_t osk_scp03_build_external_auth(osk_scp03_t *s,
 	}
 
 	apdu[0] = CLA_SECURE;
-	apdu[1] = 0x82u;                    /* EXTERNAL AUTHENTICATE */
+	apdu[1] = 0x82u; /* EXTERNAL AUTHENTICATE */
 	apdu[2] = SCP03_SEC_LEVEL_FULL;
 	apdu[3] = 0x00u;
 	apdu[4] = (uint8_t)(SCP03_CRYPTOGRAM_LEN + SCP03_MAC_LEN);
@@ -208,8 +199,7 @@ osk_result_t osk_scp03_build_external_auth(osk_scp03_t *s,
 	/* Der MAC laeuft ueber Kopf und Kryptogramm, noch ohne den MAC
 	 * selbst - Lc steht aber schon auf dem Endwert. */
 	uint8_t mac[OSK_AES_BLOCK];
-	const osk_result_t r = cmac_over_command(s, apdu,
-						 5u + SCP03_CRYPTOGRAM_LEN, mac);
+	const osk_result_t r = cmac_over_command(s, apdu, 5u + SCP03_CRYPTOGRAM_LEN, mac);
 	if (r != OSK_OK) {
 		osk_wipe(apdu, total);
 		return r;
@@ -247,8 +237,7 @@ static void counter_inc(uint8_t c[OSK_AES_BLOCK])
  * Fuer die Antwort wird vorher das hoechstwertige Byte auf 0x80 gesetzt,
  * damit Befehl und Antwort nie denselben Startwert benutzen
  * (Amendment D 6.2.7). */
-static osk_result_t make_icv(const osk_scp03_t *s, bool for_response,
-			     uint8_t icv[OSK_AES_BLOCK])
+static osk_result_t make_icv(const osk_scp03_t *s, bool for_response, uint8_t icv[OSK_AES_BLOCK])
 {
 	uint8_t block[OSK_AES_BLOCK];
 	memcpy(block, s->counter, sizeof(block));
@@ -262,9 +251,8 @@ static osk_result_t make_icv(const osk_scp03_t *s, bool for_response,
 
 /* ------------------------------------------------------------- Einpacken */
 
-osk_result_t osk_scp03_wrap(osk_scp03_t *s,
-			    const uint8_t *in, size_t in_len,
-			    uint8_t *out, size_t cap, size_t *len_out)
+osk_result_t osk_scp03_wrap(osk_scp03_t *s, const uint8_t *in, size_t in_len, uint8_t *out,
+			    size_t cap, size_t *len_out)
 {
 	if (s == NULL || in == NULL || out == NULL || len_out == NULL) {
 		return OSK_ERR_ARG;
@@ -295,8 +283,7 @@ osk_result_t osk_scp03_wrap(osk_scp03_t *s,
 	 * schon passt - sonst waere nicht erkennbar, wo der Klartext endet. */
 	size_t padded = 0;
 	if (data_len > 0) {
-		padded = ((data_len + 1u + OSK_AES_BLOCK - 1u) / OSK_AES_BLOCK)
-			 * OSK_AES_BLOCK;
+		padded = ((data_len + 1u + OSK_AES_BLOCK - 1u) / OSK_AES_BLOCK) * OSK_AES_BLOCK;
 	}
 
 	const size_t lcc = padded + SCP03_MAC_LEN;
@@ -306,7 +293,7 @@ osk_result_t osk_scp03_wrap(osk_scp03_t *s,
 		 * Laengen, aber dafuer waere auch der Kopf anders. */
 		return OSK_ERR_FULL;
 	}
-	const size_t total = 5u + lcc + 1u;   /* + Le */
+	const size_t total = 5u + lcc + 1u; /* + Le */
 	if (cap < total) {
 		return OSK_ERR_FULL;
 	}
@@ -333,8 +320,7 @@ osk_result_t osk_scp03_wrap(osk_scp03_t *s,
 
 		r = make_icv(s, false, icv);
 		if (r == OSK_OK) {
-			r = osk_aes_cbc_encrypt(s->s_enc, icv, plain,
-						&out[5], padded);
+			r = osk_aes_cbc_encrypt(s->s_enc, icv, plain, &out[5], padded);
 		}
 		osk_wipe(plain, padded);
 		osk_wipe(icv, sizeof(icv));
@@ -371,10 +357,8 @@ osk_result_t osk_scp03_wrap(osk_scp03_t *s,
 
 /* ------------------------------------------------------------ Auspacken */
 
-osk_result_t osk_scp03_unwrap(osk_scp03_t *s,
-			      const uint8_t *in, size_t in_len,
-			      uint8_t *out, size_t cap, size_t *len_out,
-			      uint16_t *sw_out)
+osk_result_t osk_scp03_unwrap(osk_scp03_t *s, const uint8_t *in, size_t in_len, uint8_t *out,
+			      size_t cap, size_t *len_out, uint16_t *sw_out)
 {
 	if (s == NULL || in == NULL || len_out == NULL || sw_out == NULL) {
 		return OSK_ERR_ARG;
@@ -387,8 +371,7 @@ osk_result_t osk_scp03_unwrap(osk_scp03_t *s,
 	}
 
 	*len_out = 0;
-	const uint16_t sw = (uint16_t)(((uint16_t)in[in_len - 2u] << 8) |
-				       in[in_len - 1u]);
+	const uint16_t sw = (uint16_t)(((uint16_t)in[in_len - 2u] << 8) | in[in_len - 1u]);
 	*sw_out = sw;
 
 	/* Fehlerstatus: nach Amendment D 6.2.5 kommen dann genau die zwei
@@ -426,8 +409,7 @@ osk_result_t osk_scp03_unwrap(osk_scp03_t *s,
 	buf[SCP03_CHAIN_LEN + body_len + 1u] = (uint8_t)(sw & 0xFFu);
 
 	uint8_t mac[OSK_AES_BLOCK];
-	osk_result_t r = osk_aes_cmac(s->s_rmac, buf,
-				      SCP03_CHAIN_LEN + body_len + 2u, mac);
+	osk_result_t r = osk_aes_cmac(s->s_rmac, buf, SCP03_CHAIN_LEN + body_len + 2u, mac);
 	osk_wipe(buf, SCP03_CHAIN_LEN + body_len + 2u);
 	if (r != OSK_OK) {
 		return r;
@@ -487,7 +469,7 @@ osk_result_t osk_scp03_unwrap(osk_scp03_t *s,
 		osk_wipe(plain, sizeof(plain));
 		return OSK_ERR_FORMAT;
 	}
-	n--;   /* das 0x80 gehoert nicht zum Klartext */
+	n--; /* das 0x80 gehoert nicht zum Klartext */
 
 	if (n > cap) {
 		osk_wipe(plain, sizeof(plain));
@@ -503,5 +485,105 @@ osk_result_t osk_scp03_unwrap(osk_scp03_t *s,
 	osk_wipe(plain, sizeof(plain));
 
 	*len_out = n;
+	return OSK_OK;
+}
+
+/* --------------------------------------------- Schluessel ersetzen */
+
+osk_result_t osk_scp03_key_check_value(const uint8_t key[OSK_AES_KEY_LEN],
+				       uint8_t kcv_out[SCP03_KCV_LEN])
+{
+	if (key == NULL || kcv_out == NULL) {
+		return OSK_ERR_ARG;
+	}
+
+	/* Amendment D 7.2.2: einen Block aus 16 Byte 0x01 verschluesseln,
+	 * die drei vordersten Bytes sind der Pruefwert. */
+	uint8_t block[OSK_AES_BLOCK];
+	memset(block, 0x01u, sizeof(block));
+
+	uint8_t out[OSK_AES_BLOCK];
+	const osk_result_t r = osk_aes_ecb_encrypt_block(key, block, out);
+	if (r != OSK_OK) {
+		return r;
+	}
+	memcpy(kcv_out, out, SCP03_KCV_LEN);
+	osk_wipe(out, sizeof(out));
+	return OSK_OK;
+}
+
+/* Einen einzelnen Schluessel in das PUT KEY-Datenfeld schreiben.
+ * Aufbau nach Amendment D Tabelle 7-10:
+ *   0x88 (AES) | 0x11 (Laenge der Schluesseldaten) | 0x10 (Schluessellaenge)
+ *   | 16 Byte Chiffrat | 0x03 | 3 Byte Pruefwert  =  23 Byte. */
+#define PUT_KEY_ENTRY_LEN (1u + 1u + 1u + OSK_AES_KEY_LEN + 1u + SCP03_KCV_LEN)
+
+static osk_result_t put_key_entry(const uint8_t dek[OSK_AES_KEY_LEN],
+				  const uint8_t key[OSK_AES_KEY_LEN], uint8_t *out)
+{
+	/* Der neue Schluessel wird mit Key-DEK des ALTEN Satzes
+	 * verschluesselt, AES-CBC mit Startwert Null, ohne Auffuellen - ein
+	 * 16-Byte-Schluessel ist schon genau ein Block
+	 * (Amendment D 6.2.8). */
+	static const uint8_t zero_iv[OSK_AES_BLOCK] = {0};
+
+	out[0] = 0x88u;			   /* Schluesselart: AES */
+	out[1] = 0x11u;			   /* 1 + 16 Byte Schluesseldaten */
+	out[2] = (uint8_t)OSK_AES_KEY_LEN; /* 0x10 */
+
+	osk_result_t r = osk_aes_cbc_encrypt(dek, zero_iv, key, &out[3], OSK_AES_KEY_LEN);
+	if (r != OSK_OK) {
+		return r;
+	}
+
+	out[3 + OSK_AES_KEY_LEN] = SCP03_KCV_LEN;
+	r = osk_scp03_key_check_value(key, &out[3 + OSK_AES_KEY_LEN + 1u]);
+	if (r != OSK_OK) {
+		osk_wipe(out, PUT_KEY_ENTRY_LEN);
+		return r;
+	}
+	return OSK_OK;
+}
+
+osk_result_t osk_scp03_build_put_key_data(const osk_scp03_static_keys_t *current,
+					  const osk_scp03_static_keys_t *replacement,
+					  uint8_t new_key_version, uint8_t *out, size_t cap,
+					  size_t *len_out)
+{
+	if (current == NULL || replacement == NULL || out == NULL || len_out == NULL) {
+		return OSK_ERR_ARG;
+	}
+	/* GPCS 11.8.2.1: die Schluesselfassung ist 0x01 bis 0x7F. 0x00 waere
+	 * "neuen Satz anlegen" - das wollen wir hier nie, wir ERSETZEN. */
+	if (new_key_version == 0x00u || new_key_version > 0x7Fu) {
+		return OSK_ERR_ARG;
+	}
+
+	const size_t total = 1u + 3u * PUT_KEY_ENTRY_LEN;
+	if (cap < total) {
+		return OSK_ERR_FULL;
+	}
+
+	out[0] = new_key_version;
+
+	/* Reihenfolge ENC, MAC, DEK: P2 nennt die Kennung des ERSTEN
+	 * Schluessels, die folgenden zaehlen von dort hoch
+	 * (GPCS 11.8.2.2). Die Reihenfolge muss also zu der Kennung passen,
+	 * die se050.c in P2 setzt. */
+	const uint8_t *keys[3] = {
+	    replacement->enc,
+	    replacement->mac,
+	    replacement->dek,
+	};
+	for (size_t i = 0; i < 3u; i++) {
+		const osk_result_t r =
+		    put_key_entry(current->dek, keys[i], &out[1u + i * PUT_KEY_ENTRY_LEN]);
+		if (r != OSK_OK) {
+			osk_wipe(out, total);
+			return r;
+		}
+	}
+
+	*len_out = total;
 	return OSK_OK;
 }

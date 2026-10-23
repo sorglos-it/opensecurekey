@@ -43,6 +43,10 @@ typedef struct {
 	uint8_t last_p2;
 	size_t commands;
 
+	/* Die Klartext-Nutzlast des letzten Befehls. */
+	uint8_t last_payload[256];
+	size_t last_payload_len;
+
 	/* Was auf den naechsten Befehl geantwortet wird. */
 	uint8_t next_body[256];
 	size_t next_body_len;
@@ -53,8 +57,7 @@ typedef struct {
 void sim_attach(se050_sim_t *sim, fake_bus_t *fb);
 
 /* Antwort fuer den naechsten Befehl festlegen. body darf NULL sein. */
-void sim_set_reply(se050_sim_t *sim, const uint8_t *body, size_t len,
-		   uint16_t sw);
+void sim_set_reply(se050_sim_t *sim, const uint8_t *body, size_t len, uint16_t sw);
 
 /* Die festen Schluessel, die Nachbau und Testhaken gemeinsam benutzen. */
 const osk_scp03_static_keys_t *sim_keys(void);

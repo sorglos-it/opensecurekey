@@ -25,10 +25,10 @@
 #include "osk_result.h"
 #include "se050_crypto.h"
 
-#define SCP03_CHALLENGE_LEN  8u
+#define SCP03_CHALLENGE_LEN 8u
 #define SCP03_CRYPTOGRAM_LEN 8u
-#define SCP03_MAC_LEN        8u
-#define SCP03_CHAIN_LEN      16u
+#define SCP03_MAC_LEN 8u
+#define SCP03_CHAIN_LEN 16u
 
 /* Sicherheitsstufe im P1 von EXTERNAL AUTHENTICATE (Amendment D 7.1.2.1).
  * Wir nehmen immer die hoechste: alles verschluesselt, alles gesichert.
@@ -38,10 +38,15 @@
 
 /* Die drei festen Schluessel eines Schluesselsatzes. Sie liegen NICHT im
  * Flash des nRF52840: der Tresor-Strang uebergibt sie beim Aufbau und
- * loescht sie danach. Key-DEK braucht dieser Treiber nicht. */
+ * loescht sie danach.
+ *
+ * Key-DEK braucht nur das Ersetzen der Schluessel: ein neuer Schluessel
+ * wird damit verschluesselt, bevor er ueber den Bus geht
+ * (Amendment D 6.2.8). Fuer den laufenden Kanal wird er nicht benutzt. */
 typedef struct {
 	uint8_t enc[OSK_AES_KEY_LEN];
 	uint8_t mac[OSK_AES_KEY_LEN];
+	uint8_t dek[OSK_AES_KEY_LEN];
 } osk_scp03_static_keys_t;
 
 typedef struct {
@@ -70,8 +75,7 @@ typedef struct {
  *
  * Nach diesem Aufruf steht der Verkettungswert auf 16 Byte Null, wie es
  * Amendment D 6.2.3 fuer EXTERNAL AUTHENTICATE verlangt. */
-osk_result_t osk_scp03_derive(osk_scp03_t *s,
-			      const osk_scp03_static_keys_t *keys,
+osk_result_t osk_scp03_derive(osk_scp03_t *s, const osk_scp03_static_keys_t *keys,
 			      const uint8_t host_challenge[SCP03_CHALLENGE_LEN],
 			      const uint8_t card_challenge[SCP03_CHALLENGE_LEN],
 			      uint8_t card_cryptogram_out[SCP03_CRYPTOGRAM_LEN],
@@ -85,8 +89,7 @@ osk_result_t osk_scp03_derive(osk_scp03_t *s,
  * der Zaehler auf 1; established wird gesetzt. */
 osk_result_t osk_scp03_build_external_auth(osk_scp03_t *s,
 					   const uint8_t host_cryptogram[SCP03_CRYPTOGRAM_LEN],
-					   uint8_t *apdu, size_t cap,
-					   size_t *len_out);
+					   uint8_t *apdu, size_t cap, size_t *len_out);
 
 /* Kanal vergessen und alle Schluessel aus dem Speicher loeschen. */
 void osk_scp03_close(osk_scp03_t *s);
@@ -102,9 +105,8 @@ void osk_scp03_close(osk_scp03_t *s);
  *
  * out darf nicht auf in zeigen. Platzbedarf: Kopf 5 + Nutzlast auf das
  * naechste Vielfache von 16 aufgerundet + 8 Byte MAC + 1 Byte Le. */
-osk_result_t osk_scp03_wrap(osk_scp03_t *s,
-			    const uint8_t *in, size_t in_len,
-			    uint8_t *out, size_t cap, size_t *len_out);
+osk_result_t osk_scp03_wrap(osk_scp03_t *s, const uint8_t *in, size_t in_len, uint8_t *out,
+			    size_t cap, size_t *len_out);
 
 /* Eine gesicherte Antwort auspacken: R-MAC pruefen, Nutzlast entschluesseln,
  * Auffuellung entfernen. in enthaelt Nutzlast, R-MAC und die zwei
@@ -117,10 +119,33 @@ osk_result_t osk_scp03_wrap(osk_scp03_t *s,
  * OSK_ERR_DENIED, wenn der R-MAC nicht stimmt. Dann ist die Antwort
  * gefaelscht oder vertauscht - der Aufrufer muss den Kanal abreissen, nicht
  * weitermachen. */
-osk_result_t osk_scp03_unwrap(osk_scp03_t *s,
-			      const uint8_t *in, size_t in_len,
-			      uint8_t *out, size_t cap, size_t *len_out,
-			      uint16_t *sw_out);
+osk_result_t osk_scp03_unwrap(osk_scp03_t *s, const uint8_t *in, size_t in_len, uint8_t *out,
+			      size_t cap, size_t *len_out, uint16_t *sw_out);
+
+/* --------------------------------------------- Schluessel ersetzen */
+
+/* Pruefwert eines AES-Schluessels (Amendment D 7.2.2): die drei vordersten
+ * Bytes von AES(neuer Schluessel, 16 Byte 0x01). Die Karte rechnet ihn
+ * selbst nach und lehnt ab, wenn er nicht passt - das faengt einen
+ * verdrehten Schluessel, bevor er gesetzt wird. */
+#define SCP03_KCV_LEN 3u
+
+osk_result_t osk_scp03_key_check_value(const uint8_t key[OSK_AES_KEY_LEN],
+				       uint8_t kcv_out[SCP03_KCV_LEN]);
+
+/* Das Datenfeld eines PUT KEY fuer einen ganzen Schluesselsatz bauen:
+ * neue Schluesselfassung, dann je Schluessel Typ, Laengen, der mit Key-DEK
+ * verschluesselte Schluessel und sein Pruefwert
+ * (GPCS Tabelle 11-67 und Amendment D Tabelle 7-10).
+ *
+ * Die drei neuen Schluessel gehen NICHT im Klartext ueber den Bus: jeder
+ * wird einzeln mit AES-CBC und Startwert Null unter Key-DEK des ALTEN
+ * Satzes verschluesselt (Amendment D 6.2.8). Darum braucht diese Funktion
+ * beide Saetze. */
+osk_result_t osk_scp03_build_put_key_data(const osk_scp03_static_keys_t *current,
+					  const osk_scp03_static_keys_t *replacement,
+					  uint8_t new_key_version, uint8_t *out, size_t cap,
+					  size_t *len_out);
 
 /* ------------------------------------------------------------- Pruefhaken */
 
@@ -138,8 +163,7 @@ osk_result_t osk_scp03_unwrap(osk_scp03_t *s,
  *
  * out muss 32 Byte haben. Die Konstanten sind die aus Amendment D
  * Tabelle 4-1 (0x00 bis 0x07). */
-osk_result_t osk_scp03_derivation_data(uint8_t out[32], size_t *out_len,
-				       uint8_t constant, uint16_t l_bits,
-				       const uint8_t *context, size_t context_len);
+osk_result_t osk_scp03_derivation_data(uint8_t out[32], size_t *out_len, uint8_t constant,
+				       uint16_t l_bits, const uint8_t *context, size_t context_len);
 
 #endif

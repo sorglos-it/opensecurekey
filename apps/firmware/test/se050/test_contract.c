@@ -13,6 +13,8 @@
 #include "osk_se050.h"
 #include "se050_platform.h"
 #include "se050_cmd.h"
+#include "se050_scp03.h"
+#include "se050_crypto.h"
 
 /* Die Platinenhaken fuer den Testlauf. Auf dem Geraet erfuellt sie die
  * Platinen- bzw. Tresorschicht. */
@@ -80,23 +82,30 @@ void test_contract(void)
 
 		TT_EQ_INT(osk_se050_curves(&mask), OSK_ERR_IO, "curves");
 		TT_EQ_INT(osk_se050_random(buf, sizeof(buf)), OSK_ERR_IO, "random");
-		TT_EQ_INT(osk_se050_key_create(1, OSK_CURVE_P256, NULL),
-			  OSK_ERR_IO, "key_create");
+		TT_EQ_INT(osk_se050_key_create(1, OSK_CURVE_P256, NULL), OSK_ERR_IO, "key_create");
 		TT_EQ_INT(osk_se050_key_delete(1), OSK_ERR_IO, "key_delete");
-		TT_EQ_INT(osk_se050_key_public(1, buf, sizeof(buf), &n),
-			  OSK_ERR_IO, "key_public");
-		TT_EQ_INT(osk_se050_sign(1, buf, 32, buf, sizeof(buf), &n),
-			  OSK_ERR_IO, "sign");
-		TT_EQ_INT(osk_se050_ecdh(1, buf, 32, buf, sizeof(buf), &n),
-			  OSK_ERR_IO, "ecdh");
+		TT_EQ_INT(osk_se050_key_public(1, buf, sizeof(buf), &n), OSK_ERR_IO, "key_public");
+		TT_EQ_INT(osk_se050_sign(1, buf, 32, buf, sizeof(buf), &n), OSK_ERR_IO, "sign");
+		TT_EQ_INT(osk_se050_ecdh(1, buf, 32, buf, sizeof(buf), &n), OSK_ERR_IO, "ecdh");
 		TT_EQ_INT(osk_se050_hkdf(1, buf, 8, buf, 32), OSK_ERR_IO, "hkdf");
-		TT_EQ_INT(osk_se050_hmac(1, buf, 8, buf, sizeof(buf), &n),
-			  OSK_ERR_IO, "hmac");
+		TT_EQ_INT(osk_se050_hmac(1, buf, 8, buf, sizeof(buf), &n), OSK_ERR_IO, "hmac");
 		TT_EQ_INT(osk_se050_pin_verify(buf, 6), OSK_ERR_IO, "pin_verify");
-		TT_EQ_INT(osk_se050_pin_set(NULL, 0, buf, 6), OSK_ERR_IO,
-			  "pin_set");
-		TT_EQ_INT(osk_se050_pin_tries_left(&tries), OSK_ERR_IO,
-			  "pin_tries_left");
+		TT_EQ_INT(osk_se050_pin_set(NULL, 0, buf, 6), OSK_ERR_IO, "pin_set");
+		TT_EQ_INT(osk_se050_pin_tries_left(&tries), OSK_ERR_IO, "pin_tries_left");
+		TT_EQ_INT(osk_se050_pin_clear(), OSK_ERR_IO, "pin_clear");
+		TT_EQ_INT(osk_se050_key_derive_transient(1, OSK_CURVE_P256, buf, 8, 2), OSK_ERR_IO,
+			  "key_derive_transient");
+
+		/* Auch die zwei Einrichtungsfunktionen: ohne Kanal darf
+		 * nichts davon durchgehen - ein Schluesselwechsel ohne
+		 * verschluesselten Kanal waere der Schluessel im Klartext
+		 * auf dem Bus. */
+		osk_scp_keyset_t a;
+		osk_scp_keyset_t b;
+		memset(&a, 0x11, sizeof(a));
+		memset(&b, 0x22, sizeof(b));
+		TT_EQ_INT(osk_se050_rotate_scp_keys(0x0Bu, &a, &b), OSK_ERR_IO, "rotate_scp_keys");
+		TT_EQ_INT(osk_se050_require_scp(), OSK_ERR_IO, "require_scp");
 	}
 
 	TT_CASE("Vertrag: Kurven werden abgefragt, nicht angenommen");
@@ -126,8 +135,7 @@ void test_contract(void)
 
 		TT_TRUE(mask & (1u << OSK_CURVE_P256), "P256 gemeldet");
 		TT_TRUE(mask & (1u << OSK_CURVE_P384), "P384 gemeldet");
-		TT_TRUE(!(mask & (1u << OSK_CURVE_SECP256K1)),
-			"secp256k1 nicht gemeldet");
+		TT_TRUE(!(mask & (1u << OSK_CURVE_SECP256K1)), "secp256k1 nicht gemeldet");
 		/* Die beiden Curve25519-Kurven stehen nicht in der Liste -
 		 * sie kommen aus den Merkmalbits, die der Nachbau setzt. */
 		TT_TRUE(mask & (1u << OSK_CURVE_ED25519), "Ed25519 gemeldet");
@@ -165,21 +173,20 @@ void test_contract(void)
 		TT_TRUE(boot(&fb, &sim), "angemeldet");
 
 		sim_set_reply(&sim, NULL, 0, SW_NO_ERROR);
-		TT_EQ_INT(osk_se050_key_create(0x12345678u, OSK_CURVE_P256, NULL),
-			  OSK_OK, "angelegt");
+		TT_EQ_INT(osk_se050_key_create(0x12345678u, OSK_CURVE_P256, NULL), OSK_OK,
+			  "angelegt");
 		TT_EQ_INT(sim.last_ins, INS_WRITE, "INS_WRITE");
 		TT_EQ_INT(sim.last_p1, P1_KEY_PAIR | P1_EC, "Schluesselpaar, EC");
 
 		/* Ein exportierbarer Schluessel wird abgelehnt, nicht still
 		 * nicht-exportierbar angelegt. */
-		const osk_key_policy_t exportable = { .exportable = true,
-						      .needs_touch = false };
-		TT_EQ_INT(osk_se050_key_create(1, OSK_CURVE_P256, &exportable),
-			  OSK_ERR_UNSUPPORTED, "exportierbar abgelehnt");
+		const osk_key_policy_t exportable = {.exportable = true, .needs_touch = false};
+		TT_EQ_INT(osk_se050_key_create(1, OSK_CURVE_P256, &exportable), OSK_ERR_UNSUPPORTED,
+			  "exportierbar abgelehnt");
 
 		/* Eine Kurve, die der Vertrag nicht kennt. */
-		TT_EQ_INT(osk_se050_key_create(1, (osk_curve_t)99, NULL),
-			  OSK_ERR_ARG, "unbekannte Kurve");
+		TT_EQ_INT(osk_se050_key_create(1, (osk_curve_t)99, NULL), OSK_ERR_ARG,
+			  "unbekannte Kurve");
 
 		osk_se050_close();
 	}
@@ -205,15 +212,14 @@ void test_contract(void)
 
 		uint8_t out[128];
 		size_t n = 0;
-		TT_EQ_INT(osk_se050_key_public(7, out, sizeof(out), &n),
-			  OSK_OK, "gelesen");
+		TT_EQ_INT(osk_se050_key_public(7, out, sizeof(out), &n), OSK_OK, "gelesen");
 		TT_EQ_INT(n, sizeof(pub), "Laenge");
 		TT_EQ_MEM(out, pub, sizeof(pub), "Inhalt");
 
 		/* Zielpuffer zu klein wird gemeldet. */
 		uint8_t small[8];
-		TT_EQ_INT(osk_se050_key_public(7, small, sizeof(small), &n),
-			  OSK_ERR_FULL, "zu klein");
+		TT_EQ_INT(osk_se050_key_public(7, small, sizeof(small), &n), OSK_ERR_FULL,
+			  "zu klein");
 
 		osk_se050_close();
 	}
@@ -242,19 +248,18 @@ void test_contract(void)
 		memset(hash, 0x5A, sizeof(hash));
 		uint8_t sig[128];
 		size_t n = 0;
-		TT_EQ_INT(osk_se050_sign(3, hash, sizeof(hash), sig,
-					 sizeof(sig), &n),
-			  OSK_OK, "signiert");
+		TT_EQ_INT(osk_se050_sign(3, hash, sizeof(hash), sig, sizeof(sig), &n), OSK_OK,
+			  "signiert");
 		TT_EQ_INT(sim.last_ins, INS_CRYPTO, "INS_CRYPTO");
 		TT_EQ_INT(sim.last_p1, P1_SIGNATURE, "P1_SIGNATURE");
 		TT_EQ_INT(sim.last_p2, P2_SIGN, "P2_SIGN");
 
 		/* Eine Hashlaenge, zu der es kein Verfahren gibt, wird
 		 * abgelehnt - nicht auf gut Glueck als SHA256 geschickt. */
-		TT_EQ_INT(osk_se050_sign(3, hash, 20u, sig, sizeof(sig), &n),
-			  OSK_ERR_ARG, "20 Byte abgelehnt");
-		TT_EQ_INT(osk_se050_sign(3, NULL, 32u, sig, sizeof(sig), &n),
-			  OSK_ERR_ARG, "kein Hash");
+		TT_EQ_INT(osk_se050_sign(3, hash, 20u, sig, sizeof(sig), &n), OSK_ERR_ARG,
+			  "20 Byte abgelehnt");
+		TT_EQ_INT(osk_se050_sign(3, NULL, 32u, sig, sizeof(sig), &n), OSK_ERR_ARG,
+			  "kein Hash");
 
 		osk_se050_close();
 	}
@@ -275,9 +280,8 @@ void test_contract(void)
 
 		static const uint8_t info[] = "fido-credential";
 		uint8_t out[32];
-		TT_EQ_INT(osk_se050_hkdf(9, info, sizeof(info) - 1u, out,
-					 sizeof(out)),
-			  OSK_OK, "abgeleitet");
+		TT_EQ_INT(osk_se050_hkdf(9, info, sizeof(info) - 1u, out, sizeof(out)), OSK_OK,
+			  "abgeleitet");
 		TT_EQ_MEM(out, &give[2], 32, "Inhalt");
 		TT_EQ_INT(sim.last_p2, P2_HKDF, "P2_HKDF");
 
@@ -290,11 +294,10 @@ void test_contract(void)
 		memset(&shortish[2], 0xEE, 16);
 		sim_set_reply(&sim, shortish, sizeof(shortish), SW_NO_ERROR);
 
-		TT_EQ_INT(osk_se050_hkdf(9, info, sizeof(info) - 1u, out,
-					 sizeof(out)),
+		TT_EQ_INT(osk_se050_hkdf(9, info, sizeof(info) - 1u, out, sizeof(out)),
 			  OSK_ERR_FORMAT, "zu kurz gemeldet");
 
-		static const uint8_t zero[32] = { 0 };
+		static const uint8_t zero[32] = {0};
 		TT_EQ_MEM(out, zero, sizeof(out), "Ausgabe geleert");
 
 		osk_se050_close();
@@ -307,12 +310,10 @@ void test_contract(void)
 		TT_TRUE(boot(&fb, &sim), "angemeldet");
 
 		sim_set_reply(&sim, NULL, 0, SW_CONDITIONS_NOT_SATISFIED);
-		TT_EQ_INT(osk_se050_key_delete(5), OSK_ERR_DENIED,
-			  "6985 wird OSK_ERR_DENIED");
+		TT_EQ_INT(osk_se050_key_delete(5), OSK_ERR_DENIED, "6985 wird OSK_ERR_DENIED");
 
 		sim_set_reply(&sim, NULL, 0, SW_WRONG_DATA);
-		TT_EQ_INT(osk_se050_key_delete(5), OSK_ERR_ARG,
-			  "6A80 wird OSK_ERR_ARG");
+		TT_EQ_INT(osk_se050_key_delete(5), OSK_ERR_ARG, "6A80 wird OSK_ERR_ARG");
 
 		osk_se050_close();
 	}
@@ -323,14 +324,12 @@ void test_contract(void)
 		se050_sim_t sim;
 		TT_TRUE(boot(&fb, &sim), "angemeldet");
 
-		static const uint8_t pin[] = { '1', '2', '3', '4', '5', '6' };
+		static const uint8_t pin[] = {'1', '2', '3', '4', '5', '6'};
 
 		/* Erstes Einrichten: ohne alte PIN. */
 		sim_set_reply(&sim, NULL, 0, SW_NO_ERROR);
-		TT_EQ_INT(osk_se050_pin_set(NULL, 0, pin, sizeof(pin)),
-			  OSK_OK, "eingerichtet");
-		TT_EQ_INT(sim.last_ins, INS_WRITE | INS_AUTH_OBJECT,
-			  "als Anmeldeobjekt angelegt");
+		TT_EQ_INT(osk_se050_pin_set(NULL, 0, pin, sizeof(pin)), OSK_OK, "eingerichtet");
+		TT_EQ_INT(sim.last_ins, INS_WRITE | INS_AUTH_OBJECT, "als Anmeldeobjekt angelegt");
 		TT_EQ_INT(sim.last_p1, P1_USERID, "P1_USERID");
 
 		/* Pruefen: der Nachbau gibt eine Sitzungskennung zurueck. */
@@ -340,8 +339,7 @@ void test_contract(void)
 		memset(&sess[2], 0x77, 8);
 		sim_set_reply(&sim, sess, sizeof(sess), SW_NO_ERROR);
 
-		TT_EQ_INT(osk_se050_pin_verify(pin, sizeof(pin)), OSK_OK,
-			  "geprueft");
+		TT_EQ_INT(osk_se050_pin_verify(pin, sizeof(pin)), OSK_OK, "geprueft");
 
 		/* Zu kurze und zu lange PIN werden abgelehnt, ohne dass ein
 		 * Befehl hinausgeht. */
@@ -349,12 +347,172 @@ void test_contract(void)
 		TT_EQ_INT(osk_se050_pin_verify(pin, 2u), OSK_ERR_ARG, "zu kurz");
 		uint8_t longpin[32];
 		memset(longpin, '9', sizeof(longpin));
-		TT_EQ_INT(osk_se050_pin_verify(longpin, sizeof(longpin)),
-			  OSK_ERR_ARG, "zu lang");
+		TT_EQ_INT(osk_se050_pin_verify(longpin, sizeof(longpin)), OSK_ERR_ARG, "zu lang");
 		TT_EQ_INT(osk_se050_pin_verify(NULL, 6u), OSK_ERR_ARG, "NULL");
 		TT_EQ_INT(sim.commands, before, "nichts gesendet");
 
 		osk_se050_close();
+	}
+
+	TT_CASE("Vertrag: PIN loeschen ist wiederholbar");
+	{
+		fake_bus_t fb;
+		se050_sim_t sim;
+		TT_TRUE(boot(&fb, &sim), "angemeldet");
+
+		sim_set_reply(&sim, NULL, 0, SW_NO_ERROR);
+		TT_EQ_INT(osk_se050_pin_clear(), OSK_OK, "geloescht");
+		TT_EQ_INT(sim.last_ins, INS_MGMT, "INS_MGMT");
+		TT_EQ_INT(sim.last_p2, P2_DELETE_OBJECT, "P2_DELETE_OBJECT");
+
+		/* Zweimal loeschen muss denselben Zustand ergeben wie
+		 * einmal. Der Baustein meldet "Bedingung nicht erfuellt",
+		 * wenn das Objekt schon weg ist - das darf kein Fehler sein,
+		 * sonst scheitert ein Zuruecksetzen auf Werkszustand daran,
+		 * dass es schon zurueckgesetzt war. */
+		sim_set_reply(&sim, NULL, 0, SW_CONDITIONS_NOT_SATISFIED);
+		TT_EQ_INT(osk_se050_pin_clear(), OSK_OK, "zweites Loeschen ist kein Fehler");
+
+		osk_se050_close();
+	}
+
+	TT_CASE("Vertrag: fluechtige Ableitung lehnt ehrlich ab");
+	{
+		fake_bus_t fb;
+		se050_sim_t sim;
+		TT_TRUE(boot(&fb, &sim), "angemeldet");
+
+		/* Der SE05x hat keinen Befehl, der ein Schluesselpaar INNEN
+		 * aus einem Grundgeheimnis ableitet: HKDF und PBKDF2 liefern
+		 * beide an den Wirt (AN12413 4.14), und WriteECKey nimmt den
+		 * privaten Wert nur vom Wirt. Der Treiber lehnt darum ab,
+		 * statt den privaten Schluessel durch den nRF52840 zu
+		 * fuehren. */
+		static const uint8_t info[] = "example.com";
+		const size_t before = sim.commands;
+		TT_EQ_INT(
+		    osk_se050_key_derive_transient(1, OSK_CURVE_P256, info, sizeof(info) - 1u, 2),
+		    OSK_ERR_UNSUPPORTED, "lehnt ab");
+		TT_EQ_INT(sim.commands, before, "und schickt dabei keinen Befehl");
+
+		/* Unbrauchbare Parameter werden vorher abgefangen. */
+		TT_EQ_INT(osk_se050_key_derive_transient(1, OSK_CURVE_P256, NULL, 0, 2),
+			  OSK_ERR_ARG, "kein info");
+		TT_EQ_INT(osk_se050_key_derive_transient(1, (osk_curve_t)99, info, 4, 2),
+			  OSK_ERR_ARG, "unbekannte Kurve");
+
+		osk_se050_close();
+	}
+
+	TT_CASE("Vertrag: Werksschluessel ersetzen baut PUT KEY richtig");
+	{
+		fake_bus_t fb;
+		se050_sim_t sim;
+		TT_TRUE(boot(&fb, &sim), "angemeldet");
+
+		osk_scp_keyset_t cur;
+		osk_scp_keyset_t new_keys;
+		memset(cur.enc, 0x11, sizeof(cur.enc));
+		memset(cur.mac, 0x22, sizeof(cur.mac));
+		memset(cur.dek, 0x33, sizeof(cur.dek));
+		memset(new_keys.enc, 0xA1, sizeof(new_keys.enc));
+		memset(new_keys.mac, 0xA2, sizeof(new_keys.mac));
+		memset(new_keys.dek, 0xA3, sizeof(new_keys.dek));
+
+		sim_set_reply(&sim, NULL, 0, SW_NO_ERROR);
+		TT_EQ_INT(osk_se050_rotate_scp_keys(0x0Bu, &cur, &new_keys), OSK_OK, "ersetzt");
+
+		TT_EQ_INT(sim.last_ins, 0xD8u, "INS PUT KEY");
+		TT_EQ_INT(sim.last_p1, 0x0Bu, "P1 ist die zu ersetzende Fassung, b8 = 0");
+		TT_EQ_INT(sim.last_p2, 0x81u, "P2: mehrere Schluessel ab Kennung 1");
+
+		/* Datenfeld: 1 Byte neue Fassung + dreimal 23 Byte. */
+		TT_EQ_INT(sim.last_payload_len, 1u + 3u * 23u, "Laenge");
+		TT_EQ_INT(sim.last_payload[0], 0x0Bu, "neue Fassung vorn");
+		for (size_t i = 0; i < 3u; i++) {
+			const uint8_t *e = &sim.last_payload[1u + i * 23u];
+			TT_EQ_INT(e[0], 0x88u, "Schluesselart AES");
+			TT_EQ_INT(e[1], 0x11u, "Laenge der Schluesseldaten");
+			TT_EQ_INT(e[2], 0x10u, "Schluessellaenge 16");
+			TT_EQ_INT(e[3 + 16], 0x03u, "Pruefwertlaenge");
+		}
+
+		/* Kein neuer Schluessel darf im Klartext im Befehl stehen -
+		 * das ist der ganze Zweck der Verpackung mit Key-DEK. */
+		bool leaked = false;
+		for (size_t i = 0; i + 16u <= sim.last_payload_len; i++) {
+			if (memcmp(&sim.last_payload[i], new_keys.enc, 16) == 0 ||
+			    memcmp(&sim.last_payload[i], new_keys.mac, 16) == 0 ||
+			    memcmp(&sim.last_payload[i], new_keys.dek, 16) == 0) {
+				leaked = true;
+			}
+		}
+		TT_TRUE(!leaked, "kein neuer Schluessel im Klartext");
+
+		/* Denselben Satz einsetzen ist ein Aufruf, der nichts tut -
+		 * wird abgelehnt statt stillschweigend ausgefuehrt. */
+		TT_EQ_INT(osk_se050_rotate_scp_keys(0x0Bu, &cur, &cur), OSK_ERR_ARG,
+			  "gleicher Satz abgelehnt");
+
+		/* Fassung 0 waere "neu anlegen", nicht ersetzen. */
+		TT_EQ_INT(osk_se050_rotate_scp_keys(0x00u, &cur, &new_keys), OSK_ERR_ARG,
+			  "Fassung 0 abgelehnt");
+		TT_EQ_INT(osk_se050_rotate_scp_keys(0x80u, &cur, &new_keys), OSK_ERR_ARG,
+			  "Fassung ueber 0x7F abgelehnt");
+		TT_EQ_INT(osk_se050_rotate_scp_keys(0x0Bu, NULL, &new_keys), OSK_ERR_ARG,
+			  "kein alter Satz");
+
+		osk_se050_close();
+	}
+
+	TT_CASE("Vertrag: Kanal verpflichtend machen");
+	{
+		fake_bus_t fb;
+		se050_sim_t sim;
+		TT_TRUE(boot(&fb, &sim), "angemeldet");
+
+		sim_set_reply(&sim, NULL, 0, SW_NO_ERROR);
+		TT_EQ_INT(osk_se050_require_scp(), OSK_OK, "gesetzt");
+		TT_EQ_INT(sim.last_ins, INS_MGMT, "INS_MGMT");
+		TT_EQ_INT(sim.last_p2, P2_SCP, "P2_SCP");
+
+		/* Der Wert muss SCP_REQUIRED sein. SCP_NOT_REQUIRED waere
+		 * der Werkszustand - genau das, was wir abstellen. */
+		TT_EQ_INT(sim.last_payload_len, 3u, "ein TLV mit einem Byte");
+		TT_EQ_INT(sim.last_payload[0], TAG_1, "TAG_1");
+		TT_EQ_INT(sim.last_payload[2], SE050_SCP_REQUIRED,
+			  "SCP_REQUIRED, nicht NOT_REQUIRED");
+
+		osk_se050_close();
+	}
+
+	TT_CASE("Pruefwert: AES-Schluessel nach Amendment D 7.2.2");
+	{
+		/* Der Pruefwert sind die drei vordersten Bytes von
+		 * AES(Schluessel, 16 Byte 0x01). Hier gegen den
+		 * NIST-Schluessel gerechnet, dessen AES-Ergebnis fuer einen
+		 * Block aus 0x01 sich unabhaengig nachrechnen laesst. */
+		static const uint8_t key[16] = {0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6,
+						0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
+		uint8_t block[16];
+		memset(block, 0x01, sizeof(block));
+
+		uint8_t full[16];
+		TT_EQ_INT(osk_aes_ecb_encrypt_block(key, block, full), OSK_OK, "Block gerechnet");
+
+		uint8_t kcv[3];
+		TT_EQ_INT(osk_scp03_key_check_value(key, kcv), OSK_OK, "Pruefwert gerechnet");
+		TT_EQ_MEM(kcv, full, 3, "die drei vordersten Bytes");
+
+		/* Zwei verschiedene Schluessel muessen verschiedene
+		 * Pruefwerte haben - sonst faengt die Karte einen
+		 * verdrehten Schluessel nicht. */
+		uint8_t other[16];
+		memcpy(other, key, sizeof(other));
+		other[0] ^= 0x01u;
+		uint8_t kcv2[3];
+		TT_EQ_INT(osk_scp03_key_check_value(other, kcv2), OSK_OK, "zweiter Pruefwert");
+		TT_TRUE(memcmp(kcv, kcv2, 3) != 0, "verschiedene Pruefwerte");
 	}
 
 	TT_CASE("Vertrag: Fehlversuche sind am SE050 nicht ablesbar");

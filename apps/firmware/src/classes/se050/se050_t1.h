@@ -50,10 +50,8 @@ osk_result_t osk_se050_t1_close(osk_se050_t1_t *t1);
  *
  * OSK_ERR_FORMAT, wenn die Antwort nicht in rsp_cap passt - der Puffer
  * bleibt dann unbrauchbar, der Aufrufer darf ihn nicht auswerten. */
-osk_result_t osk_se050_t1_transceive(osk_se050_t1_t *t1,
-				     const uint8_t *cmd, size_t cmd_len,
-				     uint8_t *rsp, size_t rsp_cap,
-				     size_t *rsp_len);
+osk_result_t osk_se050_t1_transceive(osk_se050_t1_t *t1, const uint8_t *cmd, size_t cmd_len,
+				     uint8_t *rsp, size_t rsp_cap, size_t *rsp_len);
 
 /* Nach einem Fehler wieder aufsetzen: S-Block "Resync", Zaehler auf 0.
  * Wird von transceive() selbst aufgerufen; einzeln nur fuer Tests. */
@@ -62,8 +60,8 @@ osk_result_t osk_se050_t1_resync(osk_se050_t1_t *t1);
 /* Einen Rahmen in buf bauen. Gibt die Gesamtlaenge zurueck oder 0, wenn
  * die Angaben nicht passen. Getrennt herausgezogen, damit der Rahmenbau
  * ohne Bus geprueft werden kann. */
-size_t osk_se050_t1_build(uint8_t *buf, size_t cap, uint8_t nad, uint8_t pcb,
-			  const uint8_t *inf, uint8_t inf_len);
+size_t osk_se050_t1_build(uint8_t *buf, size_t cap, uint8_t nad, uint8_t pcb, const uint8_t *inf,
+			  uint8_t inf_len);
 
 /* Einen Rahmen pruefen: Laenge stimmig und Pruefsumme richtig.
  * len ist die Gesamtlaenge einschliesslich Prolog und Epilog. */

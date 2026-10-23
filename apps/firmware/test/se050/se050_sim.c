@@ -6,10 +6,12 @@
 #include "se050_cmd.h"
 
 static const osk_scp03_static_keys_t SIM_KEYS = {
-	.enc = { 0x40,0x41,0x42,0x43,0x44,0x45,0x46,0x47,
-		 0x48,0x49,0x4A,0x4B,0x4C,0x4D,0x4E,0x4F },
-	.mac = { 0x50,0x51,0x52,0x53,0x54,0x55,0x56,0x57,
-		 0x58,0x59,0x5A,0x5B,0x5C,0x5D,0x5E,0x5F },
+    .enc = {0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D,
+	    0x4E, 0x4F},
+    .mac = {0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D,
+	    0x5E, 0x5F},
+    .dek = {0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D,
+	    0x6E, 0x6F},
 };
 
 const osk_scp03_static_keys_t *sim_keys(void)
@@ -17,8 +19,7 @@ const osk_scp03_static_keys_t *sim_keys(void)
 	return &SIM_KEYS;
 }
 
-void sim_set_reply(se050_sim_t *sim, const uint8_t *body, size_t len,
-		   uint16_t sw)
+void sim_set_reply(se050_sim_t *sim, const uint8_t *body, size_t len, uint16_t sw)
 {
 	sim->next_body_len = 0;
 	if (body != NULL && len > 0 && len <= sizeof(sim->next_body)) {
@@ -33,8 +34,8 @@ void sim_set_reply(se050_sim_t *sim, const uint8_t *body, size_t len,
 /* Eine Antwort so bauen, wie der Baustein sie im stehenden Kanal baut:
  * Nutzlast auffuellen und mit dem Antwort-Startwert verschluesseln, dann
  * R-MAC darueber (Amendment D 6.2.5 und 6.2.7). */
-static size_t wrap_reply(se050_sim_t *sim, const uint8_t *body, size_t body_len,
-			 uint16_t sw, uint8_t *out, size_t cap)
+static size_t wrap_reply(se050_sim_t *sim, const uint8_t *body, size_t body_len, uint16_t sw,
+			 uint8_t *out, size_t cap)
 {
 	if (sw != SW_NO_ERROR) {
 		/* Fehlerstatus: nur die zwei Bytes, ohne MAC. */
@@ -71,8 +72,7 @@ static size_t wrap_reply(se050_sim_t *sim, const uint8_t *body, size_t body_len,
 		if (osk_aes_ecb_encrypt_block(sim->scp.s_enc, block, icv) != OSK_OK) {
 			return 0;
 		}
-		if (osk_aes_cbc_encrypt(sim->scp.s_enc, icv, plain, out,
-					padded) != OSK_OK) {
+		if (osk_aes_cbc_encrypt(sim->scp.s_enc, icv, plain, out, padded) != OSK_OK) {
 			return 0;
 		}
 	}
@@ -101,8 +101,8 @@ static size_t wrap_reply(se050_sim_t *sim, const uint8_t *body, size_t body_len,
 /* Einen gesicherten Befehl auspacken: MAC pruefen, Nutzlast entschluesseln.
  * Das ist der Weg, den der echte Baustein geht - und genau deshalb prueft
  * es den C-MAC des Treibers wirklich nach. */
-static bool unwrap_command(se050_sim_t *sim, const uint8_t *apdu, size_t len,
-			   uint8_t *body, size_t cap, size_t *body_len)
+static bool unwrap_command(se050_sim_t *sim, const uint8_t *apdu, size_t len, uint8_t *body,
+			   size_t cap, size_t *body_len)
 {
 	if (len < 5u + SCP03_MAC_LEN) {
 		return false;
@@ -149,8 +149,7 @@ static bool unwrap_command(se050_sim_t *sim, const uint8_t *apdu, size_t len,
 	}
 
 	uint8_t icv[16];
-	if (osk_aes_ecb_encrypt_block(sim->scp.s_enc, sim->cmd_counter,
-				      icv) != OSK_OK) {
+	if (osk_aes_ecb_encrypt_block(sim->scp.s_enc, sim->cmd_counter, icv) != OSK_OK) {
 		return false;
 	}
 
@@ -158,8 +157,7 @@ static bool unwrap_command(se050_sim_t *sim, const uint8_t *apdu, size_t len,
 	if (data_len > sizeof(plain)) {
 		return false;
 	}
-	if (osk_aes_cbc_decrypt(sim->scp.s_enc, icv, &apdu[5], plain,
-				data_len) != OSK_OK) {
+	if (osk_aes_cbc_decrypt(sim->scp.s_enc, icv, &apdu[5], plain, data_len) != OSK_OK) {
 		return false;
 	}
 
@@ -183,8 +181,8 @@ static bool unwrap_command(se050_sim_t *sim, const uint8_t *apdu, size_t len,
 
 /* Einen Klartext-C-APDU beantworten. Legt die ANTWORT (Nutzlast und
  * Statuswort) in out ab. */
-static size_t handle_apdu(se050_sim_t *sim, const uint8_t *apdu, size_t len,
-			  uint8_t *out, size_t cap)
+static size_t handle_apdu(se050_sim_t *sim, const uint8_t *apdu, size_t len, uint8_t *out,
+			  size_t cap)
 {
 	static const uint8_t aid[SE050_APPLET_AID_LEN] = SE050_APPLET_AID;
 
@@ -213,7 +211,7 @@ static size_t handle_apdu(se050_sim_t *sim, const uint8_t *apdu, size_t len,
 		out[0] = 0x03u;
 		out[1] = 0x06u;
 		out[2] = 0x00u;
-		out[3] = 0x0Fu;   /* ECDAA, ECDSA/ECDH, EdDSA, DH_MONT */
+		out[3] = 0x0Fu; /* ECDAA, ECDSA/ECDH, EdDSA, DH_MONT */
 		out[4] = 0xFFu;
 		out[5] = 0x00u;
 		out[6] = 0x01u;
@@ -237,9 +235,8 @@ static size_t handle_apdu(se050_sim_t *sim, const uint8_t *apdu, size_t len,
 
 		uint8_t card_cg[8];
 		uint8_t host_cg[8];
-		if (osk_scp03_derive(&sim->scp, &sim->keys, host_challenge,
-				     sim->card_challenge, card_cg,
-				     host_cg) != OSK_OK) {
+		if (osk_scp03_derive(&sim->scp, &sim->keys, host_challenge, sim->card_challenge,
+				     card_cg, host_cg) != OSK_OK) {
 			return 0;
 		}
 
@@ -247,10 +244,10 @@ static size_t handle_apdu(se050_sim_t *sim, const uint8_t *apdu, size_t len,
 		if (cap < 10u + 3u + 8u + 8u + 2u) {
 			return 0;
 		}
-		memset(&out[0], 0xAB, 10);     /* Streudaten, ungenutzt */
-		out[10] = 0x00u;               /* Schluesselfassung */
-		out[11] = 0x03u;               /* SCP03 */
-		out[12] = 0x70u;               /* i-Parameter */
+		memset(&out[0], 0xAB, 10); /* Streudaten, ungenutzt */
+		out[10] = 0x00u;	   /* Schluesselfassung */
+		out[11] = 0x03u;	   /* SCP03 */
+		out[12] = 0x70u;	   /* i-Parameter */
 		memcpy(&out[13], sim->card_challenge, 8);
 		memcpy(&out[21], card_cg, 8);
 		out[29] = 0x90u;
@@ -266,12 +263,11 @@ static size_t handle_apdu(se050_sim_t *sim, const uint8_t *apdu, size_t len,
 			return 2u;
 		}
 		uint8_t macin[16 + 13];
-		memset(&macin[0], 0, 16);      /* Verkettung ist hier Null */
-		memcpy(&macin[16], apdu, 13);  /* Kopf plus 8 Byte Kryptogramm */
+		memset(&macin[0], 0, 16);     /* Verkettung ist hier Null */
+		memcpy(&macin[16], apdu, 13); /* Kopf plus 8 Byte Kryptogramm */
 
 		uint8_t mac[16];
-		if (osk_aes_cmac(sim->scp.s_mac, macin, sizeof(macin),
-				 mac) != OSK_OK) {
+		if (osk_aes_cmac(sim->scp.s_mac, macin, sizeof(macin), mac) != OSK_OK) {
 			return 0;
 		}
 		if (osk_memeq_ct(mac, &apdu[13], 8) != 0) {
@@ -297,6 +293,19 @@ static size_t handle_apdu(se050_sim_t *sim, const uint8_t *apdu, size_t len,
 	sim->last_p1 = apdu[2];
 	sim->last_p2 = apdu[3];
 
+	/* Die Klartext-Nutzlast festhalten: nur so kann ein Test pruefen,
+	 * was wirklich im Befehl stand - bei PUT KEY ist genau das der
+	 * Punkt. */
+	sim->last_payload_len = 0;
+	if (len > 5u) {
+		size_t pl = apdu[4];
+		if (pl > sizeof(sim->last_payload)) {
+			pl = sizeof(sim->last_payload);
+		}
+		memcpy(sim->last_payload, &apdu[5], pl);
+		sim->last_payload_len = pl;
+	}
+
 	const size_t n = sim->next_body_len;
 	const uint16_t sw = sim->next_sw;
 	if (cap < n + 2u) {
@@ -312,8 +321,7 @@ static size_t handle_apdu(se050_sim_t *sim, const uint8_t *apdu, size_t len,
 
 /* ------------------------------------------------- Rahmen beantworten */
 
-static size_t sim_respond(void *ctx, const uint8_t *frame, size_t len,
-			  uint8_t *out, size_t cap)
+static size_t sim_respond(void *ctx, const uint8_t *frame, size_t len, uint8_t *out, size_t cap)
 {
 	se050_sim_t *sim = (se050_sim_t *)ctx;
 
@@ -331,8 +339,7 @@ static size_t sim_respond(void *ctx, const uint8_t *frame, size_t len,
 			return 0;
 		}
 		const uint8_t code = pcb & SE050_PCB_S_CODE_MASK;
-		const uint8_t rpcb = (uint8_t)(SE050_PCB_TYPE_S |
-					       SE050_PCB_S_RESPONSE | code);
+		const uint8_t rpcb = (uint8_t)(SE050_PCB_TYPE_S | SE050_PCB_S_RESPONSE | code);
 		if (code == SE050_S_IF_SOFT_RESET) {
 			/* Zuruecksetzen heisst: Sitzung weg, Applet nicht
 			 * mehr ausgewaehlt. Die festen Schluessel und die
@@ -343,16 +350,15 @@ static size_t sim_respond(void *ctx, const uint8_t *frame, size_t len,
 			memset(sim->cmd_counter, 0, sizeof(sim->cmd_counter));
 
 			/* Kennblock - der Treiber wertet ihn nicht aus. */
-			static const uint8_t atr[] = { 0x00, 0xA0, 0x00, 0x00 };
-			return osk_se050_t1_build(out, cap, SE050_NAD_TO_HOST,
-						  rpcb, atr, sizeof(atr));
+			static const uint8_t atr[] = {0x00, 0xA0, 0x00, 0x00};
+			return osk_se050_t1_build(out, cap, SE050_NAD_TO_HOST, rpcb, atr,
+						  sizeof(atr));
 		}
 		if (code == SE050_S_RESYNC) {
 			osk_scp03_close(&sim->scp);
 			sim->channel = false;
 		}
-		return osk_se050_t1_build(out, cap, SE050_NAD_TO_HOST, rpcb,
-					  NULL, 0);
+		return osk_se050_t1_build(out, cap, SE050_NAD_TO_HOST, rpcb, NULL, 0);
 	}
 
 	/* R-Block vom Wirt: Quittung, darauf antwortet der Baustein mit dem
@@ -376,14 +382,12 @@ static size_t sim_respond(void *ctx, const uint8_t *frame, size_t len,
 	if (sim->channel) {
 		uint8_t inner[300];
 		size_t inner_len = 0;
-		if (!unwrap_command(sim, inf, inf_len, inner, sizeof(inner),
-				    &inner_len)) {
+		if (!unwrap_command(sim, inf, inf_len, inner, sizeof(inner), &inner_len)) {
 			/* Falscher MAC: der echte Baustein reisst dann den
 			 * Kanal ab. Hier nur ein Fehlerstatus. */
-			static const uint8_t err[] = { 0x69, 0x82 };
-			return osk_se050_t1_build(out, cap, SE050_NAD_TO_HOST,
-						  SE050_PCB_TYPE_I, err,
-						  sizeof(err));
+			static const uint8_t err[] = {0x69, 0x82};
+			return osk_se050_t1_build(out, cap, SE050_NAD_TO_HOST, SE050_PCB_TYPE_I,
+						  err, sizeof(err));
 		}
 		/* Die ausgepackte Nutzlast ist der Klartext-Befehl ohne Kopf;
 		 * den Kopf liefert der aeussere Rahmen. */
@@ -400,20 +404,16 @@ static size_t sim_respond(void *ctx, const uint8_t *frame, size_t len,
 		}
 
 		uint8_t reply[300];
-		const size_t rn = handle_apdu(sim, rebuilt, rl, reply,
-					      sizeof(reply));
+		const size_t rn = handle_apdu(sim, rebuilt, rl, reply, sizeof(reply));
 		if (rn < 2u) {
 			return 0;
 		}
-		const uint16_t sw = (uint16_t)(((uint16_t)reply[rn - 2u] << 8) |
-					       reply[rn - 1u]);
-		body_len = wrap_reply(sim, reply, rn - 2u, sw, body,
-				      sizeof(body));
+		const uint16_t sw = (uint16_t)(((uint16_t)reply[rn - 2u] << 8) | reply[rn - 1u]);
+		body_len = wrap_reply(sim, reply, rn - 2u, sw, body, sizeof(body));
 		if (body_len == 0) {
 			return 0;
 		}
-		return osk_se050_t1_build(out, cap, SE050_NAD_TO_HOST,
-					  SE050_PCB_TYPE_I, body,
+		return osk_se050_t1_build(out, cap, SE050_NAD_TO_HOST, SE050_PCB_TYPE_I, body,
 					  (uint8_t)body_len);
 	}
 
@@ -421,8 +421,8 @@ static size_t sim_respond(void *ctx, const uint8_t *frame, size_t len,
 	if (body_len == 0) {
 		return 0;
 	}
-	return osk_se050_t1_build(out, cap, SE050_NAD_TO_HOST,
-				  SE050_PCB_TYPE_I, body, (uint8_t)body_len);
+	return osk_se050_t1_build(out, cap, SE050_NAD_TO_HOST, SE050_PCB_TYPE_I, body,
+				  (uint8_t)body_len);
 }
 
 void sim_attach(se050_sim_t *sim, fake_bus_t *fb)

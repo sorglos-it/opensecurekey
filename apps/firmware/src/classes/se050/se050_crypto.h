@@ -21,7 +21,7 @@
 #include <stddef.h>
 #include "osk_result.h"
 
-#define OSK_AES_BLOCK   16u
+#define OSK_AES_BLOCK 16u
 #define OSK_AES_KEY_LEN 16u
 
 /* Einmal beim Start aufrufen, bevor etwas anderes benutzt wird.
@@ -30,25 +30,23 @@ osk_result_t osk_crypto_init(void);
 
 /* AES-CMAC nach NIST SP 800-38B. mac ist immer 16 Byte lang;
  * wer nur die ersten 8 braucht, schneidet selbst ab. */
-osk_result_t osk_aes_cmac(const uint8_t key[OSK_AES_KEY_LEN],
-			  const uint8_t *msg, size_t msg_len,
+osk_result_t osk_aes_cmac(const uint8_t key[OSK_AES_KEY_LEN], const uint8_t *msg, size_t msg_len,
 			  uint8_t mac[OSK_AES_BLOCK]);
 
 /* Ein einzelner AES-Block vorwaerts, ohne Betriebsart und ohne Auffuellen.
  * Nur fuer den Startwert der CBC-Kette (Amendment D 6.2.6). */
 osk_result_t osk_aes_ecb_encrypt_block(const uint8_t key[OSK_AES_KEY_LEN],
-				       const uint8_t in[OSK_AES_BLOCK],
-				       uint8_t out[OSK_AES_BLOCK]);
+				       const uint8_t in[OSK_AES_BLOCK], uint8_t out[OSK_AES_BLOCK]);
 
 /* AES-CBC ohne eigenes Auffuellen - len muss ein Vielfaches von 16 sein.
  * Das Auffuellen nach ISO 9797-1 Verfahren 2 macht se050_scp03.c, weil es
  * zur Nachricht gehoert und nicht zur Verschluesselung. */
 osk_result_t osk_aes_cbc_encrypt(const uint8_t key[OSK_AES_KEY_LEN],
-				 const uint8_t iv[OSK_AES_BLOCK],
-				 const uint8_t *in, uint8_t *out, size_t len);
+				 const uint8_t iv[OSK_AES_BLOCK], const uint8_t *in, uint8_t *out,
+				 size_t len);
 osk_result_t osk_aes_cbc_decrypt(const uint8_t key[OSK_AES_KEY_LEN],
-				 const uint8_t iv[OSK_AES_BLOCK],
-				 const uint8_t *in, uint8_t *out, size_t len);
+				 const uint8_t iv[OSK_AES_BLOCK], const uint8_t *in, uint8_t *out,
+				 size_t len);
 
 /* Zufall vom Wirt - fuer die eigene Zufallszahl beim Kanalaufbau.
  * Der Zufall des SE050 kommt nicht in Frage: wer den Kanal aufbaut, kann

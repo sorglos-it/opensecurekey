@@ -47,9 +47,8 @@ osk_result_t osk_crypto_init(void)
 /* Einen fluechtigen AES-Schluessel anlegen. Er lebt nur fuer diesen einen
  * Vorgang und wird am Ende wieder zerstoert, damit kein Schluesselbund im
  * nRF52840 stehen bleibt - dessen Auslesesperre gilt uns als gebrochen. */
-static osk_result_t key_import(const uint8_t key[OSK_AES_KEY_LEN],
-			       psa_algorithm_t alg, psa_key_usage_t usage,
-			       psa_key_id_t *id_out)
+static osk_result_t key_import(const uint8_t key[OSK_AES_KEY_LEN], psa_algorithm_t alg,
+			       psa_key_usage_t usage, psa_key_id_t *id_out)
 {
 	psa_key_attributes_t attr = PSA_KEY_ATTRIBUTES_INIT;
 
@@ -64,8 +63,7 @@ static osk_result_t key_import(const uint8_t key[OSK_AES_KEY_LEN],
 	return map(st);
 }
 
-osk_result_t osk_aes_cmac(const uint8_t key[OSK_AES_KEY_LEN],
-			  const uint8_t *msg, size_t msg_len,
+osk_result_t osk_aes_cmac(const uint8_t key[OSK_AES_KEY_LEN], const uint8_t *msg, size_t msg_len,
 			  uint8_t mac[OSK_AES_BLOCK])
 {
 	if (key == NULL || mac == NULL || (msg_len > 0 && msg == NULL)) {
@@ -79,8 +77,8 @@ osk_result_t osk_aes_cmac(const uint8_t key[OSK_AES_KEY_LEN],
 	}
 
 	size_t out_len = 0;
-	const psa_status_t st = psa_mac_compute(id, PSA_ALG_CMAC, msg, msg_len,
-						mac, OSK_AES_BLOCK, &out_len);
+	const psa_status_t st =
+	    psa_mac_compute(id, PSA_ALG_CMAC, msg, msg_len, mac, OSK_AES_BLOCK, &out_len);
 	psa_destroy_key(id);
 
 	if (st != PSA_SUCCESS) {
@@ -95,23 +93,20 @@ osk_result_t osk_aes_cmac(const uint8_t key[OSK_AES_KEY_LEN],
 }
 
 osk_result_t osk_aes_ecb_encrypt_block(const uint8_t key[OSK_AES_KEY_LEN],
-				       const uint8_t in[OSK_AES_BLOCK],
-				       uint8_t out[OSK_AES_BLOCK])
+				       const uint8_t in[OSK_AES_BLOCK], uint8_t out[OSK_AES_BLOCK])
 {
 	if (key == NULL || in == NULL || out == NULL) {
 		return OSK_ERR_ARG;
 	}
 
 	psa_key_id_t id = PSA_KEY_ID_NULL;
-	osk_result_t r = key_import(key, PSA_ALG_ECB_NO_PADDING,
-				    PSA_KEY_USAGE_ENCRYPT, &id);
+	osk_result_t r = key_import(key, PSA_ALG_ECB_NO_PADDING, PSA_KEY_USAGE_ENCRYPT, &id);
 	if (r != OSK_OK) {
 		return r;
 	}
 
 	size_t out_len = 0;
-	const psa_status_t st = psa_cipher_encrypt(id, PSA_ALG_ECB_NO_PADDING,
-						   in, OSK_AES_BLOCK,
+	const psa_status_t st = psa_cipher_encrypt(id, PSA_ALG_ECB_NO_PADDING, in, OSK_AES_BLOCK,
 						   out, OSK_AES_BLOCK, &out_len);
 	psa_destroy_key(id);
 
@@ -125,10 +120,8 @@ osk_result_t osk_aes_ecb_encrypt_block(const uint8_t key[OSK_AES_KEY_LEN],
 /* PSA stellt den Startwert bei psa_cipher_encrypt() selbst voran. SCP03
  * schreibt den Startwert aber vor, darum laeuft CBC hier ueber die
  * schrittweise Schnittstelle mit psa_cipher_set_iv(). */
-static osk_result_t cbc(const uint8_t key[OSK_AES_KEY_LEN],
-			const uint8_t iv[OSK_AES_BLOCK],
-			const uint8_t *in, uint8_t *out, size_t len,
-			int encrypt)
+static osk_result_t cbc(const uint8_t key[OSK_AES_KEY_LEN], const uint8_t iv[OSK_AES_BLOCK],
+			const uint8_t *in, uint8_t *out, size_t len, int encrypt)
 {
 	if (key == NULL || iv == NULL || in == NULL || out == NULL) {
 		return OSK_ERR_ARG;
@@ -139,17 +132,14 @@ static osk_result_t cbc(const uint8_t key[OSK_AES_KEY_LEN],
 
 	psa_key_id_t id = PSA_KEY_ID_NULL;
 	osk_result_t r = key_import(key, PSA_ALG_CBC_NO_PADDING,
-				    encrypt ? PSA_KEY_USAGE_ENCRYPT
-					    : PSA_KEY_USAGE_DECRYPT,
-				    &id);
+				    encrypt ? PSA_KEY_USAGE_ENCRYPT : PSA_KEY_USAGE_DECRYPT, &id);
 	if (r != OSK_OK) {
 		return r;
 	}
 
 	psa_cipher_operation_t op = PSA_CIPHER_OPERATION_INIT;
-	psa_status_t st = encrypt
-		? psa_cipher_encrypt_setup(&op, id, PSA_ALG_CBC_NO_PADDING)
-		: psa_cipher_decrypt_setup(&op, id, PSA_ALG_CBC_NO_PADDING);
+	psa_status_t st = encrypt ? psa_cipher_encrypt_setup(&op, id, PSA_ALG_CBC_NO_PADDING)
+				  : psa_cipher_decrypt_setup(&op, id, PSA_ALG_CBC_NO_PADDING);
 
 	if (st == PSA_SUCCESS) {
 		st = psa_cipher_set_iv(&op, iv, OSK_AES_BLOCK);
@@ -178,15 +168,15 @@ static osk_result_t cbc(const uint8_t key[OSK_AES_KEY_LEN],
 }
 
 osk_result_t osk_aes_cbc_encrypt(const uint8_t key[OSK_AES_KEY_LEN],
-				 const uint8_t iv[OSK_AES_BLOCK],
-				 const uint8_t *in, uint8_t *out, size_t len)
+				 const uint8_t iv[OSK_AES_BLOCK], const uint8_t *in, uint8_t *out,
+				 size_t len)
 {
 	return cbc(key, iv, in, out, len, 1);
 }
 
 osk_result_t osk_aes_cbc_decrypt(const uint8_t key[OSK_AES_KEY_LEN],
-				 const uint8_t iv[OSK_AES_BLOCK],
-				 const uint8_t *in, uint8_t *out, size_t len)
+				 const uint8_t iv[OSK_AES_BLOCK], const uint8_t *in, uint8_t *out,
+				 size_t len)
 {
 	return cbc(key, iv, in, out, len, 0);
 }

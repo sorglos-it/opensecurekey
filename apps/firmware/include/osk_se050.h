@@ -81,4 +81,45 @@ osk_result_t osk_se050_pin_tries_left(uint8_t *tries_out);
  * osk_se050_pin_clear() prueft das nicht, es loescht. */
 osk_result_t osk_se050_pin_clear(void);
 
+/* --- Erstinbetriebnahme: Werksschluessel ersetzen ------------------------
+ *
+ * HINZUGEFUEGT vom se050-Strang, dem Master gemeldet. Ohne diese zwei
+ * Funktionen ist der verschluesselte I2C-Kanal wertlos, und das laesst sich
+ * nicht in einer spaeteren Stufe nachholen - darum gehoert es in den
+ * Vertrag.
+ *
+ * Grund: Die Werks-Schluessel des Platform-SCP-Kanals stehen im Klartext in
+ * NXP AN12973 Tabelle 6, je Variante und Fertigungslos. Wer das Dokument
+ * liest, liest auf einem Geraet mit Werkseinstellung den ganzen I2C-Verkehr
+ * mit. Siehe docs/se050.md. */
+
+#define OSK_SCP_KEY_LEN 16
+
+/* Ein Schluesselsatz des Platform-SCP-Kanals. Die drei gehoeren zusammen
+ * und muessen dieselbe Laenge haben. */
+typedef struct {
+	uint8_t enc[OSK_SCP_KEY_LEN];
+	uint8_t mac[OSK_SCP_KEY_LEN];
+	uint8_t dek[OSK_SCP_KEY_LEN];
+} osk_scp_keyset_t;
+
+/* Einen Schluesselsatz ersetzen. `current` muss der Satz sein, der gerade
+ * gilt - beim ersten Mal also der Werkssatz aus AN12973.
+ *
+ * AN12973 Abschnitt 2.3: der Baustein hat ZWEI Saetze, 11 und 12. Satz 12
+ * ist der Rettungssatz, mit dem Satz 11 wieder gesetzt werden kann. Wer nur
+ * 11 ersetzt, laesst mit 12 eine Hintertuer offen, deren Schluessel bei NXP
+ * liegt. Beide muessen ersetzt werden, sonst ist nichts gewonnen. */
+osk_result_t osk_se050_rotate_scp_keys(uint8_t key_version, const osk_scp_keyset_t *current,
+				       const osk_scp_keyset_t *replacement);
+
+/* Den Kanal verpflichtend machen. Danach lehnt der Baustein jeden Befehl
+ * ab, der nicht verschluesselt und gesichert ankommt.
+ *
+ * Das ist der zweite Teil und genauso wichtig wie der erste: der Baustein
+ * kommt mit "nicht verlangt" aus dem Werk (AN12413 Abschnitt 4.6.2).
+ * Schluessel ersetzen allein hilft nichts, wenn der Kanal gar nicht
+ * verlangt wird. Dauerhaft - laesst sich nicht zuruecknehmen. */
+osk_result_t osk_se050_require_scp(void);
+
 #endif

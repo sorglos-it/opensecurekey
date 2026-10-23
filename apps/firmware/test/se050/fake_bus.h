@@ -60,8 +60,8 @@ typedef struct {
  * frame/len ist der geschriebene T=1'-Rahmen. Die Funktion legt ihren
  * Antwortrahmen in out ab und gibt dessen Laenge zurueck, oder 0, wenn sie
  * nicht antworten will. */
-typedef size_t (*fb_responder_t)(void *ctx, const uint8_t *frame, size_t len,
-				 uint8_t *out, size_t cap);
+typedef size_t (*fb_responder_t)(void *ctx, const uint8_t *frame, size_t len, uint8_t *out,
+				 size_t cap);
 
 typedef struct {
 	osk_se050_bus_t bus;
@@ -78,11 +78,11 @@ typedef struct {
 	/* Laufender Zustand. */
 	size_t at_step;
 	size_t read_pos;
-	bool armed;        /* true: Antwort des laufenden Schritts steht an */
+	bool armed; /* true: Antwort des laufenden Schritts steht an */
 
 	/* Nachzaehlen, was der Treiber getan hat. */
 	size_t writes;
-	size_t empty_writes;   /* Rahmen ohne Datenbyte - darf 0 bleiben */
+	size_t empty_writes; /* Rahmen ohne Datenbyte - darf 0 bleiben */
 	size_t waits;
 	uint32_t clock_ms;
 
@@ -99,15 +99,14 @@ void fb_set_responder(fake_bus_t *fb, fb_responder_t fn, void *ctx);
 
 /* Einen Schritt anhaengen. want darf NULL sein ("egal was kommt"),
  * give darf NULL sein (keine Antwort). */
-void fb_add(fake_bus_t *fb, fb_mode_t mode,
-	    const uint8_t *want, size_t want_len,
+void fb_add(fake_bus_t *fb, fb_mode_t mode, const uint8_t *want, size_t want_len,
 	    const uint8_t *give, size_t give_len);
 
 /* Wie fb_add(), aber baut die Antwort als vollstaendigen T=1'-Rahmen mit
  * richtiger Pruefsumme - so steht in den Tests nur, was wirklich
  * interessiert. */
-void fb_add_frame(fake_bus_t *fb, fb_mode_t mode, uint8_t nad, uint8_t pcb,
-		  const uint8_t *inf, uint8_t inf_len);
+void fb_add_frame(fake_bus_t *fb, fb_mode_t mode, uint8_t nad, uint8_t pcb, const uint8_t *inf,
+		  uint8_t inf_len);
 
 /* Nur bei FB_TRUNCATE: wie viele Byte des letzten Rahmens noch kommen. */
 void fb_set_cut(fake_bus_t *fb, size_t cut);

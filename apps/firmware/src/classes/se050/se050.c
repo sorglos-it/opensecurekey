@@ -28,8 +28,8 @@
 /* Merkmalbits aus VersionInfo (AN12413 Tabelle 5). Nur die, die wir
  * wirklich abfragen. */
 #define CONFIG_ECDSA_ECDH_ECDHE 0x0002u
-#define CONFIG_EDDSA            0x0004u
-#define CONFIG_DH_MONT          0x0008u
+#define CONFIG_EDDSA 0x0004u
+#define CONFIG_DH_MONT 0x0008u
 
 /* Genau ein Baustein je Geraet, darum ein Zustand. Nicht mehrfach
  * benutzbar zu machen ist hier richtig: zwei offene Kanaele auf denselben
@@ -61,12 +61,23 @@ static size_t pub_len_of(osk_curve_t c)
 static osk_result_t curve_id_of(osk_curve_t c, uint8_t *out)
 {
 	switch (c) {
-	case OSK_CURVE_P256:      *out = EC_NIST_P256;      return OSK_OK;
-	case OSK_CURVE_P384:      *out = EC_NIST_P384;      return OSK_OK;
-	case OSK_CURVE_SECP256K1: *out = EC_SECP256K1;      return OSK_OK;
-	case OSK_CURVE_ED25519:   *out = EC_ED25519;        return OSK_OK;
-	case OSK_CURVE_X25519:    *out = EC_MONT_DH_25519;  return OSK_OK;
-	default:                                            return OSK_ERR_ARG;
+	case OSK_CURVE_P256:
+		*out = EC_NIST_P256;
+		return OSK_OK;
+	case OSK_CURVE_P384:
+		*out = EC_NIST_P384;
+		return OSK_OK;
+	case OSK_CURVE_SECP256K1:
+		*out = EC_SECP256K1;
+		return OSK_OK;
+	case OSK_CURVE_ED25519:
+		*out = EC_ED25519;
+		return OSK_OK;
+	case OSK_CURVE_X25519:
+		*out = EC_MONT_DH_25519;
+		return OSK_OK;
+	default:
+		return OSK_ERR_ARG;
 	}
 }
 
@@ -90,10 +101,17 @@ static osk_result_t curve_of_key(osk_key_id_t id, osk_curve_t *out)
 	 * Byte. Fuer das Signaturverfahren macht das keinen Unterschied -
 	 * beide sind Weierstrass-Kurven und nehmen SIG_ECDSA_SHA_256. */
 	switch (n) {
-	case 65u: *out = OSK_CURVE_P256;    return OSK_OK;
-	case 97u: *out = OSK_CURVE_P384;    return OSK_OK;
-	case 32u: *out = OSK_CURVE_ED25519; return OSK_OK;
-	default:                            return OSK_ERR_FORMAT;
+	case 65u:
+		*out = OSK_CURVE_P256;
+		return OSK_OK;
+	case 97u:
+		*out = OSK_CURVE_P384;
+		return OSK_OK;
+	case 32u:
+		*out = OSK_CURVE_ED25519;
+		return OSK_OK;
+	default:
+		return OSK_ERR_FORMAT;
 	}
 }
 
@@ -176,9 +194,8 @@ osk_result_t osk_se050_curves(uint32_t *mask_out)
 	 * stehen dort NICHT drin; die kommen aus den Merkmalbits. */
 	uint8_t rsp[64];
 	size_t n = 0;
-	osk_result_t r = osk_se050_apdu_exchange(&g_apdu, INS_READ, P1_CURVE,
-						 P2_LIST, NULL, 0,
-						 rsp, sizeof(rsp), &n);
+	osk_result_t r = osk_se050_apdu_exchange(&g_apdu, INS_READ, P1_CURVE, P2_LIST, NULL, 0, rsp,
+						 sizeof(rsp), &n);
 	if (r != OSK_OK) {
 		return r;
 	}
@@ -208,8 +225,7 @@ osk_result_t osk_se050_curves(uint32_t *mask_out)
 	 * und DH: eine angelegte Kurve, mit der das Applet nicht rechnen
 	 * darf, hilft uns nicht. */
 	if ((g_applet_config & CONFIG_ECDSA_ECDH_ECDHE) == 0) {
-		*mask_out &= ~((1u << OSK_CURVE_P256) |
-			       (1u << OSK_CURVE_P384) |
+		*mask_out &= ~((1u << OSK_CURVE_P256) | (1u << OSK_CURVE_P384) |
 			       (1u << OSK_CURVE_SECP256K1));
 	}
 
@@ -256,8 +272,7 @@ osk_result_t osk_se050_random(uint8_t *out, size_t len)
 
 		uint8_t rsp[160];
 		size_t n = 0;
-		r = osk_se050_apdu_exchange(&g_apdu, INS_MGMT, P1_DEFAULT,
-					    P2_RANDOM, payload, pl,
+		r = osk_se050_apdu_exchange(&g_apdu, INS_MGMT, P1_DEFAULT, P2_RANDOM, payload, pl,
 					    rsp, sizeof(rsp), &n);
 		if (r != OSK_OK) {
 			osk_wipe(out, len);
@@ -326,8 +341,7 @@ osk_result_t osk_se050_key_create(osk_key_id_t id, osk_curve_t curve,
 		return r;
 	}
 
-	return osk_se050_apdu_exchange(&g_apdu, INS_WRITE,
-				       (uint8_t)(P1_KEY_PAIR | P1_EC),
+	return osk_se050_apdu_exchange(&g_apdu, INS_WRITE, (uint8_t)(P1_KEY_PAIR | P1_EC),
 				       P2_DEFAULT, payload, pl, NULL, 0, &pl);
 }
 
@@ -349,13 +363,11 @@ osk_result_t osk_se050_key_delete(osk_key_id_t id)
 		return r;
 	}
 
-	return osk_se050_apdu_exchange(&g_apdu, INS_MGMT, P1_DEFAULT,
-				       P2_DELETE_OBJECT, payload, pl,
+	return osk_se050_apdu_exchange(&g_apdu, INS_MGMT, P1_DEFAULT, P2_DELETE_OBJECT, payload, pl,
 				       NULL, 0, &pl);
 }
 
-osk_result_t osk_se050_key_public(osk_key_id_t id, uint8_t *out, size_t cap,
-				  size_t *len_out)
+osk_result_t osk_se050_key_public(osk_key_id_t id, uint8_t *out, size_t cap, size_t *len_out)
 {
 	if (!g_open) {
 		return OSK_ERR_IO;
@@ -380,8 +392,8 @@ osk_result_t osk_se050_key_public(osk_key_id_t id, uint8_t *out, size_t cap,
 
 	uint8_t rsp[192];
 	size_t n = 0;
-	r = osk_se050_apdu_exchange(&g_apdu, INS_READ, P1_DEFAULT, P2_DEFAULT,
-				    payload, pl, rsp, sizeof(rsp), &n);
+	r = osk_se050_apdu_exchange(&g_apdu, INS_READ, P1_DEFAULT, P2_DEFAULT, payload, pl, rsp,
+				    sizeof(rsp), &n);
 	if (r != OSK_OK) {
 		return r;
 	}
@@ -393,8 +405,8 @@ osk_result_t osk_se050_key_public(osk_key_id_t id, uint8_t *out, size_t cap,
 
 /* ---------------------------------------------------------- Signieren */
 
-osk_result_t osk_se050_sign(osk_key_id_t id, const uint8_t *hash, size_t hash_len,
-			    uint8_t *sig_out, size_t cap, size_t *len_out)
+osk_result_t osk_se050_sign(osk_key_id_t id, const uint8_t *hash, size_t hash_len, uint8_t *sig_out,
+			    size_t cap, size_t *len_out)
 {
 	if (!g_open) {
 		return OSK_ERR_IO;
@@ -423,10 +435,17 @@ osk_result_t osk_se050_sign(osk_key_id_t id, const uint8_t *hash, size_t hash_le
 		 * passen, sonst verrechnet sich der Baustein still
 		 * (AN12413 4.10.1.1). Also aus der Laenge ableiten. */
 		switch (hash_len) {
-		case 32u: algo = SIG_ECDSA_SHA_256; break;
-		case 48u: algo = SIG_ECDSA_SHA_384; break;
-		case 64u: algo = SIG_ECDSA_SHA_512; break;
-		default:  return OSK_ERR_ARG;
+		case 32u:
+			algo = SIG_ECDSA_SHA_256;
+			break;
+		case 48u:
+			algo = SIG_ECDSA_SHA_384;
+			break;
+		case 64u:
+			algo = SIG_ECDSA_SHA_512;
+			break;
+		default:
+			return OSK_ERR_ARG;
 		}
 		p1 = P1_SIGNATURE;
 	}
@@ -450,8 +469,8 @@ osk_result_t osk_se050_sign(osk_key_id_t id, const uint8_t *hash, size_t hash_le
 
 	uint8_t rsp[160];
 	size_t n = 0;
-	r = osk_se050_apdu_exchange(&g_apdu, INS_CRYPTO, p1, P2_SIGN,
-				    payload, pl, rsp, sizeof(rsp), &n);
+	r = osk_se050_apdu_exchange(&g_apdu, INS_CRYPTO, p1, P2_SIGN, payload, pl, rsp, sizeof(rsp),
+				    &n);
 	if (r != OSK_OK) {
 		return r;
 	}
@@ -469,8 +488,7 @@ osk_result_t osk_se050_ecdh(osk_key_id_t id, const uint8_t *peer_pub, size_t pee
 	if (!g_open) {
 		return OSK_ERR_IO;
 	}
-	if (peer_pub == NULL || peer_len == 0 || secret_out == NULL ||
-	    len_out == NULL) {
+	if (peer_pub == NULL || peer_len == 0 || secret_out == NULL || len_out == NULL) {
 		return OSK_ERR_ARG;
 	}
 	if (peer_len > 128u) {
@@ -492,8 +510,8 @@ osk_result_t osk_se050_ecdh(osk_key_id_t id, const uint8_t *peer_pub, size_t pee
 
 	uint8_t rsp[96];
 	size_t n = 0;
-	r = osk_se050_apdu_exchange(&g_apdu, INS_CRYPTO, P1_EC, P2_DH,
-				    payload, pl, rsp, sizeof(rsp), &n);
+	r = osk_se050_apdu_exchange(&g_apdu, INS_CRYPTO, P1_EC, P2_DH, payload, pl, rsp,
+				    sizeof(rsp), &n);
 	if (r != OSK_OK) {
 		return r;
 	}
@@ -507,8 +525,8 @@ osk_result_t osk_se050_ecdh(osk_key_id_t id, const uint8_t *peer_pub, size_t pee
 
 /* ------------------------------------------------------ Ableitung, MAC */
 
-osk_result_t osk_se050_hkdf(osk_key_id_t id, const uint8_t *info, size_t info_len,
-			    uint8_t *out, size_t out_len)
+osk_result_t osk_se050_hkdf(osk_key_id_t id, const uint8_t *info, size_t info_len, uint8_t *out,
+			    size_t out_len)
 {
 	if (!g_open) {
 		return OSK_ERR_IO;
@@ -544,8 +562,8 @@ osk_result_t osk_se050_hkdf(osk_key_id_t id, const uint8_t *info, size_t info_le
 
 	uint8_t rsp[256];
 	size_t n = 0;
-	r = osk_se050_apdu_exchange(&g_apdu, INS_CRYPTO, P1_DEFAULT, P2_HKDF,
-				    payload, pl, rsp, sizeof(rsp), &n);
+	r = osk_se050_apdu_exchange(&g_apdu, INS_CRYPTO, P1_DEFAULT, P2_HKDF, payload, pl, rsp,
+				    sizeof(rsp), &n);
 	if (r != OSK_OK) {
 		return r;
 	}
@@ -570,8 +588,8 @@ osk_result_t osk_se050_hkdf(osk_key_id_t id, const uint8_t *info, size_t info_le
 	return OSK_OK;
 }
 
-osk_result_t osk_se050_hmac(osk_key_id_t id, const uint8_t *msg, size_t msg_len,
-			    uint8_t *mac_out, size_t cap, size_t *len_out)
+osk_result_t osk_se050_hmac(osk_key_id_t id, const uint8_t *msg, size_t msg_len, uint8_t *mac_out,
+			    size_t cap, size_t *len_out)
 {
 	if (!g_open) {
 		return OSK_ERR_IO;
@@ -602,8 +620,7 @@ osk_result_t osk_se050_hmac(osk_key_id_t id, const uint8_t *msg, size_t msg_len,
 
 	uint8_t rsp[96];
 	size_t n = 0;
-	r = osk_se050_apdu_exchange(&g_apdu, INS_CRYPTO, P1_MAC,
-				    P2_GENERATE_ONESHOT, payload, pl,
+	r = osk_se050_apdu_exchange(&g_apdu, INS_CRYPTO, P1_MAC, P2_GENERATE_ONESHOT, payload, pl,
 				    rsp, sizeof(rsp), &n);
 	if (r != OSK_OK) {
 		return r;
@@ -648,8 +665,7 @@ osk_result_t osk_se050_pin_verify(const uint8_t *pin, size_t len)
 
 	uint8_t rsp[32];
 	size_t n = 0;
-	r = osk_se050_apdu_exchange(&g_apdu, INS_MGMT, P1_DEFAULT,
-				    P2_SESSION_CREATE, payload, pl,
+	r = osk_se050_apdu_exchange(&g_apdu, INS_MGMT, P1_DEFAULT, P2_SESSION_CREATE, payload, pl,
 				    rsp, sizeof(rsp), &n);
 	if (r != OSK_OK) {
 		return r;
@@ -660,8 +676,7 @@ osk_result_t osk_se050_pin_verify(const uint8_t *pin, size_t len)
 	{
 		osk_tlv_reader_t rd;
 		osk_tlv_reader_init(&rd, rsp, n);
-		r = osk_tlv_copy(&rd, TAG_1, session, sizeof(session),
-				 &session_len);
+		r = osk_tlv_copy(&rd, TAG_1, session, sizeof(session), &session_len);
 	}
 	if (r != OSK_OK) {
 		return r;
@@ -712,8 +727,7 @@ osk_result_t osk_se050_pin_verify(const uint8_t *pin, size_t len)
 	}
 
 	n = 0;
-	r = osk_se050_apdu_exchange(&g_apdu, INS_PROCESS, P1_DEFAULT,
-				    P2_DEFAULT, outer, outer_len,
+	r = osk_se050_apdu_exchange(&g_apdu, INS_PROCESS, P1_DEFAULT, P2_DEFAULT, outer, outer_len,
 				    rsp, sizeof(rsp), &n);
 	osk_wipe(outer, sizeof(outer));
 
@@ -729,10 +743,8 @@ osk_result_t osk_se050_pin_verify(const uint8_t *pin, size_t len)
 		size_t cl = 0;
 		if (osk_tlv_done(&cw, &cl) == OSK_OK) {
 			size_t dummy = 0;
-			(void)osk_se050_apdu_exchange(&g_apdu, INS_MGMT,
-						      P1_DEFAULT,
-						      P2_SESSION_CLOSE,
-						      cp, cl, NULL, 0, &dummy);
+			(void)osk_se050_apdu_exchange(&g_apdu, INS_MGMT, P1_DEFAULT,
+						      P2_SESSION_CLOSE, cp, cl, NULL, 0, &dummy);
 		}
 	}
 	osk_wipe(session, sizeof(session));
@@ -746,14 +758,13 @@ osk_result_t osk_se050_pin_verify(const uint8_t *pin, size_t len)
 	return r;
 }
 
-osk_result_t osk_se050_pin_set(const uint8_t *old_pin, size_t old_len,
-			       const uint8_t *new_pin, size_t new_len)
+osk_result_t osk_se050_pin_set(const uint8_t *old_pin, size_t old_len, const uint8_t *new_pin,
+			       size_t new_len)
 {
 	if (!g_open) {
 		return OSK_ERR_IO;
 	}
-	if (new_pin == NULL || new_len < OSK_PIN_MIN_LEN ||
-	    new_len > OSK_PIN_MAX_LEN) {
+	if (new_pin == NULL || new_len < OSK_PIN_MIN_LEN || new_len > OSK_PIN_MAX_LEN) {
 		return OSK_ERR_ARG;
 	}
 
@@ -790,10 +801,8 @@ osk_result_t osk_se050_pin_set(const uint8_t *old_pin, size_t old_len,
 	}
 
 	size_t dummy = 0;
-	r = osk_se050_apdu_exchange(&g_apdu,
-				    (uint8_t)(INS_WRITE | INS_AUTH_OBJECT),
-				    P1_USERID, P2_DEFAULT, payload, pl,
-				    NULL, 0, &dummy);
+	r = osk_se050_apdu_exchange(&g_apdu, (uint8_t)(INS_WRITE | INS_AUTH_OBJECT), P1_USERID,
+				    P2_DEFAULT, payload, pl, NULL, 0, &dummy);
 	osk_wipe(payload, sizeof(payload));
 	return r;
 }
@@ -828,4 +837,213 @@ osk_result_t osk_se050_pin_tries_left(uint8_t *tries_out)
 	 * Zaehler und Hoechstzahl. Das aendert den PIN-Pfad vollstaendig und
 	 * ist dem Master gemeldet - siehe docs/se050.md. */
 	return OSK_ERR_UNSUPPORTED;
+}
+
+/* ------------------------------------------- Fluechtige Ableitung */
+
+osk_result_t osk_se050_key_derive_transient(osk_key_id_t root, osk_curve_t curve,
+					    const uint8_t *info, size_t info_len, osk_key_id_t slot)
+{
+	if (!g_open) {
+		return OSK_ERR_IO;
+	}
+	if (info == NULL || info_len == 0) {
+		return OSK_ERR_ARG;
+	}
+
+	uint8_t curve_id = 0;
+	const osk_result_t r = curve_id_of(curve, &curve_id);
+	if (r != OSK_OK) {
+		return r;
+	}
+	(void)root;
+	(void)slot;
+
+	/* HIER GEHT ES NICHT WEITER - und das ist ein Befund, keine Luecke.
+	 *
+	 * Der Vertrag verlangt genau das Richtige: der private Teil darf den
+	 * Chip nicht verlassen. Der SE05x kann das aber nicht leisten. Seine
+	 * einzigen Ableitungsbefehle sind HKDF (AN12413 4.14.1) und PBKDF2
+	 * (4.14.2); BEIDE liefern das Ergebnis in TLV[TAG_1] der Antwort,
+	 * also an den Wirt. Es gibt keinen Befehl, der ein abgeleitetes
+	 * Schluesselpaar INNEN in ein Objekt legt, und WriteECKey nimmt den
+	 * privaten Wert nur als Eingabe vom Wirt (4.7.1.1, TAG_3).
+	 *
+	 * Der naheliegende Weg - HKDF holen, dann WriteECKey damit - fuehrt
+	 * den privaten Schluessel durch den nRF52840. Dessen Auslesesperre
+	 * gilt uns als gebrochen (docs/architecture.md), also waere das
+	 * genau die Zusage, die wir nicht halten koennen. Eine Funktion
+	 * anzubieten, die sicher aussieht und es nicht ist, ist schlimmer
+	 * als eine, die ehrlich ablehnt.
+	 *
+	 * Was der Baustein STATT DESSEN kann (ExportObject/ImportObject,
+	 * AN12413 4.7.3.2 und 4.7.1.8): ein Schluesselpaar im Chip erzeugen,
+	 * als verschluesseltes Abbild heraus- und spaeter wieder
+	 * hineingeben. Der private Teil ist dabei nie im Klartext draussen.
+	 * Das ist aber "im Chip erzeugt und vom Chip verpackt", nicht "aus
+	 * einem Grundgeheimnis abgeleitet" - und der Schluessel, mit dem der
+	 * Chip verpackt, ist geraetegebunden, womit das zweite Geraet aus
+	 * docs/architecture.md nicht mehr aufgeht.
+	 *
+	 * Das ist eine Entscheidung ueber den Aufbau, nicht ueber den
+	 * Treiber. Sie liegt beim Master-Thread und beim CTAP-Strang und ist
+	 * gemeldet; die Fassung mit Begruendung steht in docs/se050.md. */
+	return OSK_ERR_UNSUPPORTED;
+}
+
+/* --------------------------------------------------------- PIN loeschen */
+
+osk_result_t osk_se050_pin_clear(void)
+{
+	if (!g_open) {
+		return OSK_ERR_IO;
+	}
+
+	/* DeleteSecureObject auf das PIN-Objekt (AN12413 4.7.4.5). Der
+	 * Fehlversuchszaehler verschwindet mit dem Objekt - das ist beim
+	 * Zuruecksetzen auf Werkszustand gewollt und genau der Grund, warum
+	 * diese Funktion eine Freigabe am Geraet voraussetzt. Geprueft wird
+	 * sie hier nicht, so steht es im Vertrag.
+	 *
+	 * Ein nicht vorhandenes Objekt ist kein Fehler: nach dem Loeschen
+	 * soll zweimal Loeschen denselben Zustand ergeben wie einmal. */
+	uint8_t payload[8];
+	osk_tlv_writer_t w;
+	osk_tlv_init(&w, payload, sizeof(payload));
+	osk_tlv_put_u32(&w, TAG_1, OSK_PIN_OBJECT_ID);
+
+	size_t pl = 0;
+	osk_result_t r = osk_tlv_done(&w, &pl);
+	if (r != OSK_OK) {
+		return r;
+	}
+
+	size_t dummy = 0;
+	r = osk_se050_apdu_exchange(&g_apdu, INS_MGMT, P1_DEFAULT, P2_DELETE_OBJECT, payload, pl,
+				    NULL, 0, &dummy);
+	if (r == OSK_ERR_DENIED) {
+		/* Der Baustein meldet "Bedingung nicht erfuellt" auch, wenn
+		 * das Objekt gar nicht da ist. Erst nachsehen, dann
+		 * entscheiden - sonst meldet ein zweiter Aufruf einen
+		 * Fehler, obwohl der Zustand stimmt. */
+		uint8_t exists[8];
+		osk_tlv_writer_t ew;
+		osk_tlv_init(&ew, exists, sizeof(exists));
+		osk_tlv_put_u32(&ew, TAG_1, OSK_PIN_OBJECT_ID);
+
+		size_t el = 0;
+		if (osk_tlv_done(&ew, &el) != OSK_OK) {
+			return r;
+		}
+
+		uint8_t rsp[32];
+		size_t n = 0;
+		const osk_result_t tr = osk_se050_apdu_exchange(
+		    &g_apdu, INS_READ, P1_DEFAULT, P2_TYPE, exists, el, rsp, sizeof(rsp), &n);
+		if (tr != OSK_OK) {
+			/* Typ nicht lesbar heisst: kein solches Objekt. */
+			return OSK_OK;
+		}
+	}
+	return r;
+}
+
+/* ------------------------------------ Werksschluessel ersetzen */
+
+osk_result_t osk_se050_rotate_scp_keys(uint8_t key_version, const osk_scp_keyset_t *current,
+				       const osk_scp_keyset_t *replacement)
+{
+	if (!g_open) {
+		return OSK_ERR_IO;
+	}
+	if (current == NULL || replacement == NULL) {
+		return OSK_ERR_ARG;
+	}
+	/* Der neue Satz darf nicht der alte sein - das waere ein Aufruf, der
+	 * aussieht wie Sicherheit und nichts tut. */
+	if (memcmp(current, replacement, sizeof(*current)) == 0) {
+		return OSK_ERR_ARG;
+	}
+
+	osk_scp03_static_keys_t cur;
+	osk_scp03_static_keys_t new_keys;
+	memcpy(cur.enc, current->enc, OSK_AES_KEY_LEN);
+	memcpy(cur.mac, current->mac, OSK_AES_KEY_LEN);
+	memcpy(cur.dek, current->dek, OSK_AES_KEY_LEN);
+	memcpy(new_keys.enc, replacement->enc, OSK_AES_KEY_LEN);
+	memcpy(new_keys.mac, replacement->mac, OSK_AES_KEY_LEN);
+	memcpy(new_keys.dek, replacement->dek, OSK_AES_KEY_LEN);
+
+	uint8_t data[1u + 3u * 23u];
+	size_t data_len = 0;
+	osk_result_t r = osk_scp03_build_put_key_data(&cur, &new_keys, key_version, data,
+						      sizeof(data), &data_len);
+	osk_wipe(&cur, sizeof(cur));
+	osk_wipe(&new_keys, sizeof(new_keys));
+	if (r != OSK_OK) {
+		osk_wipe(data, sizeof(data));
+		return r;
+	}
+
+	/* OFFEN UND UNBESTAETIGT, genau wie die Werte in se050_t1_wire.h:
+	 *
+	 * Die Bausteine des Befehls unten sind beleggenau - Datenfeld nach
+	 * GPCS Tabelle 11-67 und Amendment D Tabelle 7-10, Verpacken mit
+	 * Key-DEK nach Amendment D 6.2.8, Pruefwert nach 7.2.2. Was NICHT
+	 * belegt ist: ob der SE05x PUT KEY fuer die Platform-SCP-Saetze
+	 * ueber DIESEN Kanal annimmt. Dieser Treiber baut den
+	 * Applet-AESKey-Kanal auf (AN12413 4.5.3, CLA 0x80 INS 0x50 nach der
+	 * Applet-Auswahl). Platform SCP liegt eine Ebene darunter, beim
+	 * Kartenverwalter, und AN12413 beschreibt nur Applet-Befehle.
+	 * AN12973 verweist fuer das Ersetzen auf ein Beispiel in NXPs
+	 * Middleware - fremder Code, den wir nicht lesen.
+	 *
+	 * Zu klaeren ist also die Ebene, nicht der Inhalt: eventuell braucht
+	 * es eine eigene Sitzung mit Schluesselfassung 11 statt 00 und ohne
+	 * ausgewaehltes Applet. Die SCP03-Schicht kann das - sie ist nicht
+	 * auf eine Ebene festgelegt; es fehlt nur die Bestaetigung, welche
+	 * es ist. Am Geraet ist das eine Messung: Befehl schicken und sehen,
+	 * ob 0x9000 kommt. Gemeldet, steht in docs/se050.md.
+	 *
+	 * PUT KEY (GPCS 11.8.2): P1 ist die zu ersetzende Schluesselfassung,
+	 * b8 = 0 heisst "letzter Befehl". P2 nennt die Kennung des ersten
+	 * Schluessels mit gesetztem b8 fuer "mehrere Schluessel" - die drei
+	 * kommen in der Reihenfolge ENC, MAC, DEK, wie
+	 * osk_scp03_build_put_key_data() sie schreibt.
+	 *
+	 * Der Befehl geht durch den bestehenden Kanal, ist also schon
+	 * verschluesselt; der neue Schluessel ist darin ZUSAETZLICH mit
+	 * Key-DEK verpackt (Amendment D 6.2.8). */
+	size_t dummy = 0;
+	r = osk_se050_apdu_exchange(&g_apdu, 0xD8u, key_version, 0x81u, data, data_len, NULL, 0,
+				    &dummy);
+	osk_wipe(data, sizeof(data));
+	return r;
+}
+
+osk_result_t osk_se050_require_scp(void)
+{
+	if (!g_open) {
+		return OSK_ERR_IO;
+	}
+
+	/* SetPlatformSCPRequest mit SCP_REQUIRED (AN12413 4.6.2).
+	 * Dauerhaft: der Baustein lehnt danach jeden Befehl ab, der nicht
+	 * voll verschluesselt und gesichert ankommt. Zuruecknehmen kann das
+	 * nur eine Sitzung mit RESERVED_ID_PLATFORM_SCP - also nicht wir im
+	 * laufenden Betrieb, und das ist gewollt. */
+	uint8_t payload[8];
+	osk_tlv_writer_t w;
+	osk_tlv_init(&w, payload, sizeof(payload));
+	osk_tlv_put_u8(&w, TAG_1, SE050_SCP_REQUIRED);
+
+	size_t pl = 0;
+	const osk_result_t r = osk_tlv_done(&w, &pl);
+	if (r != OSK_OK) {
+		return r;
+	}
+
+	size_t dummy = 0;
+	return osk_se050_apdu_exchange(&g_apdu, INS_MGMT, P1_DEFAULT, P2_SCP, payload, pl, NULL, 0,
+				       &dummy);
 }

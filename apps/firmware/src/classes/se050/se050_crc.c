@@ -24,6 +24,5 @@ uint16_t osk_se050_crc16_final(uint16_t crc)
 
 uint16_t osk_se050_crc16(const uint8_t *data, size_t len)
 {
-	return osk_se050_crc16_final(
-		osk_se050_crc16_update(OSK_SE050_CRC_INIT, data, len));
+	return osk_se050_crc16_final(osk_se050_crc16_update(OSK_SE050_CRC_INIT, data, len));
 }

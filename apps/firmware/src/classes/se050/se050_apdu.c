@@ -49,12 +49,10 @@ osk_result_t osk_se050_sw_to_result(uint16_t sw)
 
 /* Einen vollstaendigen C-APDU unverpackt hinausschicken und die rohe
  * Antwort zurueckholen - Nutzlast und die zwei Statusbytes. */
-static osk_result_t raw_exchange(osk_se050_apdu_t *a,
-				 const uint8_t *cmd, size_t cmd_len,
+static osk_result_t raw_exchange(osk_se050_apdu_t *a, const uint8_t *cmd, size_t cmd_len,
 				 uint8_t *rsp, size_t rsp_cap, size_t *rsp_len)
 {
-	const osk_result_t r = osk_se050_t1_transceive(&a->t1, cmd, cmd_len,
-						       rsp, rsp_cap, rsp_len);
+	const osk_result_t r = osk_se050_t1_transceive(&a->t1, cmd, cmd_len, rsp, rsp_cap, rsp_len);
 	if (r != OSK_OK) {
 		return r;
 	}
@@ -67,8 +65,8 @@ static osk_result_t raw_exchange(osk_se050_apdu_t *a,
 
 /* ------------------------------------------------------- Applet auswaehlen */
 
-static osk_result_t select_applet(osk_se050_apdu_t *a, uint8_t *version_out,
-				  size_t version_cap, size_t *version_len)
+static osk_result_t select_applet(osk_se050_apdu_t *a, uint8_t *version_out, size_t version_cap,
+				  size_t *version_len)
 {
 	static const uint8_t aid[SE050_APPLET_AID_LEN] = SE050_APPLET_AID;
 
@@ -81,7 +79,7 @@ static osk_result_t select_applet(osk_se050_apdu_t *a, uint8_t *version_out,
 	cmd[3] = 0x00u;
 	cmd[4] = SE050_APPLET_AID_LEN;
 	memcpy(&cmd[5], aid, SE050_APPLET_AID_LEN);
-	cmd[5 + SE050_APPLET_AID_LEN] = 0x00u;   /* Le */
+	cmd[5 + SE050_APPLET_AID_LEN] = 0x00u; /* Le */
 
 	uint8_t rsp[64];
 	size_t n = 0;
@@ -109,9 +107,8 @@ static osk_result_t select_applet(osk_se050_apdu_t *a, uint8_t *version_out,
 	return OSK_OK;
 }
 
-osk_result_t osk_se050_apdu_open(osk_se050_apdu_t *a, osk_se050_bus_t *bus,
-				uint8_t *version_out, size_t version_cap,
-				size_t *version_len)
+osk_result_t osk_se050_apdu_open(osk_se050_apdu_t *a, osk_se050_bus_t *bus, uint8_t *version_out,
+				 size_t version_cap, size_t *version_len)
 {
 	if (a == NULL || bus == NULL) {
 		return OSK_ERR_ARG;
@@ -136,8 +133,7 @@ osk_result_t osk_se050_apdu_open(osk_se050_apdu_t *a, osk_se050_bus_t *bus,
 
 /* ------------------------------------------------------- Kanal aufbauen */
 
-osk_result_t osk_se050_apdu_open_channel(osk_se050_apdu_t *a,
-					 const osk_scp03_static_keys_t *keys)
+osk_result_t osk_se050_apdu_open_channel(osk_se050_apdu_t *a, const osk_scp03_static_keys_t *keys)
 {
 	if (a == NULL || keys == NULL) {
 		return OSK_ERR_ARG;
@@ -168,7 +164,7 @@ osk_result_t osk_se050_apdu_open_channel(osk_se050_apdu_t *a,
 	cmd[3] = 0x00u;
 	cmd[4] = SCP03_CHALLENGE_LEN;
 	memcpy(&cmd[5], host_challenge, SCP03_CHALLENGE_LEN);
-	cmd[5 + SCP03_CHALLENGE_LEN] = 0x00u;   /* Le */
+	cmd[5 + SCP03_CHALLENGE_LEN] = 0x00u; /* Le */
 
 	uint8_t rsp[64];
 	size_t n = 0;
@@ -178,8 +174,7 @@ osk_result_t osk_se050_apdu_open_channel(osk_se050_apdu_t *a,
 	}
 
 	{
-		const uint16_t sw =
-			(uint16_t)(((uint16_t)rsp[n - 2u] << 8) | rsp[n - 1u]);
+		const uint16_t sw = (uint16_t)(((uint16_t)rsp[n - 2u] << 8) | rsp[n - 1u]);
 		r = osk_se050_sw_to_result(sw);
 		if (r != OSK_OK) {
 			goto out;
@@ -194,8 +189,7 @@ osk_result_t osk_se050_apdu_open_channel(osk_se050_apdu_t *a,
 	 * nicht. */
 	{
 		const size_t body = n - 2u;
-		const size_t need = 10u + 3u + SCP03_CHALLENGE_LEN +
-				    SCP03_CRYPTOGRAM_LEN;
+		const size_t need = 10u + 3u + SCP03_CHALLENGE_LEN + SCP03_CRYPTOGRAM_LEN;
 		if (body < need) {
 			r = OSK_ERR_FORMAT;
 			goto out;
@@ -216,16 +210,15 @@ osk_result_t osk_se050_apdu_open_channel(osk_se050_apdu_t *a,
 		uint8_t want_card[SCP03_CRYPTOGRAM_LEN];
 		uint8_t host_cryptogram[SCP03_CRYPTOGRAM_LEN];
 
-		r = osk_scp03_derive(&a->scp, keys, host_challenge,
-				     card_challenge, want_card, host_cryptogram);
+		r = osk_scp03_derive(&a->scp, keys, host_challenge, card_challenge, want_card,
+				     host_cryptogram);
 		if (r != OSK_OK) {
 			goto out;
 		}
 
 		/* Jetzt der Beweis, dass der Baustein denselben festen
 		 * Schluessel hat. In gleichbleibender Zeit vergleichen. */
-		const int bad = osk_memeq_ct(want_card, card_cryptogram,
-					     SCP03_CRYPTOGRAM_LEN);
+		const int bad = osk_memeq_ct(want_card, card_cryptogram, SCP03_CRYPTOGRAM_LEN);
 		osk_wipe(want_card, sizeof(want_card));
 		if (bad != 0) {
 			osk_wipe(host_cryptogram, sizeof(host_cryptogram));
@@ -237,8 +230,8 @@ osk_result_t osk_se050_apdu_open_channel(osk_se050_apdu_t *a,
 		/* EXTERNAL AUTHENTICATE. */
 		uint8_t ea[5u + SCP03_CRYPTOGRAM_LEN + SCP03_MAC_LEN];
 		size_t ea_len = 0;
-		r = osk_scp03_build_external_auth(&a->scp, host_cryptogram,
-						  ea, sizeof(ea), &ea_len);
+		r = osk_scp03_build_external_auth(&a->scp, host_cryptogram, ea, sizeof(ea),
+						  &ea_len);
 		osk_wipe(host_cryptogram, sizeof(host_cryptogram));
 		if (r != OSK_OK) {
 			osk_scp03_close(&a->scp);
@@ -287,11 +280,9 @@ void osk_se050_apdu_close(osk_se050_apdu_t *a)
 
 /* ------------------------------------------------------- Im Betrieb */
 
-osk_result_t osk_se050_apdu_exchange(osk_se050_apdu_t *a,
-				     uint8_t ins, uint8_t p1, uint8_t p2,
-				     const uint8_t *payload, size_t payload_len,
-				     uint8_t *rsp, size_t rsp_cap,
-				     size_t *rsp_len)
+osk_result_t osk_se050_apdu_exchange(osk_se050_apdu_t *a, uint8_t ins, uint8_t p1, uint8_t p2,
+				     const uint8_t *payload, size_t payload_len, uint8_t *rsp,
+				     size_t rsp_cap, size_t *rsp_len)
 {
 	if (a == NULL || rsp_len == NULL) {
 		return OSK_ERR_ARG;
@@ -329,8 +320,7 @@ osk_result_t osk_se050_apdu_exchange(osk_se050_apdu_t *a,
 	osk_result_t r;
 
 	if (a->scp.established) {
-		r = osk_scp03_wrap(&a->scp, plain, plain_len,
-				   wire, sizeof(wire), &wire_len);
+		r = osk_scp03_wrap(&a->scp, plain, plain_len, wire, sizeof(wire), &wire_len);
 		osk_wipe(plain, plain_len);
 		if (r != OSK_OK) {
 			return r;
@@ -360,8 +350,7 @@ osk_result_t osk_se050_apdu_exchange(osk_se050_apdu_t *a,
 
 	if (a->scp.established) {
 		uint8_t body_buf[APDU_BUF];
-		r = osk_scp03_unwrap(&a->scp, raw, raw_len,
-				     body_buf, sizeof(body_buf), &body, &sw);
+		r = osk_scp03_unwrap(&a->scp, raw, raw_len, body_buf, sizeof(body_buf), &body, &sw);
 		osk_wipe(raw, raw_len);
 		if (r != OSK_OK) {
 			/* Ein falscher R-MAC heisst: die Antwort ist nicht
@@ -383,8 +372,7 @@ osk_result_t osk_se050_apdu_exchange(osk_se050_apdu_t *a,
 		}
 		osk_wipe(body_buf, sizeof(body_buf));
 	} else {
-		sw = (uint16_t)(((uint16_t)raw[raw_len - 2u] << 8) |
-				raw[raw_len - 1u]);
+		sw = (uint16_t)(((uint16_t)raw[raw_len - 2u] << 8) | raw[raw_len - 1u]);
 		body = raw_len - 2u;
 		if (body > 0) {
 			if (rsp == NULL || body > rsp_cap) {

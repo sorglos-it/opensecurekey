@@ -18,8 +18,7 @@ static size_t len_field_size(size_t val_len)
 	return (val_len < 0x80u) ? 1u : 3u;
 }
 
-void osk_tlv_put(osk_tlv_writer_t *w, uint8_t tag,
-		 const uint8_t *val, size_t val_len)
+void osk_tlv_put(osk_tlv_writer_t *w, uint8_t tag, const uint8_t *val, size_t val_len)
 {
 	if (w->overflow) {
 		return;
@@ -61,15 +60,17 @@ void osk_tlv_put_u8(osk_tlv_writer_t *w, uint8_t tag, uint8_t val)
 
 void osk_tlv_put_u16(osk_tlv_writer_t *w, uint8_t tag, uint16_t val)
 {
-	const uint8_t b[2] = { (uint8_t)(val >> 8), (uint8_t)(val & 0xFFu) };
+	const uint8_t b[2] = {(uint8_t)(val >> 8), (uint8_t)(val & 0xFFu)};
 	osk_tlv_put(w, tag, b, sizeof(b));
 }
 
 void osk_tlv_put_u32(osk_tlv_writer_t *w, uint8_t tag, uint32_t val)
 {
 	const uint8_t b[4] = {
-		(uint8_t)(val >> 24), (uint8_t)(val >> 16),
-		(uint8_t)(val >> 8),  (uint8_t)(val & 0xFFu),
+	    (uint8_t)(val >> 24),
+	    (uint8_t)(val >> 16),
+	    (uint8_t)(val >> 8),
+	    (uint8_t)(val & 0xFFu),
 	};
 	osk_tlv_put(w, tag, b, sizeof(b));
 }
@@ -93,8 +94,8 @@ void osk_tlv_reader_init(osk_tlv_reader_t *r, const uint8_t *buf, size_t len)
 	r->len = (buf == NULL) ? 0 : len;
 }
 
-osk_result_t osk_tlv_get(const osk_tlv_reader_t *r, uint8_t tag,
-			 const uint8_t **val, size_t *val_len)
+osk_result_t osk_tlv_get(const osk_tlv_reader_t *r, uint8_t tag, const uint8_t **val,
+			 size_t *val_len)
 {
 	if (r == NULL || val == NULL || val_len == NULL) {
 		return OSK_ERR_ARG;
@@ -144,8 +145,8 @@ osk_result_t osk_tlv_get(const osk_tlv_reader_t *r, uint8_t tag,
 	return OSK_ERR_NOT_FOUND;
 }
 
-osk_result_t osk_tlv_copy(const osk_tlv_reader_t *r, uint8_t tag,
-			  uint8_t *out, size_t cap, size_t *len_out)
+osk_result_t osk_tlv_copy(const osk_tlv_reader_t *r, uint8_t tag, uint8_t *out, size_t cap,
+			  size_t *len_out)
 {
 	const uint8_t *val = NULL;
 	size_t n = 0;

@@ -21,14 +21,14 @@
 
 /* Ein Schluesselsatz zum Spielen. Nichts Geheimes - ein Testwert. */
 static const osk_scp03_static_keys_t K = {
-	.enc = { 0x40,0x41,0x42,0x43,0x44,0x45,0x46,0x47,
-		 0x48,0x49,0x4A,0x4B,0x4C,0x4D,0x4E,0x4F },
-	.mac = { 0x50,0x51,0x52,0x53,0x54,0x55,0x56,0x57,
-		 0x58,0x59,0x5A,0x5B,0x5C,0x5D,0x5E,0x5F },
+    .enc = {0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D,
+	    0x4E, 0x4F},
+    .mac = {0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D,
+	    0x5E, 0x5F},
 };
 
-static const uint8_t HOST_CH[8] = { 0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88 };
-static const uint8_t CARD_CH[8] = { 0x99,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF,0x00 };
+static const uint8_t HOST_CH[8] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88};
+static const uint8_t CARD_CH[8] = {0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00};
 
 /* Einen aufgebauten Kanal herstellen, wie ihn der Treiber nach
  * INITIALIZE UPDATE und EXTERNAL AUTHENTICATE hat. */
@@ -43,8 +43,7 @@ static int make_session(osk_scp03_t *s)
 
 	uint8_t ea[32];
 	size_t ea_len = 0;
-	return osk_scp03_build_external_auth(s, host_cg, ea, sizeof(ea),
-					     &ea_len) == OSK_OK;
+	return osk_scp03_build_external_auth(s, host_cg, ea, sizeof(ea), &ea_len) == OSK_OK;
 }
 
 void test_scp03(void)
@@ -57,23 +56,23 @@ void test_scp03(void)
 		uint8_t dd[32];
 		size_t n = 0;
 
-		static const uint8_t want_enc[16] = {
-			0,0,0,0,0,0,0,0,0,0,0, 0x04, 0x00, 0x00, 0x80, 0x01 };
-		TT_EQ_INT(osk_scp03_derivation_data(dd, &n, 0x04, 0x0080,
-						    NULL, 0), OSK_OK, "S-ENC");
+		static const uint8_t want_enc[16] = {0, 0, 0, 0,    0,	  0,	0,    0,
+						     0, 0, 0, 0x04, 0x00, 0x00, 0x80, 0x01};
+		TT_EQ_INT(osk_scp03_derivation_data(dd, &n, 0x04, 0x0080, NULL, 0), OSK_OK,
+			  "S-ENC");
 		TT_EQ_INT(n, 16u, "16 Byte ohne Kontext");
 		TT_EQ_MEM(dd, want_enc, 16, "S-ENC-Eingabe");
 
-		static const uint8_t want_mac[16] = {
-			0,0,0,0,0,0,0,0,0,0,0, 0x06, 0x00, 0x00, 0x80, 0x01 };
-		TT_EQ_INT(osk_scp03_derivation_data(dd, &n, 0x06, 0x0080,
-						    NULL, 0), OSK_OK, "S-MAC");
+		static const uint8_t want_mac[16] = {0, 0, 0, 0,    0,	  0,	0,    0,
+						     0, 0, 0, 0x06, 0x00, 0x00, 0x80, 0x01};
+		TT_EQ_INT(osk_scp03_derivation_data(dd, &n, 0x06, 0x0080, NULL, 0), OSK_OK,
+			  "S-MAC");
 		TT_EQ_MEM(dd, want_mac, 16, "S-MAC-Eingabe");
 
-		static const uint8_t want_rmac[16] = {
-			0,0,0,0,0,0,0,0,0,0,0, 0x07, 0x00, 0x00, 0x80, 0x01 };
-		TT_EQ_INT(osk_scp03_derivation_data(dd, &n, 0x07, 0x0080,
-						    NULL, 0), OSK_OK, "S-RMAC");
+		static const uint8_t want_rmac[16] = {0, 0, 0, 0,    0,	   0,	 0,    0,
+						      0, 0, 0, 0x07, 0x00, 0x00, 0x80, 0x01};
+		TT_EQ_INT(osk_scp03_derivation_data(dd, &n, 0x07, 0x0080, NULL, 0), OSK_OK,
+			  "S-RMAC");
 		TT_EQ_MEM(dd, want_rmac, 16, "S-RMAC-Eingabe");
 	}
 
@@ -85,9 +84,8 @@ void test_scp03(void)
 		memcpy(&ctx[0], HOST_CH, 8);
 		memcpy(&ctx[8], CARD_CH, 8);
 
-		TT_EQ_INT(osk_scp03_derivation_data(dd, &n, 0x00, 0x0040,
-						    ctx, sizeof(ctx)),
-			  OSK_OK, "Kryptogramm-Eingabe");
+		TT_EQ_INT(osk_scp03_derivation_data(dd, &n, 0x00, 0x0040, ctx, sizeof(ctx)), OSK_OK,
+			  "Kryptogramm-Eingabe");
 		TT_EQ_INT(n, 32u, "16 Byte Kopf plus 16 Byte Kontext");
 		TT_EQ_INT(dd[11], 0x00u, "Konstante Kartenkryptogramm");
 		TT_EQ_INT(dd[13], 0x00u, "L hoeherwertig");
@@ -102,9 +100,8 @@ void test_scp03(void)
 		uint8_t card_cg[8];
 		uint8_t host_cg[8];
 
-		TT_EQ_INT(osk_scp03_derive(&s, &K, HOST_CH, CARD_CH,
-					   card_cg, host_cg),
-			  OSK_OK, "abgeleitet");
+		TT_EQ_INT(osk_scp03_derive(&s, &K, HOST_CH, CARD_CH, card_cg, host_cg), OSK_OK,
+			  "abgeleitet");
 
 		/* Die drei duerfen nicht gleich sein - sonst waere eine
 		 * Konstante verwechselt, und R-MAC und C-MAC haetten
@@ -124,7 +121,7 @@ void test_scp03(void)
 			"Karten- und Wirtskryptogramm verschieden");
 
 		/* Verkettung startet auf Null (Amendment D 6.2.3). */
-		static const uint8_t zero[16] = { 0 };
+		static const uint8_t zero[16] = {0};
 		TT_EQ_MEM(s.chain, zero, 16, "Verkettung auf Null");
 		TT_TRUE(!s.established, "noch nicht angemeldet");
 
@@ -141,12 +138,11 @@ void test_scp03(void)
 		memcpy(other, CARD_CH, 8);
 		other[0] ^= 0x01u;
 
-		TT_EQ_INT(osk_scp03_derive(&a, &K, HOST_CH, CARD_CH, cg, hg),
-			  OSK_OK, "erste Sitzung");
-		TT_EQ_INT(osk_scp03_derive(&b, &K, HOST_CH, other, cg, hg),
-			  OSK_OK, "zweite Sitzung");
-		TT_TRUE(memcmp(a.s_enc, b.s_enc, 16) != 0,
-			"ein Bit im Zufall aendert alles");
+		TT_EQ_INT(osk_scp03_derive(&a, &K, HOST_CH, CARD_CH, cg, hg), OSK_OK,
+			  "erste Sitzung");
+		TT_EQ_INT(osk_scp03_derive(&b, &K, HOST_CH, other, cg, hg), OSK_OK,
+			  "zweite Sitzung");
+		TT_TRUE(memcmp(a.s_enc, b.s_enc, 16) != 0, "ein Bit im Zufall aendert alles");
 		osk_scp03_close(&a);
 		osk_scp03_close(&b);
 	}
@@ -156,15 +152,13 @@ void test_scp03(void)
 		osk_scp03_t s;
 		uint8_t card_cg[8];
 		uint8_t host_cg[8];
-		TT_EQ_INT(osk_scp03_derive(&s, &K, HOST_CH, CARD_CH,
-					   card_cg, host_cg),
-			  OSK_OK, "abgeleitet");
+		TT_EQ_INT(osk_scp03_derive(&s, &K, HOST_CH, CARD_CH, card_cg, host_cg), OSK_OK,
+			  "abgeleitet");
 
 		uint8_t ea[32];
 		size_t n = 0;
-		TT_EQ_INT(osk_scp03_build_external_auth(&s, host_cg, ea,
-							sizeof(ea), &n),
-			  OSK_OK, "gebaut");
+		TT_EQ_INT(osk_scp03_build_external_auth(&s, host_cg, ea, sizeof(ea), &n), OSK_OK,
+			  "gebaut");
 		TT_EQ_INT(n, 21u, "5 Kopf + 8 Kryptogramm + 8 MAC");
 		TT_EQ_INT(ea[0], 0x84u, "CLA gesichert");
 		TT_EQ_INT(ea[1], 0x82u, "INS EXTERNAL AUTHENTICATE");
@@ -176,17 +170,15 @@ void test_scp03(void)
 		TT_TRUE(s.established, "Kanal steht");
 
 		/* Zaehler beginnt bei 1 (Amendment D 6.2.6). */
-		static const uint8_t one[16] = {
-			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 };
+		static const uint8_t one[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
 		TT_EQ_MEM(s.counter, one, 16, "Zaehler auf 1");
 
 		/* Verkettung ist nicht mehr Null. */
-		static const uint8_t zero[16] = { 0 };
+		static const uint8_t zero[16] = {0};
 		TT_TRUE(memcmp(s.chain, zero, 16) != 0, "Verkettung gesetzt");
 
 		/* Zweimal anmelden gibt es nicht. */
-		TT_EQ_INT(osk_scp03_build_external_auth(&s, host_cg, ea,
-							sizeof(ea), &n),
+		TT_EQ_INT(osk_scp03_build_external_auth(&s, host_cg, ea, sizeof(ea), &n),
 			  OSK_ERR_EXISTS, "kein zweites Mal");
 
 		osk_scp03_close(&s);
@@ -199,14 +191,12 @@ void test_scp03(void)
 
 		/* Ein Befehl mit 6 Byte Nutzlast. */
 		static const uint8_t plain[] = {
-			0x80, 0x04, 0x00, 0x49, 0x06,
-			0x41, 0x02, 0x00, 0x20, 0xAA, 0xBB,
+		    0x80, 0x04, 0x00, 0x49, 0x06, 0x41, 0x02, 0x00, 0x20, 0xAA, 0xBB,
 		};
 		uint8_t wire[64];
 		size_t n = 0;
-		TT_EQ_INT(osk_scp03_wrap(&s, plain, sizeof(plain),
-					 wire, sizeof(wire), &n),
-			  OSK_OK, "eingepackt");
+		TT_EQ_INT(osk_scp03_wrap(&s, plain, sizeof(plain), wire, sizeof(wire), &n), OSK_OK,
+			  "eingepackt");
 
 		/* 6 Byte Nutzlast + 1 Byte 0x80 = 7, aufgefuellt auf 16,
 		 * plus 8 Byte MAC = Lc 24; dazu 5 Byte Kopf und 1 Byte Le. */
@@ -235,18 +225,16 @@ void test_scp03(void)
 		osk_scp03_t s;
 		TT_TRUE(make_session(&s), "Kanal aufgebaut");
 
-		static const uint8_t plain[] = { 0x80, 0x02, 0x0B, 0x25 };
+		static const uint8_t plain[] = {0x80, 0x02, 0x0B, 0x25};
 		uint8_t wire[64];
 		size_t n = 0;
-		TT_EQ_INT(osk_scp03_wrap(&s, plain, sizeof(plain),
-					 wire, sizeof(wire), &n),
-			  OSK_OK, "eingepackt");
+		TT_EQ_INT(osk_scp03_wrap(&s, plain, sizeof(plain), wire, sizeof(wire), &n), OSK_OK,
+			  "eingepackt");
 		TT_EQ_INT(n, 5u + 8u + 1u, "nur Kopf, MAC und Le");
 		TT_EQ_INT(wire[4], 8u, "Lc ist nur der MAC");
 
 		/* Der Zaehler laeuft trotzdem weiter (Amendment D 6.2.6). */
-		static const uint8_t two[16] = {
-			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2 };
+		static const uint8_t two[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2};
 		TT_EQ_MEM(s.counter, two, 16, "Zaehler trotzdem weiter");
 
 		osk_scp03_close(&s);
@@ -257,20 +245,18 @@ void test_scp03(void)
 		osk_scp03_t s;
 		TT_TRUE(make_session(&s), "Kanal aufgebaut");
 
-		static const uint8_t plain[] = {
-			0x80, 0x04, 0x00, 0x49, 0x02, 0x00, 0x20 };
+		static const uint8_t plain[] = {0x80, 0x04, 0x00, 0x49, 0x02, 0x00, 0x20};
 		uint8_t a[64];
 		uint8_t b[64];
 		size_t na = 0;
 		size_t nb = 0;
 
-		TT_EQ_INT(osk_scp03_wrap(&s, plain, sizeof(plain), a, sizeof(a),
-					 &na), OSK_OK, "erster");
-		TT_EQ_INT(osk_scp03_wrap(&s, plain, sizeof(plain), b, sizeof(b),
-					 &nb), OSK_OK, "zweiter");
+		TT_EQ_INT(osk_scp03_wrap(&s, plain, sizeof(plain), a, sizeof(a), &na), OSK_OK,
+			  "erster");
+		TT_EQ_INT(osk_scp03_wrap(&s, plain, sizeof(plain), b, sizeof(b), &nb), OSK_OK,
+			  "zweiter");
 		TT_EQ_INT(na, nb, "gleiche Laenge");
-		TT_TRUE(memcmp(a, b, na) != 0,
-			"derselbe Befehl zweimal gibt verschiedene Rahmen");
+		TT_TRUE(memcmp(a, b, na) != 0, "derselbe Befehl zweimal gibt verschiedene Rahmen");
 
 		osk_scp03_close(&s);
 	}
@@ -280,11 +266,10 @@ void test_scp03(void)
 		osk_scp03_t s;
 		memset(&s, 0, sizeof(s));
 
-		static const uint8_t plain[] = { 0x80, 0x04, 0x00, 0x49 };
+		static const uint8_t plain[] = {0x80, 0x04, 0x00, 0x49};
 		uint8_t wire[64];
 		size_t n = 0;
-		TT_EQ_INT(osk_scp03_wrap(&s, plain, sizeof(plain), wire,
-					 sizeof(wire), &n),
+		TT_EQ_INT(osk_scp03_wrap(&s, plain, sizeof(plain), wire, sizeof(wire), &n),
 			  OSK_ERR_DENIED, "abgelehnt");
 	}
 
@@ -294,13 +279,11 @@ void test_scp03(void)
 		TT_TRUE(make_session(&s), "Kanal aufgebaut");
 
 		/* Lc sagt 4, es kommen aber nur 2 Byte. */
-		static const uint8_t bad[] = { 0x80, 0x04, 0x00, 0x49, 0x04,
-					       0xAA, 0xBB };
+		static const uint8_t bad[] = {0x80, 0x04, 0x00, 0x49, 0x04, 0xAA, 0xBB};
 		uint8_t wire[64];
 		size_t n = 0;
-		TT_EQ_INT(osk_scp03_wrap(&s, bad, sizeof(bad), wire,
-					 sizeof(wire), &n),
-			  OSK_ERR_ARG, "Lc passt nicht");
+		TT_EQ_INT(osk_scp03_wrap(&s, bad, sizeof(bad), wire, sizeof(wire), &n), OSK_ERR_ARG,
+			  "Lc passt nicht");
 
 		osk_scp03_close(&s);
 	}
@@ -314,8 +297,8 @@ void test_scp03(void)
 		osk_scp03_t host;
 		TT_TRUE(make_session(&host), "Kanal aufgebaut");
 
-		static const uint8_t body[] = {
-			0x41, 0x08, 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08 };
+		static const uint8_t body[] = {0x41, 0x08, 0x01, 0x02, 0x03,
+					       0x04, 0x05, 0x06, 0x07, 0x08};
 
 		/* Die Antwort so bauen, wie sie der Baustein bauen wuerde:
 		 * Nutzlast auffuellen, mit dem Antwort-Startwert
@@ -323,17 +306,15 @@ void test_scp03(void)
 		uint8_t padded[16];
 		memcpy(padded, body, sizeof(body));
 		padded[sizeof(body)] = 0x80u;
-		memset(&padded[sizeof(body) + 1u], 0,
-		       sizeof(padded) - sizeof(body) - 1u);
+		memset(&padded[sizeof(body) + 1u], 0, sizeof(padded) - sizeof(body) - 1u);
 
 		/* Erst einen Befehl einpacken - danach steht der Zaehler so,
 		 * wie das Auspacken ihn erwartet. */
-		static const uint8_t cmd[] = { 0x80, 0x02, 0x00, 0x00 };
+		static const uint8_t cmd[] = {0x80, 0x02, 0x00, 0x00};
 		uint8_t wire[64];
 		size_t wn = 0;
-		TT_EQ_INT(osk_scp03_wrap(&host, cmd, sizeof(cmd), wire,
-					 sizeof(wire), &wn),
-			  OSK_OK, "Befehl eingepackt");
+		TT_EQ_INT(osk_scp03_wrap(&host, cmd, sizeof(cmd), wire, sizeof(wire), &wn), OSK_OK,
+			  "Befehl eingepackt");
 
 		/* Startwert der Antwort: Zaehlerblock des Befehls (also der
 		 * Wert vor dem Hochzaehlen) mit 0x80 im ersten Byte. */
@@ -347,12 +328,10 @@ void test_scp03(void)
 		block[0] = 0x80u;
 
 		uint8_t icv[16];
-		TT_EQ_INT(osk_aes_ecb_encrypt_block(host.s_enc, block, icv),
-			  OSK_OK, "Startwert");
+		TT_EQ_INT(osk_aes_ecb_encrypt_block(host.s_enc, block, icv), OSK_OK, "Startwert");
 
 		uint8_t cipher[16];
-		TT_EQ_INT(osk_aes_cbc_encrypt(host.s_enc, icv, padded, cipher,
-					      sizeof(cipher)),
+		TT_EQ_INT(osk_aes_cbc_encrypt(host.s_enc, icv, padded, cipher, sizeof(cipher)),
 			  OSK_OK, "verschluesselt");
 
 		uint8_t macin[16 + 16 + 2];
@@ -362,8 +341,8 @@ void test_scp03(void)
 		macin[33] = 0x00u;
 
 		uint8_t mac[16];
-		TT_EQ_INT(osk_aes_cmac(host.s_rmac, macin, sizeof(macin), mac),
-			  OSK_OK, "R-MAC gerechnet");
+		TT_EQ_INT(osk_aes_cmac(host.s_rmac, macin, sizeof(macin), mac), OSK_OK,
+			  "R-MAC gerechnet");
 
 		uint8_t rsp[16 + 8 + 2];
 		memcpy(&rsp[0], cipher, 16);
@@ -374,8 +353,7 @@ void test_scp03(void)
 		uint8_t out[64];
 		size_t on = 0;
 		uint16_t sw = 0;
-		TT_EQ_INT(osk_scp03_unwrap(&host, rsp, sizeof(rsp), out,
-					   sizeof(out), &on, &sw),
+		TT_EQ_INT(osk_scp03_unwrap(&host, rsp, sizeof(rsp), out, sizeof(out), &on, &sw),
 			  OSK_OK, "ausgepackt");
 		TT_EQ_INT(sw, 0x9000u, "Statuswort");
 		TT_EQ_INT(on, sizeof(body), "Laenge ohne Auffuellung");
@@ -392,11 +370,9 @@ void test_scp03(void)
 			 * werden. */
 			size_t bn = 0;
 			uint16_t bsw = 0;
-			const osk_result_t r = osk_scp03_unwrap(
-				&host, bad, sizeof(bad), out, sizeof(out),
-				&bn, &bsw);
-			TT_TRUE(r != OSK_OK,
-				"ein veraendertes Byte wird nicht angenommen");
+			const osk_result_t r =
+			    osk_scp03_unwrap(&host, bad, sizeof(bad), out, sizeof(out), &bn, &bsw);
+			TT_TRUE(r != OSK_OK, "ein veraendertes Byte wird nicht angenommen");
 		}
 
 		osk_scp03_close(&host);
@@ -408,20 +384,18 @@ void test_scp03(void)
 		TT_TRUE(make_session(&s), "Kanal aufgebaut");
 
 		/* Nach Amendment D 6.2.5 sind es dann genau zwei Bytes. */
-		static const uint8_t err[] = { 0x69, 0x85 };
+		static const uint8_t err[] = {0x69, 0x85};
 		uint8_t out[16];
 		size_t n = 0;
 		uint16_t sw = 0;
-		TT_EQ_INT(osk_scp03_unwrap(&s, err, sizeof(err), out,
-					   sizeof(out), &n, &sw),
-			  OSK_OK, "durchgereicht");
+		TT_EQ_INT(osk_scp03_unwrap(&s, err, sizeof(err), out, sizeof(out), &n, &sw), OSK_OK,
+			  "durchgereicht");
 		TT_EQ_INT(sw, 0x6985u, "Statuswort");
 		TT_EQ_INT(n, 0u, "keine Nutzlast");
 
 		/* Fehlerstatus MIT Nutzlast gibt es nicht. */
-		static const uint8_t weird[] = { 0xAA, 0xBB, 0x69, 0x85 };
-		TT_EQ_INT(osk_scp03_unwrap(&s, weird, sizeof(weird), out,
-					   sizeof(out), &n, &sw),
+		static const uint8_t weird[] = {0xAA, 0xBB, 0x69, 0x85};
+		TT_EQ_INT(osk_scp03_unwrap(&s, weird, sizeof(weird), out, sizeof(out), &n, &sw),
 			  OSK_ERR_FORMAT, "Fehler mit Nutzlast abgelehnt");
 
 		osk_scp03_close(&s);
@@ -436,14 +410,14 @@ void test_scp03(void)
 		size_t n = 0;
 		uint16_t sw = 0;
 
-		static const uint8_t one[] = { 0x90 };
-		TT_EQ_INT(osk_scp03_unwrap(&s, one, 1, out, sizeof(out), &n, &sw),
-			  OSK_ERR_FORMAT, "ein Byte");
+		static const uint8_t one[] = {0x90};
+		TT_EQ_INT(osk_scp03_unwrap(&s, one, 1, out, sizeof(out), &n, &sw), OSK_ERR_FORMAT,
+			  "ein Byte");
 
 		/* Erfolgsstatus, aber kein Platz fuer einen R-MAC. */
-		static const uint8_t two[] = { 0x90, 0x00 };
-		TT_EQ_INT(osk_scp03_unwrap(&s, two, 2, out, sizeof(out), &n, &sw),
-			  OSK_ERR_FORMAT, "Erfolg ohne MAC");
+		static const uint8_t two[] = {0x90, 0x00};
+		TT_EQ_INT(osk_scp03_unwrap(&s, two, 2, out, sizeof(out), &n, &sw), OSK_ERR_FORMAT,
+			  "Erfolg ohne MAC");
 
 		osk_scp03_close(&s);
 	}
@@ -455,7 +429,7 @@ void test_scp03(void)
 
 		osk_scp03_close(&s);
 
-		static const uint8_t zero[sizeof(osk_scp03_t)] = { 0 };
+		static const uint8_t zero[sizeof(osk_scp03_t)] = {0};
 		TT_EQ_MEM(&s, zero, sizeof(s), "alles auf Null");
 		TT_TRUE(!s.established, "Kanal weg");
 	}

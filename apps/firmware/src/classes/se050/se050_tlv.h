@@ -23,13 +23,12 @@ typedef struct {
 	uint8_t *buf;
 	size_t cap;
 	size_t len;
-	bool overflow;   /* true, sobald etwas nicht mehr gepasst hat */
+	bool overflow; /* true, sobald etwas nicht mehr gepasst hat */
 } osk_tlv_writer_t;
 
 void osk_tlv_init(osk_tlv_writer_t *w, uint8_t *buf, size_t cap);
 
-void osk_tlv_put(osk_tlv_writer_t *w, uint8_t tag,
-		 const uint8_t *val, size_t val_len);
+void osk_tlv_put(osk_tlv_writer_t *w, uint8_t tag, const uint8_t *val, size_t val_len);
 void osk_tlv_put_u8(osk_tlv_writer_t *w, uint8_t tag, uint8_t val);
 void osk_tlv_put_u16(osk_tlv_writer_t *w, uint8_t tag, uint16_t val);
 void osk_tlv_put_u32(osk_tlv_writer_t *w, uint8_t tag, uint32_t val);
@@ -50,13 +49,13 @@ void osk_tlv_reader_init(osk_tlv_reader_t *r, const uint8_t *buf, size_t len);
  * Eingabepuffer - es wird nichts kopiert, der Puffer muss leben.
  * OSK_ERR_NOT_FOUND, wenn die Kennung fehlt; OSK_ERR_FORMAT, wenn die
  * Nutzlast in sich nicht stimmt. */
-osk_result_t osk_tlv_get(const osk_tlv_reader_t *r, uint8_t tag,
-			 const uint8_t **val, size_t *val_len);
+osk_result_t osk_tlv_get(const osk_tlv_reader_t *r, uint8_t tag, const uint8_t **val,
+			 size_t *val_len);
 
 /* Wie osk_tlv_get(), aber kopiert nach out und prueft die Laenge.
  * OSK_ERR_FULL, wenn der Wert nicht in cap passt. */
-osk_result_t osk_tlv_copy(const osk_tlv_reader_t *r, uint8_t tag,
-			  uint8_t *out, size_t cap, size_t *len_out);
+osk_result_t osk_tlv_copy(const osk_tlv_reader_t *r, uint8_t tag, uint8_t *out, size_t cap,
+			  size_t *len_out);
 
 osk_result_t osk_tlv_get_u8(const osk_tlv_reader_t *r, uint8_t tag, uint8_t *out);
 osk_result_t osk_tlv_get_u16(const osk_tlv_reader_t *r, uint8_t tag, uint16_t *out);

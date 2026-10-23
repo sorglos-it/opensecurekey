@@ -22,8 +22,8 @@ static int fb_write(osk_se050_bus_t *bus, const uint8_t *data, size_t len)
 	}
 
 	if (fb->responder != NULL) {
-		fb->resp_len = fb->responder(fb->responder_ctx, data, len,
-					     fb->resp_buf, sizeof(fb->resp_buf));
+		fb->resp_len =
+		    fb->responder(fb->responder_ctx, data, len, fb->resp_buf, sizeof(fb->resp_buf));
 		fb->read_pos = 0;
 		fb->armed = (fb->resp_len > 0);
 		return 0;
@@ -55,8 +55,7 @@ static int fb_write(osk_se050_bus_t *bus, const uint8_t *data, size_t len)
 	}
 
 	if (st->want_len > 0) {
-		if (len != st->want_len ||
-		    memcmp(data, st->want, len) != 0) {
+		if (len != st->want_len || memcmp(data, st->want, len) != 0) {
 			fb->mismatch = true;
 			fb->mismatch_step = fb->at_step;
 			return OSK_BUS_IO;
@@ -169,8 +168,7 @@ void fb_set_responder(fake_bus_t *fb, fb_responder_t fn, void *ctx)
 	fb->responder_ctx = ctx;
 }
 
-void fb_add(fake_bus_t *fb, fb_mode_t mode,
-	    const uint8_t *want, size_t want_len,
+void fb_add(fake_bus_t *fb, fb_mode_t mode, const uint8_t *want, size_t want_len,
 	    const uint8_t *give, size_t give_len)
 {
 	if (fb->n_steps >= FB_MAX_STEPS) {
@@ -191,12 +189,11 @@ void fb_add(fake_bus_t *fb, fb_mode_t mode,
 	st->cut = st->give_len;
 }
 
-void fb_add_frame(fake_bus_t *fb, fb_mode_t mode, uint8_t nad, uint8_t pcb,
-		  const uint8_t *inf, uint8_t inf_len)
+void fb_add_frame(fake_bus_t *fb, fb_mode_t mode, uint8_t nad, uint8_t pcb, const uint8_t *inf,
+		  uint8_t inf_len)
 {
 	uint8_t frame[FB_MAX_FRAME];
-	const size_t n = osk_se050_t1_build(frame, sizeof(frame), nad, pcb,
-					    inf, inf_len);
+	const size_t n = osk_se050_t1_build(frame, sizeof(frame), nad, pcb, inf, inf_len);
 	if (n == 0) {
 		return;
 	}
@@ -225,16 +222,14 @@ void fb_add_open_reply(fake_bus_t *fb)
 	/* Antwort auf den S-Block "Schnittstelle zuruecksetzen": derselbe
 	 * Code mit gesetztem Antwortbit, dazu ein kurzer Kennblock. Was im
 	 * Kennblock steht, wertet der Treiber nicht aus. */
-	static const uint8_t atr[] = { 0x01, 0x02, 0x03, 0x04 };
-	const uint8_t pcb = SE050_PCB_TYPE_S | SE050_PCB_S_RESPONSE |
-			    SE050_S_IF_SOFT_RESET;
+	static const uint8_t atr[] = {0x01, 0x02, 0x03, 0x04};
+	const uint8_t pcb = SE050_PCB_TYPE_S | SE050_PCB_S_RESPONSE | SE050_S_IF_SOFT_RESET;
 	fb_add_frame(fb, FB_OK, SE050_NAD_TO_HOST, pcb, atr, sizeof(atr));
 }
 
 void fb_add_close_reply(fake_bus_t *fb)
 {
-	const uint8_t pcb = SE050_PCB_TYPE_S | SE050_PCB_S_RESPONSE |
-			    SE050_S_END_APDU;
+	const uint8_t pcb = SE050_PCB_TYPE_S | SE050_PCB_S_RESPONSE | SE050_S_END_APDU;
 	fb_add_frame(fb, FB_OK, SE050_NAD_TO_HOST, pcb, NULL, 0);
 }
 

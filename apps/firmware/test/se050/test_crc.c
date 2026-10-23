@@ -29,8 +29,7 @@ void test_crc(void)
 		uint16_t c = OSK_SE050_CRC_INIT;
 		c = osk_se050_crc16_update(c, &s[0], 4);
 		c = osk_se050_crc16_update(c, &s[4], 5);
-		TT_EQ_INT(osk_se050_crc16_final(c), 0x906Eu,
-			  "in zwei Stuecken gerechnet");
+		TT_EQ_INT(osk_se050_crc16_final(c), 0x906Eu, "in zwei Stuecken gerechnet");
 	}
 
 	TT_CASE("CRC: ein umgedrehtes Bit faellt auf");

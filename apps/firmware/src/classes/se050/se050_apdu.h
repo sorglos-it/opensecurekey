@@ -28,16 +28,14 @@ typedef struct {
  * Der Kanal steht danach noch NICHT - dafuer osk_se050_apdu_open_channel().
  * version_out darf NULL sein, sonst kommen dort die 7 Byte VersionInfo
  * aus der Antwort des Auswahlbefehls hinein (Tabelle 52). */
-osk_result_t osk_se050_apdu_open(osk_se050_apdu_t *a, osk_se050_bus_t *bus,
-				uint8_t *version_out, size_t version_cap,
-				size_t *version_len);
+osk_result_t osk_se050_apdu_open(osk_se050_apdu_t *a, osk_se050_bus_t *bus, uint8_t *version_out,
+				 size_t version_cap, size_t *version_len);
 
 /* SCP03 aufbauen: INITIALIZE UPDATE, Kryptogramm des Bausteins pruefen,
  * EXTERNAL AUTHENTICATE. Ab hier ist alles auf dem Bus verschluesselt.
  *
  * keys wird nur gelesen; der Aufrufer loescht sie danach selbst. */
-osk_result_t osk_se050_apdu_open_channel(osk_se050_apdu_t *a,
-					 const osk_scp03_static_keys_t *keys);
+osk_result_t osk_se050_apdu_open_channel(osk_se050_apdu_t *a, const osk_scp03_static_keys_t *keys);
 
 /* Kanal abreissen, Sitzung beenden, alle Schluessel loeschen.
  * Darf jederzeit aufgerufen werden, auch auf einem halb offenen Zustand. */
@@ -51,11 +49,9 @@ void osk_se050_apdu_close(osk_se050_apdu_t *a);
  *
  * Ein Statuswort ungleich 0x9000 wird zu einem passenden osk_result_t.
  * rsp darf NULL sein, wenn keine Nutzlast erwartet wird. */
-osk_result_t osk_se050_apdu_exchange(osk_se050_apdu_t *a,
-				     uint8_t ins, uint8_t p1, uint8_t p2,
-				     const uint8_t *payload, size_t payload_len,
-				     uint8_t *rsp, size_t rsp_cap,
-				     size_t *rsp_len);
+osk_result_t osk_se050_apdu_exchange(osk_se050_apdu_t *a, uint8_t ins, uint8_t p1, uint8_t p2,
+				     const uint8_t *payload, size_t payload_len, uint8_t *rsp,
+				     size_t rsp_cap, size_t *rsp_len);
 
 /* Statuswort nach osk_result_t. Getrennt herausgezogen, damit die
  * Uebersetzung ohne Bus geprueft werden kann. */

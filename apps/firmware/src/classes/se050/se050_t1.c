@@ -4,8 +4,8 @@
 
 /* ------------------------------------------------------------ Rahmenbau */
 
-size_t osk_se050_t1_build(uint8_t *buf, size_t cap, uint8_t nad, uint8_t pcb,
-			  const uint8_t *inf, uint8_t inf_len)
+size_t osk_se050_t1_build(uint8_t *buf, size_t cap, uint8_t nad, uint8_t pcb, const uint8_t *inf,
+			  uint8_t inf_len)
 {
 	if (buf == NULL) {
 		return 0;
@@ -81,8 +81,8 @@ static osk_result_t frame_write(osk_se050_t1_t *t1, const uint8_t *frame, size_t
 
 /* Genau want Bytes lesen, solange das Zeitbudget reicht.
  * Halb gelesene Bytes bleiben in dst stehen; der Aufrufer verwirft sie. */
-static osk_result_t read_exact(osk_se050_t1_t *t1, uint8_t *dst, size_t want,
-			       uint32_t start_ms, uint32_t budget_ms)
+static osk_result_t read_exact(osk_se050_t1_t *t1, uint8_t *dst, size_t want, uint32_t start_ms,
+			       uint32_t budget_ms)
 {
 	size_t have = 0;
 
@@ -113,8 +113,8 @@ static osk_result_t read_exact(osk_se050_t1_t *t1, uint8_t *dst, size_t want,
  * cap ist die Groesse von frame. Ist die angekuendigte Laenge groesser,
  * wird der Rest trotzdem vom Bus geholt und verworfen: ein Rahmen, der im
  * Baustein halb abgeholt liegen bleibt, laesst ihn haengen (I2C.1). */
-static osk_result_t frame_read(osk_se050_t1_t *t1, uint8_t *frame, size_t cap,
-			       size_t *len_out, uint32_t budget_ms)
+static osk_result_t frame_read(osk_se050_t1_t *t1, uint8_t *frame, size_t cap, size_t *len_out,
+			       uint32_t budget_ms)
 {
 	if (cap < SE050_T1_OVERHEAD) {
 		return OSK_ERR_INTERNAL;
@@ -156,8 +156,7 @@ static osk_result_t frame_read(osk_se050_t1_t *t1, uint8_t *frame, size_t cap,
 
 /* Einen S-Block senden und auf die zugehoerige Antwort warten.
  * rsp_inf darf NULL sein, wenn die Antwortdaten nicht gebraucht werden. */
-static osk_result_t s_block(osk_se050_t1_t *t1, uint8_t code,
-			    const uint8_t *inf, uint8_t inf_len,
+static osk_result_t s_block(osk_se050_t1_t *t1, uint8_t code, const uint8_t *inf, uint8_t inf_len,
 			    uint8_t *rsp_inf, uint8_t *rsp_inf_len)
 {
 	/* Reichlich bemessen: wie lang der Kennblock des Bausteins ist, steht
@@ -167,8 +166,8 @@ static osk_result_t s_block(osk_se050_t1_t *t1, uint8_t code,
 	uint8_t frame[SE050_T1_OVERHEAD + SE050_T1_MAX_INF];
 	const uint8_t pcb = (uint8_t)(SE050_PCB_TYPE_S | (code & SE050_PCB_S_CODE_MASK));
 
-	const size_t n = osk_se050_t1_build(frame, sizeof(frame),
-					    SE050_NAD_TO_SE, pcb, inf, inf_len);
+	const size_t n =
+	    osk_se050_t1_build(frame, sizeof(frame), SE050_NAD_TO_SE, pcb, inf, inf_len);
 	if (n == 0) {
 		return OSK_ERR_ARG;
 	}
@@ -223,8 +222,7 @@ osk_result_t osk_se050_t1_resync(osk_se050_t1_t *t1)
 
 osk_result_t osk_se050_t1_open(osk_se050_t1_t *t1, osk_se050_bus_t *bus)
 {
-	if (t1 == NULL || bus == NULL ||
-	    bus->write == NULL || bus->read == NULL ||
+	if (t1 == NULL || bus == NULL || bus->write == NULL || bus->read == NULL ||
 	    bus->wait_ms == NULL || bus->now_ms == NULL) {
 		return OSK_ERR_ARG;
 	}
@@ -239,8 +237,7 @@ osk_result_t osk_se050_t1_open(osk_se050_t1_t *t1, osk_se050_bus_t *bus)
 	 * nichts daraus. Gross genug, damit das Lesen nicht daran scheitert. */
 	uint8_t atr[SE050_T1_MAX_INF];
 	uint8_t atr_len = (uint8_t)sizeof(atr);
-	const osk_result_t r = s_block(t1, SE050_S_IF_SOFT_RESET, NULL, 0,
-				       atr, &atr_len);
+	const osk_result_t r = s_block(t1, SE050_S_IF_SOFT_RESET, NULL, 0, atr, &atr_len);
 	if (r != OSK_OK) {
 		return r;
 	}
@@ -274,8 +271,7 @@ static osk_result_t send_r_block(osk_se050_t1_t *t1, uint8_t expect_seq, uint8_t
 	if (expect_seq) {
 		pcb |= SE050_PCB_R_SEQ;
 	}
-	const size_t n = osk_se050_t1_build(frame, sizeof(frame),
-					    SE050_NAD_TO_SE, pcb, NULL, 0);
+	const size_t n = osk_se050_t1_build(frame, sizeof(frame), SE050_NAD_TO_SE, pcb, NULL, 0);
 	if (n == 0) {
 		return OSK_ERR_INTERNAL;
 	}
@@ -284,16 +280,13 @@ static osk_result_t send_r_block(osk_se050_t1_t *t1, uint8_t expect_seq, uint8_t
 
 /* Die Bitte des Bausteins um mehr Zeit beantworten. Der Rahmen selbst wird
  * dabei NICHT erneut gesendet - nur das Zeitbudget waechst. */
-static osk_result_t handle_wtx(osk_se050_t1_t *t1, const uint8_t *rsp,
-			       uint32_t *budget_ms)
+static osk_result_t handle_wtx(osk_se050_t1_t *t1, const uint8_t *rsp, uint32_t *budget_ms)
 {
 	const uint8_t units = (rsp[2] >= 1) ? rsp[SE050_T1_PROLOGUE_LEN] : 1u;
 
 	uint8_t ack[SE050_T1_OVERHEAD + 1];
-	const uint8_t apcb = (uint8_t)(SE050_PCB_TYPE_S | SE050_PCB_S_RESPONSE |
-				       SE050_S_WTX);
-	const size_t an = osk_se050_t1_build(ack, sizeof(ack), SE050_NAD_TO_SE,
-					     apcb, &units, 1);
+	const uint8_t apcb = (uint8_t)(SE050_PCB_TYPE_S | SE050_PCB_S_RESPONSE | SE050_S_WTX);
+	const size_t an = osk_se050_t1_build(ack, sizeof(ack), SE050_NAD_TO_SE, apcb, &units, 1);
 	if (an == 0) {
 		return OSK_ERR_INTERNAL;
 	}
@@ -319,8 +312,7 @@ static osk_result_t handle_wtx(osk_se050_t1_t *t1, const uint8_t *rsp,
  * Nach erfolgreicher Annahme steht in rsp der naechste gelesene Rahmen:
  * entweder die Quittung (R-Block) oder schon der erste Antwortblock.
  * Die Unterscheidung macht der Aufrufer. */
-static osk_result_t send_i_block(osk_se050_t1_t *t1,
-				 const uint8_t *inf, uint8_t inf_len, bool more,
+static osk_result_t send_i_block(osk_se050_t1_t *t1, const uint8_t *inf, uint8_t inf_len, bool more,
 				 uint8_t *rsp, size_t rsp_cap, size_t *rsp_len)
 {
 	uint8_t frame[SE050_T1_OVERHEAD + SE050_T1_MAX_INF];
@@ -332,8 +324,8 @@ static osk_result_t send_i_block(osk_se050_t1_t *t1,
 		pcb |= SE050_PCB_I_MORE;
 	}
 
-	const size_t n = osk_se050_t1_build(frame, sizeof(frame),
-					    SE050_NAD_TO_SE, pcb, inf, inf_len);
+	const size_t n =
+	    osk_se050_t1_build(frame, sizeof(frame), SE050_NAD_TO_SE, pcb, inf, inf_len);
 	if (n == 0) {
 		return OSK_ERR_ARG;
 	}
@@ -367,8 +359,7 @@ static osk_result_t send_i_block(osk_se050_t1_t *t1,
 			const bool is_s = SE050_PCB_IS_S(rpcb);
 			const bool is_r = SE050_PCB_IS_R(rpcb);
 
-			if (is_s &&
-			    (rpcb & SE050_PCB_S_CODE_MASK) == SE050_S_WTX &&
+			if (is_s && (rpcb & SE050_PCB_S_CODE_MASK) == SE050_S_WTX &&
 			    (rpcb & SE050_PCB_S_RESPONSE) == 0) {
 				r = handle_wtx(t1, rsp, &budget);
 				if (r != OSK_OK) {
@@ -378,8 +369,7 @@ static osk_result_t send_i_block(osk_se050_t1_t *t1,
 				continue;
 			}
 
-			if (is_r &&
-			    (rpcb & SE050_PCB_R_ERR_MASK) != SE050_PCB_R_ERR_NONE) {
+			if (is_r && (rpcb & SE050_PCB_R_ERR_MASK) != SE050_PCB_R_ERR_NONE) {
 				retry = true;
 				break;
 			}
@@ -394,13 +384,11 @@ static osk_result_t send_i_block(osk_se050_t1_t *t1,
 	return OSK_ERR_IO;
 }
 
-osk_result_t osk_se050_t1_transceive(osk_se050_t1_t *t1,
-				     const uint8_t *cmd, size_t cmd_len,
-				     uint8_t *rsp, size_t rsp_cap,
-				     size_t *rsp_len)
+osk_result_t osk_se050_t1_transceive(osk_se050_t1_t *t1, const uint8_t *cmd, size_t cmd_len,
+				     uint8_t *rsp, size_t rsp_cap, size_t *rsp_len)
 {
-	if (t1 == NULL || t1->bus == NULL || cmd == NULL || cmd_len == 0 ||
-	    rsp == NULL || rsp_len == NULL) {
+	if (t1 == NULL || t1->bus == NULL || cmd == NULL || cmd_len == 0 || rsp == NULL ||
+	    rsp_len == NULL) {
 		return OSK_ERR_ARG;
 	}
 	if (!t1->open) {
@@ -427,8 +415,8 @@ osk_result_t osk_se050_t1_transceive(osk_se050_t1_t *t1,
 		const bool more = (left > t1->ifsc);
 		const uint8_t chunk = more ? t1->ifsc : (uint8_t)left;
 
-		osk_result_t r = send_i_block(t1, &cmd[sent], chunk, more,
-					      frame, sizeof(frame), &frame_len);
+		osk_result_t r =
+		    send_i_block(t1, &cmd[sent], chunk, more, frame, sizeof(frame), &frame_len);
 		if (r != OSK_OK) {
 			return r;
 		}
@@ -476,8 +464,7 @@ osk_result_t osk_se050_t1_transceive(osk_se050_t1_t *t1,
 			t1->needs_resync = true;
 			return r;
 		}
-		r = frame_read(t1, frame, sizeof(frame), &frame_len,
-			       SE050_T_ANSWER_MS);
+		r = frame_read(t1, frame, sizeof(frame), &frame_len, SE050_T_ANSWER_MS);
 		if (r != OSK_OK) {
 			t1->needs_resync = true;
 			return r;

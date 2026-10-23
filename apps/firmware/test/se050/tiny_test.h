@@ -29,14 +29,13 @@ static inline void tt_hex(const char *label, const uint8_t *p, size_t n)
 
 #define TT_CASE(name) printf("  %s\n", (name))
 
-#define TT_TRUE(cond, what)                                         \
-	do {                                                        \
-		g_tt_checks++;                                      \
-		if (!(cond)) {                                      \
-			g_tt_failed++;                              \
-			printf("  FEHLER %s:%d  %s\n",              \
-			       __FILE__, __LINE__, (what));         \
-		}                                                   \
+#define TT_TRUE(cond, what)                                                         \
+	do {                                                                        \
+		g_tt_checks++;                                                      \
+		if (!(cond)) {                                                      \
+			g_tt_failed++;                                              \
+			printf("  FEHLER %s:%d  %s\n", __FILE__, __LINE__, (what)); \
+		}                                                                   \
 	} while (0)
 
 #define TT_EQ_INT(got, want, what)                                  \
@@ -52,16 +51,15 @@ static inline void tt_hex(const char *label, const uint8_t *p, size_t n)
 		}                                                   \
 	} while (0)
 
-#define TT_EQ_MEM(got, want, n, what)                               \
-	do {                                                        \
-		g_tt_checks++;                                      \
-		if (memcmp((got), (want), (n)) != 0) {              \
-			g_tt_failed++;                              \
-			printf("  FEHLER %s:%d  %s\n",              \
-			       __FILE__, __LINE__, (what));         \
-			tt_hex("ist ", (const uint8_t *)(got), (n)); \
-			tt_hex("soll", (const uint8_t *)(want), (n)); \
-		}                                                   \
+#define TT_EQ_MEM(got, want, n, what)                                               \
+	do {                                                                        \
+		g_tt_checks++;                                                      \
+		if (memcmp((got), (want), (n)) != 0) {                              \
+			g_tt_failed++;                                              \
+			printf("  FEHLER %s:%d  %s\n", __FILE__, __LINE__, (what)); \
+			tt_hex("ist ", (const uint8_t *)(got), (n));                \
+			tt_hex("soll", (const uint8_t *)(want), (n));               \
+		}                                                                   \
 	} while (0)
 
 /* Jede Pruefdatei bringt eine davon mit. */
