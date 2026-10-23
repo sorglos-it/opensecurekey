@@ -1,0 +1,30 @@
+{{template "head" .}}
+<form id="search" class="row" role="search">
+  <label for="q">{{.Texts.Get "search.label"}}</label>
+  <input type="search" id="q" name="q" autocomplete="off" maxlength="256">
+  <button type="submit">{{.Texts.Get "action.search"}}</button>
+</form>
+<p id="empty" hidden>{{.Texts.Get "list.empty"}}</p>
+<table id="items">
+  <caption>{{.Texts.Get "list.caption"}}</caption>
+  <thead>
+    <tr>
+      <th scope="col">{{.Texts.Get "field.name"}}</th>
+      <th scope="col">{{.Texts.Get "field.type"}}</th>
+      <th scope="col">{{.Texts.Get "field.site"}}</th>
+      <th scope="col">{{.Texts.Get "field.changed"}}</th>
+      <th scope="col">{{.Texts.Get "field.actions"}}</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+<p><a class="button" href="/item">{{.Texts.Get "action.new"}}</a></p>
+<dialog id="secret">
+  <h2>{{.Texts.Get "reveal.title"}}</h2>
+  <p id="secret-name"></p>
+  <output id="secret-value" class="secret"></output>
+  <p class="hint">{{.Texts.Get "reveal.hint"}}</p>
+  <button type="button" id="secret-copy">{{.Texts.Get "action.copy"}}</button>
+  <button type="button" id="secret-close">{{.Texts.Get "action.close"}}</button>
+</dialog>
+{{template "foot" .}}
