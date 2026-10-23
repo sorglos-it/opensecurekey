@@ -42,6 +42,12 @@ static void add_r(fake_bus_t *fb, uint8_t seq, uint8_t err)
 	fb_add_frame(fb, FB_OK, SE050_NAD_TO_HOST, pcb, NULL, 0);
 }
 
+/* Wie viele Schreibvorgaenge osk_se050_t1_open() selbst kostet:
+ * S(SWR), S(CIP), S(IFS) - drei (GPC_SPE_172 Abschnitt 4.1).
+ * Als Konstante, damit eine Aenderung am Oeffnen nicht jede
+ * Zaehlpruefung einzeln trifft. */
+#define WRITES_OPEN 3u
+
 void test_t1(void)
 {
 	/* Diese erste Gruppe prueft nicht den Treiber, sondern die
@@ -92,8 +98,8 @@ void test_t1(void)
 		 * sonst wandert ein Bit in das Antwortbit oder in die
 		 * Blockart und macht aus dem Befehl einen anderen. */
 		static const uint8_t codes[] = {
-		    SE050_S_RESYNC,   SE050_S_IFS,	  SE050_S_ABORT,   SE050_S_WTX,
-		    SE050_S_END_APDU, SE050_S_CHIP_RESET, SE050_S_GET_ATR, SE050_S_IF_SOFT_RESET,
+		    SE050_S_RESYNC, SE050_S_IFS,     SE050_S_ABORT, SE050_S_WTX,
+		    SE050_S_CIP,    SE050_S_RELEASE, SE050_S_SWR,
 		};
 		for (size_t i = 0; i < sizeof(codes); i++) {
 			TT_EQ_INT(codes[i] & ~SE050_PCB_S_CODE_MASK, 0,
@@ -123,25 +129,89 @@ void test_t1(void)
 	{
 		TT_EQ_INT(SE050_T1_OVERHEAD, SE050_T1_PROLOGUE_LEN + SE050_T1_EPILOGUE_LEN,
 			  "Prolog plus Epilog");
-		TT_EQ_INT(SE050_T1_PROLOGUE_LEN, 3u, "NAD, PCB, LEN");
 		TT_EQ_INT(SE050_T1_EPILOGUE_LEN, 2u, "zwei CRC-Bytes");
 
 		/* Was der Treiber selbst sendet, muss in ein LEN-Byte
 		 * passen - sonst baut er Rahmen, die er nicht beschreiben
 		 * kann. */
-		TT_TRUE(SE050_IFSD_DEFAULT <= SE050_T1_MAX_INF,
-			"Vorgabelaenge passt in ein LEN-Byte");
-		TT_TRUE(SE050_T1_MAX_INF <= 0xFEu, "ein LEN-Byte deckt hoechstens 0xFE");
+		/* Was wir ankuendigen, muss das Protokoll auch zulassen. */
+		TT_TRUE(SE050_IFSD <= SE050_T1_MAX_INF, "unser IFSD passt ins Protokoll");
+		TT_TRUE(SE050_T1_MAX_INF <= 4089u, "Protokollgrenze aus Abschnitt 4.2.5");
+		/* Die Vorgabe muss fuer eine S(CIP request) reichen - genau
+		 * dafuer nennt die Beschreibung acht Byte. */
+		TT_TRUE(SE050_IFSC_DEFAULT >= 8u, "Vorgabe-IFSC reicht fuer S(CIP)");
+		/* Ein Prolog mit zweibytigem LEN ist vier Byte lang. */
+		TT_EQ_INT(SE050_T1_PROLOGUE_LEN, 4u, "NAD, PCB, LEN hoch, LEN niedrig");
 
 		/* Hin- und Rueckrichtung muessen unterscheidbar sein. */
 		TT_TRUE(SE050_NAD_TO_SE != SE050_NAD_TO_HOST,
 			"die beiden NAD-Bytes sind verschieden");
 
 		/* Zeitgrenzen muessen in der richtigen Ordnung stehen. */
-		TT_TRUE(SE050_T_WTX_MAX_MS >= SE050_T_ANSWER_MS,
+		TT_TRUE(SE050_T_WTX_MAX_MS >= SE050_BWT_DEFAULT_MS,
 			"Obergrenze nicht unter dem Grundbudget");
 		TT_TRUE(SE050_T_POLL_MS >= 1u, "Pause zwischen Leseversuchen nicht Null");
 		TT_TRUE(SE050_MAX_RETRY >= 1u, "mindestens eine Wiederholung");
+	}
+
+	TT_CASE("Laengenfeld: zwei Byte, hoeherwertiges zuerst");
+	{
+		/* Das 2-Byte-LEN ist der einzige echte Formatunterschied zu
+		 * UM11225 - und ein Feld, das ploetzlich doppelt so breit
+		 * ist, ist genau die Stelle fuer einen Ueberlauf. Darum hier
+		 * die Raender einzeln. */
+		static uint8_t inf[600];
+		for (size_t i = 0; i < sizeof(inf); i++) {
+			inf[i] = (uint8_t)(i & 0xFFu);
+		}
+
+		uint8_t frame[SE050_T1_OVERHEAD + sizeof(inf)];
+
+		/* Eine Laenge ueber 255: genau hier war frueher Schluss. */
+		const size_t n = osk_se050_t1_build(frame, sizeof(frame), SE050_NAD_TO_SE,
+						    SE050_PCB_TYPE_I, inf, 300u);
+		TT_EQ_INT(n, SE050_T1_OVERHEAD + 300u, "Gesamtlaenge");
+		TT_EQ_INT(frame[2], 0x01u, "LEN hoeherwertig: 300 = 0x012C");
+		TT_EQ_INT(frame[3], 0x2Cu, "LEN niederwertig");
+		TT_EQ_INT(osk_se050_t1_check(frame, n), OSK_OK, "prueft sich selbst");
+		TT_EQ_MEM(&frame[SE050_T1_PROLOGUE_LEN], inf, 300u, "Nutzlast unveraendert");
+
+		/* Genau an der Grenze zwischen ein und zwei Byte. */
+		for (uint16_t len = 254u; len <= 257u; len++) {
+			const size_t m = osk_se050_t1_build(frame, sizeof(frame), SE050_NAD_TO_SE,
+							    SE050_PCB_TYPE_I, inf, len);
+			TT_EQ_INT(m, SE050_T1_OVERHEAD + len, "Laenge an der Grenze");
+			TT_EQ_INT(((size_t)frame[2] << 8) | frame[3], len, "LEN gelesen");
+			TT_EQ_INT(osk_se050_t1_check(frame, m), OSK_OK, "gueltig");
+		}
+
+		/* Ueber der Protokollgrenze wird nichts gebaut, statt die
+		 * Laenge stillschweigend zu beschneiden. */
+		TT_EQ_INT(osk_se050_t1_build(frame, sizeof(frame), SE050_NAD_TO_SE,
+					     SE050_PCB_TYPE_I, inf,
+					     (uint16_t)(SE050_T1_MAX_INF + 1u)),
+			  0u, "ueber der Protokollgrenze abgelehnt");
+	}
+
+	TT_CASE("Laengenfeld: eine erlogene Laenge faellt auf");
+	{
+		/* Ein Baustein, der im Prolog mehr ankuendigt, als er
+		 * schickt - der Fall, in dem ein Leser ueber das Ende
+		 * hinauslaufen wuerde. */
+		static const uint8_t inf[] = {0xAA, 0xBB, 0xCC, 0xDD};
+		uint8_t frame[32];
+		const size_t n = osk_se050_t1_build(frame, sizeof(frame), SE050_NAD_TO_HOST,
+						    SE050_PCB_TYPE_I, inf, sizeof(inf));
+
+		/* LEN auf 0x0100 hochdrehen, Laenge des Puffers lassen. */
+		frame[2] = 0x01u;
+		frame[3] = 0x00u;
+		TT_EQ_INT(osk_se050_t1_check(frame, n), OSK_ERR_FORMAT, "erlogene Laenge");
+
+		/* Und andersherum: LEN kleiner als der Puffer. */
+		frame[2] = 0x00u;
+		frame[3] = 0x01u;
+		TT_EQ_INT(osk_se050_t1_check(frame, n), OSK_ERR_FORMAT, "zu kleine Laenge");
 	}
 
 	TT_CASE("Rahmenbau: Prolog, Nutzlast, Pruefsumme");
@@ -153,23 +223,25 @@ void test_t1(void)
 		TT_EQ_INT(n, SE050_T1_OVERHEAD + sizeof(inf), "Gesamtlaenge");
 		TT_EQ_INT(frame[0], SE050_NAD_TO_SE, "NAD");
 		TT_EQ_INT(frame[1], SE050_PCB_TYPE_I, "PCB");
-		TT_EQ_INT(frame[2], sizeof(inf), "LEN");
-		TT_EQ_MEM(&frame[3], inf, sizeof(inf), "Nutzlast");
+		TT_EQ_INT(frame[2], 0u, "LEN hoeherwertig");
+		TT_EQ_INT(frame[3], sizeof(inf), "LEN niederwertig");
+		TT_EQ_MEM(&frame[SE050_T1_PROLOGUE_LEN], inf, sizeof(inf), "Nutzlast");
 
 		/* Pruefsumme laeuft ueber Prolog UND Nutzlast. Welches der
 		 * zwei Bytes vorn steht, sagt SE050_CRC_LSB_FIRST - der Test
 		 * liest den Schalter, statt eine Reihenfolge anzunehmen.
 		 * Sonst wuerde er fehlschlagen, wenn UM11225 die andere
 		 * Reihenfolge nennt und der Schalter richtig umgestellt ist. */
-		const uint16_t crc = osk_se050_crc16(frame, 3u + sizeof(inf));
+		const uint16_t crc = osk_se050_crc16(frame, SE050_T1_PROLOGUE_LEN + sizeof(inf));
 		const uint8_t lo = (uint8_t)(crc & 0xFFu);
 		const uint8_t hi = (uint8_t)(crc >> 8);
+		const uint8_t *epi = &frame[SE050_T1_PROLOGUE_LEN + sizeof(inf)];
 #if SE050_CRC_LSB_FIRST
-		TT_EQ_INT(frame[6], lo, "CRC: niederwertiges Byte vorn");
-		TT_EQ_INT(frame[7], hi, "CRC: hoeherwertiges Byte hinten");
+		TT_EQ_INT(epi[0], lo, "CRC: niederwertiges Byte vorn");
+		TT_EQ_INT(epi[1], hi, "CRC: hoeherwertiges Byte hinten");
 #else
-		TT_EQ_INT(frame[6], hi, "CRC: hoeherwertiges Byte vorn");
-		TT_EQ_INT(frame[7], lo, "CRC: niederwertiges Byte hinten");
+		TT_EQ_INT(epi[0], hi, "CRC: hoeherwertiges Byte vorn");
+		TT_EQ_INT(epi[1], lo, "CRC: niederwertiges Byte hinten");
 #endif
 
 		TT_EQ_INT(osk_se050_t1_check(frame, n), OSK_OK, "prueft sich selbst");
@@ -181,7 +253,8 @@ void test_t1(void)
 		const size_t n = osk_se050_t1_build(frame, sizeof(frame), SE050_NAD_TO_SE,
 						    SE050_PCB_TYPE_R, NULL, 0);
 		TT_EQ_INT(n, SE050_T1_OVERHEAD, "nur Prolog und Epilog");
-		TT_EQ_INT(frame[2], 0u, "LEN ist 0");
+		TT_EQ_INT(frame[2], 0u, "LEN hoeherwertig ist 0");
+		TT_EQ_INT(frame[3], 0u, "LEN niederwertig ist 0");
 		TT_EQ_INT(osk_se050_t1_check(frame, n), OSK_OK, "gueltig");
 	}
 
@@ -249,9 +322,11 @@ void test_t1(void)
 		fb_init(&fb);
 		fb_add_open_reply(&fb);
 
-		/* Der Treiber darf hoechstens SE050_T1_MAX_INF je Block
-		 * schicken. Ein Befehl darueber muss in zwei Bloecke. */
-		uint8_t cmd[SE050_T1_MAX_INF + 10u];
+		/* Der Testbus nennt in der CIP ein IFSC von 254 Byte. Ein
+		 * Befehl darueber muss in zwei Bloecke zerfallen. Die Zahl
+		 * kommt aus der Antwort des Bausteins, nicht aus einer
+		 * Annahme im Test. */
+		uint8_t cmd[254u + 10u];
 		for (size_t i = 0; i < sizeof(cmd); i++) {
 			cmd[i] = (uint8_t)i;
 		}
@@ -271,9 +346,9 @@ void test_t1(void)
 			  OSK_OK, "lange Nachricht durch");
 		TT_EQ_INT(n, sizeof(answer), "Antwortlaenge");
 
-		/* Bis hierher: Soft-Reset und zwei I-Bloecke. Das Schliessen
-		 * kommt erst danach und zaehlt hier noch nicht mit. */
-		TT_EQ_INT(fb.writes, 3u, "Soft-Reset und zwei I-Bloecke");
+		/* Bis hierher: das Oeffnen und zwei I-Bloecke. Das
+		 * Schliessen kommt erst danach und zaehlt noch nicht mit. */
+		TT_EQ_INT(fb.writes, WRITES_OPEN + 2u, "Oeffnen und zwei I-Bloecke");
 
 		(void)osk_se050_t1_close(&t1);
 		TT_TRUE(fb_clean(&fb), "Testbus ohne Beanstandung");
@@ -339,9 +414,9 @@ void test_t1(void)
 		size_t n = 0;
 		TT_EQ_INT(osk_se050_t1_transceive(&t1, cmd, sizeof(cmd), rsp, sizeof(rsp), &n),
 			  OSK_OK, "nach allen erlaubten Wiederholungen durch");
-		/* Soft-Reset, dann der Erstversuch plus SE050_MAX_RETRY
+		/* Das Oeffnen, dann der Erstversuch plus SE050_MAX_RETRY
 		 * Wiederholungen. */
-		TT_EQ_INT(fb.writes, 1u + 1u + SE050_MAX_RETRY,
+		TT_EQ_INT(fb.writes, WRITES_OPEN + 1u + SE050_MAX_RETRY,
 			  "Erstversuch und alle Wiederholungen gesendet");
 
 		(void)osk_se050_t1_close(&t1);
@@ -400,8 +475,8 @@ void test_t1(void)
 			  OSK_OK, "mit Verlaengerung durch");
 		/* Der Befehl selbst darf NICHT noch einmal gesendet werden -
 		 * nur die Bestaetigung der Verlaengerung kommt dazu:
-		 * Soft-Reset, Befehl, WTX-Antwort. */
-		TT_EQ_INT(fb.writes, 3u, "Befehl nur einmal gesendet");
+		 * Oeffnen, Befehl, WTX-Antwort. */
+		TT_EQ_INT(fb.writes, WRITES_OPEN + 2u, "Befehl nur einmal gesendet");
 
 		(void)osk_se050_t1_close(&t1);
 		TT_TRUE(fb_clean(&fb), "Testbus ohne Beanstandung");

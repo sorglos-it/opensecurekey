@@ -49,6 +49,10 @@ typedef struct {
 	 * beantwortete Befehl verschluesselt war. */
 	uint8_t cmd_counter[16];
 
+	/* Merkmalbild, das der Nachbau beim Applet-Auswaehlen meldet.
+	 * Steuerbar, damit sich ein Teil im FIPS-Modus nachstellen laesst. */
+	uint16_t applet_config;
+
 	/* Mitschrift fuer die Tests. */
 	uint8_t last_ins;
 	uint8_t last_p1;

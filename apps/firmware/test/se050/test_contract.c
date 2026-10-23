@@ -162,6 +162,52 @@ void test_contract(void)
 		TT_EQ_INT(osk_se050_free_memory(&bytes), OSK_ERR_IO, "free_memory");
 	}
 
+	TT_CASE("Vertrag: ein Teil im FIPS-Modus meldet ECDH ehrlich ab");
+	{
+		/* Das Merkmalbild 0x27F2 stammt aus der FIPS-Richtlinie fuer
+		 * einen echten SE051: ECDSA an, aber EdDSA und DH_Mont aus,
+		 * und das Bit CONFIG_FIPS_MODE_DISABLED ist 0 - der Baustein
+		 * kann also im FIPS-Modus laufen. Dann verweigert er ECDH
+		 * grundsaetzlich (AN12413 4.10.3.1). */
+		fake_bus_t fb;
+		se050_sim_t sim;
+		fb_init(&fb);
+		sim_attach(&sim, &fb);
+		sim.applet_config = 0x27F2u;
+		g_bus = &fb;
+		TT_EQ_INT(osk_se050_open(), OSK_OK, "angemeldet");
+
+		uint8_t peer[65];
+		memset(peer, 0x04, sizeof(peer));
+		uint8_t secret[64];
+		size_t n = 0;
+
+		const size_t before = sim.commands;
+		TT_EQ_INT(osk_se050_ecdh(1, peer, sizeof(peer), secret, sizeof(secret), &n),
+			  OSK_ERR_UNSUPPORTED, "ECDH ehrlich abgelehnt");
+		TT_EQ_INT(sim.commands, before, "und kein Befehl verschwendet");
+
+		/* Die zwei Curve25519-Kurven duerfen dann auch nicht als
+		 * vorhanden gemeldet werden. */
+		uint8_t list[0x12];
+		memset(list, SE050_NOT_SET, sizeof(list));
+		list[EC_NIST_P256] = SE050_SET;
+
+		uint8_t body[sizeof(list) + 4];
+		body[0] = TAG_1;
+		body[1] = (uint8_t)sizeof(list);
+		memcpy(&body[2], list, sizeof(list));
+		sim_set_reply(&sim, body, 2u + sizeof(list), SW_NO_ERROR);
+
+		uint32_t mask = 0;
+		TT_EQ_INT(osk_se050_curves(&mask), OSK_OK, "Kurven abgefragt");
+		TT_TRUE(mask & (1u << OSK_CURVE_P256), "P256 bleibt");
+		TT_TRUE(!(mask & (1u << OSK_CURVE_ED25519)), "Ed25519 nicht gemeldet");
+		TT_TRUE(!(mask & (1u << OSK_CURVE_X25519)), "X25519 nicht gemeldet");
+
+		osk_se050_close();
+	}
+
 	TT_CASE("Vertrag: freier Platz im Chip");
 	{
 		fake_bus_t fb;

@@ -216,8 +216,8 @@ static size_t handle_apdu(se050_sim_t *sim, const uint8_t *apdu, size_t len, uin
 		out[0] = 0x03u;
 		out[1] = 0x06u;
 		out[2] = 0x00u;
-		out[3] = 0x0Fu; /* ECDAA, ECDSA/ECDH, EdDSA, DH_MONT */
-		out[4] = 0xFFu;
+		out[3] = (uint8_t)(sim->applet_config >> 8);
+		out[4] = (uint8_t)(sim->applet_config & 0xFFu);
 		out[5] = 0x00u;
 		out[6] = 0x01u;
 		out[7] = 0x90u;
@@ -455,7 +455,7 @@ static size_t sim_respond(void *ctx, const uint8_t *frame, size_t len, uint8_t *
 	}
 	const uint8_t pcb = frame[1];
 	const uint8_t *inf = &frame[SE050_T1_PROLOGUE_LEN];
-	const uint8_t inf_len = frame[2];
+	const uint16_t inf_len = (uint16_t)(((uint16_t)frame[2] << 8) | frame[3]);
 
 	/* S-Block: mit demselben Code und gesetztem Antwortbit quittieren. */
 	if (SE050_PCB_IS_S(pcb)) {
@@ -465,20 +465,40 @@ static size_t sim_respond(void *ctx, const uint8_t *frame, size_t len, uint8_t *
 		}
 		const uint8_t code = pcb & SE050_PCB_S_CODE_MASK;
 		const uint8_t rpcb = (uint8_t)(SE050_PCB_TYPE_S | SE050_PCB_S_RESPONSE | code);
-		if (code == SE050_S_IF_SOFT_RESET) {
+		if (code == SE050_S_SWR) {
 			/* Zuruecksetzen heisst: Sitzung weg, Applet nicht
 			 * mehr ausgewaehlt. Die festen Schluessel und die
-			 * Zufallszahl bleiben - die gehoeren dem Baustein. */
+			 * Zufallszahl bleiben - die gehoeren dem Baustein.
+			 * S(SWR response) traegt keine Daten. */
 			osk_scp03_close(&sim->scp);
 			sim->applet_selected = false;
 			sim->channel = false;
 			sim->session_created = false;
 			memset(sim->cmd_counter, 0, sizeof(sim->cmd_counter));
-
-			/* Kennblock - der Treiber wertet ihn nicht aus. */
-			static const uint8_t atr[] = {0x00, 0xA0, 0x00, 0x00};
-			return osk_se050_t1_build(out, cap, SE050_NAD_TO_HOST, rpcb, atr,
-						  sizeof(atr));
+			return osk_se050_t1_build(out, cap, SE050_NAD_TO_HOST, rpcb, NULL, 0);
+		}
+		if (code == SE050_S_CIP) {
+			/* Schnittstellenwerte nach GPC_SPE_172 Abschnitt 4.3:
+			 * PVER | LenIIN | IIN | PLID | LenPLP | PLP |
+			 * LenDLLP | DLLP | LenHB | HB.
+			 * DLLP traegt BWT (500 ms) und IFSC (254 Byte). */
+			static const uint8_t cip[] = {
+			    0x01,	/* PVER            */
+			    0x00,	/* LenIIN = 0      */
+			    0x02,	/* PLID = I2C      */
+			    0x01, 0xAA, /* LenPLP = 1, PLP */
+			    0x04,	/* LenDLLP = 4     */
+			    0x01, 0xF4, /* BWT  = 500 ms   */
+			    0x00, 0xFE, /* IFSC = 254      */
+			    0x00,	/* LenHB = 0       */
+			};
+			return osk_se050_t1_build(out, cap, SE050_NAD_TO_HOST, rpcb, cip,
+						  (uint16_t)sizeof(cip));
+		}
+		if (code == SE050_S_IFS) {
+			/* "Same INF field as preceding S(IFS request)"
+			 * (Tabelle 4-5) - also unveraendert zurueck. */
+			return osk_se050_t1_build(out, cap, SE050_NAD_TO_HOST, rpcb, inf, inf_len);
 		}
 		if (code == SE050_S_RESYNC) {
 			osk_scp03_close(&sim->scp);
@@ -517,6 +537,9 @@ void sim_attach(se050_sim_t *sim, fake_bus_t *fb)
 	memset(sim, 0, sizeof(*sim));
 	sim->keys = SIM_KEYS;
 	sim->next_auth_keys = SIM_KEYS;
+	/* Vorgabe: alles an, was der Treiber abfragt, und FIPS-Modus AUS
+	 * (Bit 0x1000 gesetzt heisst "FIPS deaktiviert"). */
+	sim->applet_config = 0x100Fu;
 	sim->next_sw = SW_NO_ERROR;
 	for (size_t i = 0; i < sizeof(sim->card_challenge); i++) {
 		sim->card_challenge[i] = (uint8_t)(0xC0u + i);
