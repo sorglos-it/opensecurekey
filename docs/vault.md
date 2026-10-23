@@ -46,7 +46,7 @@ entries.
 
 The mark is stored encrypted like everything else, so somebody who reads the
 chip cannot see which services you have an account with. Only the device itself,
-after your PIN or your finger, can look through them.
+after you have unlocked it, can look through them.
 
 ## Entry types
 
@@ -96,8 +96,10 @@ or the radio link in between only ever sees encrypted data — it can record
 everything and understand nothing.
 
 What goes over: the entries you marked as "may be mirrored". What never goes
-over: everything else, and your fingerprint. The second device learns your
-finger itself; fingerprint data never leaves a device.
+over: everything else, and anything a fingerprint sensor would produce.
+Fingerprint data is never in the vault, so it cannot be transferred either -
+and stage 1 of the device has no sensor at all (see
+`threat-model.md`), so the PIN is the way in.
 
 ## The device log
 

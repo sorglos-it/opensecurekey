@@ -19,9 +19,10 @@
  *
  * Was nicht mitgeht:
  *   - Eintraege ohne das Kennzeichen "darf gespiegelt werden".
- *   - Fingerabdrucksdaten. Sie liegen nicht im Tresor und koennen darum auch
- *     nicht uebertragen werden - das zweite Geraet lernt seinen eigenen
- *     Finger neu an.
+ *   - Alles, was ein Fingerabdrucksensor hervorbringt. Es liegt nicht im
+ *     Tresor und kann darum auch nicht uebertragen werden. Stufe 1 hat gar
+ *     keinen Sensor (docs/threat-model.md); kommt einer dazu, bleibt seine
+ *     Vorlage im Sensor.
  *   - Das Grundgeheimnis des SE050. Dafuer gibt es den Kopplungsweg des
  *     Chips, nicht diesen hier.
  *

@@ -71,8 +71,9 @@ typedef struct {
 } osk_backup_head_t;
 
 /* Ein Eintrag in der Datei, im Klartext vor dem Verschluesseln. Das Geheimnis
- * steht dahinter. Fingerabdrucksdaten gibt es hier nicht - sie liegen nie im
- * Tresor und wandern darum auch nie in eine Sicherung. */
+ * steht dahinter. Was ein Fingerabdrucksensor hervorbringt, gibt es hier
+ * nicht: es liegt nie im Tresor und wandert darum auch nie in eine
+ * Sicherung. */
 typedef struct {
 	uint32_t id;
 	uint16_t type;

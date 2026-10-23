@@ -303,8 +303,10 @@ The computer or radio link in between only ever sees ciphertext.
    sorted public parts as additional authenticated data.
 
 What does not travel: items without the mirrored flag; the SE050 root secret
-(that has the chip's own pairing path); and fingerprint data, which is not in
-the vault at all, so the second device learns its own finger.
+(that has the chip's own pairing path); and anything a fingerprint sensor would
+produce, which is not in the vault at all and therefore cannot travel. Stage 1
+has no sensor (see `../docs/threat-model.md`); when one arrives, its template
+stays in the sensor and never reaches the vault.
 
 Without the confirmed number no byte leaves the device, and a transfer that
 breaks off is detected by the closing chunk.
