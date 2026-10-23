@@ -66,10 +66,15 @@ struct suite {
 int main(void)
 {
 	static const struct suite suites[] = {
-	    {"Woerterliste", test_wordlist},  {"Umschlaege (Shamir)", test_shamir},
-	    {"Grundlagen", test_core},	      {"Kennung zum Suchen", test_tag},
-	    {"Stromausfall", test_power},     {"Wanderung alter Fassungen", test_migrate},
-	    {"Sicherungsdatei", test_backup}, {"Stick zu Stick", test_transfer},
+	    {"Woerterliste", test_wordlist},
+	    {"Umschlaege (Shamir)", test_shamir},
+	    {"Grundlagen", test_core},
+	    {"Kennung zum Suchen", test_tag},
+	    {"Index in Bloecken", test_paging},
+	    {"Stromausfall", test_power},
+	    {"Wanderung alter Fassungen", test_migrate},
+	    {"Sicherungsdatei", test_backup},
+	    {"Stick zu Stick", test_transfer},
 	    {"Verschleiss", test_wear},
 	};
 

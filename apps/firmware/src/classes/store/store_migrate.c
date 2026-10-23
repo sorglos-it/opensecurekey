@@ -156,7 +156,7 @@ osk_result_t osk_index_upgrade(uint16_t from_format, size_t plain_len)
 	default:
 		return OSK_ERR_FORMAT;
 	}
-	if (count > OSK_ITEMS_MAX ||
+	if (count > OSK_IDX_BLOCK_RECS ||
 	    plain_len != sizeof(osk_idx_head_t) + (size_t)count * rec_size) {
 		return OSK_ERR_FORMAT;
 	}
@@ -208,13 +208,25 @@ osk_result_t osk_store_migrate(void)
 			continue;
 		}
 		osk_index_drop();
+		/* Erst Block 0: dabei wird bei einem alten Tresor der
+		 * Eintragszaehler im Kopf nachgetragen, und erst danach steht
+		 * fest, wie viele Bloecke das Profil hat. */
 		r = osk_index_load(p); /* rechnet alte Fassungen im RAM um */
 		if (r != OSK_OK) {
 			return r;
 		}
-		r = osk_index_store(p); /* schreibt die jetzige Fassung */
-		if (r != OSK_OK) {
-			return r;
+
+		uint16_t blocks = st->hdr.index_blocks[p];
+
+		for (uint16_t b = 0; b < blocks; b++) {
+			r = osk_index_load_block(p, b);
+			if (r != OSK_OK) {
+				return r;
+			}
+			r = osk_index_store(p); /* schreibt die jetzige Fassung */
+			if (r != OSK_OK) {
+				return r;
+			}
 		}
 		r = osk_hdr_commit();
 		if (r != OSK_OK) {

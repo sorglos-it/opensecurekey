@@ -79,5 +79,6 @@ void test_transfer(void);
 void test_wear(void);
 void test_wordlist(void);
 void test_tag(void);
+void test_paging(void);
 
 #endif

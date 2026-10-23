@@ -45,6 +45,28 @@ static size_t g_dups;
 static size_t g_vault_dups;
 static uint32_t g_rand_state = 1u;
 
+/* Wie viel entschluesselt wurde. Damit laesst sich die Arbeit einer Suche
+ * messen, ohne die Geschwindigkeit dieser Attrappe zu messen - die sagt ueber
+ * das Geraet nichts. */
+static size_t g_open_calls;
+static size_t g_open_bytes;
+
+void fake_crypto_open_reset(void)
+{
+	g_open_calls = 0;
+	g_open_bytes = 0;
+}
+
+size_t fake_crypto_open_calls(void)
+{
+	return g_open_calls;
+}
+
+size_t fake_crypto_open_bytes(void)
+{
+	return g_open_bytes;
+}
+
 void fake_crypto_init(void)
 {
 	if (g_seen == NULL) {
@@ -193,6 +215,12 @@ osk_result_t osk_crypto_open(const osk_key_t *key, const uint8_t nonce[OSK_NONCE
 	    plain_len_out == NULL || ct_len < OSK_TAG_LEN) {
 		return OSK_ERR_ARG;
 	}
+	/* Gezaehlt wird JEDER Versuch zu entschluesseln, auch der, der an der
+	 * Pruefung scheitert. Nur so misst die Zahl die Arbeit und nicht den
+	 * Erfolg. */
+	g_open_calls++;
+	g_open_bytes += ct_len;
+
 	size_t plain_len = ct_len - OSK_TAG_LEN;
 
 	if (plain_cap < plain_len) {

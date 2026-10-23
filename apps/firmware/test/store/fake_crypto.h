@@ -34,4 +34,11 @@ size_t fake_crypto_nonce_dups(void);
  * Schluessel. Im Tresor selbst (Zweck 1 bis 3) muss auch das 0 sein. */
 size_t fake_crypto_vault_nonce_dups(void);
 
+/* Wie viel entschluesselt wurde: Aufrufe und Bytes. Das ist die ARBEIT einer
+ * Suche, und die laesst sich hier ehrlich messen - die LAUFZEIT dieser
+ * Attrappe sagt ueber das Geraet nichts. */
+void fake_crypto_open_reset(void);
+size_t fake_crypto_open_calls(void);
+size_t fake_crypto_open_bytes(void);
+
 #endif

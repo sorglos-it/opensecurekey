@@ -18,11 +18,13 @@ you first and only then complains about the buffer. Otherwise a program could
 learn how long a password is by trying, without you ever agreeing.
 
 **A power cut cannot break it.** Every change is written in a fixed order: the
-new secret first, then the index, then the one record that makes both count, and
-only then is the old place freed. Whenever the power goes, the device comes back
-with either the old state or the new one, and everything in it reads. This is
-tested by cutting the power at every single write position of every kind of
-change.
+new secret first, then the affected pieces of the index, then the one record
+that makes all of it count, and only then is the old place freed. Whenever the
+power goes, the device comes back with either the old state or the new one, and
+everything in it reads. This is tested by cutting the power at every single
+write position of every kind of change — including the one case that writes two
+pieces of the index at once, which is deleting an entry near the front of a long
+list.
 
 **A password is never written twice in the same place.** The device spreads its
 writes over the whole chip, so the flash does not wear out at one spot. Measured
@@ -31,6 +33,13 @@ over 400 changes to the same entry: 400 different places, none used twice.
 **Several people, several PINs.** A device can hold up to four profiles, each
 with its own PIN. The PIN of one profile cannot open another, and a locked
 profile shows nothing at all — not even how its entries are called.
+
+**Room for 768 entries per profile, 3072 in a device.** A browser full of logins
+holds 100 to 300 of them, so there is room for a household. What limits it now
+is the flash chip, not the memory of the key: the list of entries is read in
+pieces of 64 instead of all at once, so a device with 3072 entries needs no more
+memory than one with 64 did. The arithmetic behind the number is in
+`hardware.md`.
 
 **A firmware update does not lose data.** The vault says which version it is,
 and an older one is read as it is and rewritten as you go. Nothing has to be
@@ -47,6 +56,16 @@ entries.
 The mark is stored encrypted like everything else, so somebody who reads the
 chip cannot see which services you have an account with. Only the device itself,
 after you have unlocked it, can look through them.
+
+Because the list is read in pieces, a search has to go through every piece — 12
+of them in a full profile, 240 KiB of decryption, and 48 pieces or 962 KiB if
+all four profiles are open at once. On a PC with stand-in crypto that takes
+about 1.2 to 1.45 milliseconds for one profile and 4.8 to 5.9 for all four;
+**what it takes on the real chip is not measured, because there is no chip
+yet.** If it turns out too slow for a
+passkey login, there is a known way to make one piece enough instead of twelve.
+It is written down in `../shared/vault-format.md` and deliberately not built, so
+that nobody pays for it before a measurement says it is needed.
 
 ## Entry types
 

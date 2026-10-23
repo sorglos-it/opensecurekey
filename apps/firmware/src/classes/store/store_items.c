@@ -282,7 +282,7 @@ osk_result_t osk_store_count(uint8_t profile, size_t *count_out)
 	if (r != OSK_OK) {
 		return r;
 	}
-	*count_out = osk_index_page()->head.count;
+	*count_out = osk_index_count(profile);
 	return OSK_OK;
 }
 
@@ -292,7 +292,9 @@ static void meta_from_rec(const osk_idx_rec_t *rec, osk_item_meta_t *out)
 	out->type = (osk_item_type_t)rec->type;
 	out->profile = rec->profile;
 	/* Die Zeiger zeigen in den Arbeitspuffer des Tresors. Sie gelten, bis
-	 * ein anderes Profil geladen oder der Tresor gesperrt wird. */
+	 * ein anderer Indexblock geladen oder der Tresor gesperrt wird - also
+	 * bis zum naechsten Aufruf, der den Index anfasst. Seit der Index
+	 * blockweise liegt, ist das die kuerzere, ehrliche Zusage. */
 	out->name = rec->name;
 	out->site = rec->site;
 	out->changed_utc = rec->changed_utc;
@@ -315,12 +317,13 @@ osk_result_t osk_store_list(uint8_t profile, size_t index, osk_item_meta_t *out)
 	if (r != OSK_OK) {
 		return r;
 	}
-	osk_idx_page_t *page = osk_index_page();
+	osk_idx_rec_t *rec = NULL;
 
-	if (index >= page->head.count) {
-		return OSK_ERR_NOT_FOUND;
+	r = osk_index_rec(profile, index, &rec);
+	if (r != OSK_OK) {
+		return r;
 	}
-	meta_from_rec(&page->recs[index], out);
+	meta_from_rec(rec, out);
 	return OSK_OK;
 }
 
@@ -367,15 +370,24 @@ osk_result_t osk_store_find(uint8_t profile, const char *site, osk_item_id_t *ou
 	if (r != OSK_OK) {
 		return r;
 	}
-	osk_idx_page_t *page = osk_index_page();
+	size_t total = osk_index_count(profile);
 	size_t n = 0;
 
-	for (uint16_t i = 0; i < page->head.count; i++) {
-		if (!site_matches(page->recs[i].site, site)) {
+	/* Die Suche laeuft ueber alle Bloecke des Profils. osk_index_rec laedt
+	 * jeden Block genau einmal: solange die Nummern aufsteigen, bleibt der
+	 * geladene Block fuer 64 Saetze derselbe. */
+	for (size_t i = 0; i < total; i++) {
+		osk_idx_rec_t *rec = NULL;
+
+		r = osk_index_rec(profile, i, &rec);
+		if (r != OSK_OK) {
+			return r;
+		}
+		if (!site_matches(rec->site, site)) {
 			continue;
 		}
 		if (n < cap) {
-			out[n] = page->recs[i].id;
+			out[n] = rec->id;
 		}
 		n++;
 	}
@@ -384,12 +396,15 @@ osk_result_t osk_store_find(uint8_t profile, const char *site, osk_item_id_t *ou
 }
 
 /* Sucht ueber die nicht geheime Kennung. Hier wird KEIN Geheimnis
- * entschluesselt und KEINE Freigabe verlangt: gesucht wird im Index, der beim
- * Aufschliessen des Profils ohnehin schon im RAM liegt.
+ * entschluesselt und KEINE Freigabe verlangt: gesucht wird im Index.
  *
  * Genau dafuer gibt es die Kennung. FIDO2 muss beim Anmelden unter hunderten
  * Eintraegen den passenden finden; jeden einzelnen zu oeffnen waere langsam
- * und wuerde fuer jeden eine Freigabe am Geraet verlangen. */
+ * und wuerde fuer jeden eine Freigabe am Geraet verlangen.
+ *
+ * Seit Fassung 4 liegt der Index in Bloecken, und die Suche muss jeden Block
+ * des Profils einmal entschluesseln - bei 768 Eintraegen also zwoelf Bloecke
+ * zu 20 KiB. Was das kostet, steht gemessen in docs/vault.md. */
 osk_result_t osk_store_find_tag(uint8_t profile, osk_item_type_t type, const uint8_t *tag,
 				size_t tag_len, osk_item_id_t *out, size_t cap, size_t *len_out)
 {
@@ -403,12 +418,16 @@ osk_result_t osk_store_find_tag(uint8_t profile, osk_item_type_t type, const uin
 	if (r != OSK_OK) {
 		return r;
 	}
-	osk_idx_page_t *page = osk_index_page();
+	size_t total = osk_index_count(profile);
 	size_t n = 0;
 
-	for (uint16_t i = 0; i < page->head.count; i++) {
-		const osk_idx_rec_t *rec = &page->recs[i];
+	for (size_t i = 0; i < total; i++) {
+		osk_idx_rec_t *rec = NULL;
 
+		r = osk_index_rec(profile, i, &rec);
+		if (r != OSK_OK) {
+			return r;
+		}
 		if (rec->tag_len != tag_len || rec->type != (uint16_t)type) {
 			continue;
 		}
@@ -443,10 +462,15 @@ static osk_result_t find_rec(osk_item_id_t id, uint8_t *profile_out, size_t *ind
 		if (osk_index_load(p) != OSK_OK) {
 			continue;
 		}
-		osk_idx_page_t *page = osk_index_page();
+		size_t total = osk_index_count(p);
 
-		for (uint16_t i = 0; i < page->head.count; i++) {
-			if (page->recs[i].id == id) {
+		for (size_t i = 0; i < total; i++) {
+			osk_idx_rec_t *rec = NULL;
+
+			if (osk_index_rec(p, i, &rec) != OSK_OK) {
+				break;
+			}
+			if (rec->id == id) {
 				*profile_out = p;
 				*index_out = i;
 				return OSK_OK;
@@ -516,9 +540,7 @@ osk_result_t osk_store_add(const osk_item_meta_t *meta, const uint8_t *secret, s
 	if (r != OSK_OK) {
 		return r;
 	}
-	osk_idx_page_t *page = osk_index_page();
-
-	if (page->head.count >= OSK_ITEMS_MAX) {
+	if (osk_index_count(meta->profile) >= OSK_ITEMS_MAX) {
 		return OSK_ERR_FULL;
 	}
 
@@ -542,9 +564,12 @@ osk_result_t osk_store_add(const osk_item_meta_t *meta, const uint8_t *secret, s
 		return rollback(&snap, r);
 	}
 
-	osk_idx_rec_t *rec = &page->recs[page->head.count];
+	osk_idx_rec_t *rec = NULL;
 
-	memset(rec, 0, sizeof(*rec));
+	r = osk_index_append(meta->profile, &rec);
+	if (r != OSK_OK) {
+		return rollback(&snap, r);
+	}
 	rec->id = id;
 	rec->type = (uint16_t)meta->type;
 	rec->profile = meta->profile;
@@ -557,9 +582,8 @@ osk_result_t osk_store_add(const osk_item_meta_t *meta, const uint8_t *secret, s
 	set_tag(rec, meta);
 	osk_str_copy(rec->name, sizeof(rec->name), meta->name);
 	osk_str_copy(rec->site, sizeof(rec->site), meta->site);
-	page->head.count += 1u;
 
-	/* 2. der Index */
+	/* 2. der Index - nur der eine betroffene Block */
 	r = osk_index_store(meta->profile);
 	if (r != OSK_OK) {
 		return rollback(&snap, r);
@@ -593,9 +617,12 @@ osk_result_t osk_store_update(osk_item_id_t id, const osk_item_meta_t *meta, con
 	if (secret != NULL && (secret_len == 0u || secret_len > OSK_SECRET_MAX)) {
 		return OSK_ERR_ARG;
 	}
-	osk_idx_page_t *page = osk_index_page();
-	osk_idx_rec_t *rec = &page->recs[index];
+	osk_idx_rec_t *rec = NULL;
 
+	r = osk_index_rec(profile, index, &rec);
+	if (r != OSK_OK) {
+		return r;
+	}
 	if ((rec->flags & OSK_FLAG_READONLY) != 0u) {
 		return OSK_ERR_DENIED;
 	}
@@ -678,23 +705,21 @@ osk_result_t osk_store_delete(osk_item_id_t id)
 	if (r != OSK_OK) {
 		return r;
 	}
-	osk_idx_page_t *page = osk_index_page();
+	osk_idx_rec_t *rec = NULL;
 
-	if ((page->recs[index].flags & OSK_FLAG_READONLY) != 0u) {
+	r = osk_index_rec(profile, index, &rec);
+	if (r != OSK_OK) {
+		return r;
+	}
+	if ((rec->flags & OSK_FLAG_READONLY) != 0u) {
 		return OSK_ERR_DENIED;
 	}
 	osk_hdr_snapshot(&snap);
 
-	uint32_t slot = page->recs[index].slot;
+	uint32_t slot = rec->slot;
 
-	/* Luecke schliessen: der letzte Satz rutscht nach vorn. */
-	if (index + 1u < page->head.count) {
-		page->recs[index] = page->recs[page->head.count - 1u];
-	}
-	memset(&page->recs[page->head.count - 1u], 0, sizeof(osk_idx_rec_t));
-	page->head.count -= 1u;
-
-	r = osk_index_store(profile);
+	/* Luecke schliessen und die betroffenen Bloecke schreiben. */
+	r = osk_index_remove(profile, index);
 	if (r != OSK_OK) {
 		return rollback(&snap, r);
 	}
@@ -727,7 +752,12 @@ osk_result_t osk_store_reveal(osk_item_id_t id, const char *asked_by, uint8_t *o
 	if (r != OSK_OK) {
 		return r;
 	}
-	osk_idx_rec_t *rec = &osk_index_page()->recs[index];
+	osk_idx_rec_t *rec = NULL;
+
+	r = osk_index_rec(profile, index, &rec);
+	if (r != OSK_OK) {
+		return r;
+	}
 
 	/* Die Freigabe wird VOR jeder Pruefung der Puffergroesse geholt. Sonst
 	 * koennte ein Programm durch Probieren erfahren, wie lang das Geheimnis
@@ -786,7 +816,13 @@ osk_result_t osk_store_item_flags(osk_item_id_t id, uint8_t *flags_out)
 	if (r != OSK_OK) {
 		return r;
 	}
-	*flags_out = osk_index_page()->recs[index].flags;
+	osk_idx_rec_t *rec = NULL;
+
+	r = osk_index_rec(profile, index, &rec);
+	if (r != OSK_OK) {
+		return r;
+	}
+	*flags_out = rec->flags;
 	return OSK_OK;
 }
 
@@ -799,7 +835,13 @@ osk_result_t osk_store_item_set_readonly(osk_item_id_t id, bool on)
 	if (r != OSK_OK) {
 		return r;
 	}
-	osk_idx_rec_t *rec = &osk_index_page()->recs[index];
+	osk_idx_rec_t *rec = NULL;
+
+	r = osk_index_rec(profile, index, &rec);
+	if (r != OSK_OK) {
+		return r;
+	}
+
 	uint8_t keep = rec->flags;
 	osk_hdr_t snap;
 
@@ -835,7 +877,13 @@ osk_result_t osk_store_item_counter(osk_item_id_t id, uint64_t *out)
 	if (r != OSK_OK) {
 		return r;
 	}
-	*out = osk_index_page()->recs[index].counter;
+	osk_idx_rec_t *rec = NULL;
+
+	r = osk_index_rec(profile, index, &rec);
+	if (r != OSK_OK) {
+		return r;
+	}
+	*out = rec->counter;
 	return OSK_OK;
 }
 
@@ -852,7 +900,13 @@ osk_result_t osk_store_item_counter_next(osk_item_id_t id, uint64_t *out)
 	if (r != OSK_OK) {
 		return r;
 	}
-	osk_idx_rec_t *rec = &osk_index_page()->recs[index];
+	osk_idx_rec_t *rec = NULL;
+
+	r = osk_index_rec(profile, index, &rec);
+	if (r != OSK_OK) {
+		return r;
+	}
+
 	osk_hdr_t snap;
 
 	osk_hdr_snapshot(&snap);

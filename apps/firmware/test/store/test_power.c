@@ -236,8 +236,13 @@ static void case_half_written_header(void)
 	uint8_t page[OSK_HDR_SLOT];
 	uint32_t next = st->hdr_slot + OSK_HDR_SLOT;
 
-	fake.seq += 1000u;	 /* waere der jueengste Satz */
-	fake.index_root[0] = 0u; /* und wuerde das Profil leer melden */
+	if (next >= OSK_AREA_HDR2_OFF + OSK_AREA_HDR2_LEN) {
+		next = OSK_AREA_HDR2_OFF; /* im Ring bleiben */
+	}
+
+	fake.seq += 1000u;	     /* waere der jueengste Satz */
+	fake.index_block[0][0] = 0u; /* und wuerde das Profil leer melden */
+	fake.index_count[0] = 0u;
 	fake.crc32 = 0xDEADBEEFu;
 
 	memset(page, 0xFF, sizeof(page));
