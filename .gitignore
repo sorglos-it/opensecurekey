@@ -1,0 +1,26 @@
+# Erzeugtes
+dist/
+bin/
+obj/
+.pio/
+build/
+*.o
+*.hex
+*.uf2
+
+# Laufzeitdaten - Ausnahme: Firmware-Dateisystem
+apps/*/data/
+!apps/firmware*/data/
+
+# Echte Konfiguration und Secrets - nur *.example kommt ins Repo
+apps/*/config/*
+!apps/*/config/*.example
+apps/firmware*/include/config.h
+
+# Fremdcode per Paketmanager
+apps/*/vendor/
+node_modules/
+
+# Signaturschluessel gehoeren nie ins Repo
+*.pem
+*.key
