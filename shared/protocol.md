@@ -37,6 +37,31 @@ the program then says in plain words which function is missing.
 | 13 | `update` — signed firmware image | yes |
 | 14 | `attest` — challenge/response for dongle use | configurable |
 
+## Setup: one question that cannot be taken back
+
+Before a device holds any secret, the wizard asks which mode the profile uses —
+"mirrored" (a spare device is possible) or "this device only" (nothing ever
+leaves the chip). The answer decides how the root secret is created, so it has
+to be given first and cannot be changed afterwards; see `docs/architecture.md`.
+
+The program must put this in plain words, say that it is final, and not offer a
+default that quietly decides it. `hello` reports the mode of each profile so the
+interface can show it without asking the device to reveal anything.
+
+## How much room is left
+
+The chip reports its free persistent memory, and the interface warns before the
+limit instead of failing at it. Two limits of that number, which the interface
+must respect:
+
+- Anything from 32768 bytes upwards is reported as `0x7FFF` and nothing more. On
+  a fresh SE051C2 with 104 kB the answer is therefore only "plenty". A real
+  figure appears once the chip is more than half full — which is when a warning
+  matters, so it is enough to warn with, but it is a lower bound, not a measurement.
+- The granularity is 16 bytes and the applet reports the worst case. So do not
+  divide by an object size and show "41 services left". That would be invented
+  precision. "Running out of room" is what the value supports.
+
 ## Rules
 
 - The program never sees a key. It sees metadata, and secrets only through
