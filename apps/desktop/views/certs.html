@@ -1,0 +1,19 @@
+{{template "head" .}}
+<p>{{.Texts.Get "certs.intro"}}</p>
+<p id="certs-empty" hidden>{{.Texts.Get "list.empty"}}</p>
+<table id="certs">
+  <caption>{{.Texts.Get "certs.caption"}}</caption>
+  <thead>
+    <tr>
+      <th scope="col">{{.Texts.Get "field.name"}}</th>
+      <th scope="col">{{.Texts.Get "field.site"}}</th>
+      <th scope="col">{{.Texts.Get "field.changed"}}</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+<h2>{{.Texts.Get "attest.title"}}</h2>
+<p>{{.Texts.Get "attest.intro"}}</p>
+<button type="button" id="attest">{{.Texts.Get "action.attest"}}</button>
+<output id="attest-result"></output>
+{{template "foot" .}}
