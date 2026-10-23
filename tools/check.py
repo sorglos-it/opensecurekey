@@ -5,7 +5,8 @@
     python tools/check.py --report dist/check-report.json
 
 Schritte: Versionsdateien, Werkzeug-Tests, Uebersetzen/Syntax und Tests je Teilprogramm
-(Firmware nur mit nRF Connect SDK), Sprachdateien (gleiche Schluessel in de, en, fr, it, es),
+(Firmware: Bau nur mit nRF Connect SDK, die Pruefungen laufen am PC mit gcc und make),
+Sprachdateien (gleiche Schluessel in de, en, fr, it, es),
 Formatierung. Jeder Schritt ist 'ok', 'uebersprungen' (mit Grund) oder 'FEHLER'.
 
 Ausstiegscode: 0 nur, wenn kein Schritt scheiterte UND mindestens ein Test lief.
@@ -164,16 +165,53 @@ def check_web(root):
 
 # --- Firmware ---------------------------------------------------------------------
 
+TEST_LINE = re.compile(r'^(\S+): (\d+) Faelle, (\d+) Fehler$', re.M)
+
+
+def check_firmware_tests(root):
+    """Die Pruefungen der Firmware laufen am PC mit gcc und make - sie brauchen
+    das nRF Connect SDK NICHT. Frueher haengten sie am SDK und wurden deshalb
+    immer uebersprungen: der groesste Pruefsatz des Projekts lief nie in der CI.
+    Je Ordner unter apps/firmware/test/ ein Makefile, Zusammenfassung je Datei
+    'name: N Faelle, M Fehler'."""
+    part, base = 'firmware', os.path.join(common.part_dir('firmware', root), 'test')
+    if not os.path.isdir(base):
+        return [Result(part, 'tests', SKIPPED, 'apps/firmware/test fehlt')]
+    suites = sorted(d for d in os.listdir(base)
+                    if os.path.isfile(os.path.join(base, d, 'Makefile')))
+    if not suites:
+        return [Result(part, 'tests', SKIPPED, 'kein Makefile unter apps/firmware/test/')]
+    if common.run(['make', '--version'], capture=True)[0] != 0:
+        return [Result(part, 'tests', SKIPPED, 'make fehlt - unter Windows etwa ueber WSL')]
+
+    results, total = [], 0
+    for suite in suites:
+        step = 'tests/' + suite
+        code, out = common.run(['make'], cwd=os.path.join(base, suite), capture=True)
+        count = sum(int(m.group(2)) for m in TEST_LINE.finditer(out or ''))
+        if code != 0:
+            results.append(fail(part, step, 'Pruefungen rot', out))
+        elif count == 0:
+            # Gruener Code ohne eine einzige Pruefung ist kein Erfolg.
+            results.append(fail(part, step, 'keine Pruefung ausgefuehrt', out))
+        else:
+            results.append(Result(part, step, OK, 'make (%d Faelle)' % count, count))
+            total += count
+    return results
+
+
 def check_firmware(root):
     part = 'firmware'
+    results = []
     prefix, info = build.find_sdk()
     if prefix is None:
         reason = info if common.has_sources(part, root) else 'apps/firmware ist noch leer'
-        return [Result(part, 'build', SKIPPED, reason), Result(part, 'tests', SKIPPED, reason)]
-    result = build.build_firmware(common.read_version(part, root), root)
-    result.step = 'build'
-    # Eigene Tests (twister) sind noch nicht eingerichtet - ehrlich so melden.
-    return [result, Result(part, 'tests', SKIPPED, 'Firmware-Tests (twister) noch nicht eingerichtet')]
+        results.append(Result(part, 'build', SKIPPED, reason))
+    else:
+        built = build.build_firmware(common.read_version(part, root), root)
+        built.step = 'build'
+        results.append(built)
+    return results + check_firmware_tests(root)
 
 
 # --- Sprachdateien -----------------------------------------------------------------
