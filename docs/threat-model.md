@@ -11,7 +11,7 @@ Status: design. No audit has been done.
 | Owns the computer (malware) | Each release needs a button press, and the display names the service. Malware cannot press the button. |
 | Phishing site | Passkeys are bound to the domain; the extension only fills on the stored address. |
 | Sits between phone and device (NFC relay) | Still needs the button press on the device. |
-| Copies the server | The node key stays in the SE050, so the copy has no identity. |
+| Copies the server | The node key stays in the SE050, so the copy has no identity — **but only on a part whose feature bits allow ECDH**, see below. |
 
 ## What it does not protect against
 
@@ -30,6 +30,22 @@ Status: design. No audit has been done.
 - **Someone forcing the user to press the button.** No device solves this.
 
 ## Decisions that trade security for use
+
+## The server use case depends on the delivered part
+
+The row "copies the server" above assumes the node key can live in the secure
+element and do its key agreement there. A part delivered with FIPS mode active
+refuses ECDH outright (AN12413 4.10.3.1), and the feature bits that decide this
+are set at the factory and cannot be changed.
+
+On such a part the key agreement would have to run in the firmware — and then
+the whole point is gone, because the key is in the nRF52840's memory where a
+copy of the server could reach it. This is not "less convenient", it is the
+promise withdrawn. The program must say so instead of failing with something
+that looks like a missing PIN.
+
+One call to `osk_se050_open()` on the delivered chip settles it, and that is
+measurement number two in `se050.md` for exactly this reason.
 
 ## What a compromised firmware can still do
 

@@ -82,7 +82,7 @@ That does not sink the mirrored mode, because its root secret is created on the
 host anyway — see below. What it does sink on such a part is using the chip's
 own ECDH to secure the pairing channel: that key agreement would have to run in
 the firmware instead. For a transport key that exists for one pairing, that is
-acceptable; for the server-to-server use in `integration.md` it is not, because
+acceptable; for the server-to-server use in `threat-model.md` it is not, because
 there the private key is supposed to stay in the chip for years. On a FIPS part
 that use case is simply unavailable, and the program must say so rather than
 fail with something that looks like a missing PIN.
