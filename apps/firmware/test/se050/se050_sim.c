@@ -216,8 +216,8 @@ static size_t handle_apdu(se050_sim_t *sim, const uint8_t *apdu, size_t len, uin
 		out[0] = 0x03u;
 		out[1] = 0x06u;
 		out[2] = 0x00u;
-		out[3] = 0x0Fu; /* ECDAA, ECDSA/ECDH, EdDSA, DH_MONT */
-		out[4] = 0xFFu;
+		out[3] = (uint8_t)(sim->applet_config >> 8);
+		out[4] = (uint8_t)(sim->applet_config & 0xFFu);
 		out[5] = 0x00u;
 		out[6] = 0x01u;
 		out[7] = 0x90u;
@@ -537,6 +537,9 @@ void sim_attach(se050_sim_t *sim, fake_bus_t *fb)
 	memset(sim, 0, sizeof(*sim));
 	sim->keys = SIM_KEYS;
 	sim->next_auth_keys = SIM_KEYS;
+	/* Vorgabe: alles an, was der Treiber abfragt, und FIPS-Modus AUS
+	 * (Bit 0x1000 gesetzt heisst "FIPS deaktiviert"). */
+	sim->applet_config = 0x100Fu;
 	sim->next_sw = SW_NO_ERROR;
 	for (size_t i = 0; i < sizeof(sim->card_challenge); i++) {
 		sim->card_challenge[i] = (uint8_t)(0xC0u + i);

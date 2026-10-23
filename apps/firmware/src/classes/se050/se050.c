@@ -47,6 +47,17 @@
 #define CONFIG_EDDSA 0x0004u
 #define CONFIG_DH_MONT 0x0008u
 
+/* Ist dieses Bit 0, kann der Baustein im FIPS-Modus laufen - und dann
+ * verweigert er ECDH grundsaetzlich (AN12413 Abschnitt 4.10.3.1:
+ * "When CONFIG_FIPS_MODE_DISABLED is not set, this function will always
+ * return SW_CONDITIONS_NOT_SATISFIED").
+ *
+ * Das ist kein theoretischer Fall: die frei veroeffentlichte
+ * FIPS-Sicherheitsrichtlinie fuer den SE051 nennt fuer ein echtes Teil das
+ * Merkmalbild 0x27F2 - dort ist dieses Bit 0, und EdDSA und DH_Mont sind
+ * ebenfalls aus. Siehe docs/se050.md. */
+#define CONFIG_FIPS_MODE_DISABLED 0x1000u
+
 /* Genau ein Baustein je Geraet, darum ein Zustand. Nicht mehrfach
  * benutzbar zu machen ist hier richtig: zwei offene Kanaele auf denselben
  * Chip waeren ein Fehler, kein Merkmal. */
@@ -545,6 +556,15 @@ osk_result_t osk_se050_ecdh(osk_key_id_t id, const uint8_t *peer_pub, size_t pee
 	}
 	if (peer_len > 128u) {
 		return OSK_ERR_ARG;
+	}
+
+	/* Laeuft der Baustein im FIPS-Modus, lehnt er ECDH immer ab
+	 * (AN12413 4.10.3.1). Das hier zu fangen statt den Baustein
+	 * antworten zu lassen, ist kein Vorgriff: sonst kaeme ein nacktes
+	 * OSK_ERR_DENIED zurueck, das wie eine fehlende Freigabe aussieht -
+	 * und jemand suchte den Fehler bei der PIN statt beim Chip. */
+	if ((g_applet_config & CONFIG_FIPS_MODE_DISABLED) == 0u) {
+		return OSK_ERR_UNSUPPORTED;
 	}
 
 	/* ECDHGenerateSharedSecret (AN12413 4.10.3.1). */
