@@ -57,9 +57,13 @@
 ### Changed
 - Secure element is now `SE051C2HQ1/Z01XDZ` instead of `SE050C2`: the SE050E
   variant has no RSA at all, which PIV and OpenPGP need. The SE051C2 has
-  secp256k1, Ed25519 and RSA, 104 kB of user memory instead of 50 kB, the same
+  secp256k1, Ed25519 and RSA, more user memory than the SE050's 50 kB, the same
   HX2QFN20 package, and is in stock. Evidence: AN12436 Rev. 2.4 Table 1,
   AN12973 Rev. 2.0 Table 3.
+  **How much memory depends on the ordering option, not on the variant**: the
+  same table gives "46 kB to 104 kB", with "Full Feature" at 46 kB and "Maximum"
+  at 104 kB. Which one the test board carries is being checked before ordering;
+  at 46 kB roughly half as many credentials fit in "this device only" mode.
 - Charger `MCP73832` instead of `MCP73831` (status output readable on a GPIO);
   no battery protection IC on the board, as purchasable cells already carry one
   — reverse-polarity protection instead; 150 mAh cell instead of 100 mAh;

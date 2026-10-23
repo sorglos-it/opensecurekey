@@ -51,7 +51,7 @@ Two modes exist instead, and a profile picks one:
 **"this device only"** — one permanent key pair per credential, generated inside
 the chip and never exported at all. The private part never exists outside: there
 is no blob to steal and no unwrapping step. Cost: each credential occupies space
-in the chip's 104 kB, so the number of services is finite — the interface warns
+in the chip's memory (46 kB or 104 kB, depending on the ordering option), so the number of services is finite — the interface warns
 in good time (`osk_se050_free_memory()`) instead of failing at the limit. And
 there is no second device for these credentials.
 
@@ -81,6 +81,43 @@ happen before the secret exists.
 For the setup wizard this means the question comes first, in plain words, and it
 says that the answer is final. Changing your mind later means starting a new
 profile and re-registering every service.
+
+## How much room is there, really
+
+Four separate memories, and only one of them is tight.
+
+| Memory | Size | Holds | Pressure |
+| --- | --- | --- | --- |
+| QSPI flash | 64 MB | vault, device log, the portable programs | none |
+| Secure element | 46 or 104 kB | keys and certificates | limits credentials in "this device only" |
+| nRF52840 RAM | 256 kB | stacks, buffers, BLE | to be measured |
+| **nRF52840 flash** | **1 MB** | **the firmware itself** | **this is the tight one** |
+
+The firmware shares that 1 MB with the bootloader and — if the update slot sits
+inside — with a second copy of itself. That would leave roughly 496 kB per image,
+and Zephyr with the BLE controller, USB, NFC and the crypto library is already a
+large part of that. Today's sources are about 12,000 lines of C and nothing of
+PIV, OpenPGP, the wallet, the display or the radio transports is written yet.
+
+**So the update slot goes into the external flash, not into the internal one.**
+MCUboot can keep its secondary slot in the QSPI flash, which there is 64 MB of.
+That turns "about 496 kB" into "about 960 kB" and costs nothing but a partition
+layout decided early — which is why it is written down now and not when the
+first build fails to link.
+
+What is *not* a way out: running code directly from the external flash (XIP).
+The nRF52840 nominally supports it, but erratum 216 limits it, Nordic advises
+against relocating interrupts there, and the published examples target the
+nRF5340. Treat XIP as unavailable on this part.
+
+If even 960 kB turns out to be too little, the honest answer is a different
+part (the nRF5340 has two cores and real XIP support), not a trick. That
+decision would come before the board is made, not after.
+
+**None of these numbers are measured.** They are the sizes from the data sheets
+and an estimate of our own code. The first real figure arrives with the first
+build for the target, and it goes into `docs/power-budget.md`'s sibling section
+rather than staying a guess.
 
 ## Folders
 

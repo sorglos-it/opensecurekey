@@ -215,6 +215,94 @@ Der nächste Schritt ist das Zeichnen in EasyEDA, nach
 [../hardware/schematic.md](../hardware/schematic.md) und
 [../hardware/pinout.md](../hardware/pinout.md).
 
+## Zwei Werkseinstellungen, die nicht sind, was man erwartet
+
+Aus AN12973 Rev. 2.0, Tabelle 3 — beide gefunden, als der SE050-Strang die
+Tabelle als Bild gerendert hat, weil die Textauswertung der PDF die Spalten
+verschob:
+
+- **Der Stromsparmodus mit Zustandserhalt ist ab Werk abgeschaltet.** In der
+  Tabelle steht „Power-Down (with state retention), ~430 µA – Disabled", und die
+  Fußnote sagt: einschaltbar nur über das Perso-Applet (AN13015). Ohne diesen
+  Schritt bleibt nur „Deep Power-Down" mit unter 5 µA, bei dem der Zustand
+  **verloren** geht. Das Energiebudget rechnet bisher so, als stünde beides zur
+  Wahl. Vor der Platine klären, sonst stimmt die Laufzeitrechnung nicht.
+- **Clock Stretching ist ab Werk ebenfalls aus.** Die Zeile „I2C Target, up to
+  3,4 Mbit/s" gilt laut Tabelle nur „with clock stretching enabled" — auch das
+  geht nur über das Perso-Applet. Ohne es ist die Höchstfrequenz niedriger. Das
+  betrifft den I2C-Treiber auf dem nRF52840, nicht das Layout.
+
+Dazu: **Der Nutzspeicher ist eine Bestellausführung, keine Eigenschaft der
+Variante** — 46 kB („Full Feature") oder 104 kB („Maximum"). Welche die
+Teststand-Platine trägt, wird vor der Bestellung geklärt.
+
+Alle drei sind Einstellungen am fertigen Chip, kein Grund für ein anderes Teil.
+Aber sie müssen in die Erstinbetriebnahme, sonst fallen sie erst am Gerät auf.
+
+## Was tatsächlich hineinpasst
+
+Gerechnet am 23.10.2026. Die Programmgrößen sind **gemessen**, nicht geschätzt:
+`go build -trimpath -ldflags="-s -w"`, ohne cgo, für die drei Systeme.
+
+| Posten | Größe |
+| --- | --- |
+| Programm Windows | 9,3 MB |
+| Programm Linux | 9,0 MB |
+| Programm macOS | 9,2 MB |
+| Tresor (Kopf, Index, Protokoll, 1024 Geheimnis-Plätze zu 8 KiB) | 9,1 MB |
+| Zweiter Platz für das Firmware-Update | 1,0 MB |
+| Dateisystem des Laufwerks | ~1,0 MB |
+| **fest belegt** | **38,6 MB** |
+
+| Flash | frei | Einträge heute | Einträge technisch möglich\* |
+| --- | --- | --- | --- |
+| 32 MB | **−6,6 MB** | **passt nicht** | — |
+| **64 MB** | 25,4 MB | 256 | ~4.270 |
+| 128 MB | 89,4 MB | 256 | ~12.400 |
+| 256 MB | 217,4 MB | 256 | ~28.800 |
+
+\* nur wenn der Index ausgelagert wird — siehe unten.
+
+**Damit ist 32 MB erledigt**: allein die drei Programme und der Tresor sprengen
+es. Das war vorher eine Vermutung, jetzt ist es gerechnet.
+
+**Und mehr als 64 MB bringt heute nichts**, denn die Grenze liegt gar nicht im
+Flash. Der Tresor hält 64 Einträge je Profil und 4 Profile, also 256 je Gerät —
+nicht aus Platzmangel, sondern weil eine Index-Generation (64 Sätze zu 320 B,
+rund 20 KiB) vollständig im RAM liegt, und der nRF52840 hat 256 KiB davon.
+Siehe `shared/vault-format.md`, Abschnitt „Limits".
+
+**256 Einträge sind für einen Passwortspeicher knapp.** Wer seinen Browser
+ausliest, kommt leicht auf 100 bis 300 Zugänge. Wer mehr will, muss den Index
+auslagern und blockweise lesen, statt ihn ganz im RAM zu halten — dann wären
+mit 64 MB rund 4.000 Einträge drin. Das ist eine Entscheidung über den Tresor,
+nicht über die Hardware, und sie steht noch aus.
+
+## Warum 64 MB und nicht mehr
+
+Geprüft am 23.10.2026, Preise bei Menge 1, alle `ungeprüft` (Momentaufnahme):
+
+| Größe | Teil | Preis | Lager |
+| --- | --- | --- | --- |
+| 32 MB | `W25Q256JVEIQ` | ca. 6,08 USD | 1.269 |
+| **64 MB** | **`W25Q512JVEIQ`** | **ca. 15,35 USD** | 1.455 |
+| 128 MB | — | kein belegter Einzelchip in dieser Bauform gefunden | — |
+
+Der Sprung von 32 auf 64 MB kostet also das Zweieinhalbfache, nicht „kaum mehr".
+Oberhalb von 64 MB wird serieller NOR-Flash unverhältnismäßig: billiger wäre
+dort nur serieller NAND, und der bringt Bad-Block-Verwaltung, Fehlerkorrektur
+und Seitenverwaltung mit — für ein Gerät, dessen Tresor nie eine halbe Datei
+hinterlassen darf, ein schlechter Tausch.
+
+**Der Bedarf liegt bei rund 35 MB:** drei portable Programme zu je etwa 8–12 MB,
+der Tresor im einstelligen MB-Bereich, dazu rund 1 MB für den zweiten
+Update-Platz von MCUboot. Bei 32 MB wäre das zu knapp, bei 64 MB ist Luft.
+
+**Entschieden: 64 MB bleiben — und im Layout ist Platz für einen zweiten
+Flash-Baustein vorgesehen, der nicht bestückt wird.** Ein unbestückter
+Fußabdruck kostet nichts außer ein paar Quadratmillimetern. Reicht der Platz
+eines Tages nicht, wird er bestückt, statt eine neue Platine zu zeichnen.
+
 ## Was gemessen werden muss, bevor die Zahlen gelten
 
 - der tatsächliche Gesamt-Ruhestrom (das Datenblatt gibt die Weck-Szenarien nur
