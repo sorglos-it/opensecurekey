@@ -8,10 +8,14 @@
   Selection, plus CTAP1/U2F and the USB-HID transport (channels, chaining,
   keepalive, timeouts). Extensions: hmac-secret (and therefore WebAuthn PRF),
   largeBlob, credProtect, minPinLength. Own strict CBOR reader and writer,
-  canonical form only, no dynamic memory. Keys are derived from the root secret
-  in the SE050 instead of stored, so the number of services is unlimited; the
-  97-byte credential ID carries the derivation salt encrypted and
-  HMAC-protected, and the MAC is checked before anything is decrypted.
+  canonical form only, no dynamic memory. Credentials use a 97-byte credential
+  ID that carries its derivation salt encrypted and HMAC-protected, with the MAC
+  checked before anything is decrypted.
+  This was written against a design in which keys are derived **inside** the
+  secure element, which the SE05x turned out not to support — see "Changed"
+  below. The CTAP core itself is unaffected; what changes is where the key
+  comes from, and that the number of services is bounded by chip memory in
+  "this device only" mode rather than unlimited.
   737 test cases and two fuzzers (5.3 million CBOR rounds, 50 million HID
   packets) green on a PC with AddressSanitizer and UndefinedBehaviorSanitizer.
   **Nothing has run on the device and nothing has run in a browser** — the board
