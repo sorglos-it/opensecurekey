@@ -1,0 +1,11 @@
+# Zeilenenden: im Repo und im Arbeitsbaum immer LF.
+# Grund: gofmt und clang-format verlangen LF. Checkt Windows mit CRLF aus,
+# melden beide jede Datei als unformatiert - die CI war genau daran rot,
+# obwohl lokal alles stimmte.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.pdf binary
+*.uf2 binary
+*.hex binary

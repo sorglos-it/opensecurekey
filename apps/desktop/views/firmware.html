@@ -1,0 +1,12 @@
+{{template "head" .}}
+<p>{{.Texts.Get "firmware.intro"}}</p>
+<form id="firmware">
+  <p>
+    <label for="image">{{.Texts.Get "field.image"}}</label>
+    <input type="file" id="image" name="image" accept=".bin,.osk">
+  </p>
+  <p class="hint">{{.Texts.Get "firmware.hint"}}</p>
+  <button type="submit">{{.Texts.Get "action.firmware"}}</button>
+</form>
+<p id="firmware-state" role="status"></p>
+{{template "foot" .}}

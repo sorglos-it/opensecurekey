@@ -1,0 +1,39 @@
+{{template "head" .}}
+<form id="entry" novalidate>
+  <input type="hidden" id="id" name="id" value="0">
+  <p>
+    <label for="type">{{.Texts.Get "field.type"}}</label>
+    <select id="type" name="type">
+      {{$texts := .Texts}}{{range .ItemTypes}}<option value="{{printf "%d" .}}">{{$texts.Get .Key}}</option>
+      {{end}}
+    </select>
+  </p>
+  <p>
+    <label for="name">{{.Texts.Get "field.name"}}</label>
+    <input type="text" id="name" name="name" maxlength="128" required>
+  </p>
+  <p>
+    <label for="site">{{.Texts.Get "field.site"}}</label>
+    <input type="text" id="site" name="site" maxlength="256">
+  </p>
+  <p>
+    <label for="profile">{{.Texts.Get "field.profile"}}</label>
+    <input type="number" id="profile" name="profile" min="0" max="255" value="0">
+  </p>
+  <p>
+    <label for="secret">{{.Texts.Get "field.secret"}}</label>
+    <textarea id="secret" name="secret" rows="3" maxlength="2048" autocomplete="off" spellcheck="false"></textarea>
+  </p>
+  <p class="check">
+    <input type="checkbox" id="mirrored" name="mirrored">
+    <label for="mirrored">{{.Texts.Get "field.mirrored"}}</label>
+  </p>
+  <p class="check">
+    <input type="checkbox" id="pairedHostOnly" name="pairedHostOnly">
+    <label for="pairedHostOnly">{{.Texts.Get "field.pairedonly"}}</label>
+  </p>
+  <p class="hint">{{.Texts.Get "item.hint"}}</p>
+  <button type="submit">{{.Texts.Get "action.save"}}</button>
+  <a class="button" href="/">{{.Texts.Get "action.back"}}</a>
+</form>
+{{template "foot" .}}

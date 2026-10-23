@@ -12,11 +12,11 @@
 #include "osk_transport.h"
 
 /* Erweiterungen, die fremde Programme von uns erwarten. */
-#define OSK_CTAP_EXT_HMAC_SECRET  (1u << 0)  /* Bitwarden, BitLocker, LUKS */
-#define OSK_CTAP_EXT_PRF          (1u << 1)
-#define OSK_CTAP_EXT_LARGE_BLOB   (1u << 2)
+#define OSK_CTAP_EXT_HMAC_SECRET (1u << 0) /* Bitwarden, BitLocker, LUKS */
+#define OSK_CTAP_EXT_PRF (1u << 1)
+#define OSK_CTAP_EXT_LARGE_BLOB (1u << 2)
 #define OSK_CTAP_EXT_CRED_PROTECT (1u << 3)
-#define OSK_CTAP_EXT_MIN_PIN      (1u << 4)
+#define OSK_CTAP_EXT_MIN_PIN (1u << 4)
 
 osk_result_t osk_ctap_init(uint32_t extensions);
 

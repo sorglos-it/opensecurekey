@@ -1,0 +1,25 @@
+{{template "head" .}}
+<form id="settings">
+  <p>
+    <label for="lang">{{.Texts.Get "field.lang"}}</label>
+    <select id="lang" name="lang">
+      {{$current := .Config.Lang}}{{range .Languages}}<option value="{{.}}"{{if eq . $current}} selected{{end}}>{{.}}</option>
+      {{end}}
+    </select>
+  </p>
+  <p>
+    <label for="appName">{{.Texts.Get "field.appname"}}</label>
+    <input type="text" id="appName" name="appName" maxlength="64" value="{{.Config.AppName}}">
+  </p>
+  <p>
+    <label for="port">{{.Texts.Get "field.port"}}</label>
+    <input type="number" id="port" name="port" min="1024" max="65000" value="{{.Config.Port}}">
+  </p>
+  <p>
+    <label for="simAddress">{{.Texts.Get "field.sim"}}</label>
+    <input type="text" id="simAddress" name="simAddress" maxlength="63" value="{{.Config.SimAddress}}" placeholder="127.0.0.1:8201">
+  </p>
+  <p class="hint">{{.Texts.Get "settings.hint"}}</p>
+  <button type="submit">{{.Texts.Get "action.save"}}</button>
+</form>
+{{template "foot" .}}
