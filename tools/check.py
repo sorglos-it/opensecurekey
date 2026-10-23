@@ -352,9 +352,21 @@ def check_format(root):
     c_files = [f for f in common.files_with('firmware', ('.c', '.h'), root)]
     has_config = os.path.isfile(os.path.join(root, '.clang-format'))
     if c_files and has_config and common.which('clang-format'):
-        code, out = common.run(['clang-format', '--dry-run', '-Werror'] + c_files, capture=True)
-        results.append(Result('firmware', 'format', OK, 'clang-format') if code == 0
-                       else fail('firmware', 'format', 'clang-format meldet Abweichungen', out))
+        # In Haeppchen, weil cmd.exe bei 8191 Zeichen abschneidet: bei ueber
+        # hundert Dateien scheiterte der Aufruf mit "Die Befehlszeile ist zu
+        # lang" - und das sah nach einem Formatfehler aus, obwohl jede Datei
+        # sauber war. Gefunden vom Tresor-Strang, als seine Dateizahl wuchs.
+        failed_out, ok = [], True
+        for start in range(0, len(c_files), 40):
+            code, out = common.run(['clang-format', '--dry-run', '-Werror'] +
+                                   c_files[start:start + 40], capture=True)
+            if code != 0:
+                ok = False
+                failed_out.append(out or '')
+        results.append(Result('firmware', 'format', OK, 'clang-format (%d Dateien)' % len(c_files))
+                       if ok else fail('firmware', 'format',
+                                       'clang-format meldet Abweichungen',
+                                       '\n'.join(failed_out)))
     else:
         why = 'keine C-Dateien' if not c_files else ('.clang-format fehlt' if not has_config else 'clang-format fehlt')
         results.append(Result('firmware', 'format', SKIPPED, why))
