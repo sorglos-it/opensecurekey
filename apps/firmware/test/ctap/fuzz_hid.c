@@ -83,10 +83,18 @@ int main(int argc, char **argv)
 		/* Kanal: meist der bekannte, manchmal Unsinn. */
 		uint32_t cid;
 		switch (rnd() % 8u) {
-		case 0: cid = 0; break;
-		case 1: cid = 0xffffffffu; break;
-		case 2: cid = rnd(); break;
-		default: cid = (g_granted_cid != 0) ? g_granted_cid : 1u; break;
+		case 0:
+			cid = 0;
+			break;
+		case 1:
+			cid = 0xffffffffu;
+			break;
+		case 2:
+			cid = rnd();
+			break;
+		default:
+			cid = (g_granted_cid != 0) ? g_granted_cid : 1u;
+			break;
 		}
 		pkt[0] = (uint8_t)(cid >> 24);
 		pkt[1] = (uint8_t)(cid >> 16);
@@ -101,8 +109,8 @@ int main(int argc, char **argv)
 		} else {
 			/* Startpaket. Meist ein echter Befehl. */
 			static const uint8_t cmds[] = {
-				CTAPHID_PING, CTAPHID_CBOR, CTAPHID_MSG, CTAPHID_INIT,
-				CTAPHID_CANCEL, CTAPHID_WINK, CTAPHID_LOCK,
+			    CTAPHID_PING,   CTAPHID_CBOR, CTAPHID_MSG,	CTAPHID_INIT,
+			    CTAPHID_CANCEL, CTAPHID_WINK, CTAPHID_LOCK,
 			};
 			pkt[4] = ((rnd() % 4u) == 0u) ? (uint8_t)(0x80u | (rnd() & 0x7fu))
 						      : cmds[rnd() % sizeof(cmds)];
@@ -142,7 +150,8 @@ int main(int argc, char **argv)
 	}
 
 	printf("fuzz_hid: %lu Pakete hinein, %lu Pakete hinaus, "
-	       "%lu CBOR-Antworten\n", runs, g_packets_out, g_cbor_answers);
+	       "%lu CBOR-Antworten\n",
+	       runs, g_packets_out, g_cbor_answers);
 	if (runs == 0 || g_packets_out == 0) {
 		printf("FEHLER: kein Verkehr\n");
 		return 1;

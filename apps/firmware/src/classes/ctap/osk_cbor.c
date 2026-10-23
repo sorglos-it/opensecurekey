@@ -116,8 +116,8 @@ osk_result_t osk_cbor_read_int(osk_cbor_reader_t *r, int64_t *out)
 }
 
 /* Gemeinsamer Weg fuer Byte- und Zeichenfolgen: Laenge erst pruefen, dann lesen. */
-static osk_result_t read_string(osk_cbor_reader_t *r, uint8_t want_mt,
-				const uint8_t **out, size_t *len_out)
+static osk_result_t read_string(osk_cbor_reader_t *r, uint8_t want_mt, const uint8_t **out,
+				size_t *len_out)
 {
 	uint8_t mt;
 	uint64_t v;
@@ -290,9 +290,8 @@ static osk_result_t validate_value(osk_cbor_reader_t *r, size_t *budget)
 			if (rc != OSK_OK)
 				break;
 			const size_t key_len = r->pos - key_at;
-			if (i > 0 &&
-			    osk_cbor_key_cmp(r->buf + prev_at, prev_len,
-					     r->buf + key_at, key_len) >= 0) {
+			if (i > 0 && osk_cbor_key_cmp(r->buf + prev_at, prev_len, r->buf + key_at,
+						      key_len) >= 0) {
 				rc = OSK_ERR_FORMAT; /* unsortiert oder doppelt */
 				break;
 			}

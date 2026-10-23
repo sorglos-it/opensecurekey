@@ -18,7 +18,7 @@
 #include "osk_result.h"
 
 #define OSK_SHA256_LEN 32
-#define OSK_AES_BLOCK  16
+#define OSK_AES_BLOCK 16
 
 typedef struct {
 	uint32_t h[8];
@@ -32,21 +32,17 @@ void osk_sha256_update(osk_sha256_t *c, const uint8_t *p, size_t len);
 void osk_sha256_final(osk_sha256_t *c, uint8_t out[OSK_SHA256_LEN]);
 void osk_sha256(const uint8_t *p, size_t len, uint8_t out[OSK_SHA256_LEN]);
 
-void osk_hmac_sha256(const uint8_t *key, size_t key_len,
-		     const uint8_t *msg, size_t msg_len,
+void osk_hmac_sha256(const uint8_t *key, size_t key_len, const uint8_t *msg, size_t msg_len,
 		     uint8_t out[OSK_SHA256_LEN]);
 
 /* Zweiteiliger Text, ohne ihn vorher zusammenkopieren zu muessen. */
-void osk_hmac_sha256_2(const uint8_t *key, size_t key_len,
-		       const uint8_t *a, size_t a_len,
-		       const uint8_t *b, size_t b_len,
-		       uint8_t out[OSK_SHA256_LEN]);
+void osk_hmac_sha256_2(const uint8_t *key, size_t key_len, const uint8_t *a, size_t a_len,
+		       const uint8_t *b, size_t b_len, uint8_t out[OSK_SHA256_LEN]);
 
 /* HKDF nach RFC 5869, nur mit SHA-256. out_len hoechstens 255*32. */
-osk_result_t osk_hkdf_sha256(const uint8_t *salt, size_t salt_len,
-			     const uint8_t *ikm, size_t ikm_len,
-			     const uint8_t *info, size_t info_len,
-			     uint8_t *out, size_t out_len);
+osk_result_t osk_hkdf_sha256(const uint8_t *salt, size_t salt_len, const uint8_t *ikm,
+			     size_t ikm_len, const uint8_t *info, size_t info_len, uint8_t *out,
+			     size_t out_len);
 
 /* AES-256-CBC ohne Auffuellen: len muss ein Vielfaches von 16 sein.
  * Ein- und Ausgabepuffer duerfen gleich sein. */

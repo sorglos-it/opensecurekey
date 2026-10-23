@@ -39,8 +39,7 @@ typedef struct {
 } osk_credid_t;
 
 /* Packt eine neue ID. Das Salz muss der Aufrufer schon gezogen haben. */
-osk_result_t osk_credid_pack(const osk_credid_t *in, uint8_t *out, size_t cap,
-			     size_t *len_out);
+osk_result_t osk_credid_pack(const osk_credid_t *in, uint8_t *out, size_t cap, size_t *len_out);
 
 /* Prueft und entpackt. Antwortet OSK_ERR_NOT_FOUND, wenn die ID nicht von
  * diesem Geraet stammt oder angefasst wurde - der Aufrufer darf daraus nicht

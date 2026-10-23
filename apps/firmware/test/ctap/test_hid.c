@@ -32,8 +32,8 @@ static void start(void)
 
 static uint32_t cid_of(const uint8_t *pkt)
 {
-	return ((uint32_t)pkt[0] << 24) | ((uint32_t)pkt[1] << 16) |
-	       ((uint32_t)pkt[2] << 8) | pkt[3];
+	return ((uint32_t)pkt[0] << 24) | ((uint32_t)pkt[1] << 16) | ((uint32_t)pkt[2] << 8) |
+	       pkt[3];
 }
 
 static uint16_t bcnt_of(const uint8_t *pkt)
@@ -63,8 +63,7 @@ static void send_in(uint32_t cid, uint8_t cmd, const uint8_t *data, size_t len)
 
 	uint8_t seq = 0;
 	while (at < len) {
-		const size_t take = (len - at < OSK_HID_CONT_DATA) ? len - at
-								   : OSK_HID_CONT_DATA;
+		const size_t take = (len - at < OSK_HID_CONT_DATA) ? len - at : OSK_HID_CONT_DATA;
 		memset(pkt, 0, sizeof(pkt));
 		pkt[0] = (uint8_t)(cid >> 24);
 		pkt[1] = (uint8_t)(cid >> 16);
@@ -91,8 +90,7 @@ static size_t collect(uint8_t cmd, uint8_t *out, size_t cap)
 				continue;
 			total = bcnt_of(p);
 			started = true;
-			const size_t take = (total < OSK_HID_INIT_DATA) ? total
-									: OSK_HID_INIT_DATA;
+			const size_t take = (total < OSK_HID_INIT_DATA) ? total : OSK_HID_INIT_DATA;
 			if (take > cap)
 				return 0;
 			memcpy(out, p + 7, take);
@@ -101,8 +99,7 @@ static size_t collect(uint8_t cmd, uint8_t *out, size_t cap)
 			if ((p[4] & 0x80) != 0)
 				break;
 			const size_t left = total - at;
-			const size_t take = (left < OSK_HID_CONT_DATA) ? left
-								       : OSK_HID_CONT_DATA;
+			const size_t take = (left < OSK_HID_CONT_DATA) ? left : OSK_HID_CONT_DATA;
 			if (at + take > cap)
 				return 0;
 			memcpy(out + at, p + 5, take);
@@ -116,7 +113,7 @@ static size_t collect(uint8_t cmd, uint8_t *out, size_t cap)
 
 static uint32_t do_init(void)
 {
-	const uint8_t nonce[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+	const uint8_t nonce[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 	clear_sent();
 	send_in(OSK_HID_BROADCAST_CID, CTAPHID_INIT, nonce, sizeof(nonce));
@@ -132,8 +129,7 @@ static uint32_t do_init(void)
 	T_TRUE("CBOR wird gekonnt", (g_sent[0][7 + 16] & OSK_HID_CAP_CBOR) != 0);
 
 	const uint8_t *d = g_sent[0] + 7;
-	return ((uint32_t)d[8] << 24) | ((uint32_t)d[9] << 16) |
-	       ((uint32_t)d[10] << 8) | d[11];
+	return ((uint32_t)d[8] << 24) | ((uint32_t)d[9] << 16) | ((uint32_t)d[10] << 8) | d[11];
 }
 
 static void test_init(void)
@@ -149,7 +145,7 @@ static void test_init(void)
 
 	/* INIT mit falscher Laenge */
 	clear_sent();
-	const uint8_t short_nonce[4] = { 1, 2, 3, 4 };
+	const uint8_t short_nonce[4] = {1, 2, 3, 4};
 	send_in(OSK_HID_BROADCAST_CID, CTAPHID_INIT, short_nonce, sizeof(short_nonce));
 	T_EQ("Fehlerpaket", (long long)g_sent_count, 1);
 	T_EQ("ERROR", g_sent[0][4], CTAPHID_ERROR);
@@ -162,7 +158,7 @@ static void test_ping(void)
 	const uint32_t cid = do_init();
 
 	/* Kurzes Ping passt in ein Paket. */
-	const uint8_t data[8] = { 9, 8, 7, 6, 5, 4, 3, 2 };
+	const uint8_t data[8] = {9, 8, 7, 6, 5, 4, 3, 2};
 	clear_sent();
 	send_in(cid, CTAPHID_PING, data, sizeof(data));
 	T_EQ("ein Paket", (long long)g_sent_count, 1);
@@ -189,7 +185,7 @@ static void test_cbor_ueber_hid(void)
 	const uint32_t cid = do_init();
 
 	/* GetInfo ueber den Transport. */
-	const uint8_t msg[1] = { OSK_CTAP_CMD_GET_INFO };
+	const uint8_t msg[1] = {OSK_CTAP_CMD_GET_INFO};
 	clear_sent();
 	send_in(cid, CTAPHID_CBOR, msg, sizeof(msg));
 
@@ -221,7 +217,7 @@ static void test_msg_ueber_hid(void)
 	const uint32_t cid = do_init();
 
 	/* U2F_VERSION als CTAPHID_MSG */
-	const uint8_t apdu[7] = { 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	const uint8_t apdu[7] = {0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00};
 	clear_sent();
 	send_in(cid, CTAPHID_MSG, apdu, sizeof(apdu));
 
@@ -260,10 +256,13 @@ static void test_kanalfehler(void)
 	clear_sent();
 	uint8_t pkt[OSK_HID_PACKET_LEN];
 	memset(pkt, 0, sizeof(pkt));
-	pkt[0] = (uint8_t)(cid >> 24); pkt[1] = (uint8_t)(cid >> 16);
-	pkt[2] = (uint8_t)(cid >> 8); pkt[3] = (uint8_t)cid;
+	pkt[0] = (uint8_t)(cid >> 24);
+	pkt[1] = (uint8_t)(cid >> 16);
+	pkt[2] = (uint8_t)(cid >> 8);
+	pkt[3] = (uint8_t)cid;
 	pkt[4] = CTAPHID_PING;
-	pkt[5] = 0x1f; pkt[6] = 0xff;   /* 8191 Bytes angekuendigt */
+	pkt[5] = 0x1f;
+	pkt[6] = 0xff; /* 8191 Bytes angekuendigt */
 	osk_hid_rx_packet(pkt);
 	T_EQ("ein Fehlerpaket", (long long)g_sent_count, 1);
 	T_EQ("zu lang", g_sent[0][7], OSK_HID_ERR_INVALID_LEN);
@@ -279,17 +278,22 @@ static void test_reihenfolge(void)
 	 * falscher Nummer. */
 	clear_sent();
 	memset(pkt, 0, sizeof(pkt));
-	pkt[0] = (uint8_t)(cid >> 24); pkt[1] = (uint8_t)(cid >> 16);
-	pkt[2] = (uint8_t)(cid >> 8); pkt[3] = (uint8_t)cid;
+	pkt[0] = (uint8_t)(cid >> 24);
+	pkt[1] = (uint8_t)(cid >> 16);
+	pkt[2] = (uint8_t)(cid >> 8);
+	pkt[3] = (uint8_t)cid;
 	pkt[4] = CTAPHID_PING;
-	pkt[5] = 0; pkt[6] = 200;
+	pkt[5] = 0;
+	pkt[6] = 200;
 	osk_hid_rx_packet(pkt);
 	T_EQ("noch keine Antwort", (long long)g_sent_count, 0);
 
 	memset(pkt, 0, sizeof(pkt));
-	pkt[0] = (uint8_t)(cid >> 24); pkt[1] = (uint8_t)(cid >> 16);
-	pkt[2] = (uint8_t)(cid >> 8); pkt[3] = (uint8_t)cid;
-	pkt[4] = 5;   /* erwartet waere 0 */
+	pkt[0] = (uint8_t)(cid >> 24);
+	pkt[1] = (uint8_t)(cid >> 16);
+	pkt[2] = (uint8_t)(cid >> 8);
+	pkt[3] = (uint8_t)cid;
+	pkt[4] = 5; /* erwartet waere 0 */
 	osk_hid_rx_packet(pkt);
 	T_EQ("Fehlerpaket", (long long)g_sent_count, 1);
 	T_EQ("falsche Reihenfolge", g_sent[0][7], OSK_HID_ERR_INVALID_SEQ);
@@ -297,8 +301,10 @@ static void test_reihenfolge(void)
 	/* Ein Fortsetzungspaket ohne Startpaket wird stillschweigend verworfen. */
 	clear_sent();
 	memset(pkt, 0, sizeof(pkt));
-	pkt[0] = (uint8_t)(cid >> 24); pkt[1] = (uint8_t)(cid >> 16);
-	pkt[2] = (uint8_t)(cid >> 8); pkt[3] = (uint8_t)cid;
+	pkt[0] = (uint8_t)(cid >> 24);
+	pkt[1] = (uint8_t)(cid >> 16);
+	pkt[2] = (uint8_t)(cid >> 8);
+	pkt[3] = (uint8_t)cid;
 	pkt[4] = 0;
 	osk_hid_rx_packet(pkt);
 	T_EQ("keine Antwort", (long long)g_sent_count, 0);
@@ -314,18 +320,20 @@ static void test_belegt_und_zeitgrenze(void)
 	/* Kanal 1 faengt eine lange Nachricht an. */
 	clear_sent();
 	memset(pkt, 0, sizeof(pkt));
-	pkt[0] = (uint8_t)(cid1 >> 24); pkt[1] = (uint8_t)(cid1 >> 16);
-	pkt[2] = (uint8_t)(cid1 >> 8); pkt[3] = (uint8_t)cid1;
+	pkt[0] = (uint8_t)(cid1 >> 24);
+	pkt[1] = (uint8_t)(cid1 >> 16);
+	pkt[2] = (uint8_t)(cid1 >> 8);
+	pkt[3] = (uint8_t)cid1;
 	pkt[4] = CTAPHID_PING;
-	pkt[5] = 0; pkt[6] = 200;
+	pkt[5] = 0;
+	pkt[6] = 200;
 	osk_hid_rx_packet(pkt);
 
 	/* Kanal 2 kommt dazwischen und wird abgewiesen. */
 	send_in(cid2, CTAPHID_PING, NULL, 0);
 	T_EQ("Fehlerpaket fuer den zweiten Kanal", (long long)g_sent_count, 1);
 	T_EQ("belegt", g_sent[0][7], OSK_HID_ERR_CHANNEL_BUSY);
-	T_EQ("auf dem zweiten Kanal gemeldet", (long long)cid_of(g_sent[0]),
-	     (long long)cid2);
+	T_EQ("auf dem zweiten Kanal gemeldet", (long long)cid_of(g_sent[0]), (long long)cid2);
 
 	/* Die halbe Nachricht laeuft ab. */
 	clear_sent();
@@ -351,14 +359,17 @@ static void test_init_raeumt_auf(void)
 
 	/* Halbe Nachricht, dann INIT auf demselben Kanal. */
 	memset(pkt, 0, sizeof(pkt));
-	pkt[0] = (uint8_t)(cid >> 24); pkt[1] = (uint8_t)(cid >> 16);
-	pkt[2] = (uint8_t)(cid >> 8); pkt[3] = (uint8_t)cid;
+	pkt[0] = (uint8_t)(cid >> 24);
+	pkt[1] = (uint8_t)(cid >> 16);
+	pkt[2] = (uint8_t)(cid >> 8);
+	pkt[3] = (uint8_t)cid;
 	pkt[4] = CTAPHID_PING;
-	pkt[5] = 0; pkt[6] = 200;
+	pkt[5] = 0;
+	pkt[6] = 200;
 	osk_hid_rx_packet(pkt);
 
 	clear_sent();
-	const uint8_t nonce[8] = { 9, 9, 9, 9, 9, 9, 9, 9 };
+	const uint8_t nonce[8] = {9, 9, 9, 9, 9, 9, 9, 9};
 	send_in(cid, CTAPHID_INIT, nonce, sizeof(nonce));
 	T_EQ("INIT-Antwort", (long long)g_sent_count, 1);
 	T_EQ("auf demselben Kanal", (long long)cid_of(g_sent[0]), (long long)cid);
@@ -388,7 +399,7 @@ static void test_abbruch(void)
 
 	/* LOCK koennen wir nicht und sagen das. */
 	clear_sent();
-	const uint8_t secs[1] = { 5 };
+	const uint8_t secs[1] = {5};
 	send_in(cid, CTAPHID_LOCK, secs, 1);
 	T_EQ("eine Antwort", (long long)g_sent_count, 1);
 	T_EQ("ERROR", g_sent[0][4], CTAPHID_ERROR);

@@ -17,22 +17,22 @@
 #include "osk_ui.h"
 
 /* Befehlsbytes */
-#define U2F_INS_REGISTER     0x01
+#define U2F_INS_REGISTER 0x01
 #define U2F_INS_AUTHENTICATE 0x02
-#define U2F_INS_VERSION      0x03
+#define U2F_INS_VERSION 0x03
 
 /* Steuerbytes von U2F_AUTHENTICATE */
-#define U2F_CHECK_ONLY       0x07
-#define U2F_ENFORCE_UP       0x03
-#define U2F_DONT_ENFORCE_UP  0x08
+#define U2F_CHECK_ONLY 0x07
+#define U2F_ENFORCE_UP 0x03
+#define U2F_DONT_ENFORCE_UP 0x08
 
 /* Statuswoerter nach ISO 7816-4 */
-#define SW_NO_ERROR               0x9000
+#define SW_NO_ERROR 0x9000
 #define SW_CONDITIONS_NOT_SATISFIED 0x6985
-#define SW_WRONG_DATA             0x6a80
-#define SW_WRONG_LENGTH           0x6700
-#define SW_CLA_NOT_SUPPORTED      0x6e00
-#define SW_INS_NOT_SUPPORTED      0x6d00
+#define SW_WRONG_DATA 0x6a80
+#define SW_WRONG_LENGTH 0x6700
+#define SW_CLA_NOT_SUPPORTED 0x6e00
+#define SW_INS_NOT_SUPPORTED 0x6d00
 
 static osk_result_t finish(osk_response_t *res, size_t at, uint16_t sw)
 {
@@ -56,7 +56,7 @@ static bool u2f_user_present(void)
 
 	memset(&ask, 0, sizeof(ask));
 	ask.kind = OSK_ASK_LOGIN;
-	ask.subject = NULL;    /* U2F nennt den Dienst nicht, nur seinen Hash */
+	ask.subject = NULL; /* U2F nennt den Dienst nicht, nur seinen Hash */
 	ask.timeout_ms = OSK_UP_TIMEOUT_MS;
 	return osk_ui_confirm(&ask) == OSK_OK;
 }
@@ -112,8 +112,7 @@ static osk_result_t do_register(const uint8_t *data, size_t len, osk_response_t 
 	 * daher leer - siehe docs/ctap.md, das ist eine bewusste Luecke. */
 	uint8_t sig[OSK_MAX_SIG];
 	size_t sig_len = 0;
-	if (osk_ctap_key_sign(cid.salt, cid.rp_id_hash, hash, sig, sizeof(sig),
-			      &sig_len) != OSK_OK)
+	if (osk_ctap_key_sign(cid.salt, cid.rp_id_hash, hash, sig, sizeof(sig), &sig_len) != OSK_OK)
 		return only_sw(res, SW_WRONG_DATA);
 
 	size_t at = 0;
@@ -173,8 +172,10 @@ static osk_result_t do_authenticate(uint8_t control, const uint8_t *data, size_t
 	const uint32_t counter = ++st->sign_count;
 
 	uint8_t counter_be[4] = {
-		(uint8_t)(counter >> 24), (uint8_t)(counter >> 16),
-		(uint8_t)(counter >> 8), (uint8_t)counter,
+	    (uint8_t)(counter >> 24),
+	    (uint8_t)(counter >> 16),
+	    (uint8_t)(counter >> 8),
+	    (uint8_t)counter,
 	};
 
 	/* Unterschrieben wird: app || presence || counter || challenge */
@@ -191,8 +192,7 @@ static osk_result_t do_authenticate(uint8_t control, const uint8_t *data, size_t
 
 	uint8_t sig[OSK_MAX_SIG];
 	size_t sig_len = 0;
-	if (osk_ctap_key_sign(cid.salt, cid.rp_id_hash, hash, sig, sizeof(sig),
-			      &sig_len) != OSK_OK)
+	if (osk_ctap_key_sign(cid.salt, cid.rp_id_hash, hash, sig, sizeof(sig), &sig_len) != OSK_OK)
 		return only_sw(res, SW_WRONG_DATA);
 
 	size_t at = 0;

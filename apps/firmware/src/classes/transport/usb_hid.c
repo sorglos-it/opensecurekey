@@ -19,12 +19,12 @@ typedef struct {
 } channel_t;
 
 typedef struct {
-	bool busy;             /* eine Nachricht wird gerade zusammengesetzt */
+	bool busy; /* eine Nachricht wird gerade zusammengesetzt */
 	uint32_t cid;
 	uint8_t cmd;
-	uint16_t expect;       /* angekuendigte Gesamtlaenge */
+	uint16_t expect; /* angekuendigte Gesamtlaenge */
 	uint16_t have;
-	int next_seq;          /* -1 = noch kein Fortsetzungspaket erwartet */
+	int next_seq; /* -1 = noch kein Fortsetzungspaket erwartet */
 	uint64_t started_ms;
 	uint8_t buf[OSK_HID_BUF_LEN];
 } assembly_t;
@@ -71,8 +71,7 @@ static void send_message(uint32_t cid, uint8_t cmd, const uint8_t *data, size_t 
 
 	uint8_t seq = 0;
 	while (at < len) {
-		const size_t take = (len - at < OSK_HID_CONT_DATA) ? len - at
-								   : OSK_HID_CONT_DATA;
+		const size_t take = (len - at < OSK_HID_CONT_DATA) ? len - at : OSK_HID_CONT_DATA;
 		memset(pkt, 0, sizeof(pkt));
 		pkt[0] = (uint8_t)(cid >> 24);
 		pkt[1] = (uint8_t)(cid >> 16);
@@ -172,7 +171,7 @@ static void dispatch(void)
 		if (g_cancel) {
 			/* Abgebrochen: die Antwort auf die CBOR-Anfrage ist der
 			 * Abbruchfehler, nicht ein Transportfehler. */
-			const uint8_t cancelled = 0x2d;  /* CTAP2_ERR_KEEPALIVE_CANCEL */
+			const uint8_t cancelled = 0x2d; /* CTAP2_ERR_KEEPALIVE_CANCEL */
 			send_message(cid, CTAPHID_CBOR, &cancelled, 1);
 			break;
 		}
@@ -236,7 +235,7 @@ static void handle_init(uint32_t cid, const uint8_t *data, size_t len)
 	reply[10] = (uint8_t)(use_cid >> 8);
 	reply[11] = (uint8_t)use_cid;
 	reply[12] = OSK_HID_PROTOCOL_VERSION;
-	reply[13] = 0;   /* Hauptnummer des Geraets */
+	reply[13] = 0; /* Hauptnummer des Geraets */
 	reply[14] = 0;
 	reply[15] = 0;
 	reply[16] = (uint8_t)(OSK_HID_CAP_CBOR | OSK_HID_CAP_WINK);
@@ -304,8 +303,8 @@ void osk_hid_rx_packet(const uint8_t packet[OSK_HID_PACKET_LEN])
 		g_asm.expect = bcnt;
 		g_asm.started_ms = osk_ctap_now_ms();
 
-		const uint16_t take = (bcnt < OSK_HID_INIT_DATA) ? bcnt
-								 : (uint16_t)OSK_HID_INIT_DATA;
+		const uint16_t take =
+		    (bcnt < OSK_HID_INIT_DATA) ? bcnt : (uint16_t)OSK_HID_INIT_DATA;
 		if (take)
 			memcpy(g_asm.buf, packet + 7, take);
 		g_asm.have = take;
@@ -332,8 +331,7 @@ void osk_hid_rx_packet(const uint8_t packet[OSK_HID_PACKET_LEN])
 	}
 
 	const uint16_t left = (uint16_t)(g_asm.expect - g_asm.have);
-	const uint16_t take = (left < OSK_HID_CONT_DATA) ? left
-							 : (uint16_t)OSK_HID_CONT_DATA;
+	const uint16_t take = (left < OSK_HID_CONT_DATA) ? left : (uint16_t)OSK_HID_CONT_DATA;
 	/* Laengen stehen vor dem Kopieren fest - der Puffer kann nicht
 	 * ueberlaufen, weil expect schon gegen OSK_HID_BUF_LEN geprueft wurde. */
 	memcpy(g_asm.buf + g_asm.have, packet + 5, take);

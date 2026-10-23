@@ -66,7 +66,7 @@ osk_result_t osk_cbor_read_bool(osk_cbor_reader_t *r, bool *out);
  * (bei Abbildungen die Anzahl der Paare). */
 osk_result_t osk_cbor_enter_array(osk_cbor_reader_t *r, size_t *count_out);
 osk_result_t osk_cbor_enter_map(osk_cbor_reader_t *r, size_t *count_out);
-void         osk_cbor_leave(osk_cbor_reader_t *r);
+void osk_cbor_leave(osk_cbor_reader_t *r);
 
 /* Ueberspringt genau einen Wert samt Inhalt. */
 osk_result_t osk_cbor_skip(osk_cbor_reader_t *r);
@@ -85,7 +85,7 @@ typedef struct {
 	uint8_t *buf;
 	size_t cap;
 	size_t len;
-	bool failed;   /* einmal uebergelaufen, bleibt kaputt */
+	bool failed; /* einmal uebergelaufen, bleibt kaputt */
 } osk_cbor_writer_t;
 
 void osk_cbor_writer_init(osk_cbor_writer_t *w, uint8_t *buf, size_t cap);

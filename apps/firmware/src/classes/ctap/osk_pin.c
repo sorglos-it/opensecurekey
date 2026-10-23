@@ -10,31 +10,31 @@
 #include "osk_ui.h"
 
 /* Schluessel des ClientPIN-Befehls (Abschnitt 6.5.5) */
-#define KEY_PROTOCOL    0x01
-#define KEY_SUBCOMMAND  0x02
-#define KEY_KEYAGREE    0x03
-#define KEY_AUTH_PARAM  0x04
+#define KEY_PROTOCOL 0x01
+#define KEY_SUBCOMMAND 0x02
+#define KEY_KEYAGREE 0x03
+#define KEY_AUTH_PARAM 0x04
 #define KEY_NEW_PIN_ENC 0x05
 #define KEY_PIN_HASH_ENC 0x06
 #define KEY_PERMISSIONS 0x09
-#define KEY_RPID        0x0a
+#define KEY_RPID 0x0a
 
 /* Unterbefehle */
 #define SUB_GET_PIN_RETRIES 0x01
-#define SUB_GET_KEY_AGREE   0x02
-#define SUB_SET_PIN         0x03
-#define SUB_CHANGE_PIN      0x04
-#define SUB_GET_PIN_TOKEN   0x05
-#define SUB_TOKEN_USING_UV  0x06
-#define SUB_GET_UV_RETRIES  0x07
+#define SUB_GET_KEY_AGREE 0x02
+#define SUB_SET_PIN 0x03
+#define SUB_CHANGE_PIN 0x04
+#define SUB_GET_PIN_TOKEN 0x05
+#define SUB_TOKEN_USING_UV 0x06
+#define SUB_GET_UV_RETRIES 0x07
 #define SUB_TOKEN_USING_PIN 0x09
 
 /* Antwortschluessel */
 #define RES_KEY_AGREEMENT 0x01
-#define RES_PIN_TOKEN     0x02
-#define RES_PIN_RETRIES   0x03
-#define RES_POWER_CYCLE   0x04
-#define RES_UV_RETRIES    0x05
+#define RES_PIN_TOKEN 0x02
+#define RES_PIN_RETRIES 0x03
+#define RES_POWER_CYCLE 0x04
+#define RES_UV_RETRIES 0x05
 
 #define UV_RETRIES_MAX 3
 
@@ -53,7 +53,7 @@ bool osk_pin_protocol_supported(uint64_t protocol)
 
 osk_result_t osk_pin_regenerate(void)
 {
-	const osk_key_policy_t policy = { .exportable = false, .needs_touch = false };
+	const osk_key_policy_t policy = {.exportable = false, .needs_touch = false};
 
 	osk_se050_key_delete(OSK_KEY_ID_KEYAGREE);
 	return osk_se050_key_create(OSK_KEY_ID_KEYAGREE, OSK_CURVE_P256, &policy);
@@ -125,14 +125,13 @@ osk_result_t osk_pin_shared_secret(uint64_t protocol, const uint8_t peer_pub[64]
 		osk_wipe(h, sizeof(h));
 	} else {
 		/* Protokoll 2: zwei getrennte HKDF-Laeufe, nicht einer mit L=64. */
-		static const uint8_t zero_salt[32] = { 0 };
+		static const uint8_t zero_salt[32] = {0};
 		rc = osk_hkdf_sha256(zero_salt, sizeof(zero_salt), z, z_len,
-				     (const uint8_t *)"CTAP2 HMAC key", 14,
-				     shared_out, 32);
+				     (const uint8_t *)"CTAP2 HMAC key", 14, shared_out, 32);
 		if (rc == OSK_OK)
 			rc = osk_hkdf_sha256(zero_salt, sizeof(zero_salt), z, z_len,
-					     (const uint8_t *)"CTAP2 AES key", 13,
-					     shared_out + 32, 32);
+					     (const uint8_t *)"CTAP2 AES key", 13, shared_out + 32,
+					     32);
 	}
 
 done:
@@ -147,19 +146,18 @@ static const uint8_t *aes_part(const uint8_t *key)
 	return key + 32;
 }
 
-osk_result_t osk_pin_encrypt(uint64_t protocol, const uint8_t *key,
-			     const uint8_t *in, size_t in_len,
-			     uint8_t *out, size_t cap, size_t *len_out)
+osk_result_t osk_pin_encrypt(uint64_t protocol, const uint8_t *key, const uint8_t *in,
+			     size_t in_len, uint8_t *out, size_t cap, size_t *len_out)
 {
 	if ((in_len % OSK_AES_BLOCK) != 0 || in_len == 0)
 		return OSK_ERR_ARG;
 
 	if (protocol == 1u) {
-		static const uint8_t zero_iv[OSK_AES_BLOCK] = { 0 };
+		static const uint8_t zero_iv[OSK_AES_BLOCK] = {0};
 		if (cap < in_len)
 			return OSK_ERR_ARG;
-		const osk_result_t rc = osk_aes256_cbc_encrypt(aes_part(key), zero_iv,
-							       in, out, in_len);
+		const osk_result_t rc =
+		    osk_aes256_cbc_encrypt(aes_part(key), zero_iv, in, out, in_len);
 		if (rc == OSK_OK)
 			*len_out = in_len;
 		return rc;
@@ -170,23 +168,22 @@ osk_result_t osk_pin_encrypt(uint64_t protocol, const uint8_t *key,
 	const osk_result_t rc = osk_se050_random(out, OSK_AES_BLOCK);
 	if (rc != OSK_OK)
 		return rc;
-	const osk_result_t rc2 = osk_aes256_cbc_encrypt(aes_part(key), out, in,
-							out + OSK_AES_BLOCK, in_len);
+	const osk_result_t rc2 =
+	    osk_aes256_cbc_encrypt(aes_part(key), out, in, out + OSK_AES_BLOCK, in_len);
 	if (rc2 == OSK_OK)
 		*len_out = in_len + OSK_AES_BLOCK;
 	return rc2;
 }
 
-osk_result_t osk_pin_decrypt(uint64_t protocol, const uint8_t *key,
-			     const uint8_t *in, size_t in_len,
-			     uint8_t *out, size_t cap, size_t *len_out)
+osk_result_t osk_pin_decrypt(uint64_t protocol, const uint8_t *key, const uint8_t *in,
+			     size_t in_len, uint8_t *out, size_t cap, size_t *len_out)
 {
 	if (protocol == 1u) {
-		static const uint8_t zero_iv[OSK_AES_BLOCK] = { 0 };
+		static const uint8_t zero_iv[OSK_AES_BLOCK] = {0};
 		if (in_len == 0 || (in_len % OSK_AES_BLOCK) != 0 || cap < in_len)
 			return OSK_ERR_FORMAT;
-		const osk_result_t rc = osk_aes256_cbc_decrypt(aes_part(key), zero_iv,
-							       in, out, in_len);
+		const osk_result_t rc =
+		    osk_aes256_cbc_decrypt(aes_part(key), zero_iv, in, out, in_len);
 		if (rc == OSK_OK)
 			*len_out = in_len;
 		return rc;
@@ -198,16 +195,15 @@ osk_result_t osk_pin_decrypt(uint64_t protocol, const uint8_t *key,
 	const size_t body = in_len - OSK_AES_BLOCK;
 	if (cap < body)
 		return OSK_ERR_FORMAT;
-	const osk_result_t rc = osk_aes256_cbc_decrypt(aes_part(key), in,
-						       in + OSK_AES_BLOCK, out, body);
+	const osk_result_t rc =
+	    osk_aes256_cbc_decrypt(aes_part(key), in, in + OSK_AES_BLOCK, out, body);
 	if (rc == OSK_OK)
 		*len_out = body;
 	return rc;
 }
 
-void osk_pin_authenticate(uint64_t protocol, const uint8_t *key, size_t key_len,
-			  const uint8_t *msg, size_t msg_len,
-			  uint8_t *out, size_t *len_out)
+void osk_pin_authenticate(uint64_t protocol, const uint8_t *key, size_t key_len, const uint8_t *msg,
+			  size_t msg_len, uint8_t *out, size_t *len_out)
 {
 	uint8_t mac[32];
 
@@ -226,9 +222,8 @@ void osk_pin_authenticate(uint64_t protocol, const uint8_t *key, size_t key_len,
 	osk_wipe(mac, sizeof(mac));
 }
 
-bool osk_pin_verify_mac(uint64_t protocol, const uint8_t *key, size_t key_len,
-			const uint8_t *msg, size_t msg_len,
-			const uint8_t *mac, size_t mac_len)
+bool osk_pin_verify_mac(uint64_t protocol, const uint8_t *key, size_t key_len, const uint8_t *msg,
+			size_t msg_len, const uint8_t *mac, size_t mac_len)
 {
 	uint8_t want[32];
 	size_t want_len = 0;
@@ -239,15 +234,15 @@ bool osk_pin_verify_mac(uint64_t protocol, const uint8_t *key, size_t key_len,
 	return ok;
 }
 
-bool osk_pin_verify_token(uint64_t protocol, const uint8_t *msg, size_t msg_len,
-			  const uint8_t *mac, size_t mac_len)
+bool osk_pin_verify_token(uint64_t protocol, const uint8_t *msg, size_t msg_len, const uint8_t *mac,
+			  size_t mac_len)
 {
 	/* Ein Token, das nicht in Gebrauch ist, prueft nichts - sonst liesse
 	 * sich ein altes pinUvAuthParam wiederverwenden. */
 	if (!g_pin.in_use)
 		return false;
-	return osk_pin_verify_mac(protocol, g_pin.token, sizeof(g_pin.token),
-				  msg, msg_len, mac, mac_len);
+	return osk_pin_verify_mac(protocol, g_pin.token, sizeof(g_pin.token), msg, msg_len, mac,
+				  mac_len);
 }
 
 void osk_pin_begin_using(bool user_is_present)
@@ -307,8 +302,8 @@ osk_result_t osk_pin_put_public_key(osk_cbor_writer_t *w)
 	uint8_t raw[160];
 	size_t raw_len = 0;
 
-	const osk_result_t rc = osk_se050_key_public(OSK_KEY_ID_KEYAGREE, raw, sizeof(raw),
-						     &raw_len);
+	const osk_result_t rc =
+	    osk_se050_key_public(OSK_KEY_ID_KEYAGREE, raw, sizeof(raw), &raw_len);
 	if (rc != OSK_OK)
 		return rc;
 	if (raw_len < 65 || raw[raw_len - 65] != 0x04)
@@ -318,11 +313,16 @@ osk_result_t osk_pin_put_public_key(osk_cbor_writer_t *w)
 	/* COSE_Key fuer den Schluesseltausch. Die Spezifikation verlangt den
 	 * alg-Eintrag und sonst keinen; -25 ist ECDH-ES + HKDF-256. */
 	osk_cbor_put_map(w, 5);
-	osk_cbor_put_uint(w, 1);  osk_cbor_put_uint(w, 2);     /* kty: EC2 */
-	osk_cbor_put_uint(w, 3);  osk_cbor_put_int(w, -25);    /* alg */
-	osk_cbor_put_int(w, -1);  osk_cbor_put_uint(w, 1);     /* crv: P-256 */
-	osk_cbor_put_int(w, -2);  osk_cbor_put_bytes(w, pub, 32);
-	osk_cbor_put_int(w, -3);  osk_cbor_put_bytes(w, pub + 32, 32);
+	osk_cbor_put_uint(w, 1);
+	osk_cbor_put_uint(w, 2); /* kty: EC2 */
+	osk_cbor_put_uint(w, 3);
+	osk_cbor_put_int(w, -25); /* alg */
+	osk_cbor_put_int(w, -1);
+	osk_cbor_put_uint(w, 1); /* crv: P-256 */
+	osk_cbor_put_int(w, -2);
+	osk_cbor_put_bytes(w, pub, 32);
+	osk_cbor_put_int(w, -3);
+	osk_cbor_put_bytes(w, pub + 32, 32);
 	return OSK_OK;
 }
 
@@ -479,18 +479,18 @@ static uint8_t parse_request(const uint8_t *cbor, size_t len, pin_req_t *out)
 			out->have_peer = true;
 			break;
 		case KEY_AUTH_PARAM:
-			if (osk_cbor_read_bytes(&r, &out->auth_param,
-						&out->auth_param_len) != OSK_OK)
+			if (osk_cbor_read_bytes(&r, &out->auth_param, &out->auth_param_len) !=
+			    OSK_OK)
 				return CTAP2_ERR_CBOR_UNEXPECTED_TYPE;
 			break;
 		case KEY_NEW_PIN_ENC:
-			if (osk_cbor_read_bytes(&r, &out->new_pin_enc,
-						&out->new_pin_enc_len) != OSK_OK)
+			if (osk_cbor_read_bytes(&r, &out->new_pin_enc, &out->new_pin_enc_len) !=
+			    OSK_OK)
 				return CTAP2_ERR_CBOR_UNEXPECTED_TYPE;
 			break;
 		case KEY_PIN_HASH_ENC:
-			if (osk_cbor_read_bytes(&r, &out->pin_hash_enc,
-						&out->pin_hash_enc_len) != OSK_OK)
+			if (osk_cbor_read_bytes(&r, &out->pin_hash_enc, &out->pin_hash_enc_len) !=
+			    OSK_OK)
 				return CTAP2_ERR_CBOR_UNEXPECTED_TYPE;
 			break;
 		case KEY_PERMISSIONS:
@@ -535,15 +535,14 @@ static uint8_t pin_mismatch(void)
 
 /* Gemeinsamer Teil von setPIN und changePIN: neue PIN auspacken und pruefen. */
 static uint8_t unpack_new_pin(const pin_req_t *q, const uint8_t *shared,
-			      uint8_t pin_hash_out[OSK_PIN_HASH_LEN],
-			      uint8_t *code_points_out)
+			      uint8_t pin_hash_out[OSK_PIN_HASH_LEN], uint8_t *code_points_out)
 {
 	uint8_t padded[80];
 	size_t padded_len = 0;
 	uint8_t rc_code = CTAP2_OK;
 
-	if (osk_pin_decrypt(q->protocol, shared, q->new_pin_enc, q->new_pin_enc_len,
-			    padded, sizeof(padded), &padded_len) != OSK_OK) {
+	if (osk_pin_decrypt(q->protocol, shared, q->new_pin_enc, q->new_pin_enc_len, padded,
+			    sizeof(padded), &padded_len) != OSK_OK) {
 		rc_code = CTAP2_ERR_PIN_AUTH_INVALID;
 		goto done;
 	}
@@ -598,9 +597,8 @@ static uint8_t do_set_pin(const pin_req_t *q)
 		return CTAP1_ERR_INVALID_PARAMETER;
 	}
 
-	if (!osk_pin_verify_mac(q->protocol, shared, sizeof(shared),
-				q->new_pin_enc, q->new_pin_enc_len,
-				q->auth_param, q->auth_param_len)) {
+	if (!osk_pin_verify_mac(q->protocol, shared, sizeof(shared), q->new_pin_enc,
+				q->new_pin_enc_len, q->auth_param, q->auth_param_len)) {
 		osk_wipe(shared, sizeof(shared));
 		return CTAP2_ERR_PIN_AUTH_INVALID;
 	}
@@ -652,12 +650,12 @@ static uint8_t do_change_pin(const pin_req_t *q)
 		uint8_t want[32];
 		size_t want_len = 0;
 		uint8_t mac[32];
-		osk_hmac_sha256_2(shared, 32, q->new_pin_enc, q->new_pin_enc_len,
-				  q->pin_hash_enc, q->pin_hash_enc_len, mac);
+		osk_hmac_sha256_2(shared, 32, q->new_pin_enc, q->new_pin_enc_len, q->pin_hash_enc,
+				  q->pin_hash_enc_len, mac);
 		want_len = (q->protocol == 1u) ? 16u : 32u;
 		memcpy(want, mac, want_len);
-		const bool ok = (q->auth_param_len == want_len) &&
-				osk_memeq(want, q->auth_param, want_len);
+		const bool ok =
+		    (q->auth_param_len == want_len) && osk_memeq(want, q->auth_param, want_len);
 		osk_wipe(mac, sizeof(mac));
 		osk_wipe(want, sizeof(want));
 		if (!ok) {
@@ -666,8 +664,8 @@ static uint8_t do_change_pin(const pin_req_t *q)
 		}
 	}
 
-	if (osk_pin_decrypt(q->protocol, shared, q->pin_hash_enc, q->pin_hash_enc_len,
-			    old_hash, sizeof(old_hash), &old_len) != OSK_OK ||
+	if (osk_pin_decrypt(q->protocol, shared, q->pin_hash_enc, q->pin_hash_enc_len, old_hash,
+			    sizeof(old_hash), &old_len) != OSK_OK ||
 	    old_len != OSK_PIN_HASH_LEN) {
 		osk_wipe(shared, sizeof(shared));
 		osk_wipe(old_hash, sizeof(old_hash));
@@ -683,8 +681,8 @@ static uint8_t do_change_pin(const pin_req_t *q)
 	}
 
 	/* Der Chip prueft die alte PIN und fuehrt den Fehlversuchszaehler. */
-	const osk_result_t rc = osk_se050_pin_set(old_hash, OSK_PIN_HASH_LEN,
-						  new_hash, sizeof(new_hash));
+	const osk_result_t rc =
+	    osk_se050_pin_set(old_hash, OSK_PIN_HASH_LEN, new_hash, sizeof(new_hash));
 	osk_wipe(old_hash, sizeof(old_hash));
 	osk_wipe(new_hash, sizeof(new_hash));
 
@@ -714,8 +712,8 @@ static uint8_t check_pin(const pin_req_t *q, const uint8_t *shared)
 	if (osk_se050_pin_tries_left(&tries) == OSK_OK && tries == 0)
 		return CTAP2_ERR_PIN_BLOCKED;
 
-	if (osk_pin_decrypt(q->protocol, shared, q->pin_hash_enc, q->pin_hash_enc_len,
-			    hash, sizeof(hash), &hash_len) != OSK_OK ||
+	if (osk_pin_decrypt(q->protocol, shared, q->pin_hash_enc, q->pin_hash_enc_len, hash,
+			    sizeof(hash), &hash_len) != OSK_OK ||
 	    hash_len != OSK_PIN_HASH_LEN) {
 		osk_wipe(hash, sizeof(hash));
 		return CTAP2_ERR_PIN_AUTH_INVALID;
@@ -749,8 +747,7 @@ static uint8_t apply_permissions(const pin_req_t *q)
 	if ((q->permissions & unsupported) != 0)
 		return CTAP2_ERR_UNAUTHORIZED_PERM;
 
-	g_pin.permissions = (uint8_t)(q->permissions & (OSK_PERM_MC | OSK_PERM_GA |
-							OSK_PERM_LBW));
+	g_pin.permissions = (uint8_t)(q->permissions & (OSK_PERM_MC | OSK_PERM_GA | OSK_PERM_LBW));
 	if (g_pin.permissions == 0)
 		return CTAP2_ERR_UNAUTHORIZED_PERM;
 
@@ -767,14 +764,13 @@ static uint8_t apply_permissions(const pin_req_t *q)
 	return CTAP2_OK;
 }
 
-static uint8_t emit_token(const pin_req_t *q, const uint8_t *shared,
-			  osk_cbor_writer_t *w)
+static uint8_t emit_token(const pin_req_t *q, const uint8_t *shared, osk_cbor_writer_t *w)
 {
 	uint8_t enc[OSK_PIN_TOKEN_LEN + OSK_AES_BLOCK];
 	size_t enc_len = 0;
 
-	if (osk_pin_encrypt(q->protocol, shared, g_pin.token, sizeof(g_pin.token),
-			    enc, sizeof(enc), &enc_len) != OSK_OK) {
+	if (osk_pin_encrypt(q->protocol, shared, g_pin.token, sizeof(g_pin.token), enc, sizeof(enc),
+			    &enc_len) != OSK_OK) {
 		osk_wipe(enc, sizeof(enc));
 		return CTAP1_ERR_OTHER;
 	}
@@ -785,8 +781,7 @@ static uint8_t emit_token(const pin_req_t *q, const uint8_t *shared,
 	return CTAP2_OK;
 }
 
-static uint8_t do_token_using_pin(const pin_req_t *q, bool with_permissions,
-				  osk_cbor_writer_t *w)
+static uint8_t do_token_using_pin(const pin_req_t *q, bool with_permissions, osk_cbor_writer_t *w)
 {
 	uint8_t shared[OSK_PIN_SHARED_LEN];
 	uint8_t code;
@@ -864,8 +859,7 @@ static uint8_t do_token_using_uv(const pin_req_t *q, osk_cbor_writer_t *w)
 		if (g_uv_retries > 0)
 			g_uv_retries--;
 		osk_wipe(shared, sizeof(shared));
-		return (g_uv_retries == 0) ? CTAP2_ERR_UV_BLOCKED
-					   : CTAP2_ERR_UV_INVALID;
+		return (g_uv_retries == 0) ? CTAP2_ERR_UV_BLOCKED : CTAP2_ERR_UV_INVALID;
 	}
 	g_uv_retries = UV_RETRIES_MAX;
 

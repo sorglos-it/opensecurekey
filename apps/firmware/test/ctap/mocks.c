@@ -19,8 +19,14 @@
 
 static uint64_t g_now;
 
-void mock_clock_set(uint64_t ms) { g_now = ms; }
-void mock_clock_advance(uint64_t ms) { g_now += ms; }
+void mock_clock_set(uint64_t ms)
+{
+	g_now = ms;
+}
+void mock_clock_advance(uint64_t ms)
+{
+	g_now += ms;
+}
 
 uint64_t osk_ctap_now_ms(void)
 {
@@ -144,8 +150,7 @@ osk_result_t osk_se050_key_delete(osk_key_id_t id)
 	return OSK_OK;
 }
 
-osk_result_t osk_se050_key_public(osk_key_id_t id, uint8_t *out, size_t cap,
-				  size_t *len_out)
+osk_result_t osk_se050_key_public(osk_key_id_t id, uint8_t *out, size_t cap, size_t *len_out)
 {
 	const slot_t *s = slot_find(id);
 	if (!s)
@@ -180,8 +185,8 @@ static size_t der_encode_int(const uint8_t v[32], uint8_t *out)
 	return at;
 }
 
-osk_result_t osk_se050_sign(osk_key_id_t id, const uint8_t *hash, size_t hash_len,
-			    uint8_t *sig_out, size_t cap, size_t *len_out)
+osk_result_t osk_se050_sign(osk_key_id_t id, const uint8_t *hash, size_t hash_len, uint8_t *sig_out,
+			    size_t cap, size_t *len_out)
 {
 	const slot_t *s = slot_find(id);
 	uint8_t r[32], sv[32];
@@ -195,7 +200,7 @@ osk_result_t osk_se050_sign(osk_key_id_t id, const uint8_t *hash, size_t hash_le
 
 	osk_hmac_sha256_2(s->seed, 32, hash, 32, (const uint8_t *)"r", 1, r);
 	osk_hmac_sha256_2(s->seed, 32, hash, 32, (const uint8_t *)"s", 1, sv);
-	r[0] &= 0x7f;   /* nie negativ, damit DER kurz bleibt */
+	r[0] &= 0x7f; /* nie negativ, damit DER kurz bleibt */
 	sv[0] &= 0x7f;
 
 	at += der_encode_int(r, body + at);
@@ -233,15 +238,14 @@ osk_result_t osk_se050_ecdh(osk_key_id_t id, const uint8_t *peer_pub, size_t pee
 	return OSK_OK;
 }
 
-void mock_se050_hkdf_expect(const uint8_t *info, size_t info_len,
-			    uint8_t *out, size_t out_len)
+void mock_se050_hkdf_expect(const uint8_t *info, size_t info_len, uint8_t *out, size_t out_len)
 {
-	osk_hkdf_sha256((const uint8_t *)"mock-root", 9, g_root, sizeof(g_root),
-			info, info_len, out, out_len);
+	osk_hkdf_sha256((const uint8_t *)"mock-root", 9, g_root, sizeof(g_root), info, info_len,
+			out, out_len);
 }
 
-osk_result_t osk_se050_hkdf(osk_key_id_t id, const uint8_t *info, size_t info_len,
-			    uint8_t *out, size_t out_len)
+osk_result_t osk_se050_hkdf(osk_key_id_t id, const uint8_t *info, size_t info_len, uint8_t *out,
+			    size_t out_len)
 {
 	if (id != OSK_KEY_ID_ROOT)
 		return OSK_ERR_NOT_FOUND;
@@ -249,8 +253,8 @@ osk_result_t osk_se050_hkdf(osk_key_id_t id, const uint8_t *info, size_t info_le
 	return OSK_OK;
 }
 
-osk_result_t osk_se050_hmac(osk_key_id_t id, const uint8_t *msg, size_t msg_len,
-			    uint8_t *mac_out, size_t cap, size_t *len_out)
+osk_result_t osk_se050_hmac(osk_key_id_t id, const uint8_t *msg, size_t msg_len, uint8_t *mac_out,
+			    size_t cap, size_t *len_out)
 {
 	const slot_t *s = slot_find(id);
 	if (!s)
@@ -264,18 +268,20 @@ osk_result_t osk_se050_hmac(osk_key_id_t id, const uint8_t *msg, size_t msg_len,
 
 /* Das fluechtige Schluesselobjekt, das der SE050-Strang noch beisteuern
  * muss (siehe osk_ctap_key.h). */
-osk_result_t osk_se050_key_derive_transient(uint32_t root, const uint8_t *info,
-					    size_t info_len, uint32_t slot)
+osk_result_t osk_se050_key_derive_transient(osk_key_id_t root, osk_curve_t curve,
+					    const uint8_t *info, size_t info_len, osk_key_id_t slot)
 {
 	uint8_t seed[32];
 
 	if (root != OSK_KEY_ID_ROOT)
 		return OSK_ERR_NOT_FOUND;
+	if (curve != OSK_CURVE_P256)
+		return OSK_ERR_UNSUPPORTED;
 	if (!slot_find(root))
 		return OSK_ERR_NOT_FOUND;
 
-	osk_hkdf_sha256((const uint8_t *)"mock-derive", 11, g_root, sizeof(g_root),
-			info, info_len, seed, sizeof(seed));
+	osk_hkdf_sha256((const uint8_t *)"mock-derive", 11, g_root, sizeof(g_root), info, info_len,
+			seed, sizeof(seed));
 
 	slot_t *s = slot_alloc(slot);
 	if (!s)
@@ -299,8 +305,8 @@ osk_result_t osk_se050_pin_verify(const uint8_t *pin, size_t len)
 	return OSK_OK;
 }
 
-osk_result_t osk_se050_pin_set(const uint8_t *old_pin, size_t old_len,
-			       const uint8_t *new_pin, size_t new_len)
+osk_result_t osk_se050_pin_set(const uint8_t *old_pin, size_t old_len, const uint8_t *new_pin,
+			       size_t new_len)
 {
 	if (new_len != sizeof(g_pin_hash))
 		return OSK_ERR_ARG;
@@ -360,16 +366,31 @@ static char g_last_subject[128];
 static char g_last_detail[128];
 static int g_last_kind;
 
-void mock_ui_set_confirm(osk_result_t rc) { g_confirm_rc = rc; }
+void mock_ui_set_confirm(osk_result_t rc)
+{
+	g_confirm_rc = rc;
+}
 void mock_ui_set_verify(osk_result_t rc, bool verified)
 {
 	g_verify_rc = rc;
 	g_verify_ok = verified;
 }
-unsigned mock_ui_confirm_count(void) { return g_confirm_count; }
-const char *mock_ui_last_subject(void) { return g_last_subject; }
-const char *mock_ui_last_detail(void) { return g_last_detail; }
-int mock_ui_last_kind(void) { return g_last_kind; }
+unsigned mock_ui_confirm_count(void)
+{
+	return g_confirm_count;
+}
+const char *mock_ui_last_subject(void)
+{
+	return g_last_subject;
+}
+const char *mock_ui_last_detail(void)
+{
+	return g_last_detail;
+}
+int mock_ui_last_kind(void)
+{
+	return g_last_kind;
+}
 
 osk_result_t osk_ui_confirm(const osk_ask_req_t *req)
 {
@@ -406,6 +427,8 @@ typedef struct {
 	char site[STORE_TEXT_MAX];
 	uint64_t changed;
 	bool mirrored;
+	uint8_t tag[32];
+	uint8_t tag_len;
 	uint8_t secret[STORE_SECRET_MAX];
 	size_t secret_len;
 } item_t;
@@ -414,6 +437,7 @@ static item_t g_items[STORE_MAX];
 static osk_item_id_t g_next_id = 1;
 static bool g_store_open = true;
 static bool g_store_full;
+static unsigned g_reveal_count;
 
 size_t mock_store_count(void)
 {
@@ -428,6 +452,11 @@ size_t mock_store_count(void)
 void mock_store_set_full(bool full)
 {
 	g_store_full = full;
+}
+
+unsigned mock_store_reveal_count(void)
+{
+	return g_reveal_count;
 }
 
 osk_result_t osk_store_open(void)
@@ -483,11 +512,38 @@ osk_result_t osk_store_list(uint8_t profile, size_t index, osk_item_meta_t *out)
 	out->changed_utc = it->changed;
 	out->mirrored = it->mirrored;
 	out->paired_host_only = false;
+	memcpy(out->tag, it->tag, sizeof(out->tag));
+	out->tag_len = it->tag_len;
 	return OSK_OK;
 }
 
-osk_result_t osk_store_find(uint8_t profile, const char *site,
-			    osk_item_id_t *out, size_t cap, size_t *len_out)
+osk_result_t osk_store_find_tag(uint8_t profile, osk_item_type_t type, const uint8_t *tag,
+				size_t tag_len, osk_item_id_t *out, size_t cap, size_t *len_out)
+{
+	size_t n = 0;
+
+	if (!tag || tag_len == 0 || tag_len > 32)
+		return OSK_ERR_ARG;
+
+	for (unsigned i = 0; i < STORE_MAX; i++) {
+		if (!g_items[i].used || g_items[i].profile != profile)
+			continue;
+		if (g_items[i].type != type)
+			continue;
+		if (g_items[i].tag_len != tag_len)
+			continue;
+		if (memcmp(g_items[i].tag, tag, tag_len) != 0)
+			continue;
+		if (n < cap)
+			out[n] = g_items[i].id;
+		n++;
+	}
+	*len_out = n;
+	return (n > 0) ? OSK_OK : OSK_ERR_NOT_FOUND;
+}
+
+osk_result_t osk_store_find(uint8_t profile, const char *site, osk_item_id_t *out, size_t cap,
+			    size_t *len_out)
 {
 	size_t n = 0;
 	for (unsigned i = 0; i < STORE_MAX; i++) {
@@ -503,8 +559,8 @@ osk_result_t osk_store_find(uint8_t profile, const char *site,
 	return (n > 0) ? OSK_OK : OSK_ERR_NOT_FOUND;
 }
 
-osk_result_t osk_store_add(const osk_item_meta_t *meta, const uint8_t *secret,
-			   size_t secret_len, osk_item_id_t *id_out)
+osk_result_t osk_store_add(const osk_item_meta_t *meta, const uint8_t *secret, size_t secret_len,
+			   osk_item_id_t *id_out)
 {
 	if (g_store_full)
 		return OSK_ERR_FULL;
@@ -521,6 +577,8 @@ osk_result_t osk_store_add(const osk_item_meta_t *meta, const uint8_t *secret,
 		it->profile = meta->profile;
 		it->changed = meta->changed_utc;
 		it->mirrored = meta->mirrored;
+		memcpy(it->tag, meta->tag, sizeof(it->tag));
+		it->tag_len = meta->tag_len;
 		if (meta->name)
 			snprintf(it->name, sizeof(it->name), "%s", meta->name);
 		if (meta->site)
@@ -542,8 +600,8 @@ static item_t *by_id(osk_item_id_t id)
 	return NULL;
 }
 
-osk_result_t osk_store_update(osk_item_id_t id, const osk_item_meta_t *meta,
-			      const uint8_t *secret, size_t secret_len)
+osk_result_t osk_store_update(osk_item_id_t id, const osk_item_meta_t *meta, const uint8_t *secret,
+			      size_t secret_len)
 {
 	item_t *it = by_id(id);
 	if (!it)
@@ -554,6 +612,8 @@ osk_result_t osk_store_update(osk_item_id_t id, const osk_item_meta_t *meta,
 		it->type = meta->type;
 		it->changed = meta->changed_utc;
 		it->mirrored = meta->mirrored;
+		memcpy(it->tag, meta->tag, sizeof(it->tag));
+		it->tag_len = meta->tag_len;
 		if (meta->name)
 			snprintf(it->name, sizeof(it->name), "%s", meta->name);
 		if (meta->site)
@@ -573,10 +633,11 @@ osk_result_t osk_store_delete(osk_item_id_t id)
 	return OSK_OK;
 }
 
-osk_result_t osk_store_reveal(osk_item_id_t id, const char *asked_by,
-			      uint8_t *out, size_t cap, size_t *len_out)
+osk_result_t osk_store_reveal(osk_item_id_t id, const char *asked_by, uint8_t *out, size_t cap,
+			      size_t *len_out)
 {
 	(void)asked_by;
+	g_reveal_count++;
 	const item_t *it = by_id(id);
 	if (!it)
 		return OSK_ERR_NOT_FOUND;
@@ -619,18 +680,30 @@ osk_result_t osk_transport_enable(osk_link_t link, bool on)
 const char *osk_result_text(osk_result_t r)
 {
 	switch (r) {
-	case OSK_OK: return "ok";
-	case OSK_ERR_ARG: return "arg";
-	case OSK_ERR_IO: return "io";
-	case OSK_ERR_TIMEOUT: return "timeout";
-	case OSK_ERR_DENIED: return "denied";
-	case OSK_ERR_LOCKED: return "locked";
-	case OSK_ERR_NOT_FOUND: return "not-found";
-	case OSK_ERR_EXISTS: return "exists";
-	case OSK_ERR_FULL: return "full";
-	case OSK_ERR_FORMAT: return "format";
-	case OSK_ERR_UNSUPPORTED: return "unsupported";
-	default: return "internal";
+	case OSK_OK:
+		return "ok";
+	case OSK_ERR_ARG:
+		return "arg";
+	case OSK_ERR_IO:
+		return "io";
+	case OSK_ERR_TIMEOUT:
+		return "timeout";
+	case OSK_ERR_DENIED:
+		return "denied";
+	case OSK_ERR_LOCKED:
+		return "locked";
+	case OSK_ERR_NOT_FOUND:
+		return "not-found";
+	case OSK_ERR_EXISTS:
+		return "exists";
+	case OSK_ERR_FULL:
+		return "full";
+	case OSK_ERR_FORMAT:
+		return "format";
+	case OSK_ERR_UNSUPPORTED:
+		return "unsupported";
+	default:
+		return "internal";
 	}
 }
 
@@ -638,7 +711,7 @@ const char *osk_result_text(osk_result_t r)
 
 void mock_reset_all(void)
 {
-	const osk_key_policy_t policy = { .exportable = false, .needs_touch = false };
+	const osk_key_policy_t policy = {.exportable = false, .needs_touch = false};
 
 	memset(g_slots, 0, sizeof(g_slots));
 	memset(g_items, 0, sizeof(g_items));
@@ -649,6 +722,7 @@ void mock_reset_all(void)
 	g_tries = 8;
 	g_store_open = true;
 	g_store_full = false;
+	g_reveal_count = 0;
 	g_confirm_rc = OSK_OK;
 	g_verify_rc = OSK_OK;
 	g_verify_ok = true;

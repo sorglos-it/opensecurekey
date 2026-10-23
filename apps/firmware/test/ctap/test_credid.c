@@ -107,16 +107,15 @@ static void test_fremde_ids(void)
 
 	uint8_t other[OSK_CREDID_LEN];
 	memcpy(other, id, len);
-	other[0] = 0x02;   /* unbekannte Fassung */
+	other[0] = 0x02; /* unbekannte Fassung */
 	T_EQ("fremde Fassung", osk_credid_unpack(other, len, &out), OSK_ERR_NOT_FOUND);
 
 	/* Nach einem Reset ist das Grundgeheimnis neu - alte IDs sind wertlos. */
-	const osk_key_policy_t policy = { .exportable = false, .needs_touch = false };
+	const osk_key_policy_t policy = {.exportable = false, .needs_touch = false};
 	osk_se050_key_delete(OSK_KEY_ID_ROOT);
-	T_EQ("neues Grundgeheimnis",
-	     osk_se050_key_create(OSK_KEY_ID_ROOT, OSK_CURVE_P256, &policy), OSK_OK);
-	T_EQ("alte ID nach Reset wertlos", osk_credid_unpack(id, len, &out),
-	     OSK_ERR_NOT_FOUND);
+	T_EQ("neues Grundgeheimnis", osk_se050_key_create(OSK_KEY_ID_ROOT, OSK_CURVE_P256, &policy),
+	     OSK_OK);
+	T_EQ("alte ID nach Reset wertlos", osk_credid_unpack(id, len, &out), OSK_ERR_NOT_FOUND);
 }
 
 static void test_ableitung_ist_wiederholbar(void)
@@ -133,12 +132,12 @@ static void test_ableitung_ist_wiederholbar(void)
 	/* Dieselbe Zahl, anderer Zweck: die largeBlobKey darf nicht ueber
 	 * hmac-secret erreichbar sein (Spezifikation 12.3). */
 	uint8_t uv[32], nouv[32], blob[32];
-	T_EQ("CredRandom mit uv",
-	     osk_ctap_key_secret(OSK_INFO_HMAC_UV, in.salt, in.rp_id_hash, uv), OSK_OK);
+	T_EQ("CredRandom mit uv", osk_ctap_key_secret(OSK_INFO_HMAC_UV, in.salt, in.rp_id_hash, uv),
+	     OSK_OK);
 	T_EQ("CredRandom ohne uv",
 	     osk_ctap_key_secret(OSK_INFO_HMAC_NOUV, in.salt, in.rp_id_hash, nouv), OSK_OK);
-	T_EQ("largeBlobKey",
-	     osk_ctap_key_secret(OSK_INFO_LARGEBLOB, in.salt, in.rp_id_hash, blob), OSK_OK);
+	T_EQ("largeBlobKey", osk_ctap_key_secret(OSK_INFO_LARGEBLOB, in.salt, in.rp_id_hash, blob),
+	     OSK_OK);
 	T_TRUE("uv und nicht-uv verschieden", memcmp(uv, nouv, 32) != 0);
 	T_TRUE("largeBlobKey nicht gleich uv", memcmp(uv, blob, 32) != 0);
 	T_TRUE("largeBlobKey nicht gleich nicht-uv", memcmp(nouv, blob, 32) != 0);

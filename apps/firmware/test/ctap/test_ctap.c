@@ -15,10 +15,10 @@ static size_t g_len;
 static void start(void)
 {
 	mock_reset_all();
-	T_EQ("Kern startet", osk_ctap_init(OSK_CTAP_EXT_HMAC_SECRET | OSK_CTAP_EXT_PRF |
-					   OSK_CTAP_EXT_LARGE_BLOB |
-					   OSK_CTAP_EXT_CRED_PROTECT |
-					   OSK_CTAP_EXT_MIN_PIN), OSK_OK);
+	T_EQ("Kern startet",
+	     osk_ctap_init(OSK_CTAP_EXT_HMAC_SECRET | OSK_CTAP_EXT_PRF | OSK_CTAP_EXT_LARGE_BLOB |
+			   OSK_CTAP_EXT_CRED_PROTECT | OSK_CTAP_EXT_MIN_PIN),
+	     OSK_OK);
 }
 
 /* ---- GetInfo ----------------------------------------------------------- */
@@ -27,7 +27,7 @@ static void test_get_info(void)
 {
 	start();
 
-	const uint8_t msg[1] = { OSK_CTAP_CMD_GET_INFO };
+	const uint8_t msg[1] = {OSK_CTAP_CMD_GET_INFO};
 	const uint8_t code = h_call(msg, sizeof(msg), g_body, sizeof(g_body), &g_len);
 	T_EQ("GetInfo ok", code, CTAP2_OK);
 	T_EQ("Antwort ist kanonisches CBOR", osk_cbor_validate(g_body, g_len), OSK_OK);
@@ -57,17 +57,17 @@ static void test_get_info(void)
 	T_TRUE("options vorhanden", h_find(g_body, g_len, 0x04, &r));
 
 	/* Mit Nutzdaten ist GetInfo ein Laengenfehler. */
-	const uint8_t msg2[2] = { OSK_CTAP_CMD_GET_INFO, 0x00 };
-	T_EQ("GetInfo mit Anhang", h_call(msg2, sizeof(msg2), g_body, sizeof(g_body),
-					  &g_len), CTAP1_ERR_INVALID_LENGTH);
+	const uint8_t msg2[2] = {OSK_CTAP_CMD_GET_INFO, 0x00};
+	T_EQ("GetInfo mit Anhang", h_call(msg2, sizeof(msg2), g_body, sizeof(g_body), &g_len),
+	     CTAP1_ERR_INVALID_LENGTH);
 }
 
 /* ---- MakeCredential ---------------------------------------------------- */
 
 /* Prueft den authData-Block einer MakeCredential-Antwort. */
 static void check_auth_data(const uint8_t *body, size_t len, const char *rp_id,
-			    uint8_t want_flags_set,
-			    const uint8_t **cred_id_out, size_t *cred_id_len_out)
+			    uint8_t want_flags_set, const uint8_t **cred_id_out,
+			    size_t *cred_id_len_out)
 {
 	const uint8_t *ad = NULL;
 	size_t ad_len = 0;
@@ -126,13 +126,11 @@ static void test_make_credential(void)
 
 	const uint8_t *cred_id = NULL;
 	size_t cred_id_len = 0;
-	check_auth_data(g_body, g_len, "example.com", OSK_AD_FLAG_UP, &cred_id,
-			&cred_id_len);
+	check_auth_data(g_body, g_len, "example.com", OSK_AD_FLAG_UP, &cred_id, &cred_id_len);
 
 	/* Die ID muss sich mit unserem Grundgeheimnis wieder oeffnen lassen. */
 	osk_credid_t cid;
-	T_EQ("Credential-ID gueltig", osk_credid_unpack(cred_id, cred_id_len, &cid),
-	     OSK_OK);
+	T_EQ("Credential-ID gueltig", osk_credid_unpack(cred_id, cred_id_len, &cid), OSK_OK);
 	T_TRUE("nicht resident", !cid.resident);
 
 	/* attStmt: alg und sig */
@@ -156,18 +154,23 @@ static void test_make_credential_fehler(void)
 		uint8_t hash[32];
 		osk_sha256((const uint8_t *)"c", 1, hash);
 		osk_cbor_put_map(&w, 4);
-		osk_cbor_put_uint(&w, 1); osk_cbor_put_bytes(&w, hash, 32);
+		osk_cbor_put_uint(&w, 1);
+		osk_cbor_put_bytes(&w, hash, 32);
 		osk_cbor_put_uint(&w, 2);
 		osk_cbor_put_map(&w, 1);
-		osk_cbor_put_text(&w, "id"); osk_cbor_put_text(&w, "example.com");
+		osk_cbor_put_text(&w, "id");
+		osk_cbor_put_text(&w, "example.com");
 		osk_cbor_put_uint(&w, 3);
 		osk_cbor_put_map(&w, 1);
-		osk_cbor_put_text(&w, "id"); osk_cbor_put_bytes(&w, (const uint8_t *)"u", 1);
+		osk_cbor_put_text(&w, "id");
+		osk_cbor_put_bytes(&w, (const uint8_t *)"u", 1);
 		osk_cbor_put_uint(&w, 4);
 		osk_cbor_put_array(&w, 1);
 		osk_cbor_put_map(&w, 2);
-		osk_cbor_put_text(&w, "alg"); osk_cbor_put_int(&w, -257);  /* RS256 */
-		osk_cbor_put_text(&w, "type"); osk_cbor_put_text(&w, "public-key");
+		osk_cbor_put_text(&w, "alg");
+		osk_cbor_put_int(&w, -257); /* RS256 */
+		osk_cbor_put_text(&w, "type");
+		osk_cbor_put_text(&w, "public-key");
 		m.len = 1 + w.len;
 	}
 	T_EQ("unbekanntes Verfahren", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len),
@@ -180,8 +183,7 @@ static void test_make_credential_fehler(void)
 	osk_cbor_put_uint(&w, 1);
 	osk_cbor_put_bytes(&w, (const uint8_t *)"zu kurz", 7);
 	m.len = 1 + w.len;
-	T_EQ("clientDataHash falsch lang",
-	     h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len),
+	T_EQ("clientDataHash falsch lang", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len),
 	     CTAP1_ERR_INVALID_PARAMETER);
 
 	/* Nutzer sagt nein */
@@ -197,12 +199,12 @@ static void test_make_credential_fehler(void)
 	     CTAP2_ERR_USER_ACTION_TIMEOUT);
 
 	/* Unbekannter Befehl */
-	const uint8_t bad[1] = { 0x7e };
+	const uint8_t bad[1] = {0x7e};
 	T_EQ("unbekannter Befehl", h_call(bad, 1, g_body, sizeof(g_body), &g_len),
 	     CTAP1_ERR_INVALID_COMMAND);
 
 	/* Kaputtes CBOR */
-	const uint8_t broken[3] = { OSK_CTAP_CMD_MAKE_CREDENTIAL, 0xa1, 0x01 };
+	const uint8_t broken[3] = {OSK_CTAP_CMD_MAKE_CREDENTIAL, 0xa1, 0x01};
 	T_EQ("kaputtes CBOR", h_call(broken, 3, g_body, sizeof(g_body), &g_len),
 	     CTAP2_ERR_INVALID_CBOR);
 }
@@ -210,9 +212,8 @@ static void test_make_credential_fehler(void)
 /* ---- GetAssertion ------------------------------------------------------ */
 
 /* Baut eine GetAssertion-Nachricht mit allowList. */
-static void build_get_assertion(h_msg_t *m, const char *rp_id,
-				const uint8_t *cred_id, size_t cred_id_len,
-				const uint8_t *pin_auth, size_t pin_auth_len,
+static void build_get_assertion(h_msg_t *m, const char *rp_id, const uint8_t *cred_id,
+				size_t cred_id_len, const uint8_t *pin_auth, size_t pin_auth_len,
 				uint64_t pin_protocol)
 {
 	osk_cbor_writer_t w;
@@ -251,8 +252,8 @@ static void build_get_assertion(h_msg_t *m, const char *rp_id,
 }
 
 /* Erzeugt einen Nachweis und gibt seine Credential-ID zurueck. */
-static size_t create_cred(const char *rp_id, const char *user, bool rk,
-			  bool hmac_secret, int cred_protect, uint8_t *id_out)
+static size_t create_cred(const char *rp_id, const char *user, bool rk, bool hmac_secret,
+			  int cred_protect, uint8_t *id_out)
 {
 	h_msg_t m;
 	const uint8_t *cred_id = NULL;
@@ -280,8 +281,7 @@ static void test_get_assertion(void)
 	h_msg_t m;
 
 	start();
-	const size_t cred_id_len = create_cred("example.com", "anna", false, false, 0,
-					       cred_id);
+	const size_t cred_id_len = create_cred("example.com", "anna", false, false, 0, cred_id);
 	T_TRUE("ID bekommen", cred_id_len == OSK_CREDID_LEN);
 
 	build_get_assertion(&m, "example.com", cred_id, cred_id_len, NULL, 0, 0);
@@ -316,13 +316,12 @@ static void test_get_assertion(void)
 	T_TRUE("UV nicht gesetzt", (ad[32] & OSK_AD_FLAG_UV) == 0);
 
 	/* Der Zaehler laeuft vorwaerts. */
-	const uint32_t c1 = ((uint32_t)ad[33] << 24) | ((uint32_t)ad[34] << 16) |
-			    ((uint32_t)ad[35] << 8) | ad[36];
-	T_EQ("GetAssertion erneut", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len),
-	     CTAP2_OK);
+	const uint32_t c1 =
+	    ((uint32_t)ad[33] << 24) | ((uint32_t)ad[34] << 16) | ((uint32_t)ad[35] << 8) | ad[36];
+	T_EQ("GetAssertion erneut", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len), CTAP2_OK);
 	T_TRUE("authData wieder da", h_get_bytes(g_body, g_len, 0x02, &ad, &ad_len));
-	const uint32_t c2 = ((uint32_t)ad[33] << 24) | ((uint32_t)ad[34] << 16) |
-			    ((uint32_t)ad[35] << 8) | ad[36];
+	const uint32_t c2 =
+	    ((uint32_t)ad[33] << 24) | ((uint32_t)ad[34] << 16) | ((uint32_t)ad[35] << 8) | ad[36];
 	T_TRUE("Zaehler steigt", c2 > c1);
 
 	/* Falscher Dienst: die ID gehoert nicht dazu. */
@@ -366,8 +365,7 @@ static void test_resident_und_next(void)
 
 	/* Ohne allowList werden beide gefunden; der neuere kommt zuerst. */
 	build_get_assertion(&m, "example.com", NULL, 0, NULL, 0, 0);
-	T_EQ("GetAssertion ok", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len),
-	     CTAP2_OK);
+	T_EQ("GetAssertion ok", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len), CTAP2_OK);
 	T_EQ("Antwort kanonisch", osk_cbor_validate(g_body, g_len), OSK_OK);
 
 	osk_cbor_reader_t r;
@@ -383,9 +381,8 @@ static void test_resident_und_next(void)
 	T_EQ("nur die Kennung ohne uv", (long long)count, 1);
 
 	/* GetNextAssertion liefert den zweiten, ohne numberOfCredentials. */
-	const uint8_t next[1] = { OSK_CTAP_CMD_GET_NEXT };
-	T_EQ("GetNextAssertion ok", h_call(next, 1, g_body, sizeof(g_body), &g_len),
-	     CTAP2_OK);
+	const uint8_t next[1] = {OSK_CTAP_CMD_GET_NEXT};
+	T_EQ("GetNextAssertion ok", h_call(next, 1, g_body, sizeof(g_body), &g_len), CTAP2_OK);
 	T_EQ("Antwort kanonisch", osk_cbor_validate(g_body, g_len), OSK_OK);
 	T_TRUE("kein numberOfCredentials mehr", !h_find(g_body, g_len, 0x05, &r));
 	/* Beim zweiten Mal gibt es nichts mehr. */
@@ -393,11 +390,9 @@ static void test_resident_und_next(void)
 	     CTAP2_ERR_NOT_ALLOWED);
 
 	/* Nach 30 Sekunden ist der Zustand verfallen. */
-	T_EQ("GetAssertion erneut", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len),
-	     CTAP2_OK);
+	T_EQ("GetAssertion erneut", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len), CTAP2_OK);
 	mock_clock_advance(31000);
-	T_EQ("zu spaet", h_call(next, 1, g_body, sizeof(g_body), &g_len),
-	     CTAP2_ERR_NOT_ALLOWED);
+	T_EQ("zu spaet", h_call(next, 1, g_body, sizeof(g_body), &g_len), CTAP2_ERR_NOT_ALLOWED);
 
 	/* GetNextAssertion ohne vorheriges GetAssertion */
 	start();
@@ -429,8 +424,7 @@ static void test_tresor_voll(void)
 	T_EQ("Tresor voll", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len),
 	     CTAP2_ERR_KEY_STORE_FULL);
 	mock_store_set_full(false);
-	T_TRUE("danach geht es wieder",
-	       create_cred("example.com", "anna", true, false, 0, id) > 0);
+	T_TRUE("danach geht es wieder", create_cred("example.com", "anna", true, false, 0, id) > 0);
 }
 
 /* ---- credProtect ------------------------------------------------------- */
@@ -463,8 +457,8 @@ static void test_cred_protect(void)
 	/* Unzulaessige Stufe wird abgewiesen. */
 	start();
 	h_make_credential(&m, "example.com", "anna", false, false, 7, NULL, 0, 0);
-	T_EQ("Stufe 7 gibt es nicht",
-	     h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len), CTAP2_ERR_INVALID_CBOR);
+	T_EQ("Stufe 7 gibt es nicht", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len),
+	     CTAP2_ERR_INVALID_CBOR);
 }
 
 /* ---- hmac-secret ------------------------------------------------------- */
@@ -500,11 +494,10 @@ static void test_hmac_secret(void)
 		platform_pub[i] = (uint8_t)(i + 1);
 	mock_se050_ecdh_expect(platform_pub, z);
 	{
-		static const uint8_t zero[32] = { 0 };
-		osk_hkdf_sha256(zero, 32, z, 32, (const uint8_t *)"CTAP2 HMAC key", 14,
-				shared, 32);
-		osk_hkdf_sha256(zero, 32, z, 32, (const uint8_t *)"CTAP2 AES key", 13,
-				shared + 32, 32);
+		static const uint8_t zero[32] = {0};
+		osk_hkdf_sha256(zero, 32, z, 32, (const uint8_t *)"CTAP2 HMAC key", 14, shared, 32);
+		osk_hkdf_sha256(zero, 32, z, 32, (const uint8_t *)"CTAP2 AES key", 13, shared + 32,
+				32);
 	}
 	memset(salt, 0xa5, sizeof(salt));
 
@@ -514,8 +507,7 @@ static void test_hmac_secret(void)
 		memset(iv, 0x11, sizeof(iv));
 		memcpy(salt_enc, iv, 16);
 		T_EQ("Salz verschluesseln",
-		     osk_aes256_cbc_encrypt(shared + 32, iv, salt, salt_enc + 16, 32),
-		     OSK_OK);
+		     osk_aes256_cbc_encrypt(shared + 32, iv, salt, salt_enc + 16, 32), OSK_OK);
 		salt_enc_len = 48;
 		osk_hmac_sha256(shared, 32, salt_enc, salt_enc_len, salt_auth);
 		salt_auth_len = 32;
@@ -528,34 +520,46 @@ static void test_hmac_secret(void)
 		m.buf[0] = OSK_CTAP_CMD_GET_ASSERTION;
 		osk_cbor_writer_init(&w, m.buf + 1, sizeof(m.buf) - 1);
 		osk_cbor_put_map(&w, 4);
-		osk_cbor_put_uint(&w, 0x01); osk_cbor_put_text(&w, "example.com");
-		osk_cbor_put_uint(&w, 0x02); osk_cbor_put_bytes(&w, hash, 32);
+		osk_cbor_put_uint(&w, 0x01);
+		osk_cbor_put_text(&w, "example.com");
+		osk_cbor_put_uint(&w, 0x02);
+		osk_cbor_put_bytes(&w, hash, 32);
 		osk_cbor_put_uint(&w, 0x03);
 		osk_cbor_put_array(&w, 1);
 		osk_cbor_put_map(&w, 2);
-		osk_cbor_put_text(&w, "id"); osk_cbor_put_bytes(&w, id, len);
-		osk_cbor_put_text(&w, "type"); osk_cbor_put_text(&w, "public-key");
+		osk_cbor_put_text(&w, "id");
+		osk_cbor_put_bytes(&w, id, len);
+		osk_cbor_put_text(&w, "type");
+		osk_cbor_put_text(&w, "public-key");
 		osk_cbor_put_uint(&w, 0x04);
 		osk_cbor_put_map(&w, 1);
 		osk_cbor_put_text(&w, "hmac-secret");
 		osk_cbor_put_map(&w, 4);
 		osk_cbor_put_uint(&w, 1);
 		osk_cbor_put_map(&w, 5);
-		osk_cbor_put_uint(&w, 1); osk_cbor_put_uint(&w, 2);
-		osk_cbor_put_uint(&w, 3); osk_cbor_put_int(&w, -25);
-		osk_cbor_put_int(&w, -1); osk_cbor_put_uint(&w, 1);
-		osk_cbor_put_int(&w, -2); osk_cbor_put_bytes(&w, platform_pub, 32);
-		osk_cbor_put_int(&w, -3); osk_cbor_put_bytes(&w, platform_pub + 32, 32);
-		osk_cbor_put_uint(&w, 2); osk_cbor_put_bytes(&w, salt_enc, salt_enc_len);
-		osk_cbor_put_uint(&w, 3); osk_cbor_put_bytes(&w, salt_auth, salt_auth_len);
-		osk_cbor_put_uint(&w, 4); osk_cbor_put_uint(&w, 2);
+		osk_cbor_put_uint(&w, 1);
+		osk_cbor_put_uint(&w, 2);
+		osk_cbor_put_uint(&w, 3);
+		osk_cbor_put_int(&w, -25);
+		osk_cbor_put_int(&w, -1);
+		osk_cbor_put_uint(&w, 1);
+		osk_cbor_put_int(&w, -2);
+		osk_cbor_put_bytes(&w, platform_pub, 32);
+		osk_cbor_put_int(&w, -3);
+		osk_cbor_put_bytes(&w, platform_pub + 32, 32);
+		osk_cbor_put_uint(&w, 2);
+		osk_cbor_put_bytes(&w, salt_enc, salt_enc_len);
+		osk_cbor_put_uint(&w, 3);
+		osk_cbor_put_bytes(&w, salt_auth, salt_auth_len);
+		osk_cbor_put_uint(&w, 4);
+		osk_cbor_put_uint(&w, 2);
 		T_TRUE("Anfrage passt in den Puffer", osk_cbor_writer_ok(&w));
 		m.len = 1 + w.len;
 	}
 	T_EQ("Anfrage ist kanonisch", osk_cbor_validate(m.buf + 1, m.len - 1), OSK_OK);
 
-	T_EQ("GetAssertion mit hmac-secret",
-	     h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len), CTAP2_OK);
+	T_EQ("GetAssertion mit hmac-secret", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len),
+	     CTAP2_OK);
 	T_EQ("Antwort kanonisch", osk_cbor_validate(g_body, g_len), OSK_OK);
 
 	/* Die Ausgabe steht als Erweiterung im authData. */
@@ -580,8 +584,7 @@ static void test_hmac_secret(void)
 	T_EQ("IV plus ein Block", (long long)enc_len, 48);
 
 	uint8_t got[32];
-	T_EQ("entschluesseln",
-	     osk_aes256_cbc_decrypt(shared + 32, enc, enc + 16, got, 32), OSK_OK);
+	T_EQ("entschluesseln", osk_aes256_cbc_decrypt(shared + 32, enc, enc + 16, got, 32), OSK_OK);
 
 	/* Dasselbe selbst rechnen: CredRandomWithoutUV kommt aus der
 	 * Ableitung ueber das Salz der Credential-ID. */
@@ -589,8 +592,8 @@ static void test_hmac_secret(void)
 	T_EQ("ID oeffnen", osk_credid_unpack(id, len, &cid), OSK_OK);
 	uint8_t cred_random[32], want[32];
 	T_EQ("CredRandom",
-	     osk_ctap_key_secret(OSK_INFO_HMAC_NOUV, cid.salt, cid.rp_id_hash,
-				 cred_random), OSK_OK);
+	     osk_ctap_key_secret(OSK_INFO_HMAC_NOUV, cid.salt, cid.rp_id_hash, cred_random),
+	     OSK_OK);
 	osk_hmac_sha256(cred_random, 32, salt, 32, want);
 	T_TRUE("hmac-secret stimmt", memcmp(got, want, 32) == 0);
 
@@ -605,31 +608,42 @@ static void test_hmac_secret(void)
 		m.buf[0] = OSK_CTAP_CMD_GET_ASSERTION;
 		osk_cbor_writer_init(&w, m.buf + 1, sizeof(m.buf) - 1);
 		osk_cbor_put_map(&w, 4);
-		osk_cbor_put_uint(&w, 0x01); osk_cbor_put_text(&w, "example.com");
-		osk_cbor_put_uint(&w, 0x02); osk_cbor_put_bytes(&w, hash, 32);
+		osk_cbor_put_uint(&w, 0x01);
+		osk_cbor_put_text(&w, "example.com");
+		osk_cbor_put_uint(&w, 0x02);
+		osk_cbor_put_bytes(&w, hash, 32);
 		osk_cbor_put_uint(&w, 0x03);
 		osk_cbor_put_array(&w, 1);
 		osk_cbor_put_map(&w, 2);
-		osk_cbor_put_text(&w, "id"); osk_cbor_put_bytes(&w, id, len2);
-		osk_cbor_put_text(&w, "type"); osk_cbor_put_text(&w, "public-key");
+		osk_cbor_put_text(&w, "id");
+		osk_cbor_put_bytes(&w, id, len2);
+		osk_cbor_put_text(&w, "type");
+		osk_cbor_put_text(&w, "public-key");
 		osk_cbor_put_uint(&w, 0x04);
 		osk_cbor_put_map(&w, 1);
 		osk_cbor_put_text(&w, "hmac-secret");
 		osk_cbor_put_map(&w, 4);
 		osk_cbor_put_uint(&w, 1);
 		osk_cbor_put_map(&w, 5);
-		osk_cbor_put_uint(&w, 1); osk_cbor_put_uint(&w, 2);
-		osk_cbor_put_uint(&w, 3); osk_cbor_put_int(&w, -25);
-		osk_cbor_put_int(&w, -1); osk_cbor_put_uint(&w, 1);
-		osk_cbor_put_int(&w, -2); osk_cbor_put_bytes(&w, platform_pub, 32);
-		osk_cbor_put_int(&w, -3); osk_cbor_put_bytes(&w, platform_pub + 32, 32);
-		osk_cbor_put_uint(&w, 2); osk_cbor_put_bytes(&w, salt_enc, salt_enc_len);
-		osk_cbor_put_uint(&w, 3); osk_cbor_put_bytes(&w, salt_auth, salt_auth_len);
-		osk_cbor_put_uint(&w, 4); osk_cbor_put_uint(&w, 2);
+		osk_cbor_put_uint(&w, 1);
+		osk_cbor_put_uint(&w, 2);
+		osk_cbor_put_uint(&w, 3);
+		osk_cbor_put_int(&w, -25);
+		osk_cbor_put_int(&w, -1);
+		osk_cbor_put_uint(&w, 1);
+		osk_cbor_put_int(&w, -2);
+		osk_cbor_put_bytes(&w, platform_pub, 32);
+		osk_cbor_put_int(&w, -3);
+		osk_cbor_put_bytes(&w, platform_pub + 32, 32);
+		osk_cbor_put_uint(&w, 2);
+		osk_cbor_put_bytes(&w, salt_enc, salt_enc_len);
+		osk_cbor_put_uint(&w, 3);
+		osk_cbor_put_bytes(&w, salt_auth, salt_auth_len);
+		osk_cbor_put_uint(&w, 4);
+		osk_cbor_put_uint(&w, 2);
 		m.len = 1 + w.len;
 	}
-	T_EQ("geht trotzdem durch",
-	     h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len), CTAP2_OK);
+	T_EQ("geht trotzdem durch", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len), CTAP2_OK);
 	T_TRUE("authData", h_get_bytes(g_body, g_len, 0x02, &ad, &ad_len));
 	T_EQ("keine Erweiterungsausgabe", (long long)ad_len, 37);
 
@@ -641,27 +655,39 @@ static void test_hmac_secret(void)
 		m.buf[0] = OSK_CTAP_CMD_GET_ASSERTION;
 		osk_cbor_writer_init(&w, m.buf + 1, sizeof(m.buf) - 1);
 		osk_cbor_put_map(&w, 4);
-		osk_cbor_put_uint(&w, 0x01); osk_cbor_put_text(&w, "example.com");
-		osk_cbor_put_uint(&w, 0x02); osk_cbor_put_bytes(&w, hash, 32);
+		osk_cbor_put_uint(&w, 0x01);
+		osk_cbor_put_text(&w, "example.com");
+		osk_cbor_put_uint(&w, 0x02);
+		osk_cbor_put_bytes(&w, hash, 32);
 		osk_cbor_put_uint(&w, 0x03);
 		osk_cbor_put_array(&w, 1);
 		osk_cbor_put_map(&w, 2);
-		osk_cbor_put_text(&w, "id"); osk_cbor_put_bytes(&w, id, len2);
-		osk_cbor_put_text(&w, "type"); osk_cbor_put_text(&w, "public-key");
+		osk_cbor_put_text(&w, "id");
+		osk_cbor_put_bytes(&w, id, len2);
+		osk_cbor_put_text(&w, "type");
+		osk_cbor_put_text(&w, "public-key");
 		osk_cbor_put_uint(&w, 0x04);
 		osk_cbor_put_map(&w, 1);
 		osk_cbor_put_text(&w, "hmac-secret");
 		osk_cbor_put_map(&w, 4);
 		osk_cbor_put_uint(&w, 1);
 		osk_cbor_put_map(&w, 5);
-		osk_cbor_put_uint(&w, 1); osk_cbor_put_uint(&w, 2);
-		osk_cbor_put_uint(&w, 3); osk_cbor_put_int(&w, -25);
-		osk_cbor_put_int(&w, -1); osk_cbor_put_uint(&w, 1);
-		osk_cbor_put_int(&w, -2); osk_cbor_put_bytes(&w, platform_pub, 32);
-		osk_cbor_put_int(&w, -3); osk_cbor_put_bytes(&w, platform_pub + 32, 32);
-		osk_cbor_put_uint(&w, 2); osk_cbor_put_bytes(&w, salt_enc, salt_enc_len);
-		osk_cbor_put_uint(&w, 3); osk_cbor_put_bytes(&w, salt_auth, salt_auth_len);
-		osk_cbor_put_uint(&w, 4); osk_cbor_put_uint(&w, 2);
+		osk_cbor_put_uint(&w, 1);
+		osk_cbor_put_uint(&w, 2);
+		osk_cbor_put_uint(&w, 3);
+		osk_cbor_put_int(&w, -25);
+		osk_cbor_put_int(&w, -1);
+		osk_cbor_put_uint(&w, 1);
+		osk_cbor_put_int(&w, -2);
+		osk_cbor_put_bytes(&w, platform_pub, 32);
+		osk_cbor_put_int(&w, -3);
+		osk_cbor_put_bytes(&w, platform_pub + 32, 32);
+		osk_cbor_put_uint(&w, 2);
+		osk_cbor_put_bytes(&w, salt_enc, salt_enc_len);
+		osk_cbor_put_uint(&w, 3);
+		osk_cbor_put_bytes(&w, salt_auth, salt_auth_len);
+		osk_cbor_put_uint(&w, 4);
+		osk_cbor_put_uint(&w, 2);
 		m.len = 1 + w.len;
 	}
 	/* Mit einem Nachweis, der hmac-secret hat, muss das ein Fehler sein. */
@@ -669,38 +695,49 @@ static void test_hmac_secret(void)
 	start();
 	const size_t len3 = create_cred("example.com", "anna", false, true, 0, id3);
 	T_TRUE("mit hmac-secret", len3 == OSK_CREDID_LEN);
-	memcpy(m.buf + 1 + 0, m.buf + 1, 0);   /* nichts, nur Klarheit */
+	memcpy(m.buf + 1 + 0, m.buf + 1, 0); /* nichts, nur Klarheit */
 	{
 		uint8_t hash[32];
 		osk_sha256((const uint8_t *)"clientData", 10, hash);
 		m.buf[0] = OSK_CTAP_CMD_GET_ASSERTION;
 		osk_cbor_writer_init(&w, m.buf + 1, sizeof(m.buf) - 1);
 		osk_cbor_put_map(&w, 4);
-		osk_cbor_put_uint(&w, 0x01); osk_cbor_put_text(&w, "example.com");
-		osk_cbor_put_uint(&w, 0x02); osk_cbor_put_bytes(&w, hash, 32);
+		osk_cbor_put_uint(&w, 0x01);
+		osk_cbor_put_text(&w, "example.com");
+		osk_cbor_put_uint(&w, 0x02);
+		osk_cbor_put_bytes(&w, hash, 32);
 		osk_cbor_put_uint(&w, 0x03);
 		osk_cbor_put_array(&w, 1);
 		osk_cbor_put_map(&w, 2);
-		osk_cbor_put_text(&w, "id"); osk_cbor_put_bytes(&w, id3, len3);
-		osk_cbor_put_text(&w, "type"); osk_cbor_put_text(&w, "public-key");
+		osk_cbor_put_text(&w, "id");
+		osk_cbor_put_bytes(&w, id3, len3);
+		osk_cbor_put_text(&w, "type");
+		osk_cbor_put_text(&w, "public-key");
 		osk_cbor_put_uint(&w, 0x04);
 		osk_cbor_put_map(&w, 1);
 		osk_cbor_put_text(&w, "hmac-secret");
 		osk_cbor_put_map(&w, 4);
 		osk_cbor_put_uint(&w, 1);
 		osk_cbor_put_map(&w, 5);
-		osk_cbor_put_uint(&w, 1); osk_cbor_put_uint(&w, 2);
-		osk_cbor_put_uint(&w, 3); osk_cbor_put_int(&w, -25);
-		osk_cbor_put_int(&w, -1); osk_cbor_put_uint(&w, 1);
-		osk_cbor_put_int(&w, -2); osk_cbor_put_bytes(&w, platform_pub, 32);
-		osk_cbor_put_int(&w, -3); osk_cbor_put_bytes(&w, platform_pub + 32, 32);
-		osk_cbor_put_uint(&w, 2); osk_cbor_put_bytes(&w, salt_enc, salt_enc_len);
-		osk_cbor_put_uint(&w, 3); osk_cbor_put_bytes(&w, salt_auth, salt_auth_len);
-		osk_cbor_put_uint(&w, 4); osk_cbor_put_uint(&w, 2);
+		osk_cbor_put_uint(&w, 1);
+		osk_cbor_put_uint(&w, 2);
+		osk_cbor_put_uint(&w, 3);
+		osk_cbor_put_int(&w, -25);
+		osk_cbor_put_int(&w, -1);
+		osk_cbor_put_uint(&w, 1);
+		osk_cbor_put_int(&w, -2);
+		osk_cbor_put_bytes(&w, platform_pub, 32);
+		osk_cbor_put_int(&w, -3);
+		osk_cbor_put_bytes(&w, platform_pub + 32, 32);
+		osk_cbor_put_uint(&w, 2);
+		osk_cbor_put_bytes(&w, salt_enc, salt_enc_len);
+		osk_cbor_put_uint(&w, 3);
+		osk_cbor_put_bytes(&w, salt_auth, salt_auth_len);
+		osk_cbor_put_uint(&w, 4);
+		osk_cbor_put_uint(&w, 2);
 		m.len = 1 + w.len;
 	}
-	T_EQ("falscher saltAuth fliegt auf",
-	     h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len),
+	T_EQ("falscher saltAuth fliegt auf", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len),
 	     CTAP2_ERR_PIN_AUTH_INVALID);
 }
 
@@ -719,21 +756,27 @@ static void test_min_pin_length(void)
 	m.buf[0] = OSK_CTAP_CMD_MAKE_CREDENTIAL;
 	osk_cbor_writer_init(&w, m.buf + 1, sizeof(m.buf) - 1);
 	osk_cbor_put_map(&w, 5);
-	osk_cbor_put_uint(&w, 1); osk_cbor_put_bytes(&w, hash, 32);
+	osk_cbor_put_uint(&w, 1);
+	osk_cbor_put_bytes(&w, hash, 32);
 	osk_cbor_put_uint(&w, 2);
 	osk_cbor_put_map(&w, 1);
-	osk_cbor_put_text(&w, "id"); osk_cbor_put_text(&w, "firma.example");
+	osk_cbor_put_text(&w, "id");
+	osk_cbor_put_text(&w, "firma.example");
 	osk_cbor_put_uint(&w, 3);
 	osk_cbor_put_map(&w, 1);
-	osk_cbor_put_text(&w, "id"); osk_cbor_put_bytes(&w, (const uint8_t *)"u", 1);
+	osk_cbor_put_text(&w, "id");
+	osk_cbor_put_bytes(&w, (const uint8_t *)"u", 1);
 	osk_cbor_put_uint(&w, 4);
 	osk_cbor_put_array(&w, 1);
 	osk_cbor_put_map(&w, 2);
-	osk_cbor_put_text(&w, "alg"); osk_cbor_put_int(&w, -7);
-	osk_cbor_put_text(&w, "type"); osk_cbor_put_text(&w, "public-key");
+	osk_cbor_put_text(&w, "alg");
+	osk_cbor_put_int(&w, -7);
+	osk_cbor_put_text(&w, "type");
+	osk_cbor_put_text(&w, "public-key");
 	osk_cbor_put_uint(&w, 6);
 	osk_cbor_put_map(&w, 1);
-	osk_cbor_put_text(&w, "minPinLength"); osk_cbor_put_bool(&w, true);
+	osk_cbor_put_text(&w, "minPinLength");
+	osk_cbor_put_bool(&w, true);
 	m.len = 1 + w.len;
 
 	/* Ohne Freigabe der RP-ID bleibt die Erweiterung stumm. */
@@ -785,26 +828,33 @@ static void test_large_blob(void)
 	m.buf[0] = OSK_CTAP_CMD_MAKE_CREDENTIAL;
 	osk_cbor_writer_init(&w, m.buf + 1, sizeof(m.buf) - 1);
 	osk_cbor_put_map(&w, 6);
-	osk_cbor_put_uint(&w, 1); osk_cbor_put_bytes(&w, hash, 32);
+	osk_cbor_put_uint(&w, 1);
+	osk_cbor_put_bytes(&w, hash, 32);
 	osk_cbor_put_uint(&w, 2);
 	osk_cbor_put_map(&w, 1);
-	osk_cbor_put_text(&w, "id"); osk_cbor_put_text(&w, "example.com");
+	osk_cbor_put_text(&w, "id");
+	osk_cbor_put_text(&w, "example.com");
 	osk_cbor_put_uint(&w, 3);
 	osk_cbor_put_map(&w, 1);
-	osk_cbor_put_text(&w, "id"); osk_cbor_put_bytes(&w, (const uint8_t *)"u", 1);
+	osk_cbor_put_text(&w, "id");
+	osk_cbor_put_bytes(&w, (const uint8_t *)"u", 1);
 	osk_cbor_put_uint(&w, 4);
 	osk_cbor_put_array(&w, 1);
 	osk_cbor_put_map(&w, 2);
-	osk_cbor_put_text(&w, "alg"); osk_cbor_put_int(&w, -7);
-	osk_cbor_put_text(&w, "type"); osk_cbor_put_text(&w, "public-key");
+	osk_cbor_put_text(&w, "alg");
+	osk_cbor_put_int(&w, -7);
+	osk_cbor_put_text(&w, "type");
+	osk_cbor_put_text(&w, "public-key");
 	osk_cbor_put_uint(&w, 6);
 	osk_cbor_put_map(&w, 1);
 	osk_cbor_put_text(&w, "largeBlob");
 	osk_cbor_put_map(&w, 1);
-	osk_cbor_put_text(&w, "support"); osk_cbor_put_text(&w, "preferred");
+	osk_cbor_put_text(&w, "support");
+	osk_cbor_put_text(&w, "preferred");
 	osk_cbor_put_uint(&w, 7);
 	osk_cbor_put_map(&w, 1);
-	osk_cbor_put_text(&w, "rk"); osk_cbor_put_bool(&w, true);
+	osk_cbor_put_text(&w, "rk");
+	osk_cbor_put_bool(&w, true);
 	m.len = 1 + w.len;
 
 	T_EQ("angelegt", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len), CTAP2_OK);
@@ -820,23 +870,29 @@ static void test_large_blob(void)
 	memcpy(id, ad + 55, cid_len);
 
 	/* Schreiben: mit allowList, write und originalSize. */
-	const uint8_t blob[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+	const uint8_t blob[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 	m.buf[0] = OSK_CTAP_CMD_GET_ASSERTION;
 	osk_cbor_writer_init(&w, m.buf + 1, sizeof(m.buf) - 1);
 	osk_cbor_put_map(&w, 4);
-	osk_cbor_put_uint(&w, 0x01); osk_cbor_put_text(&w, "example.com");
-	osk_cbor_put_uint(&w, 0x02); osk_cbor_put_bytes(&w, hash, 32);
+	osk_cbor_put_uint(&w, 0x01);
+	osk_cbor_put_text(&w, "example.com");
+	osk_cbor_put_uint(&w, 0x02);
+	osk_cbor_put_bytes(&w, hash, 32);
 	osk_cbor_put_uint(&w, 0x03);
 	osk_cbor_put_array(&w, 1);
 	osk_cbor_put_map(&w, 2);
-	osk_cbor_put_text(&w, "id"); osk_cbor_put_bytes(&w, id, cid_len);
-	osk_cbor_put_text(&w, "type"); osk_cbor_put_text(&w, "public-key");
+	osk_cbor_put_text(&w, "id");
+	osk_cbor_put_bytes(&w, id, cid_len);
+	osk_cbor_put_text(&w, "type");
+	osk_cbor_put_text(&w, "public-key");
 	osk_cbor_put_uint(&w, 0x04);
 	osk_cbor_put_map(&w, 1);
 	osk_cbor_put_text(&w, "largeBlob");
 	osk_cbor_put_map(&w, 2);
-	osk_cbor_put_text(&w, "write"); osk_cbor_put_bytes(&w, blob, sizeof(blob));
-	osk_cbor_put_text(&w, "originalSize"); osk_cbor_put_uint(&w, 99);
+	osk_cbor_put_text(&w, "write");
+	osk_cbor_put_bytes(&w, blob, sizeof(blob));
+	osk_cbor_put_text(&w, "originalSize");
+	osk_cbor_put_uint(&w, 99);
 	m.len = 1 + w.len;
 	T_EQ("Anfrage kanonisch", osk_cbor_validate(m.buf + 1, m.len - 1), OSK_OK);
 
@@ -848,18 +904,23 @@ static void test_large_blob(void)
 	m.buf[0] = OSK_CTAP_CMD_GET_ASSERTION;
 	osk_cbor_writer_init(&w, m.buf + 1, sizeof(m.buf) - 1);
 	osk_cbor_put_map(&w, 4);
-	osk_cbor_put_uint(&w, 0x01); osk_cbor_put_text(&w, "example.com");
-	osk_cbor_put_uint(&w, 0x02); osk_cbor_put_bytes(&w, hash, 32);
+	osk_cbor_put_uint(&w, 0x01);
+	osk_cbor_put_text(&w, "example.com");
+	osk_cbor_put_uint(&w, 0x02);
+	osk_cbor_put_bytes(&w, hash, 32);
 	osk_cbor_put_uint(&w, 0x03);
 	osk_cbor_put_array(&w, 1);
 	osk_cbor_put_map(&w, 2);
-	osk_cbor_put_text(&w, "id"); osk_cbor_put_bytes(&w, id, cid_len);
-	osk_cbor_put_text(&w, "type"); osk_cbor_put_text(&w, "public-key");
+	osk_cbor_put_text(&w, "id");
+	osk_cbor_put_bytes(&w, id, cid_len);
+	osk_cbor_put_text(&w, "type");
+	osk_cbor_put_text(&w, "public-key");
 	osk_cbor_put_uint(&w, 0x04);
 	osk_cbor_put_map(&w, 1);
 	osk_cbor_put_text(&w, "largeBlob");
 	osk_cbor_put_map(&w, 1);
-	osk_cbor_put_text(&w, "read"); osk_cbor_put_bool(&w, true);
+	osk_cbor_put_text(&w, "read");
+	osk_cbor_put_bool(&w, true);
 	m.len = 1 + w.len;
 
 	T_EQ("lesen", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len), CTAP2_OK);
@@ -877,8 +938,7 @@ static void test_large_blob(void)
 	const uint8_t *got = NULL;
 	size_t got_len = 0;
 	T_EQ("Inhalt", osk_cbor_read_bytes(&r, &got, &got_len), OSK_OK);
-	T_TRUE("derselbe Inhalt",
-	       got_len == sizeof(blob) && memcmp(got, blob, got_len) == 0);
+	T_TRUE("derselbe Inhalt", got_len == sizeof(blob) && memcmp(got, blob, got_len) == 0);
 	T_EQ("originalSize", osk_cbor_read_text(&r, &k, &klen), OSK_OK);
 	uint64_t v = 0;
 	T_EQ("Wert", osk_cbor_read_uint(&r, &v), OSK_OK);
@@ -888,18 +948,23 @@ static void test_large_blob(void)
 	m.buf[0] = OSK_CTAP_CMD_GET_ASSERTION;
 	osk_cbor_writer_init(&w, m.buf + 1, sizeof(m.buf) - 1);
 	osk_cbor_put_map(&w, 3);
-	osk_cbor_put_uint(&w, 0x01); osk_cbor_put_text(&w, "example.com");
-	osk_cbor_put_uint(&w, 0x02); osk_cbor_put_bytes(&w, hash, 32);
+	osk_cbor_put_uint(&w, 0x01);
+	osk_cbor_put_text(&w, "example.com");
+	osk_cbor_put_uint(&w, 0x02);
+	osk_cbor_put_bytes(&w, hash, 32);
 	osk_cbor_put_uint(&w, 0x04);
 	osk_cbor_put_map(&w, 1);
 	osk_cbor_put_text(&w, "largeBlob");
 	osk_cbor_put_map(&w, 3);
-	osk_cbor_put_text(&w, "read"); osk_cbor_put_bool(&w, true);
-	osk_cbor_put_text(&w, "write"); osk_cbor_put_bytes(&w, blob, sizeof(blob));
-	osk_cbor_put_text(&w, "originalSize"); osk_cbor_put_uint(&w, 99);
+	osk_cbor_put_text(&w, "read");
+	osk_cbor_put_bool(&w, true);
+	osk_cbor_put_text(&w, "write");
+	osk_cbor_put_bytes(&w, blob, sizeof(blob));
+	osk_cbor_put_text(&w, "originalSize");
+	osk_cbor_put_uint(&w, 99);
 	m.len = 1 + w.len;
-	T_EQ("lesen und schreiben zugleich",
-	     h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len), CTAP2_ERR_INVALID_CBOR);
+	T_EQ("lesen und schreiben zugleich", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len),
+	     CTAP2_ERR_INVALID_CBOR);
 }
 
 /* ---- Selection und Reset ----------------------------------------------- */
@@ -907,7 +972,7 @@ static void test_large_blob(void)
 static void test_selection(void)
 {
 	start();
-	const uint8_t msg[1] = { OSK_CTAP_CMD_SELECTION };
+	const uint8_t msg[1] = {OSK_CTAP_CMD_SELECTION};
 
 	T_EQ("Selection ok", h_call(msg, 1, g_body, sizeof(g_body), &g_len), CTAP2_OK);
 	T_EQ("keine Nutzdaten in der Antwort", (long long)g_len, 0);
@@ -930,7 +995,7 @@ static void test_reset(void)
 	T_TRUE("angelegt", len == OSK_CREDID_LEN);
 	T_EQ("im Tresor", (long long)mock_store_count(), 1);
 
-	const uint8_t msg[1] = { OSK_CTAP_CMD_RESET };
+	const uint8_t msg[1] = {OSK_CTAP_CMD_RESET};
 	T_EQ("Reset ok", h_call(msg, 1, g_body, sizeof(g_body), &g_len), CTAP2_OK);
 	T_EQ("Tresor leer", (long long)mock_store_count(), 0);
 
@@ -954,7 +1019,7 @@ static void test_reset_ueber_nfc(void)
 	start();
 	memset(&req, 0, sizeof(req));
 	memset(&res, 0, sizeof(res));
-	const uint8_t msg[1] = { OSK_CTAP_CMD_RESET };
+	const uint8_t msg[1] = {OSK_CTAP_CMD_RESET};
 	req.link = OSK_LINK_NFC;
 	req.data = msg;
 	req.len = 1;
@@ -981,15 +1046,19 @@ static void test_grenzen(void)
 	m.buf[0] = OSK_CTAP_CMD_GET_ASSERTION;
 	osk_cbor_writer_init(&w, m.buf + 1, sizeof(m.buf) - 1);
 	osk_cbor_put_map(&w, 3);
-	osk_cbor_put_uint(&w, 0x01); osk_cbor_put_text(&w, "example.com");
-	osk_cbor_put_uint(&w, 0x02); osk_cbor_put_bytes(&w, hash, 32);
+	osk_cbor_put_uint(&w, 0x01);
+	osk_cbor_put_text(&w, "example.com");
+	osk_cbor_put_uint(&w, 0x02);
+	osk_cbor_put_bytes(&w, hash, 32);
 	osk_cbor_put_uint(&w, 0x03);
 	osk_cbor_put_array(&w, OSK_MAX_LIST + 1);
 	for (unsigned i = 0; i <= OSK_MAX_LIST; i++) {
-		const uint8_t fake[4] = { 1, 2, 3, (uint8_t)i };
+		const uint8_t fake[4] = {1, 2, 3, (uint8_t)i};
 		osk_cbor_put_map(&w, 2);
-		osk_cbor_put_text(&w, "id"); osk_cbor_put_bytes(&w, fake, sizeof(fake));
-		osk_cbor_put_text(&w, "type"); osk_cbor_put_text(&w, "public-key");
+		osk_cbor_put_text(&w, "id");
+		osk_cbor_put_bytes(&w, fake, sizeof(fake));
+		osk_cbor_put_text(&w, "type");
+		osk_cbor_put_text(&w, "public-key");
 	}
 	m.len = 1 + w.len;
 	T_EQ("zu viele Eintraege", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len),
@@ -999,9 +1068,12 @@ static void test_grenzen(void)
 	m.buf[0] = OSK_CTAP_CMD_GET_ASSERTION;
 	osk_cbor_writer_init(&w, m.buf + 1, sizeof(m.buf) - 1);
 	osk_cbor_put_map(&w, 3);
-	osk_cbor_put_uint(&w, 0x01); osk_cbor_put_text(&w, "example.com");
-	osk_cbor_put_uint(&w, 0x02); osk_cbor_put_bytes(&w, hash, 32);
-	osk_cbor_put_uint(&w, 0x03); osk_cbor_put_array(&w, 0);
+	osk_cbor_put_uint(&w, 0x01);
+	osk_cbor_put_text(&w, "example.com");
+	osk_cbor_put_uint(&w, 0x02);
+	osk_cbor_put_bytes(&w, hash, 32);
+	osk_cbor_put_uint(&w, 0x03);
+	osk_cbor_put_array(&w, 0);
 	m.len = 1 + w.len;
 	T_EQ("leere allowList", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len),
 	     CTAP1_ERR_INVALID_PARAMETER);
@@ -1010,11 +1082,14 @@ static void test_grenzen(void)
 	m.buf[0] = OSK_CTAP_CMD_GET_ASSERTION;
 	osk_cbor_writer_init(&w, m.buf + 1, sizeof(m.buf) - 1);
 	osk_cbor_put_map(&w, 3);
-	osk_cbor_put_uint(&w, 0x01); osk_cbor_put_text(&w, "example.com");
-	osk_cbor_put_uint(&w, 0x02); osk_cbor_put_bytes(&w, hash, 32);
+	osk_cbor_put_uint(&w, 0x01);
+	osk_cbor_put_text(&w, "example.com");
+	osk_cbor_put_uint(&w, 0x02);
+	osk_cbor_put_bytes(&w, hash, 32);
 	osk_cbor_put_uint(&w, 0x05);
 	osk_cbor_put_map(&w, 1);
-	osk_cbor_put_text(&w, "rk"); osk_cbor_put_bool(&w, true);
+	osk_cbor_put_text(&w, "rk");
+	osk_cbor_put_bool(&w, true);
 	m.len = 1 + w.len;
 	T_EQ("rk in GetAssertion", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len),
 	     CTAP2_ERR_UNSUPPORTED_OPTION);
@@ -1023,21 +1098,27 @@ static void test_grenzen(void)
 	m.buf[0] = OSK_CTAP_CMD_MAKE_CREDENTIAL;
 	osk_cbor_writer_init(&w, m.buf + 1, sizeof(m.buf) - 1);
 	osk_cbor_put_map(&w, 5);
-	osk_cbor_put_uint(&w, 1); osk_cbor_put_bytes(&w, hash, 32);
+	osk_cbor_put_uint(&w, 1);
+	osk_cbor_put_bytes(&w, hash, 32);
 	osk_cbor_put_uint(&w, 2);
 	osk_cbor_put_map(&w, 1);
-	osk_cbor_put_text(&w, "id"); osk_cbor_put_text(&w, "example.com");
+	osk_cbor_put_text(&w, "id");
+	osk_cbor_put_text(&w, "example.com");
 	osk_cbor_put_uint(&w, 3);
 	osk_cbor_put_map(&w, 1);
-	osk_cbor_put_text(&w, "id"); osk_cbor_put_bytes(&w, (const uint8_t *)"u", 1);
+	osk_cbor_put_text(&w, "id");
+	osk_cbor_put_bytes(&w, (const uint8_t *)"u", 1);
 	osk_cbor_put_uint(&w, 4);
 	osk_cbor_put_array(&w, 1);
 	osk_cbor_put_map(&w, 2);
-	osk_cbor_put_text(&w, "alg"); osk_cbor_put_int(&w, -7);
-	osk_cbor_put_text(&w, "type"); osk_cbor_put_text(&w, "public-key");
+	osk_cbor_put_text(&w, "alg");
+	osk_cbor_put_int(&w, -7);
+	osk_cbor_put_text(&w, "type");
+	osk_cbor_put_text(&w, "public-key");
 	osk_cbor_put_uint(&w, 7);
 	osk_cbor_put_map(&w, 1);
-	osk_cbor_put_text(&w, "up"); osk_cbor_put_bool(&w, false);
+	osk_cbor_put_text(&w, "up");
+	osk_cbor_put_bool(&w, false);
 	m.len = 1 + w.len;
 	T_EQ("up false", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len),
 	     CTAP2_ERR_INVALID_OPTION);
@@ -1046,13 +1127,61 @@ static void test_grenzen(void)
 	static uint8_t big[OSK_MAX_MSG + 8];
 	memset(big, 0, sizeof(big));
 	big[0] = OSK_CTAP_CMD_MAKE_CREDENTIAL;
-	T_EQ("zu grosse Nachricht",
-	     h_call(big, sizeof(big), g_body, sizeof(g_body), &g_len),
+	T_EQ("zu grosse Nachricht", h_call(big, sizeof(big), g_body, sizeof(g_body), &g_len),
 	     CTAP2_ERR_REQUEST_TOO_LARGE);
 
 	/* Leere Nachricht */
 	T_EQ("leere Nachricht", h_call(big, 0, g_body, sizeof(g_body), &g_len),
 	     CTAP1_ERR_INVALID_LENGTH);
+}
+
+/* Die Kennung im Tresor ist dafuer da, dass das Suchen nichts oeffnet, was
+ * nicht gemeint ist: sonst braeuchte jede Anmeldung eine Freigabe je
+ * fremdem Eintrag. Dieser Fall zaehlt mit. */
+static void test_suche_oeffnet_nur_den_treffer(void)
+{
+	uint8_t id[OSK_MAX_CRED_ID];
+	h_msg_t m;
+
+	start();
+	T_TRUE("Nachweis fuer example.com",
+	       create_cred("example.com", "anna", true, false, 0, id) == OSK_CREDID_LEN);
+	T_TRUE("Nachweis fuer bank.example",
+	       create_cred("bank.example", "berta", true, false, 0, id) == OSK_CREDID_LEN);
+	T_TRUE("Nachweis fuer forum.example",
+	       create_cred("forum.example", "clara", true, false, 0, id) == OSK_CREDID_LEN);
+	T_EQ("drei im Tresor", (long long)mock_store_count(), 3);
+
+	/* Jetzt bei einem der drei anmelden, ohne allowList. */
+	const unsigned before = mock_store_reveal_count();
+	build_get_assertion(&m, "bank.example", NULL, 0, NULL, 0, 0);
+	T_EQ("GetAssertion ok", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len), CTAP2_OK);
+	const unsigned opened = mock_store_reveal_count() - before;
+
+	/* Genau einer darf geoeffnet worden sein - der gesuchte. Ohne die
+	 * Kennung waeren es alle drei gewesen. */
+	T_EQ("nur ein Eintrag geoeffnet", (long long)opened, 1);
+
+	/* Und es war der richtige: die Nutzerkennung in der Antwort gehoert
+	 * zu berta. */
+	osk_cbor_reader_t r;
+	T_TRUE("user vorhanden", h_find(g_body, g_len, 0x04, &r));
+	size_t count = 0;
+	T_EQ("Abbildung", osk_cbor_enter_map(&r, &count), OSK_OK);
+	const char *k = NULL;
+	size_t klen = 0;
+	T_EQ("Schluessel", osk_cbor_read_text(&r, &k, &klen), OSK_OK);
+	const uint8_t *uid = NULL;
+	size_t uid_len = 0;
+	T_EQ("Kennung lesbar", osk_cbor_read_bytes(&r, &uid, &uid_len), OSK_OK);
+	T_TRUE("gehoert zu berta", uid_len == 5 && memcmp(uid, "berta", 5) == 0);
+
+	/* Ein Dienst, zu dem nichts im Tresor liegt, oeffnet gar nichts. */
+	const unsigned before2 = mock_store_reveal_count();
+	build_get_assertion(&m, "fremd.example", NULL, 0, NULL, 0, 0);
+	T_EQ("nichts gefunden", h_call(m.buf, m.len, g_body, sizeof(g_body), &g_len),
+	     CTAP2_ERR_NO_CREDENTIALS);
+	T_EQ("und nichts geoeffnet", (long long)(mock_store_reveal_count() - before2), 0);
 }
 
 int main(void)
@@ -1062,6 +1191,7 @@ int main(void)
 	test_make_credential_fehler();
 	test_get_assertion();
 	test_resident_und_next();
+	test_suche_oeffnet_nur_den_treffer();
 	test_resident_ueberschreiben();
 	test_tresor_voll();
 	test_cred_protect();

@@ -35,8 +35,7 @@ void osk_ctap_minpin_rp_clear(void)
 static bool minpin_rp_allowed(const char *rp_id, size_t len)
 {
 	for (size_t i = 0; i < g_minpin_rp_count; i++) {
-		if (strlen(g_minpin_rp[i]) == len &&
-		    memcmp(g_minpin_rp[i], rp_id, len) == 0)
+		if (strlen(g_minpin_rp[i]) == len && memcmp(g_minpin_rp[i], rp_id, len) == 0)
 			return true;
 	}
 	return false;
@@ -110,14 +109,13 @@ static osk_result_t parse_hmac_get(osk_cbor_reader_t *r, osk_ctap_ext_in_t *out)
 			}
 			have_key = true;
 		} else if (k == 2u) {
-			if (osk_cbor_read_bytes(r, &out->salt_enc,
-						&out->salt_enc_len) != OSK_OK) {
+			if (osk_cbor_read_bytes(r, &out->salt_enc, &out->salt_enc_len) != OSK_OK) {
 				rc = OSK_ERR_FORMAT;
 				break;
 			}
 		} else if (k == 3u) {
-			if (osk_cbor_read_bytes(r, &out->salt_auth,
-						&out->salt_auth_len) != OSK_OK) {
+			if (osk_cbor_read_bytes(r, &out->salt_auth, &out->salt_auth_len) !=
+			    OSK_OK) {
 				rc = OSK_ERR_FORMAT;
 				break;
 			}
@@ -141,8 +139,7 @@ static osk_result_t parse_hmac_get(osk_cbor_reader_t *r, osk_ctap_ext_in_t *out)
 	return rc;
 }
 
-static osk_result_t parse_large_blob(osk_cbor_reader_t *r, bool for_make,
-				     osk_ctap_ext_in_t *out)
+static osk_result_t parse_large_blob(osk_cbor_reader_t *r, bool for_make, osk_ctap_ext_in_t *out)
 {
 	size_t count = 0;
 
@@ -286,15 +283,13 @@ osk_result_t osk_ctap_ext_parse(osk_cbor_reader_t *r, bool for_make_credential,
 	return rc;
 }
 
-osk_result_t osk_ctap_ext_make_output(const osk_ctap_ext_in_t *in,
-				      const char *rp_id, size_t rp_id_len,
-				      uint8_t cred_protect_set,
-				      uint8_t *out, size_t cap, size_t *len_out)
+osk_result_t osk_ctap_ext_make_output(const osk_ctap_ext_in_t *in, const char *rp_id,
+				      size_t rp_id_len, uint8_t cred_protect_set, uint8_t *out,
+				      size_t cap, size_t *len_out)
 {
 	osk_cbor_writer_t w;
 	size_t entries = 0;
-	const bool want_minpin = in->min_pin_length &&
-				 minpin_rp_allowed(rp_id, rp_id_len);
+	const bool want_minpin = in->min_pin_length && minpin_rp_allowed(rp_id, rp_id_len);
 
 	if (in->cred_protect)
 		entries++;
@@ -330,10 +325,8 @@ osk_result_t osk_ctap_ext_make_output(const osk_ctap_ext_in_t *in,
 	return OSK_OK;
 }
 
-osk_result_t osk_ctap_ext_get_output(const osk_ctap_ext_in_t *in,
-				     const osk_credid_t *cred, bool uv,
-				     uint8_t *out, size_t cap, size_t *len_out,
-				     uint8_t *status_out)
+osk_result_t osk_ctap_ext_get_output(const osk_ctap_ext_in_t *in, const osk_credid_t *cred, bool uv,
+				     uint8_t *out, size_t cap, size_t *len_out, uint8_t *status_out)
 {
 	uint8_t shared[OSK_PIN_SHARED_LEN];
 	uint8_t salts[64];
@@ -357,7 +350,7 @@ osk_result_t osk_ctap_ext_get_output(const osk_ctap_ext_in_t *in,
 
 	uint64_t protocol = in->hmac_protocol;
 	if (!in->have_hmac_protocol)
-		protocol = 1u;   /* Vorgabe, weil wir Protokoll 1 koennen */
+		protocol = 1u; /* Vorgabe, weil wir Protokoll 1 koennen */
 	if (!osk_pin_protocol_supported(protocol)) {
 		*status_out = CTAP2_ERR_PIN_AUTH_INVALID;
 		return OSK_OK;
@@ -368,33 +361,31 @@ osk_result_t osk_ctap_ext_get_output(const osk_ctap_ext_in_t *in,
 		goto done;
 	}
 
-	if (!osk_pin_verify_mac(protocol, shared, sizeof(shared),
-				in->salt_enc, in->salt_enc_len,
+	if (!osk_pin_verify_mac(protocol, shared, sizeof(shared), in->salt_enc, in->salt_enc_len,
 				in->salt_auth, in->salt_auth_len)) {
 		*status_out = CTAP2_ERR_PIN_AUTH_INVALID;
 		goto done;
 	}
 
-	if (osk_pin_decrypt(protocol, shared, in->salt_enc, in->salt_enc_len,
-			    salts, sizeof(salts), &salts_len) != OSK_OK ||
+	if (osk_pin_decrypt(protocol, shared, in->salt_enc, in->salt_enc_len, salts, sizeof(salts),
+			    &salts_len) != OSK_OK ||
 	    (salts_len != 32 && salts_len != 64)) {
 		*status_out = CTAP1_ERR_INVALID_PARAMETER;
 		goto done;
 	}
 
-	if (osk_ctap_key_secret(uv ? OSK_INFO_HMAC_UV : OSK_INFO_HMAC_NOUV,
-				cred->salt, cred->rp_id_hash, cred_random) != OSK_OK) {
+	if (osk_ctap_key_secret(uv ? OSK_INFO_HMAC_UV : OSK_INFO_HMAC_NOUV, cred->salt,
+				cred->rp_id_hash, cred_random) != OSK_OK) {
 		*status_out = CTAP1_ERR_OTHER;
 		goto done;
 	}
 
 	osk_hmac_sha256(cred_random, sizeof(cred_random), salts, 32, outputs);
 	if (salts_len == 64)
-		osk_hmac_sha256(cred_random, sizeof(cred_random), salts + 32, 32,
-				outputs + 32);
+		osk_hmac_sha256(cred_random, sizeof(cred_random), salts + 32, 32, outputs + 32);
 
-	if (osk_pin_encrypt(protocol, shared, outputs, (salts_len == 64) ? 64u : 32u,
-			    enc, sizeof(enc), &enc_len) != OSK_OK) {
+	if (osk_pin_encrypt(protocol, shared, outputs, (salts_len == 64) ? 64u : 32u, enc,
+			    sizeof(enc), &enc_len) != OSK_OK) {
 		*status_out = CTAP1_ERR_OTHER;
 		goto done;
 	}
@@ -425,6 +416,9 @@ done:
 
 #define LB_SITE "osk-largeblob"
 #define LB_NAME_LEN (OSK_KEY_SALT_LEN * 2 + 1)
+/* Trennt die Kennung der grossen Daten von der eines residenten Nachweises,
+ * damit beide im selben Tresor nicht durcheinandergeraten. */
+#define LB_TAG_PREFIX "osk/largeblob-tag/v1"
 
 static void lb_name(const uint8_t salt[OSK_KEY_SALT_LEN], char out[LB_NAME_LEN])
 {
@@ -436,39 +430,38 @@ static void lb_name(const uint8_t salt[OSK_KEY_SALT_LEN], char out[LB_NAME_LEN])
 	out[OSK_KEY_SALT_LEN * 2] = 0;
 }
 
-/* Sucht den Eintrag dieses Nachweises. Liefert OSK_ERR_NOT_FOUND, wenn es
- * keinen gibt. */
-static osk_result_t lb_find(const uint8_t salt[OSK_KEY_SALT_LEN],
-			    osk_item_id_t *id_out)
+/* Suchschluessel der grossen Daten eines Nachweises. */
+static void lb_tag(const uint8_t salt[OSK_KEY_SALT_LEN], uint8_t out[32])
 {
-	char want[LB_NAME_LEN];
-	size_t count = 0;
+	osk_sha256_t c;
 
-	lb_name(salt, want);
-	if (osk_store_count(0, &count) != OSK_OK)
-		return OSK_ERR_IO;
-
-	for (size_t i = 0; i < count; i++) {
-		osk_item_meta_t meta;
-		memset(&meta, 0, sizeof(meta));
-		if (osk_store_list(0, i, &meta) != OSK_OK)
-			continue;
-		if (meta.type != OSK_ITEM_FILE || !meta.site || !meta.name)
-			continue;
-		if (strcmp(meta.site, LB_SITE) != 0)
-			continue;
-		if (strcmp(meta.name, want) != 0)
-			continue;
-		*id_out = meta.id;
-		return OSK_OK;
-	}
-	return OSK_ERR_NOT_FOUND;
+	osk_sha256_init(&c);
+	osk_sha256_update(&c, (const uint8_t *)LB_TAG_PREFIX, strlen(LB_TAG_PREFIX));
+	osk_sha256_update(&c, salt, OSK_KEY_SALT_LEN);
+	osk_sha256_final(&c, out);
 }
 
-osk_result_t osk_ctap_ext_unsigned_output(const osk_ctap_ext_in_t *in,
-					  const osk_credid_t *cred,
-					  bool allow_list_present,
-					  uint8_t *out, size_t cap, size_t *len_out)
+/* Sucht den Eintrag dieses Nachweises - ueber die Kennung, ohne einen
+ * einzigen Eintrag zu oeffnen. Liefert OSK_ERR_NOT_FOUND, wenn es keinen
+ * gibt. */
+static osk_result_t lb_find(const uint8_t salt[OSK_KEY_SALT_LEN], osk_item_id_t *id_out)
+{
+	uint8_t tag[32];
+	osk_item_id_t ids[2];
+	size_t count = 0;
+
+	lb_tag(salt, tag);
+	if (osk_store_find_tag(0, OSK_ITEM_FILE, tag, sizeof(tag), ids, (size_t)2, &count) !=
+		OSK_OK ||
+	    count == 0)
+		return OSK_ERR_NOT_FOUND;
+	*id_out = ids[0];
+	return OSK_OK;
+}
+
+osk_result_t osk_ctap_ext_unsigned_output(const osk_ctap_ext_in_t *in, const osk_credid_t *cred,
+					  bool allow_list_present, uint8_t *out, size_t cap,
+					  size_t *len_out)
 {
 	osk_cbor_writer_t w;
 
@@ -494,9 +487,9 @@ osk_result_t osk_ctap_ext_unsigned_output(const osk_ctap_ext_in_t *in,
 		osk_item_id_t id = 0;
 
 		if (lb_find(cred->salt, &id) != OSK_OK)
-			return OSK_OK;   /* nichts gespeichert: Erweiterung schweigt */
-		if (osk_store_reveal(id, "largeBlob", blob, sizeof(blob),
-				     &blob_len) != OSK_OK || blob_len < 4)
+			return OSK_OK; /* nichts gespeichert: Erweiterung schweigt */
+		if (osk_store_reveal(id, "largeBlob", blob, sizeof(blob), &blob_len) != OSK_OK ||
+		    blob_len < 4)
 			return OSK_OK;
 
 		/* Die ersten vier Bytes sind die urspruengliche Groesse. */
@@ -541,13 +534,14 @@ osk_result_t osk_ctap_ext_unsigned_output(const osk_ctap_ext_in_t *in,
 			meta.name = name;
 			meta.site = LB_SITE;
 			meta.mirrored = true;
+			lb_tag(cred->salt, meta.tag);
+			meta.tag_len = 32;
 
 			if (lb_find(cred->salt, &id) == OSK_OK) {
 				written = osk_store_update(id, &meta, buf,
 							   in->large_blob_write_len + 4) == OSK_OK;
 			} else {
-				written = osk_store_add(&meta, buf,
-							in->large_blob_write_len + 4,
+				written = osk_store_add(&meta, buf, in->large_blob_write_len + 4,
 							&id) == OSK_OK;
 			}
 			osk_wipe(buf, sizeof(buf));

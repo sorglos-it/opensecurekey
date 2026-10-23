@@ -25,8 +25,7 @@
 /* Kennung dieses Geraetemodells. Vorlaeufig; sie gehoert zum fertigen
  * Produkt und wird mit der ersten Serie festgelegt. */
 static const uint8_t OSK_AAGUID[16] = {
-	0x6f, 0x73, 0x6b, 0x2d, 0x6f, 0x70, 0x65, 0x6e,
-	0x73, 0x65, 0x63, 0x6b, 0x65, 0x79, 0x00, 0x01,
+    0x6f, 0x73, 0x6b, 0x2d, 0x6f, 0x70, 0x65, 0x6e, 0x73, 0x65, 0x63, 0x6b, 0x65, 0x79, 0x00, 0x01,
 };
 
 /* Ablage residenter Nachweise im Tresor. */
@@ -54,9 +53,8 @@ uint64_t osk_ctap_now_ms(void)
 /* ---- Bausteine --------------------------------------------------------- */
 
 osk_result_t osk_ctap_build_auth_data(const uint8_t rp_id_hash[32], uint8_t flags,
-				      uint32_t sign_count,
-				      const uint8_t *attested, size_t attested_len,
-				      const uint8_t *ext_cbor, size_t ext_len,
+				      uint32_t sign_count, const uint8_t *attested,
+				      size_t attested_len, const uint8_t *ext_cbor, size_t ext_len,
 				      uint8_t *out, size_t cap, size_t *len_out)
 {
 	size_t need = 37 + attested_len + ext_len;
@@ -83,11 +81,16 @@ void osk_ctap_put_cose_p256(osk_cbor_writer_t *w, const uint8_t pub[64])
 	/* Schluessel aufsteigend: 1, 3, -1, -2, -3 - Haupttyp 0 vor 1, dann
 	 * nach Wert. Genau so verlangt es die kanonische Form. */
 	osk_cbor_put_map(w, 5);
-	osk_cbor_put_uint(w, 1); osk_cbor_put_uint(w, 2);                  /* kty: EC2 */
-	osk_cbor_put_uint(w, 3); osk_cbor_put_int(w, OSK_COSE_ALG_ES256);  /* alg */
-	osk_cbor_put_int(w, -1); osk_cbor_put_uint(w, 1);                  /* crv: P-256 */
-	osk_cbor_put_int(w, -2); osk_cbor_put_bytes(w, pub, 32);
-	osk_cbor_put_int(w, -3); osk_cbor_put_bytes(w, pub + 32, 32);
+	osk_cbor_put_uint(w, 1);
+	osk_cbor_put_uint(w, 2); /* kty: EC2 */
+	osk_cbor_put_uint(w, 3);
+	osk_cbor_put_int(w, OSK_COSE_ALG_ES256); /* alg */
+	osk_cbor_put_int(w, -1);
+	osk_cbor_put_uint(w, 1); /* crv: P-256 */
+	osk_cbor_put_int(w, -2);
+	osk_cbor_put_bytes(w, pub, 32);
+	osk_cbor_put_int(w, -3);
+	osk_cbor_put_bytes(w, pub + 32, 32);
 }
 
 /* Fragt den Nutzer. subject ist immer der Dienst, damit auf dem Display
@@ -122,9 +125,8 @@ static bool copy_text(const char *src, size_t len, char *dst, size_t cap)
 
 /* ---- Residente Nachweise im Tresor ------------------------------------- */
 
-static size_t rk_pack(const uint8_t *cred_id, size_t cred_id_len,
-		      const uint8_t *user_id, size_t user_id_len,
-		      const char *user_name, uint8_t *out, size_t cap)
+static size_t rk_pack(const uint8_t *cred_id, size_t cred_id_len, const uint8_t *user_id,
+		      size_t user_id_len, const char *user_name, uint8_t *out, size_t cap)
 {
 	const size_t name_len = user_name ? strlen(user_name) : 0;
 	const size_t need = 1 + 1 + user_id_len + 1 + name_len + 1 + cred_id_len;
@@ -178,31 +180,34 @@ static bool rk_unpack(const uint8_t *rec, size_t len, osk_cred_t *out)
 	return true;
 }
 
-/* Sucht den Tresoreintrag eines residenten Nachweises; entweder ueber die
- * RP-ID allein (fuer die Suche) oder zusaetzlich ueber die Nutzerkennung
- * (zum Ueberschreiben). */
-static osk_result_t rk_find(const char *rp_id, const uint8_t *user_id, size_t user_id_len,
-			    osk_item_id_t *id_out, osk_cred_t *cred_out, size_t *start)
+/* Sucht den Tresoreintrag eines residenten Nachweises ueber die nicht
+ * geheime Kennung: tag = rpIdHash. Damit wird nur noch geoeffnet, was
+ * wirklich zu diesem Dienst gehoert - kein fremder Eintrag und keine
+ * Freigabe fuer Eintraege, die gar nicht gemeint sind.
+ * Entweder nur ueber den Dienst (fuer die Suche) oder zusaetzlich ueber die
+ * Nutzerkennung (zum Ueberschreiben). start zeigt beim naechsten Aufruf auf
+ * den naechsten Treffer. */
+static osk_result_t rk_find(const uint8_t rp_id_hash[32], const uint8_t *user_id,
+			    size_t user_id_len, osk_item_id_t *id_out, osk_cred_t *cred_out,
+			    size_t *start)
 {
+	osk_item_id_t ids[OSK_MAX_CANDIDATES];
 	size_t count = 0;
 
-	if (osk_store_count(0, &count) != OSK_OK)
-		return OSK_ERR_IO;
+	const osk_result_t rc =
+	    osk_store_find_tag(0, OSK_ITEM_FILE, rp_id_hash, 32, ids, OSK_MAX_CANDIDATES, &count);
+	if (rc != OSK_OK) {
+		if (start)
+			*start = 0;
+		return OSK_ERR_NOT_FOUND;
+	}
 
 	for (size_t i = (start ? *start : 0); i < count; i++) {
-		osk_item_meta_t meta;
 		uint8_t rec[RK_RECORD_MAX];
 		size_t rec_len = 0;
 		osk_cred_t cred;
 
-		memset(&meta, 0, sizeof(meta));
-		if (osk_store_list(0, i, &meta) != OSK_OK)
-			continue;
-		if (meta.type != OSK_ITEM_FILE || !meta.site || !meta.name)
-			continue;
-		if (strcmp(meta.site, RK_SITE) != 0 || strcmp(meta.name, rp_id) != 0)
-			continue;
-		if (osk_store_reveal(meta.id, "FIDO2", rec, sizeof(rec), &rec_len) != OSK_OK)
+		if (osk_store_reveal(ids[i], "FIDO2", rec, sizeof(rec), &rec_len) != OSK_OK)
 			continue;
 
 		memset(&cred, 0, sizeof(cred));
@@ -215,7 +220,7 @@ static osk_result_t rk_find(const char *rp_id, const uint8_t *user_id, size_t us
 			continue;
 
 		if (id_out)
-			*id_out = meta.id;
+			*id_out = ids[i];
 		if (cred_out)
 			*cred_out = cred;
 		if (start)
@@ -255,10 +260,8 @@ typedef struct {
 
 /* Liest eine Liste von PublicKeyCredentialDescriptor. Zu lange oder
  * fremdartige Eintraege werden uebergangen, nicht geraten. */
-static osk_result_t read_descriptor_list(osk_cbor_reader_t *r,
-					 const uint8_t **ids, size_t *lens,
-					 size_t cap, size_t *count_out,
-					 bool *too_many)
+static osk_result_t read_descriptor_list(osk_cbor_reader_t *r, const uint8_t **ids, size_t *lens,
+					 size_t cap, size_t *count_out, bool *too_many)
 {
 	size_t count = 0;
 
@@ -268,7 +271,7 @@ static osk_result_t read_descriptor_list(osk_cbor_reader_t *r,
 		return OSK_ERR_FORMAT;
 	if (count == 0) {
 		osk_cbor_leave(r);
-		return OSK_ERR_ARG;   /* leere Liste ist verboten */
+		return OSK_ERR_ARG; /* leere Liste ist verboten */
 	}
 	if (count > cap)
 		*too_many = true;
@@ -329,8 +332,8 @@ static osk_result_t read_descriptor_list(osk_cbor_reader_t *r,
 	return rc;
 }
 
-static osk_result_t read_options(osk_cbor_reader_t *r, bool *rk, bool *up, bool *uv,
-				 bool *have_up, bool *have_uv, bool *have_unknown_rk)
+static osk_result_t read_options(osk_cbor_reader_t *r, bool *rk, bool *up, bool *uv, bool *have_up,
+				 bool *have_uv, bool *have_unknown_rk)
 {
 	size_t count = 0;
 
@@ -375,7 +378,7 @@ static uint8_t parse_make_credential(const uint8_t *cbor, size_t len, mc_req_t *
 	bool exclude_too_many = false;
 
 	memset(q, 0, sizeof(*q));
-	q->opt_up = true;   /* Vorgabe */
+	q->opt_up = true; /* Vorgabe */
 
 	if (osk_cbor_validate(cbor, len) != OSK_OK)
 		return CTAP2_ERR_INVALID_CBOR;
@@ -402,7 +405,7 @@ static uint8_t parse_make_credential(const uint8_t *cbor, size_t len, mc_req_t *
 			if (q->client_data_hash_len != 32)
 				return CTAP1_ERR_INVALID_PARAMETER;
 			break;
-		case 0x02: {   /* rp */
+		case 0x02: { /* rp */
 			size_t fields = 0;
 			if (osk_cbor_enter_map(&r, &fields) != OSK_OK)
 				return CTAP2_ERR_CBOR_UNEXPECTED_TYPE;
@@ -427,7 +430,7 @@ static uint8_t parse_make_credential(const uint8_t *cbor, size_t len, mc_req_t *
 			osk_cbor_leave(&r);
 			break;
 		}
-		case 0x03: {   /* user */
+		case 0x03: { /* user */
 			size_t fields = 0;
 			if (osk_cbor_enter_map(&r, &fields) != OSK_OK)
 				return CTAP2_ERR_CBOR_UNEXPECTED_TYPE;
@@ -462,7 +465,7 @@ static uint8_t parse_make_credential(const uint8_t *cbor, size_t len, mc_req_t *
 			osk_cbor_leave(&r);
 			break;
 		}
-		case 0x04: {   /* pubKeyCredParams */
+		case 0x04: { /* pubKeyCredParams */
 			size_t n = 0;
 			if (osk_cbor_enter_array(&r, &n) != OSK_OK)
 				return CTAP2_ERR_CBOR_UNEXPECTED_TYPE;
@@ -504,12 +507,10 @@ static uint8_t parse_make_credential(const uint8_t *cbor, size_t len, mc_req_t *
 			osk_cbor_leave(&r);
 			break;
 		}
-		case 0x05: {   /* excludeList */
-			const osk_result_t rc = read_descriptor_list(&r, q->exclude,
-								     q->exclude_len,
-								     OSK_MAX_LIST,
-								     &q->exclude_count,
-								     &exclude_too_many);
+		case 0x05: { /* excludeList */
+			const osk_result_t rc =
+			    read_descriptor_list(&r, q->exclude, q->exclude_len, OSK_MAX_LIST,
+						 &q->exclude_count, &exclude_too_many);
 			if (rc == OSK_ERR_ARG)
 				return CTAP1_ERR_INVALID_PARAMETER;
 			if (rc != OSK_OK)
@@ -523,15 +524,13 @@ static uint8_t parse_make_credential(const uint8_t *cbor, size_t len, mc_req_t *
 			break;
 		case 0x07: {
 			bool have_rk = false;
-			if (read_options(&r, &q->opt_rk, &q->opt_up, &q->opt_uv,
-					 &q->have_opt_up, &q->have_opt_uv,
-					 &have_rk) != OSK_OK)
+			if (read_options(&r, &q->opt_rk, &q->opt_up, &q->opt_uv, &q->have_opt_up,
+					 &q->have_opt_uv, &have_rk) != OSK_OK)
 				return CTAP2_ERR_CBOR_UNEXPECTED_TYPE;
 			break;
 		}
 		case 0x08:
-			if (osk_cbor_read_bytes(&r, &q->pin_auth,
-						&q->pin_auth_len) != OSK_OK)
+			if (osk_cbor_read_bytes(&r, &q->pin_auth, &q->pin_auth_len) != OSK_OK)
 				return CTAP2_ERR_CBOR_UNEXPECTED_TYPE;
 			q->have_pin_auth = true;
 			break;
@@ -592,7 +591,7 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 
 	/* Schritt 4 und 5: Schalter deuten. */
 	if (q.have_pin_auth)
-		q.opt_uv = false;   /* pinUvAuthParam hat Vorrang */
+		q.opt_uv = false; /* pinUvAuthParam hat Vorrang */
 	if (q.have_opt_up && !q.opt_up)
 		return CTAP2_ERR_INVALID_OPTION;
 
@@ -605,8 +604,8 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 
 	/* Schritt 11: Benutzerpruefung. */
 	if (q.have_pin_auth) {
-		if (!osk_pin_verify_token(q.pin_protocol, q.client_data_hash, 32,
-					  q.pin_auth, q.pin_auth_len))
+		if (!osk_pin_verify_token(q.pin_protocol, q.client_data_hash, 32, q.pin_auth,
+					  q.pin_auth_len))
 			return CTAP2_ERR_PIN_AUTH_INVALID;
 		if (!osk_pin_has_permission(OSK_PERM_MC))
 			return CTAP2_ERR_PIN_AUTH_INVALID;
@@ -625,8 +624,7 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 		if (rc == OSK_ERR_TIMEOUT)
 			return CTAP2_ERR_USER_ACTION_TIMEOUT;
 		if (rc != OSK_OK || !verified)
-			return pin->pin_set ? CTAP2_ERR_PUAT_REQUIRED
-					    : CTAP2_ERR_OPERATION_DENIED;
+			return pin->pin_set ? CTAP2_ERR_PUAT_REQUIRED : CTAP2_ERR_OPERATION_DENIED;
 		flags |= (uint8_t)(OSK_AD_FLAG_UV | OSK_AD_FLAG_UP);
 	}
 
@@ -640,7 +638,7 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 			continue;
 		if (found.cred_protect == OSK_CRED_PROTECT_UV_REQUIRED &&
 		    (flags & OSK_AD_FLAG_UV) == 0)
-			continue;   /* gilt als nicht gefunden */
+			continue; /* gilt als nicht gefunden */
 		if ((flags & OSK_AD_FLAG_UP) == 0)
 			(void)ask_user(OSK_ASK_LOGIN, q.rp_id, NULL);
 		return CTAP2_ERR_CREDENTIAL_EXCLUDED;
@@ -666,8 +664,8 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 	memset(&cid, 0, sizeof(cid));
 	cid.resident = q.opt_rk;
 	cid.hmac_secret = q.ext.hmac_secret_create;
-	cid.cred_protect = q.ext.cred_protect ? q.ext.cred_protect_value
-					      : OSK_CRED_PROTECT_OPTIONAL;
+	cid.cred_protect =
+	    q.ext.cred_protect ? q.ext.cred_protect_value : OSK_CRED_PROTECT_OPTIONAL;
 	memcpy(cid.rp_id_hash, rp_id_hash, 32);
 	cid.created = (uint32_t)(osk_ctap_now_ms() / 1000u);
 	if (osk_se050_random(cid.salt, sizeof(cid.salt)) != OSK_OK)
@@ -689,9 +687,8 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 		osk_item_id_t old_id = 0;
 		osk_item_id_t new_id = 0;
 
-		const size_t rec_len = rk_pack(cred_id, cred_id_len, q.user_id,
-					       q.user_id_len, q.user_name,
-					       rec, sizeof(rec));
+		const size_t rec_len = rk_pack(cred_id, cred_id_len, q.user_id, q.user_id_len,
+					       q.user_name, rec, sizeof(rec));
 		if (rec_len == 0)
 			return CTAP1_ERR_OTHER;
 
@@ -702,9 +699,13 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 		meta.site = RK_SITE;
 		meta.mirrored = true;
 		meta.changed_utc = osk_ctap_now_ms() / 1000u;
+		/* Suchschluessel: der Hash des Dienstnamens. Er liegt im
+		 * verschluesselten Teil des Tresors, verraet also nichts. */
+		memcpy(meta.tag, rp_id_hash, 32);
+		meta.tag_len = 32;
 
 		osk_result_t rc;
-		if (rk_find(q.rp_id, q.user_id, q.user_id_len, &old_id, NULL, NULL) == OSK_OK)
+		if (rk_find(rp_id_hash, q.user_id, q.user_id_len, &old_id, NULL, NULL) == OSK_OK)
 			rc = osk_store_update(old_id, &meta, rec, rec_len);
 		else
 			rc = osk_store_add(&meta, rec, rec_len, &new_id);
@@ -719,9 +720,8 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 	/* Erweiterungsausgaben */
 	uint8_t ext_cbor[OSK_MAX_EXT_OUT];
 	size_t ext_len = 0;
-	if (q.have_ext &&
-	    osk_ctap_ext_make_output(&q.ext, q.rp_id, q.rp_id_len, cid.cred_protect,
-				     ext_cbor, sizeof(ext_cbor), &ext_len) != OSK_OK)
+	if (q.have_ext && osk_ctap_ext_make_output(&q.ext, q.rp_id, q.rp_id_len, cid.cred_protect,
+						   ext_cbor, sizeof(ext_cbor), &ext_len) != OSK_OK)
 		return CTAP1_ERR_OTHER;
 	if (ext_len > 0)
 		flags |= OSK_AD_FLAG_ED;
@@ -729,8 +729,8 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 	uint8_t unsigned_cbor[OSK_MAX_EXT_OUT];
 	size_t unsigned_len = 0;
 	if (q.have_ext &&
-	    osk_ctap_ext_unsigned_output(&q.ext, &cid, false, unsigned_cbor,
-					 sizeof(unsigned_cbor), &unsigned_len) != OSK_OK)
+	    osk_ctap_ext_unsigned_output(&q.ext, &cid, false, unsigned_cbor, sizeof(unsigned_cbor),
+					 &unsigned_len) != OSK_OK)
 		return CTAP1_ERR_OTHER;
 
 	/* Attested Credential Data */
@@ -753,9 +753,9 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 
 	uint8_t auth_data[OSK_MAX_AUTH_DATA];
 	size_t auth_len = 0;
-	if (osk_ctap_build_auth_data(rp_id_hash, flags, g_state.sign_count,
-				     attested, attested_len, ext_cbor, ext_len,
-				     auth_data, sizeof(auth_data), &auth_len) != OSK_OK)
+	if (osk_ctap_build_auth_data(rp_id_hash, flags, g_state.sign_count, attested, attested_len,
+				     ext_cbor, ext_len, auth_data, sizeof(auth_data),
+				     &auth_len) != OSK_OK)
 		return CTAP2_ERR_REQUEST_TOO_LARGE;
 	g_state.sign_count++;
 
@@ -773,8 +773,8 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 
 	uint8_t sig[OSK_MAX_SIG];
 	size_t sig_len = 0;
-	if (osk_ctap_key_sign(cid.salt, cid.rp_id_hash, to_sign_hash,
-			      sig, sizeof(sig), &sig_len) != OSK_OK)
+	if (osk_ctap_key_sign(cid.salt, cid.rp_id_hash, to_sign_hash, sig, sizeof(sig), &sig_len) !=
+	    OSK_OK)
 		return CTAP1_ERR_OTHER;
 
 	/* Antwort: fmt, authData, attStmt und, falls vorhanden, die
@@ -870,11 +870,9 @@ static uint8_t parse_get_assertion(const uint8_t *cbor, size_t len, ga_req_t *q)
 				return CTAP1_ERR_INVALID_PARAMETER;
 			break;
 		case 0x03: {
-			const osk_result_t rc = read_descriptor_list(&r, q->allow,
-								     q->allow_len,
-								     OSK_MAX_LIST,
-								     &q->allow_count,
-								     &allow_too_many);
+			const osk_result_t rc =
+			    read_descriptor_list(&r, q->allow, q->allow_len, OSK_MAX_LIST,
+						 &q->allow_count, &allow_too_many);
 			if (rc == OSK_ERR_ARG)
 				return CTAP1_ERR_INVALID_PARAMETER;
 			if (rc != OSK_OK)
@@ -890,15 +888,14 @@ static uint8_t parse_get_assertion(const uint8_t *cbor, size_t len, ga_req_t *q)
 		case 0x05: {
 			bool rk = false, have_uv = false;
 			bool rk_seen = false;
-			if (read_options(&r, &rk, &q->opt_up, &q->opt_uv,
-					 &q->have_opt_up, &have_uv, &rk_seen) != OSK_OK)
+			if (read_options(&r, &rk, &q->opt_up, &q->opt_uv, &q->have_opt_up, &have_uv,
+					 &rk_seen) != OSK_OK)
 				return CTAP2_ERR_CBOR_UNEXPECTED_TYPE;
 			q->opt_rk_seen = rk_seen;
 			break;
 		}
 		case 0x06:
-			if (osk_cbor_read_bytes(&r, &q->pin_auth,
-						&q->pin_auth_len) != OSK_OK)
+			if (osk_cbor_read_bytes(&r, &q->pin_auth, &q->pin_auth_len) != OSK_OK)
 				return CTAP2_ERR_CBOR_UNEXPECTED_TYPE;
 			q->have_pin_auth = true;
 			break;
@@ -926,11 +923,9 @@ static uint8_t parse_get_assertion(const uint8_t *cbor, size_t len, ga_req_t *q)
 
 /* Schreibt eine Antwort auf GetAssertion oder GetNextAssertion. */
 static uint8_t emit_assertion(const osk_cred_t *cred, const osk_credid_t *cid,
-			      const uint8_t rp_id_hash[32],
-			      const uint8_t client_data_hash[32],
-			      uint8_t flags, size_t number_of_credentials,
-			      const uint8_t *ext_cbor, size_t ext_len,
-			      const uint8_t *unsigned_cbor, size_t unsigned_len,
+			      const uint8_t rp_id_hash[32], const uint8_t client_data_hash[32],
+			      uint8_t flags, size_t number_of_credentials, const uint8_t *ext_cbor,
+			      size_t ext_len, const uint8_t *unsigned_cbor, size_t unsigned_len,
 			      osk_cbor_writer_t *w)
 {
 	uint8_t auth_data[OSK_MAX_AUTH_DATA];
@@ -939,9 +934,8 @@ static uint8_t emit_assertion(const osk_cred_t *cred, const osk_credid_t *cid,
 	if (ext_len > 0)
 		flags |= OSK_AD_FLAG_ED;
 
-	if (osk_ctap_build_auth_data(rp_id_hash, flags, g_state.sign_count,
-				     NULL, 0, ext_cbor, ext_len,
-				     auth_data, sizeof(auth_data), &auth_len) != OSK_OK)
+	if (osk_ctap_build_auth_data(rp_id_hash, flags, g_state.sign_count, NULL, 0, ext_cbor,
+				     ext_len, auth_data, sizeof(auth_data), &auth_len) != OSK_OK)
 		return CTAP2_ERR_REQUEST_TOO_LARGE;
 	g_state.sign_count++;
 
@@ -956,14 +950,14 @@ static uint8_t emit_assertion(const osk_cred_t *cred, const osk_credid_t *cid,
 
 	uint8_t sig[OSK_MAX_SIG];
 	size_t sig_len = 0;
-	if (osk_ctap_key_sign(cid->salt, cid->rp_id_hash, hash,
-			      sig, sizeof(sig), &sig_len) != OSK_OK)
+	if (osk_ctap_key_sign(cid->salt, cid->rp_id_hash, hash, sig, sizeof(sig), &sig_len) !=
+	    OSK_OK)
 		return CTAP1_ERR_OTHER;
 
 	/* Nutzerangaben nur, wenn eine Benutzerpruefung gelaufen ist. */
 	const bool with_user = (cred->resident && cred->user_id_len > 0);
-	const bool with_user_details = with_user && (flags & OSK_AD_FLAG_UV) != 0 &&
-				       cred->user_name[0] != 0;
+	const bool with_user_details =
+	    with_user && (flags & OSK_AD_FLAG_UV) != 0 && cred->user_name[0] != 0;
 
 	size_t entries = 3;
 	if (with_user)
@@ -1043,8 +1037,8 @@ static uint8_t do_get_assertion(const uint8_t *cbor, size_t len, osk_cbor_writer
 
 	/* Schritt 6: Benutzerpruefung. */
 	if (q.have_pin_auth) {
-		if (!osk_pin_verify_token(q.pin_protocol, q.client_data_hash, 32,
-					  q.pin_auth, q.pin_auth_len))
+		if (!osk_pin_verify_token(q.pin_protocol, q.client_data_hash, 32, q.pin_auth,
+					  q.pin_auth_len))
 			return CTAP2_ERR_PIN_AUTH_INVALID;
 		if (!osk_pin_get_uv_flag())
 			return CTAP2_ERR_PIN_AUTH_INVALID;
@@ -1063,8 +1057,7 @@ static uint8_t do_get_assertion(const uint8_t *cbor, size_t len, osk_cbor_writer
 		if (rc == OSK_ERR_TIMEOUT)
 			return CTAP2_ERR_USER_ACTION_TIMEOUT;
 		if (rc != OSK_OK || !verified)
-			return pin->pin_set ? CTAP2_ERR_PUAT_REQUIRED
-					    : CTAP2_ERR_OPERATION_DENIED;
+			return pin->pin_set ? CTAP2_ERR_PUAT_REQUIRED : CTAP2_ERR_OPERATION_DENIED;
 		flags |= (uint8_t)(OSK_AD_FLAG_UV | OSK_AD_FLAG_UP);
 	}
 
@@ -1091,10 +1084,9 @@ static uint8_t do_get_assertion(const uint8_t *cbor, size_t len, osk_cbor_writer
 				osk_cred_t rk;
 				size_t at = 0;
 				memset(&rk, 0, sizeof(rk));
-				while (rk_find(q.rp_id, NULL, 0, NULL, &rk, &at) == OSK_OK) {
+				while (rk_find(rp_id_hash, NULL, 0, NULL, &rk, &at) == OSK_OK) {
 					if (rk.cred_id_len == q.allow_len[i] &&
-					    memcmp(rk.cred_id, q.allow[i],
-						   rk.cred_id_len) == 0) {
+					    memcmp(rk.cred_id, q.allow[i], rk.cred_id_len) == 0) {
 						found[n].resident = true;
 						found[n].user_id_len = rk.user_id_len;
 						memcpy(found[n].user_id, rk.user_id,
@@ -1113,7 +1105,7 @@ static uint8_t do_get_assertion(const uint8_t *cbor, size_t len, osk_cbor_writer
 		osk_cred_t rk;
 		memset(&rk, 0, sizeof(rk));
 		while (n < OSK_MAX_CANDIDATES &&
-		       rk_find(q.rp_id, NULL, 0, NULL, &rk, &at) == OSK_OK) {
+		       rk_find(rp_id_hash, NULL, 0, NULL, &rk, &at) == OSK_OK) {
 			osk_credid_t cid;
 			if (osk_credid_unpack(rk.cred_id, rk.cred_id_len, &cid) != OSK_OK)
 				continue;
@@ -1142,9 +1134,9 @@ static uint8_t do_get_assertion(const uint8_t *cbor, size_t len, osk_cbor_writer
 		if (q.have_pin_auth && osk_pin_get_up_flag()) {
 			flags |= OSK_AD_FLAG_UP;
 		} else {
-			const uint8_t up = ask_user(OSK_ASK_LOGIN, q.rp_id,
-						    found[0].user_name[0] ?
-						    found[0].user_name : NULL);
+			const uint8_t up =
+			    ask_user(OSK_ASK_LOGIN, q.rp_id,
+				     found[0].user_name[0] ? found[0].user_name : NULL);
 			if (up != CTAP2_OK)
 				return up;
 			flags |= OSK_AD_FLAG_UP;
@@ -1173,8 +1165,7 @@ static uint8_t do_get_assertion(const uint8_t *cbor, size_t len, osk_cbor_writer
 	size_t ext_len = 0;
 	uint8_t status = CTAP2_OK;
 	if (q.have_ext) {
-		if (osk_ctap_ext_get_output(&q.ext, &cids[pick],
-					    (flags & OSK_AD_FLAG_UV) != 0,
+		if (osk_ctap_ext_get_output(&q.ext, &cids[pick], (flags & OSK_AD_FLAG_UV) != 0,
 					    ext_cbor, sizeof(ext_cbor), &ext_len,
 					    &status) != OSK_OK)
 			return CTAP1_ERR_OTHER;
@@ -1185,9 +1176,8 @@ static uint8_t do_get_assertion(const uint8_t *cbor, size_t len, osk_cbor_writer
 	uint8_t unsigned_cbor[OSK_MAX_EXT_OUT];
 	size_t unsigned_len = 0;
 	if (q.have_ext &&
-	    osk_ctap_ext_unsigned_output(&q.ext, &cids[pick], q.allow_present,
-					 unsigned_cbor, sizeof(unsigned_cbor),
-					 &unsigned_len) != OSK_OK)
+	    osk_ctap_ext_unsigned_output(&q.ext, &cids[pick], q.allow_present, unsigned_cbor,
+					 sizeof(unsigned_cbor), &unsigned_len) != OSK_OK)
 		return CTAP1_ERR_OTHER;
 
 	const size_t report_count = (!q.allow_present) ? n : 1u;
@@ -1221,9 +1211,8 @@ static uint8_t do_get_assertion(const uint8_t *cbor, size_t len, osk_cbor_writer
 		pick = order[0];
 	}
 
-	return emit_assertion(&found[pick], &cids[pick], rp_id_hash, q.client_data_hash,
-			      flags, report_count, ext_cbor, ext_len,
-			      unsigned_cbor, unsigned_len, w);
+	return emit_assertion(&found[pick], &cids[pick], rp_id_hash, q.client_data_hash, flags,
+			      report_count, ext_cbor, ext_len, unsigned_cbor, unsigned_len, w);
 }
 
 static uint8_t do_get_next_assertion(osk_cbor_writer_t *w)
@@ -1248,9 +1237,8 @@ static uint8_t do_get_next_assertion(osk_cbor_writer_t *w)
 		return CTAP1_ERR_OTHER;
 	}
 
-	const uint8_t code = emit_assertion(cred, &cid, st->rp_id_hash,
-					    st->client_data_hash, st->flags,
-					    1, NULL, 0, NULL, 0, w);
+	const uint8_t code = emit_assertion(cred, &cid, st->rp_id_hash, st->client_data_hash,
+					    st->flags, 1, NULL, 0, NULL, 0, w);
 	if (code == CTAP2_OK) {
 		st->next++;
 		st->last_use_ms = osk_ctap_now_ms();
@@ -1291,13 +1279,20 @@ static uint8_t do_get_info(osk_cbor_writer_t *w)
 
 	osk_cbor_put_uint(w, 0x04);
 	osk_cbor_put_map(w, 7);
-	osk_cbor_put_text(w, "rk");               osk_cbor_put_bool(w, true);
-	osk_cbor_put_text(w, "up");               osk_cbor_put_bool(w, true);
-	osk_cbor_put_text(w, "uv");               osk_cbor_put_bool(w, true);
-	osk_cbor_put_text(w, "plat");             osk_cbor_put_bool(w, false);
-	osk_cbor_put_text(w, "clientPin");        osk_cbor_put_bool(w, pin->pin_set);
-	osk_cbor_put_text(w, "pinUvAuthToken");   osk_cbor_put_bool(w, true);
-	osk_cbor_put_text(w, "makeCredUvNotRqd"); osk_cbor_put_bool(w, true);
+	osk_cbor_put_text(w, "rk");
+	osk_cbor_put_bool(w, true);
+	osk_cbor_put_text(w, "up");
+	osk_cbor_put_bool(w, true);
+	osk_cbor_put_text(w, "uv");
+	osk_cbor_put_bool(w, true);
+	osk_cbor_put_text(w, "plat");
+	osk_cbor_put_bool(w, false);
+	osk_cbor_put_text(w, "clientPin");
+	osk_cbor_put_bool(w, pin->pin_set);
+	osk_cbor_put_text(w, "pinUvAuthToken");
+	osk_cbor_put_bool(w, true);
+	osk_cbor_put_text(w, "makeCredUvNotRqd");
+	osk_cbor_put_bool(w, true);
 
 	osk_cbor_put_uint(w, 0x05);
 	osk_cbor_put_uint(w, OSK_MAX_MSG);
@@ -1353,7 +1348,7 @@ static uint8_t do_reset(osk_link_t link)
 
 	/* Das Grundgeheimnis neu ziehen: damit sind alle abgeleiteten
 	 * Schluessel auf einen Schlag wertlos, auch die ueber U2F erzeugten. */
-	const osk_key_policy_t policy = { .exportable = false, .needs_touch = false };
+	const osk_key_policy_t policy = {.exportable = false, .needs_touch = false};
 	osk_se050_key_delete(OSK_KEY_ID_ROOT);
 	if (osk_se050_key_create(OSK_KEY_ID_ROOT, OSK_CURVE_P256, &policy) != OSK_OK)
 		return CTAP1_ERR_OTHER;
@@ -1437,19 +1432,18 @@ osk_result_t osk_ctap_handle(const osk_request_t *req, osk_response_t *res)
 
 	switch (cmd) {
 	case OSK_CTAP_CMD_MAKE_CREDENTIAL:
-		code = body_len ? do_make_credential(body, body_len, &w)
-				: CTAP2_ERR_MISSING_PARAMETER;
+		code =
+		    body_len ? do_make_credential(body, body_len, &w) : CTAP2_ERR_MISSING_PARAMETER;
 		break;
 	case OSK_CTAP_CMD_GET_ASSERTION:
-		code = body_len ? do_get_assertion(body, body_len, &w)
-				: CTAP2_ERR_MISSING_PARAMETER;
+		code =
+		    body_len ? do_get_assertion(body, body_len, &w) : CTAP2_ERR_MISSING_PARAMETER;
 		break;
 	case OSK_CTAP_CMD_GET_INFO:
 		code = body_len ? CTAP1_ERR_INVALID_LENGTH : do_get_info(&w);
 		break;
 	case OSK_CTAP_CMD_CLIENT_PIN:
-		code = body_len ? osk_pin_handle(body, body_len, &w)
-				: CTAP2_ERR_MISSING_PARAMETER;
+		code = body_len ? osk_pin_handle(body, body_len, &w) : CTAP2_ERR_MISSING_PARAMETER;
 		break;
 	case OSK_CTAP_CMD_RESET:
 		code = body_len ? CTAP1_ERR_INVALID_LENGTH : do_reset(req->link);

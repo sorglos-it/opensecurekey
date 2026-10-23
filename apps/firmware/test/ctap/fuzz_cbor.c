@@ -51,26 +51,35 @@ static size_t sample_make_credential(uint8_t *out, size_t cap)
 	out[0] = OSK_CTAP_CMD_MAKE_CREDENTIAL;
 	osk_cbor_writer_init(&w, out + 1, cap - 1);
 	osk_cbor_put_map(&w, 6);
-	osk_cbor_put_uint(&w, 1); osk_cbor_put_bytes(&w, hash, 32);
+	osk_cbor_put_uint(&w, 1);
+	osk_cbor_put_bytes(&w, hash, 32);
 	osk_cbor_put_uint(&w, 2);
 	osk_cbor_put_map(&w, 1);
-	osk_cbor_put_text(&w, "id"); osk_cbor_put_text(&w, "example.com");
+	osk_cbor_put_text(&w, "id");
+	osk_cbor_put_text(&w, "example.com");
 	osk_cbor_put_uint(&w, 3);
 	osk_cbor_put_map(&w, 2);
-	osk_cbor_put_text(&w, "id"); osk_cbor_put_bytes(&w, (const uint8_t *)"anna", 4);
-	osk_cbor_put_text(&w, "name"); osk_cbor_put_text(&w, "anna");
+	osk_cbor_put_text(&w, "id");
+	osk_cbor_put_bytes(&w, (const uint8_t *)"anna", 4);
+	osk_cbor_put_text(&w, "name");
+	osk_cbor_put_text(&w, "anna");
 	osk_cbor_put_uint(&w, 4);
 	osk_cbor_put_array(&w, 1);
 	osk_cbor_put_map(&w, 2);
-	osk_cbor_put_text(&w, "alg"); osk_cbor_put_int(&w, -7);
-	osk_cbor_put_text(&w, "type"); osk_cbor_put_text(&w, "public-key");
+	osk_cbor_put_text(&w, "alg");
+	osk_cbor_put_int(&w, -7);
+	osk_cbor_put_text(&w, "type");
+	osk_cbor_put_text(&w, "public-key");
 	osk_cbor_put_uint(&w, 6);
 	osk_cbor_put_map(&w, 2);
-	osk_cbor_put_text(&w, "credProtect"); osk_cbor_put_uint(&w, 2);
-	osk_cbor_put_text(&w, "hmac-secret"); osk_cbor_put_bool(&w, true);
+	osk_cbor_put_text(&w, "credProtect");
+	osk_cbor_put_uint(&w, 2);
+	osk_cbor_put_text(&w, "hmac-secret");
+	osk_cbor_put_bool(&w, true);
 	osk_cbor_put_uint(&w, 7);
 	osk_cbor_put_map(&w, 1);
-	osk_cbor_put_text(&w, "rk"); osk_cbor_put_bool(&w, true);
+	osk_cbor_put_text(&w, "rk");
+	osk_cbor_put_bool(&w, true);
 	return 1 + w.len;
 }
 
@@ -87,26 +96,37 @@ static size_t sample_get_assertion(uint8_t *out, size_t cap)
 	out[0] = OSK_CTAP_CMD_GET_ASSERTION;
 	osk_cbor_writer_init(&w, out + 1, cap - 1);
 	osk_cbor_put_map(&w, 4);
-	osk_cbor_put_uint(&w, 1); osk_cbor_put_text(&w, "example.com");
-	osk_cbor_put_uint(&w, 2); osk_cbor_put_bytes(&w, hash, 32);
+	osk_cbor_put_uint(&w, 1);
+	osk_cbor_put_text(&w, "example.com");
+	osk_cbor_put_uint(&w, 2);
+	osk_cbor_put_bytes(&w, hash, 32);
 	osk_cbor_put_uint(&w, 3);
 	osk_cbor_put_array(&w, 1);
 	osk_cbor_put_map(&w, 2);
-	osk_cbor_put_text(&w, "id"); osk_cbor_put_bytes(&w, id, sizeof(id));
-	osk_cbor_put_text(&w, "type"); osk_cbor_put_text(&w, "public-key");
+	osk_cbor_put_text(&w, "id");
+	osk_cbor_put_bytes(&w, id, sizeof(id));
+	osk_cbor_put_text(&w, "type");
+	osk_cbor_put_text(&w, "public-key");
 	osk_cbor_put_uint(&w, 4);
 	osk_cbor_put_map(&w, 1);
 	osk_cbor_put_text(&w, "hmac-secret");
 	osk_cbor_put_map(&w, 3);
 	osk_cbor_put_uint(&w, 1);
 	osk_cbor_put_map(&w, 5);
-	osk_cbor_put_uint(&w, 1); osk_cbor_put_uint(&w, 2);
-	osk_cbor_put_uint(&w, 3); osk_cbor_put_int(&w, -25);
-	osk_cbor_put_int(&w, -1); osk_cbor_put_uint(&w, 1);
-	osk_cbor_put_int(&w, -2); osk_cbor_put_bytes(&w, id, 32);
-	osk_cbor_put_int(&w, -3); osk_cbor_put_bytes(&w, id + 32, 32);
-	osk_cbor_put_uint(&w, 2); osk_cbor_put_bytes(&w, id, 48);
-	osk_cbor_put_uint(&w, 3); osk_cbor_put_bytes(&w, id, 32);
+	osk_cbor_put_uint(&w, 1);
+	osk_cbor_put_uint(&w, 2);
+	osk_cbor_put_uint(&w, 3);
+	osk_cbor_put_int(&w, -25);
+	osk_cbor_put_int(&w, -1);
+	osk_cbor_put_uint(&w, 1);
+	osk_cbor_put_int(&w, -2);
+	osk_cbor_put_bytes(&w, id, 32);
+	osk_cbor_put_int(&w, -3);
+	osk_cbor_put_bytes(&w, id + 32, 32);
+	osk_cbor_put_uint(&w, 2);
+	osk_cbor_put_bytes(&w, id, 48);
+	osk_cbor_put_uint(&w, 3);
+	osk_cbor_put_bytes(&w, id, 32);
 	return 1 + w.len;
 }
 
@@ -121,18 +141,28 @@ static size_t sample_client_pin(uint8_t *out, size_t cap)
 	out[0] = OSK_CTAP_CMD_CLIENT_PIN;
 	osk_cbor_writer_init(&w, out + 1, cap - 1);
 	osk_cbor_put_map(&w, 6);
-	osk_cbor_put_uint(&w, 1); osk_cbor_put_uint(&w, 2);
-	osk_cbor_put_uint(&w, 2); osk_cbor_put_uint(&w, 9);
+	osk_cbor_put_uint(&w, 1);
+	osk_cbor_put_uint(&w, 2);
+	osk_cbor_put_uint(&w, 2);
+	osk_cbor_put_uint(&w, 9);
 	osk_cbor_put_uint(&w, 3);
 	osk_cbor_put_map(&w, 5);
-	osk_cbor_put_uint(&w, 1); osk_cbor_put_uint(&w, 2);
-	osk_cbor_put_uint(&w, 3); osk_cbor_put_int(&w, -25);
-	osk_cbor_put_int(&w, -1); osk_cbor_put_uint(&w, 1);
-	osk_cbor_put_int(&w, -2); osk_cbor_put_bytes(&w, blob, 32);
-	osk_cbor_put_int(&w, -3); osk_cbor_put_bytes(&w, blob + 32, 32);
-	osk_cbor_put_uint(&w, 6); osk_cbor_put_bytes(&w, blob, 48);
-	osk_cbor_put_uint(&w, 9); osk_cbor_put_uint(&w, 3);
-	osk_cbor_put_uint(&w, 10); osk_cbor_put_text(&w, "example.com");
+	osk_cbor_put_uint(&w, 1);
+	osk_cbor_put_uint(&w, 2);
+	osk_cbor_put_uint(&w, 3);
+	osk_cbor_put_int(&w, -25);
+	osk_cbor_put_int(&w, -1);
+	osk_cbor_put_uint(&w, 1);
+	osk_cbor_put_int(&w, -2);
+	osk_cbor_put_bytes(&w, blob, 32);
+	osk_cbor_put_int(&w, -3);
+	osk_cbor_put_bytes(&w, blob + 32, 32);
+	osk_cbor_put_uint(&w, 6);
+	osk_cbor_put_bytes(&w, blob, 48);
+	osk_cbor_put_uint(&w, 9);
+	osk_cbor_put_uint(&w, 3);
+	osk_cbor_put_uint(&w, 10);
+	osk_cbor_put_text(&w, "example.com");
 	return 1 + w.len;
 }
 
@@ -148,23 +178,23 @@ static size_t mutate(const uint8_t *in, size_t len, uint8_t *out, size_t cap)
 	const unsigned rounds = 1u + (rnd() % 6u);
 	for (unsigned i = 0; i < rounds; i++) {
 		switch (rnd() % 5u) {
-		case 0:   /* ein Byte ersetzen */
+		case 0: /* ein Byte ersetzen */
 			if (n)
 				out[rnd_below(n)] = (uint8_t)rnd();
 			break;
-		case 1:   /* ein Bit kippen */
+		case 1: /* ein Bit kippen */
 			if (n)
 				out[rnd_below(n)] ^= (uint8_t)(1u << (rnd() % 8u));
 			break;
-		case 2:   /* abschneiden */
+		case 2: /* abschneiden */
 			if (n > 1)
 				n = 1 + rnd_below(n - 1);
 			break;
-		case 3:   /* anhaengen */
+		case 3: /* anhaengen */
 			if (n < cap)
 				out[n++] = (uint8_t)rnd();
 			break;
-		default:  /* eine Laengenangabe gross machen */
+		default: /* eine Laengenangabe gross machen */
 			if (n)
 				out[rnd_below(n)] |= 0x1f;
 			break;
@@ -241,7 +271,8 @@ int main(int argc, char **argv)
 				    osk_cbor_validate(out + 1, res.len - 1) != OSK_OK) {
 					printf("FEHLER: Antwort ist kein kanonisches CBOR\n");
 					printf("  Eingabe (%zu Bytes), Startwert anders setzen "
-					       "zum Nachstellen\n", len);
+					       "zum Nachstellen\n",
+					       len);
 					return 1;
 				}
 			}
@@ -253,7 +284,8 @@ int main(int argc, char **argv)
 	}
 
 	printf("fuzz_cbor: %lu Durchgaenge, davon %lu reiner Zufall, "
-	       "%lu erfolgreiche Antworten\n", runs, pure_random, ok_answers);
+	       "%lu erfolgreiche Antworten\n",
+	       runs, pure_random, ok_answers);
 	if (runs == 0) {
 		printf("FEHLER: kein einziger Durchgang\n");
 		return 1;

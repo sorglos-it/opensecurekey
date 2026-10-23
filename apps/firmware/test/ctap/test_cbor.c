@@ -29,7 +29,8 @@ static void test_validate(void)
 	ok_bytes("leere Liste", "80");
 	ok_bytes("leere Abbildung", "a0");
 	ok_bytes("Abbildung 1:2", "a10102");
-	ok_bytes("sortierte Schluessel", "a2010102 02" "");
+	ok_bytes("sortierte Schluessel", "a2010102 02"
+					 "");
 	ok_bytes("Text", "63616263");
 	ok_bytes("Bytes", "43010203");
 	ok_bytes("true/false/null", "83f5f4f6");
@@ -98,7 +99,7 @@ static void test_reader(void)
 
 	/* Negative Zahlen */
 	uint8_t nb[4];
-	const size_t nn = t_unhex("38ff", nb, sizeof(nb));   /* -256 */
+	const size_t nn = t_unhex("38ff", nb, sizeof(nb)); /* -256 */
 	osk_cbor_reader_init(&r, nb, nn);
 	int64_t iv = 0;
 	T_EQ("negativ lesen", osk_cbor_read_int(&r, &iv), OSK_OK);
@@ -156,9 +157,9 @@ static void test_skip(void)
 static void test_key_order(void)
 {
 	/* Kuerzer sortiert vor laenger, danach byteweise. */
-	const uint8_t a[1] = { 0x01 };          /* 1 */
-	const uint8_t b[2] = { 0x18, 0xff };    /* 255 */
-	const uint8_t t3[4] = { 0x63, 'a', 'b', 'c' };
+	const uint8_t a[1] = {0x01};	   /* 1 */
+	const uint8_t b[2] = {0x18, 0xff}; /* 255 */
+	const uint8_t t3[4] = {0x63, 'a', 'b', 'c'};
 	T_TRUE("1 vor 255", osk_cbor_key_cmp(a, 1, b, 2) < 0);
 	T_TRUE("Zahl vor Text", osk_cbor_key_cmp(a, 1, t3, 4) < 0);
 	T_TRUE("gleich ist gleich", osk_cbor_key_cmp(a, 1, a, 1) == 0);

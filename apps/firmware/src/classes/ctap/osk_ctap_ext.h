@@ -26,8 +26,8 @@
 
 /* Was in der Anfrage stand. */
 typedef struct {
-	bool hmac_secret_create;    /* MakeCredential: "hmac-secret": true */
-	bool hmac_secret_get;       /* GetAssertion: Abbildung mit Salzen */
+	bool hmac_secret_create; /* MakeCredential: "hmac-secret": true */
+	bool hmac_secret_get;	 /* GetAssertion: Abbildung mit Salzen */
 	uint8_t peer_pub[64];
 	const uint8_t *salt_enc;
 	size_t salt_enc_len;
@@ -41,7 +41,7 @@ typedef struct {
 
 	bool min_pin_length;
 
-	bool large_blob_create;     /* MakeCredential: support required/preferred */
+	bool large_blob_create; /* MakeCredential: support required/preferred */
 	bool large_blob_required;
 	bool large_blob_read;
 	const uint8_t *large_blob_write;
@@ -57,23 +57,20 @@ osk_result_t osk_ctap_ext_parse(osk_cbor_reader_t *r, bool for_make_credential,
 
 /* Ausgaben fuer MakeCredential: schreibt die Abbildung fuer authData.
  * Liefert 0 Bytes, wenn keine Erweiterung etwas zu sagen hat. */
-osk_result_t osk_ctap_ext_make_output(const osk_ctap_ext_in_t *in,
-				      const char *rp_id, size_t rp_id_len,
-				      uint8_t cred_protect_set,
-				      uint8_t *out, size_t cap, size_t *len_out);
+osk_result_t osk_ctap_ext_make_output(const osk_ctap_ext_in_t *in, const char *rp_id,
+				      size_t rp_id_len, uint8_t cred_protect_set, uint8_t *out,
+				      size_t cap, size_t *len_out);
 
 /* Ausgaben fuer GetAssertion. uv sagt, welches CredRandom gilt. */
-osk_result_t osk_ctap_ext_get_output(const osk_ctap_ext_in_t *in,
-				     const osk_credid_t *cred, bool uv,
+osk_result_t osk_ctap_ext_get_output(const osk_ctap_ext_in_t *in, const osk_credid_t *cred, bool uv,
 				     uint8_t *out, size_t cap, size_t *len_out,
 				     uint8_t *status_out);
 
 /* Ungesignierte Ausgaben (largeBlob). Schreibt eine CBOR-Abbildung oder
  * nichts. */
-osk_result_t osk_ctap_ext_unsigned_output(const osk_ctap_ext_in_t *in,
-					  const osk_credid_t *cred,
-					  bool allow_list_present,
-					  uint8_t *out, size_t cap, size_t *len_out);
+osk_result_t osk_ctap_ext_unsigned_output(const osk_ctap_ext_in_t *in, const osk_credid_t *cred,
+					  bool allow_list_present, uint8_t *out, size_t cap,
+					  size_t *len_out);
 
 /* Dienste, die die Mindestlaenge der PIN erfahren duerfen. */
 osk_result_t osk_ctap_minpin_rp_add(const char *rp_id);

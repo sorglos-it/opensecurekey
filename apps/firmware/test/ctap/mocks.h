@@ -34,8 +34,7 @@ int mock_ui_last_kind(void);
  * Pruefung die Seite des Rechners spielen. */
 void mock_se050_ecdh_expect(const uint8_t peer_pub[64], uint8_t out[32]);
 /* Ableitung wie osk_se050_hkdf, fuer Vergleiche in den Pruefungen. */
-void mock_se050_hkdf_expect(const uint8_t *info, size_t info_len,
-			    uint8_t *out, size_t out_len);
+void mock_se050_hkdf_expect(const uint8_t *info, size_t info_len, uint8_t *out, size_t out_len);
 /* PIN von Hand setzen, ohne den ClientPIN-Weg. */
 void mock_se050_set_pin(const uint8_t *pin_hash16);
 void mock_se050_set_tries(uint8_t tries);
@@ -46,6 +45,9 @@ void mock_se050_seed_random(uint32_t seed);
 /* ---- Tresor ------------------------------------------------------------ */
 size_t mock_store_count(void);
 void mock_store_set_full(bool full);
+/* Wie oft ein Eintrag geoeffnet wurde. Das ist der Punkt der Kennung:
+ * suchen darf nichts oeffnen, was nicht gemeint ist. */
+unsigned mock_store_reveal_count(void);
 
 /* ---- Uhr --------------------------------------------------------------- */
 void mock_clock_set(uint64_t ms);

@@ -166,7 +166,7 @@ UndefinedBehaviorSanitizer on.
 | `test_cbor` | 88 — canonical form accepted, everything else rejected |
 | `test_credid` | 33 — including: every byte flipped, none accepted |
 | `test_pin` | 173 — protocols 1 and 2 played from the computer's side |
-| `test_ctap` | 209 — real messages in, responses checked field by field |
+| `test_ctap` | 226 — real messages in, responses checked field by field, including a count proving that looking up a passkey opens only the one entry that matches |
 | `test_u2f` | 34 — framing, register, authenticate, a U2F handle used over CTAP2 |
 | `test_hid` | 148 — channels, chaining, sequence errors, busy, timeout |
 | `fuzz_cbor` | 5.3 million rounds, 93 000 of them accepted messages |
@@ -200,16 +200,9 @@ outermost check.
 - **AAGUID is provisional** and gets its final value with the first batch.
 - **Backup flags (BE/BS) are zero.** Mirroring to a second key is off by
   default; when it is switched on, these flags have to follow.
-- **largeBlob storage goes through the vault** as an item with the site
-  `osk-largeblob`; reading it calls `osk_store_reveal()`, which asks for
-  approval. A non-secret list of passkeys in the vault interface would be
-  better than revealing each record to find one.
-- **Two things are missing from `osk_se050.h`** and are declared in
-  `src/classes/ctap/osk_ctap_key.h` until the SE050 strand adds them:
-  `osk_se050_key_derive_transient()` (derive a short-lived P-256 key pair
-  inside the chip from the root secret — without it there is no derived
-  signing key) and `osk_se050_pin_clear()` (reset must delete the PIN, not
-  change it).
-- **`osk_transport.h` uses `bool` without including `<stdbool.h>`.** Every
-  file that includes it has to include `<stdbool.h>` first. One line fixes it
-  in the header; it was left alone because that header belongs to wave 0.
+- **A discoverable credential still has to be opened to be used.** Finding it
+  does not: `osk_store_find_tag()` searches by a tag (the rpIdHash for a
+  passkey, a hash of the derivation salt for a large blob), so only the entry
+  that actually matches is decrypted. A test counts the openings and fails if
+  there is more than one. The user handle itself lives in the encrypted
+  record, so that one opening remains.

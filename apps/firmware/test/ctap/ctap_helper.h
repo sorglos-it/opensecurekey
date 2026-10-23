@@ -13,8 +13,8 @@
 
 /* Eine Anfrage an den Kern schicken. Liefert das Statusbyte; der CBOR-Teil
  * landet in body/body_len. */
-static __attribute__((unused)) uint8_t h_call(const uint8_t *msg, size_t len, uint8_t *body, size_t cap,
-		      size_t *body_len)
+static __attribute__((unused)) uint8_t h_call(const uint8_t *msg, size_t len, uint8_t *body,
+					      size_t cap, size_t *body_len)
 {
 	static uint8_t out[2048];
 	osk_request_t req;
@@ -42,7 +42,7 @@ static __attribute__((unused)) uint8_t h_call(const uint8_t *msg, size_t len, ui
 /* Sucht einen Schluessel mit ganzzahligem Namen in der obersten Abbildung
  * einer Antwort. Liefert einen Leser, der auf dem Wert steht. */
 static __attribute__((unused)) bool h_find(const uint8_t *cbor, size_t len, uint64_t want,
-		   osk_cbor_reader_t *out)
+					   osk_cbor_reader_t *out)
 {
 	osk_cbor_reader_t r;
 	size_t count = 0;
@@ -66,7 +66,7 @@ static __attribute__((unused)) bool h_find(const uint8_t *cbor, size_t len, uint
 
 /* Holt eine Bytefolge unter einem ganzzahligen Schluessel. */
 static __attribute__((unused)) bool h_get_bytes(const uint8_t *cbor, size_t len, uint64_t key,
-			const uint8_t **p, size_t *plen)
+						const uint8_t **p, size_t *plen)
 {
 	osk_cbor_reader_t r;
 	if (!h_find(cbor, len, key, &r))
@@ -82,10 +82,11 @@ typedef struct {
 } h_msg_t;
 
 /* MakeCredential mit den Pflichtfeldern. opts darf NULL sein. */
-static __attribute__((unused)) void h_make_credential(h_msg_t *m, const char *rp_id, const char *user_name,
-			      bool rk, bool hmac_secret, int cred_protect,
-			      const uint8_t *pin_auth, size_t pin_auth_len,
-			      uint64_t pin_protocol)
+static __attribute__((unused)) void h_make_credential(h_msg_t *m, const char *rp_id,
+						      const char *user_name, bool rk,
+						      bool hmac_secret, int cred_protect,
+						      const uint8_t *pin_auth, size_t pin_auth_len,
+						      uint64_t pin_protocol)
 {
 	osk_cbor_writer_t w;
 	uint8_t hash[32];

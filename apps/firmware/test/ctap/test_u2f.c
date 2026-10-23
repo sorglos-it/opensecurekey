@@ -27,8 +27,7 @@ static size_t u2f_call(const uint8_t *apdu, size_t len, uint16_t *sw_out)
 }
 
 /* Baut ein erweitertes APDU. */
-static size_t build_apdu(uint8_t ins, uint8_t p1, const uint8_t *data, size_t len,
-			 uint8_t *out)
+static size_t build_apdu(uint8_t ins, uint8_t p1, const uint8_t *data, size_t len, uint8_t *out)
 {
 	out[0] = 0x00;
 	out[1] = ins;
@@ -85,14 +84,12 @@ static void test_register_und_authenticate(void)
 	T_EQ("Reservebyte ist 0x05", g_out[0], 0x05);
 	T_EQ("Punkt beginnt mit 0x04", g_out[1], 0x04);
 	handle_len = g_out[66];
-	T_EQ("Griff hat die Laenge unserer Credential-ID", (long long)handle_len,
-	     OSK_CREDID_LEN);
+	T_EQ("Griff hat die Laenge unserer Credential-ID", (long long)handle_len, OSK_CREDID_LEN);
 	memcpy(handle, g_out + 67, handle_len);
 
 	/* Der Griff ist eine gueltige Credential-ID fuer genau diesen Dienst. */
 	osk_credid_t cid;
-	T_EQ("Griff ist eine Credential-ID",
-	     osk_credid_unpack(handle, handle_len, &cid), OSK_OK);
+	T_EQ("Griff ist eine Credential-ID", osk_credid_unpack(handle, handle_len, &cid), OSK_OK);
 	T_TRUE("gehoert zum Dienst", memcmp(cid.rp_id_hash, app, 32) == 0);
 	T_TRUE("nicht resident", !cid.resident);
 
@@ -182,18 +179,22 @@ static void test_u2f_und_ctap2_zusammen(void)
 	msg[0] = OSK_CTAP_CMD_GET_ASSERTION;
 	osk_cbor_writer_init(&w, msg + 1, sizeof(msg) - 1);
 	osk_cbor_put_map(&w, 3);
-	osk_cbor_put_uint(&w, 0x01); osk_cbor_put_text(&w, "example.com");
-	osk_cbor_put_uint(&w, 0x02); osk_cbor_put_bytes(&w, hash, 32);
+	osk_cbor_put_uint(&w, 0x01);
+	osk_cbor_put_text(&w, "example.com");
+	osk_cbor_put_uint(&w, 0x02);
+	osk_cbor_put_bytes(&w, hash, 32);
 	osk_cbor_put_uint(&w, 0x03);
 	osk_cbor_put_array(&w, 1);
 	osk_cbor_put_map(&w, 2);
-	osk_cbor_put_text(&w, "id"); osk_cbor_put_bytes(&w, handle, handle_len);
-	osk_cbor_put_text(&w, "type"); osk_cbor_put_text(&w, "public-key");
+	osk_cbor_put_text(&w, "id");
+	osk_cbor_put_bytes(&w, handle, handle_len);
+	osk_cbor_put_text(&w, "type");
+	osk_cbor_put_text(&w, "public-key");
 
 	uint8_t body[1024];
 	size_t body_len = 0;
-	T_EQ("CTAP2 nimmt den U2F-Griff an",
-	     h_call(msg, 1 + w.len, body, sizeof(body), &body_len), CTAP2_OK);
+	T_EQ("CTAP2 nimmt den U2F-Griff an", h_call(msg, 1 + w.len, body, sizeof(body), &body_len),
+	     CTAP2_OK);
 }
 
 static void test_rahmenfehler(void)
@@ -204,7 +205,10 @@ static void test_rahmenfehler(void)
 	start();
 
 	/* Falsche Befehlsklasse */
-	apdu[0] = 0x80; apdu[1] = 0x03; apdu[2] = 0; apdu[3] = 0;
+	apdu[0] = 0x80;
+	apdu[1] = 0x03;
+	apdu[2] = 0;
+	apdu[3] = 0;
 	(void)u2f_call(apdu, 4, &sw);
 	T_EQ("CLA nicht 0", (long long)sw, 0x6e00);
 
@@ -223,14 +227,19 @@ static void test_rahmenfehler(void)
 	/* Anmeldung, bei der die Griffslaenge nicht zur Nachricht passt */
 	uint8_t bad[70];
 	memset(bad, 0, sizeof(bad));
-	bad[64] = 200;   /* behauptet 200 Bytes Griff */
+	bad[64] = 200; /* behauptet 200 Bytes Griff */
 	const size_t n3 = build_apdu(0x02, 0x03, bad, sizeof(bad), apdu);
 	(void)u2f_call(apdu, n3, &sw);
 	T_EQ("Griffslaenge luegt", (long long)sw, 0x6700);
 
 	/* APDU, das kuerzer ist als sein eigenes Laengenfeld verspricht */
-	apdu[0] = 0x00; apdu[1] = 0x01; apdu[2] = 0; apdu[3] = 0;
-	apdu[4] = 0x00; apdu[5] = 0x01; apdu[6] = 0x00;   /* 256 Bytes angekuendigt */
+	apdu[0] = 0x00;
+	apdu[1] = 0x01;
+	apdu[2] = 0;
+	apdu[3] = 0;
+	apdu[4] = 0x00;
+	apdu[5] = 0x01;
+	apdu[6] = 0x00; /* 256 Bytes angekuendigt */
 	(void)u2f_call(apdu, 7, &sw);
 	T_EQ("APDU zu kurz", (long long)sw, 0x6700);
 

@@ -6,11 +6,10 @@
 #include "osk_se050.h"
 
 #define BODY_LEN 64
-#define IV_LEN   16
-#define TAG_LEN  16
+#define IV_LEN 16
+#define TAG_LEN 16
 
-osk_result_t osk_credid_pack(const osk_credid_t *in, uint8_t *out, size_t cap,
-			     size_t *len_out)
+osk_result_t osk_credid_pack(const osk_credid_t *in, uint8_t *out, size_t cap, size_t *len_out)
 {
 	uint8_t enc_key[32], mac_key[32];
 	uint8_t body[BODY_LEN];

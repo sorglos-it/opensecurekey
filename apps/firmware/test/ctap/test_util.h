@@ -19,27 +19,27 @@ static int t_fails;
 static inline void t_fail(const char *what, const char *file, int line, const char *detail)
 {
 	t_fails++;
-	printf("FEHLER %s:%d  %s%s%s\n", file, line, what,
-	       detail ? " -> " : "", detail ? detail : "");
+	printf("FEHLER %s:%d  %s%s%s\n", file, line, what, detail ? " -> " : "",
+	       detail ? detail : "");
 }
 
-#define T_TRUE(what, cond)                                                    \
-	do {                                                                  \
-		t_checks++;                                                   \
-		if (!(cond))                                                  \
-			t_fail((what), __FILE__, __LINE__, #cond);             \
+#define T_TRUE(what, cond)                                         \
+	do {                                                       \
+		t_checks++;                                        \
+		if (!(cond))                                       \
+			t_fail((what), __FILE__, __LINE__, #cond); \
 	} while (0)
 
-#define T_EQ(what, got, want)                                                 \
-	do {                                                                  \
-		t_checks++;                                                   \
-		const long long g_ = (long long)(got);                        \
-		const long long w_ = (long long)(want);                       \
-		if (g_ != w_) {                                               \
-			char d_[96];                                          \
+#define T_EQ(what, got, want)                                                          \
+	do {                                                                           \
+		t_checks++;                                                            \
+		const long long g_ = (long long)(got);                                 \
+		const long long w_ = (long long)(want);                                \
+		if (g_ != w_) {                                                        \
+			char d_[96];                                                   \
 			snprintf(d_, sizeof(d_), "bekam %lld, erwartet %lld", g_, w_); \
-			t_fail((what), __FILE__, __LINE__, d_);                \
-		}                                                             \
+			t_fail((what), __FILE__, __LINE__, d_);                        \
+		}                                                                      \
 	} while (0)
 
 /* Wandelt Bytes in Kleinbuchstaben-Hex. Rueckgabe zeigt auf einen von vier
@@ -60,15 +60,15 @@ static inline __attribute__((unused)) const char *t_hex(const void *p, size_t le
 	return out;
 }
 
-#define T_HEX(what, buf, len, want_hex)                                       \
-	do {                                                                  \
-		t_checks++;                                                   \
-		const char *got_ = t_hex((buf), (len));                       \
-		if (strcmp(got_, (want_hex)) != 0) {                          \
-			printf("FEHLER %s:%d  %s\n  bekam    %s\n  erwartet %s\n",   \
-			       __FILE__, __LINE__, (what), got_, (want_hex));  \
-			t_fails++;                                            \
-		}                                                             \
+#define T_HEX(what, buf, len, want_hex)                                                      \
+	do {                                                                                 \
+		t_checks++;                                                                  \
+		const char *got_ = t_hex((buf), (len));                                      \
+		if (strcmp(got_, (want_hex)) != 0) {                                         \
+			printf("FEHLER %s:%d  %s\n  bekam    %s\n  erwartet %s\n", __FILE__, \
+			       __LINE__, (what), got_, (want_hex));                          \
+			t_fails++;                                                           \
+		}                                                                            \
 	} while (0)
 
 static inline __attribute__((unused)) int t_report(const char *name)

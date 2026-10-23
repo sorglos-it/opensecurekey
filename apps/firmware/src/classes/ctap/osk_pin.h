@@ -17,8 +17,8 @@
 #include "osk_cbor.h"
 
 #define OSK_PIN_TOKEN_LEN 32
-#define OSK_PIN_HASH_LEN  16   /* LEFT(SHA-256(PIN), 16) */
-#define OSK_PIN_SHARED_LEN 64  /* HMAC-Teil || AES-Teil (Protokoll 2) */
+#define OSK_PIN_HASH_LEN 16   /* LEFT(SHA-256(PIN), 16) */
+#define OSK_PIN_SHARED_LEN 64 /* HMAC-Teil || AES-Teil (Protokoll 2) */
 
 typedef struct {
 	uint8_t token[OSK_PIN_TOKEN_LEN];
@@ -28,7 +28,7 @@ typedef struct {
 	uint8_t rp_id_hash[32];
 	bool user_present;
 	bool user_verified;
-	uint8_t mismatches;   /* drei hintereinander sperren bis zum Stromaus */
+	uint8_t mismatches; /* drei hintereinander sperren bis zum Stromaus */
 	bool power_cycle_needed;
 	bool pin_set;
 	uint8_t pin_code_points;
@@ -55,22 +55,18 @@ osk_result_t osk_pin_shared_secret(uint64_t protocol, const uint8_t peer_pub[64]
 				   uint8_t shared_out[OSK_PIN_SHARED_LEN]);
 
 /* encrypt/decrypt/authenticate/verify der Spezifikation. */
-osk_result_t osk_pin_encrypt(uint64_t protocol, const uint8_t *key,
-			     const uint8_t *in, size_t in_len,
-			     uint8_t *out, size_t cap, size_t *len_out);
-osk_result_t osk_pin_decrypt(uint64_t protocol, const uint8_t *key,
-			     const uint8_t *in, size_t in_len,
-			     uint8_t *out, size_t cap, size_t *len_out);
-void osk_pin_authenticate(uint64_t protocol, const uint8_t *key, size_t key_len,
-			  const uint8_t *msg, size_t msg_len,
-			  uint8_t *out, size_t *len_out);
-bool osk_pin_verify_mac(uint64_t protocol, const uint8_t *key, size_t key_len,
-			const uint8_t *msg, size_t msg_len,
-			const uint8_t *mac, size_t mac_len);
+osk_result_t osk_pin_encrypt(uint64_t protocol, const uint8_t *key, const uint8_t *in,
+			     size_t in_len, uint8_t *out, size_t cap, size_t *len_out);
+osk_result_t osk_pin_decrypt(uint64_t protocol, const uint8_t *key, const uint8_t *in,
+			     size_t in_len, uint8_t *out, size_t cap, size_t *len_out);
+void osk_pin_authenticate(uint64_t protocol, const uint8_t *key, size_t key_len, const uint8_t *msg,
+			  size_t msg_len, uint8_t *out, size_t *len_out);
+bool osk_pin_verify_mac(uint64_t protocol, const uint8_t *key, size_t key_len, const uint8_t *msg,
+			size_t msg_len, const uint8_t *mac, size_t mac_len);
 
 /* Verify gegen das laufende Token, mit Pruefung auf in_use. */
-bool osk_pin_verify_token(uint64_t protocol, const uint8_t *msg, size_t msg_len,
-			  const uint8_t *mac, size_t mac_len);
+bool osk_pin_verify_token(uint64_t protocol, const uint8_t *msg, size_t msg_len, const uint8_t *mac,
+			  size_t mac_len);
 
 /* Zustandspflege nach Abschnitt 6.5.3.2. */
 void osk_pin_begin_using(bool user_is_present);
