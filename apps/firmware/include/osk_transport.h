@@ -8,14 +8,15 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 #include "osk_result.h"
 
 typedef enum {
-	OSK_LINK_USB_HID,   /* FIDO2 */
-	OSK_LINK_USB_CCID,  /* Smartcard: PIV, OpenPGP */
-	OSK_LINK_USB_KBD,   /* tippt Passwoerter */
-	OSK_LINK_USB_VENDOR,/* eigener Kanal zum Verwaltungsprogramm */
-	OSK_LINK_USB_MSC,   /* schreibgeschuetztes Laufwerk */
+	OSK_LINK_USB_HID,    /* FIDO2 */
+	OSK_LINK_USB_CCID,   /* Smartcard: PIV, OpenPGP */
+	OSK_LINK_USB_KBD,    /* tippt Passwoerter */
+	OSK_LINK_USB_VENDOR, /* eigener Kanal zum Verwaltungsprogramm */
+	OSK_LINK_USB_MSC,    /* schreibgeschuetztes Laufwerk */
 	OSK_LINK_NFC,
 	OSK_LINK_BLE,
 } osk_link_t;
@@ -30,7 +31,7 @@ typedef struct {
 typedef struct {
 	uint8_t *data;
 	size_t cap;
-	size_t len;   /* vom Applet gesetzt */
+	size_t len; /* vom Applet gesetzt */
 } osk_response_t;
 
 typedef osk_result_t (*osk_handler_fn)(const osk_request_t *req, osk_response_t *res);
