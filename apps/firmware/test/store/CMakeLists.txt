@@ -33,6 +33,7 @@ add_executable(store_tests
 	test_util.c
 	test_core.c
 	test_tag.c
+	test_paging.c
 	test_power.c
 	test_migrate.c
 	test_backup.c

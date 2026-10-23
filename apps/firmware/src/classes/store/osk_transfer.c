@@ -247,14 +247,26 @@ osk_result_t osk_transfer_send(osk_transfer_t *t, osk_chunk_sink_fn sink, void *
 		if (r != OSK_OK) {
 			break;
 		}
-		osk_idx_page_t *page = osk_index_page();
-		uint16_t n = page->head.count;
+		size_t n = osk_index_count(p);
 
-		for (uint16_t i = 0; i < n && r == OSK_OK; i++) {
-			osk_idx_rec_t *rec = &page->recs[i];
+		for (size_t i = 0; i < n && r == OSK_OK; i++) {
+			osk_idx_rec_t *from = NULL;
+			osk_idx_rec_t copy;
+
+			r = osk_index_rec(p, i, &from);
+			if (r != OSK_OK) {
+				break;
+			}
+			/* Eine Kopie, kein Zeiger: der Arbeitspuffer haelt nur
+			 * EINEN Indexblock, und beim naechsten Satz kann er
+			 * gewechselt haben. */
+			copy = *from;
+
+			osk_idx_rec_t *rec = &copy;
 
 			/* Nur was ausdruecklich gespiegelt werden darf. */
 			if ((rec->flags & OSK_FLAG_MIRRORED) == 0u) {
+				osk_crypto_wipe(&copy, sizeof(copy));
 				continue;
 			}
 			osk_transfer_item_t item;
@@ -284,6 +296,7 @@ osk_result_t osk_transfer_send(osk_transfer_t *t, osk_chunk_sink_fn sink, void *
 			r = osk_chunk_put(aad, aad_len, &t->key, t->seq, OSK_NONCE_TRANSFER,
 					  4u + sizeof(item) + secret_len, sink, ctx, h);
 			osk_crypto_wipe(&item, sizeof(item));
+			osk_crypto_wipe(&copy, sizeof(copy));
 			t->seq++;
 			count++;
 		}

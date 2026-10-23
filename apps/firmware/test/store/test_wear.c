@@ -34,11 +34,24 @@ static void case_spread(void)
 	}
 	T_TRUE(t_secret_is(id, secret));
 
-	uint32_t slots = fake_flash_sectors_touched(OSK_AREA_BLOB_OFF, OSK_AREA_BLOB_LEN);
-	uint32_t idx = fake_flash_sectors_touched(OSK_AREA_IDX_OFF, OSK_AREA_IDX_LEN);
+	/* Beide Bereiche der Partition zaehlen mit - der alte und der in
+	 * Fassung 4 angehaengte. */
+	uint32_t slots = fake_flash_sectors_touched(OSK_AREA_BLOB_OFF, OSK_AREA_BLOB_LEN) +
+			 fake_flash_sectors_touched(OSK_AREA_BLOB2_OFF, OSK_AREA_BLOB2_LEN);
+	uint32_t idx = fake_flash_sectors_touched(OSK_AREA_IDX_OFF, OSK_AREA_IDX_LEN) +
+		       fake_flash_sectors_touched(OSK_AREA_IDX2_OFF, OSK_AREA_IDX2_LEN);
 	uint32_t worst_blob = fake_flash_erase_max(OSK_AREA_BLOB_OFF, OSK_AREA_BLOB_LEN);
+	uint32_t worst_blob2 = fake_flash_erase_max(OSK_AREA_BLOB2_OFF, OSK_AREA_BLOB2_LEN);
 	uint32_t worst_idx = fake_flash_erase_max(OSK_AREA_IDX_OFF, OSK_AREA_IDX_LEN);
-	uint32_t worst_hdr = fake_flash_erase_max(OSK_AREA_HDR_OFF, OSK_AREA_HDR_LEN);
+	uint32_t worst_idx2 = fake_flash_erase_max(OSK_AREA_IDX2_OFF, OSK_AREA_IDX2_LEN);
+	uint32_t worst_hdr = fake_flash_erase_max(OSK_AREA_HDR2_OFF, OSK_AREA_HDR2_LEN);
+
+	if (worst_blob2 > worst_blob) {
+		worst_blob = worst_blob2;
+	}
+	if (worst_idx2 > worst_idx) {
+		worst_idx = worst_idx2;
+	}
 
 	printf("      %d Aenderungen: %u Datensektoren, %u Indexsektoren\n", RUNS, slots, idx);
 	printf("      haeufigster Sektor: Daten %u, Index %u, Kopf %u\n", worst_blob, worst_idx,
@@ -51,19 +64,29 @@ static void case_spread(void)
 	T_TRUE(worst_blob <= 2u);
 
 	/* Der Index wandert im Ring mit; auch dort darf kein Sektor
-	 * herausstechen. */
-	T_TRUE(idx > 100u);
+	 * herausstechen. Der Ring hat Platz fuer 170 Bloecke, also wird er bei
+	 * 400 Aenderungen gut zweimal durchlaufen - und weil hier nur EIN
+	 * Eintrag im Profil liegt, ist der Block kurz und schmutzt je Platz
+	 * nur den ersten Sektor an. Darum sind es rund 170 und nicht 1020. */
+	T_TRUE(idx > 150u);
 	T_TRUE(worst_idx <= 4u);
 
-	/* Der Kopf hat nur zwei Sektoren, aber 16 Plaetze je Sektor: er wird
-	 * hoechstens jedes sechzehnte Mal geloescht. */
-	uint32_t hdr_erases = fake_flash_erase_count(OSK_AREA_HDR_OFF) +
-			      fake_flash_erase_count(OSK_AREA_HDR_OFF + OSK_SECTOR);
+	/* Der Kopf hat 16 Sektoren mit 4 Plaetzen je Sektor: er wird hoechstens
+	 * jedes vierte Mal geloescht, und der Verschleiss verteilt sich auf
+	 * sechzehn Stellen statt auf zwei. */
+	uint32_t hdr_erases = 0;
+
+	for (uint32_t a = OSK_AREA_HDR2_OFF; a < OSK_AREA_HDR2_OFF + OSK_AREA_HDR2_LEN;
+	     a += OSK_SECTOR) {
+		hdr_erases += fake_flash_erase_count(a);
+	}
 	uint32_t writes = fake_flash_writes();
 
 	printf("      Kopfsektoren %u mal geloescht bei %u Schreibvorgaengen\n", hdr_erases,
 	       writes);
-	T_TRUE(hdr_erases * 8u < writes);
+	T_TRUE(hdr_erases * 2u < writes);
+	/* Kein einzelner Kopfsektor traegt die Last allein. */
+	T_TRUE(worst_hdr * 8u < hdr_erases + 8u);
 }
 
 static void case_slot_rotation(void)

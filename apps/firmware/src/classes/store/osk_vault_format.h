@@ -20,59 +20,156 @@
 	2 /* Eintrag hat das Kennzeichen                \
 	   * "schreibgeschuetzt" und einen Zaehler fuer \
 	   * HOTP */
-#define OSK_FMT_V3                                  \
-	3 /* jetzige Fassung: Eintrag hat die nicht \
-	   * geheime Kennung zum Suchen (tag), die  \
-	   * FIDO2 braucht */
-#define OSK_FMT_CURRENT OSK_FMT_V3
+#define OSK_FMT_V3                                 \
+	3 /* Eintrag hat die nicht geheime Kennung \
+	   * zum Suchen (tag), die FIDO2 braucht.  \
+	   * Je Profil lag EINE Indexfassung ganz  \
+	   * im RAM - daher nur 64 Eintraege. */
+#define OSK_FMT_V4                                    \
+	4 /* jetzige Fassung: der Index liegt in      \
+	   * Bloecken zu 64 Saetzen, von denen immer  \
+	   * nur einer im RAM ist. Dadurch 768        \
+	   * Eintraege je Profil. Der Satz selbst ist \
+	   * unveraendert 320 Byte lang; geaendert    \
+	   * haben sich der Klartext-Kopf und die     \
+	   * Einteilung der Partition. */
+#define OSK_FMT_CURRENT OSK_FMT_V4
 #define OSK_FMT_OLDEST_KNOWN OSK_FMT_V1
 
 /* ---- Grenzen ---------------------------------------------------------- */
 
 #define OSK_PROFILE_MAX 4 /* Profile je Geraet, jedes mit eigener PIN */
-#define OSK_ITEMS_MAX 64  /* Eintraege je Profil, also 256 im Geraet */
-#define OSK_NAME_MAX 64	  /* mit Null-Abschluss */
+
+/* Der Index eines Profils liegt in Bloecken. Im RAM ist immer nur EIN Block -
+ * das ist der ganze Grund dieser Einteilung. Ein Block hat feste Groesse,
+ * damit die Platzvergabe im Index-Ring ohne Laengenliste im Kopf auskommt. */
+#define OSK_IDX_BLOCK_RECS 64u /* Saetze je Block: 64 * 320 B = 20 KiB RAM */
+#define OSK_IDX_BLOCKS_MAX 12u /* Bloecke je Profil */
+
+#define OSK_ITEMS_MAX (OSK_IDX_BLOCK_RECS * OSK_IDX_BLOCKS_MAX) /* 768 je Profil */
+#define OSK_NAME_MAX 64						/* mit Null-Abschluss */
 #define OSK_SITE_MAX 128
 #define OSK_SECRET_MAX 4096 /* laengstes Geheimnis, auch kleine Dateien */
 #define OSK_TAG_MAX 32	    /* Kennung zum Suchen, siehe osk_store.h */
 
 /* ---- Einteilung der Tresorpartition ---------------------------------- */
 /* Sektoren von 4 KiB, Seiten von 256 Byte - die Masse des QSPI-Flash. Beim
- * Oeffnen wird gegen die wirkliche Geometrie geprueft. */
+ * Oeffnen wird gegen die wirkliche Geometrie geprueft.
+ *
+ * Die Partition hat ZWEI Bereiche, und das ist eine Entscheidung, nicht ein
+ * Versehen:
+ *
+ *   Bereich 0  genau wie in den Fassungen 1 bis 3 - Adresse fuer Adresse.
+ *   Bereich 1  in Fassung 4 dahinter angehaengt.
+ *
+ * Dadurch behaelt jedes Geheimnis eines alten Tresors seine Adresse, und die
+ * Wanderung von Fassung 3 muss kein einziges Byte umkopieren. Haette Fassung 4
+ * den Index-Ring an seiner Stelle vergroessert, waere der Datenbereich nach
+ * hinten gerutscht - dann muessten beim Umstieg alle Geheimnisse umziehen,
+ * waehrend genau diese Daten noch gebraucht werden. Ein angehaengter Bereich
+ * ist weniger schoen zu lesen und sehr viel sicherer. */
 
 #define OSK_SECTOR 4096u
 #define OSK_PAGE 256u
 
 #define OSK_BLOB_SLOT (2u * OSK_SECTOR) /* ein Platz je Geheimnis */
-#define OSK_BLOB_SLOTS 1024u		/* Plaetze im Datenbereich */
+
+/* --- Bereich 0: unveraendert seit Fassung 1 --- */
 
 #define OSK_AREA_HDR_OFF 0u
-#define OSK_AREA_HDR_LEN (2u * OSK_SECTOR) /* zwei Sektoren, Wechselbetrieb */
+#define OSK_AREA_HDR_LEN (2u * OSK_SECTOR) /* Kopf der Fassungen 1 bis 3 */
 #define OSK_AREA_IDX_OFF (OSK_AREA_HDR_OFF + OSK_AREA_HDR_LEN)
-#define OSK_AREA_IDX_LEN (256u * OSK_SECTOR) /* 1 MiB Index-Ring */
+#define OSK_AREA_IDX_LEN (256u * OSK_SECTOR) /* 1 MiB Index-Ring, Abschnitt 0 */
 #define OSK_AREA_LOG_OFF (OSK_AREA_IDX_OFF + OSK_AREA_IDX_LEN)
 #define OSK_AREA_LOG_LEN (32u * OSK_SECTOR) /* 128 KiB Protokoll-Ring */
 #define OSK_AREA_BLOB_OFF (OSK_AREA_LOG_OFF + OSK_AREA_LOG_LEN)
-#define OSK_AREA_BLOB_LEN (OSK_BLOB_SLOTS * OSK_BLOB_SLOT) /* 8 MiB */
-#define OSK_VAULT_SIZE (OSK_AREA_BLOB_OFF + OSK_AREA_BLOB_LEN)
+#define OSK_BLOB_SLOTS_SEG0 1024u				/* Datenplaetze 0 bis 1023 */
+#define OSK_AREA_BLOB_LEN (OSK_BLOB_SLOTS_SEG0 * OSK_BLOB_SLOT) /* 8 MiB */
+#define OSK_AREA_V3_END (OSK_AREA_BLOB_OFF + OSK_AREA_BLOB_LEN)
+
+/* --- Bereich 1: neu in Fassung 4 --- */
+
+/* Der Kopf der Fassung 4 ist groesser als eine Flash-Seite (die Belegung der
+ * Datenplaetze allein braucht 384 Byte). Er kann darum nicht in den zwei alten
+ * Kopfsektoren liegen: dort passten nur vier Saetze je Sektor, und jeder
+ * vierte Wechsel haette einen Loeschvorgang gekostet. Er bekommt deshalb
+ * eigene 16 Sektoren im neuen Bereich - 64 Saetze, und der Verschleiss
+ * verteilt sich besser als vorher. Die zwei alten Sektoren bleiben liegen und
+ * werden nach der Wanderung nicht mehr beschrieben. */
+#define OSK_AREA_HDR2_OFF OSK_AREA_V3_END
+#define OSK_AREA_HDR2_LEN (16u * OSK_SECTOR) /* 64 KiB Kopf-Ring */
+
+#define OSK_AREA_IDX2_OFF (OSK_AREA_HDR2_OFF + OSK_AREA_HDR2_LEN)
+#define OSK_AREA_IDX2_LEN (768u * OSK_SECTOR) /* 3 MiB Index-Ring, Abschnitt 1 */
+
+#define OSK_AREA_BLOB2_OFF (OSK_AREA_IDX2_OFF + OSK_AREA_IDX2_LEN)
+#define OSK_BLOB_SLOTS 3072u /* Datenplaetze insgesamt, einer je Eintrag */
+#define OSK_AREA_BLOB2_LEN ((OSK_BLOB_SLOTS - OSK_BLOB_SLOTS_SEG0) * OSK_BLOB_SLOT) /* 16 MiB */
+
+#define OSK_VAULT_SIZE (OSK_AREA_BLOB2_OFF + OSK_AREA_BLOB2_LEN) /* 28,2 MiB */
+
+/* Ein Datenplatz je Eintrag: 4 Profile mal 768 Eintraege gehen sich aus. */
+OSK_STATIC_ASSERT(OSK_BLOB_SLOTS >= OSK_PROFILE_MAX * OSK_ITEMS_MAX, slots_for_items);
+
+/* Adresse eines Datenplatzes. Die Plaetze 0 bis 1023 liegen da, wo sie in
+ * Fassung 3 lagen - darum die zwei Zweige. */
+static inline uint32_t osk_blob_addr(uint32_t slot)
+{
+	if (slot < OSK_BLOB_SLOTS_SEG0) {
+		return OSK_AREA_BLOB_OFF + slot * OSK_BLOB_SLOT;
+	}
+	return OSK_AREA_BLOB2_OFF + (slot - OSK_BLOB_SLOTS_SEG0) * OSK_BLOB_SLOT;
+}
 
 /* ---- Kopf ------------------------------------------------------------- */
 /* Der Kopf steht im Klartext, denn ohne ihn laesst sich nichts oeffnen. Er
  * enthaelt nichts Geheimes: Fassung, Zaehlerstand, Adressen und die Belegung
  * der Datenplaetze.
  *
- * Geschrieben wird er als Folge gleich grosser Saetze in zwei Sektoren. Jeder
- * neue Satz landet im naechsten freien Platz; gueltig ist der Satz mit der
- * hoechsten Folgenummer und richtiger Pruefsumme. Ist ein Sektor voll, wird
- * der andere geloescht und dort weitergeschrieben. Das verteilt den Verschleiss
- * und macht jeden Wechsel atomar: ein abgebrochener Satz hat eine falsche
- * Pruefsumme und wird uebergangen. Loeschen setzt Bits nur auf 1, und
- * 0xFFFFFFFF ist keine gueltige Kennung - ein halb geloeschter Sektor kann
- * also nie fuer einen gueltigen Satz gehalten werden. */
+ * Geschrieben wird er als Folge gleich grosser Saetze in einem Ring von
+ * Sektoren. Jeder neue Satz landet im naechsten freien Platz; gueltig ist der
+ * Satz mit der hoechsten Folgenummer und richtiger Pruefsumme. Ist ein Sektor
+ * voll, wird der naechste geloescht und dort weitergeschrieben. Das verteilt
+ * den Verschleiss und macht jeden Wechsel atomar: ein abgebrochener Satz hat
+ * eine falsche Pruefsumme und wird uebergangen. Loeschen setzt Bits nur auf 1,
+ * und 0xFFFFFFFF ist keine gueltige Kennung - ein halb geloeschter Sektor kann
+ * also nie fuer einen gueltigen Satz gehalten werden.
+ *
+ * Welche Fassung ein Satz hat, sagt hdr_size. Darum laesst sich ein Kopf der
+ * Fassungen 1 bis 3 lesen, ohne vorher zu wissen, dass er alt ist. */
 
 #define OSK_HDR_MAGIC 0x564B534Fu /* "OSKV" */
-#define OSK_HDR_SLOT OSK_PAGE	  /* ein Kopfsatz je Flash-Seite */
-#define OSK_HDR_SLOTS (OSK_AREA_HDR_LEN / OSK_HDR_SLOT)
+
+/* Der Kopf der Fassungen 1 bis 3: ein Satz je Flash-Seite, zwei Sektoren.
+ * Wird nur noch GELESEN - beim Umstieg auf Fassung 4. */
+#define OSK_HDR_V3_SLOT OSK_PAGE
+#define OSK_HDR_V3_SLOTS (OSK_AREA_HDR_LEN / OSK_HDR_V3_SLOT)
+
+typedef struct {
+	uint32_t magic;
+	uint16_t format;
+	uint16_t hdr_size;
+	uint32_t seq;
+	uint32_t sector_of_slot;
+	uint64_t nonce_next;
+	uint32_t index_root[OSK_PROFILE_MAX]; /* die EINE Indexfassung je Profil */
+	uint32_t index_len[OSK_PROFILE_MAX];
+	uint32_t index_alloc;
+	uint32_t blob_cursor;
+	uint32_t item_next;
+	uint8_t profile_used[OSK_PROFILE_MAX];
+	uint8_t reserved[12];
+	uint8_t slot_used[OSK_BLOB_SLOTS_SEG0 / 8];
+	uint32_t crc32;
+} osk_hdr_v3_t;
+
+OSK_STATIC_ASSERT(sizeof(osk_hdr_v3_t) <= OSK_HDR_V3_SLOT, hdr_v3_fits_slot);
+
+/* Der Kopf der Fassung 4. Ein Satz braucht vier Flash-Seiten, weil die
+ * Belegung der 3072 Datenplaetze allein 384 Byte kostet. */
+#define OSK_HDR_SLOT (4u * OSK_PAGE)
+#define OSK_HDR_SLOTS (OSK_AREA_HDR2_LEN / OSK_HDR_SLOT)
+#define OSK_HDR_SLOTS_PER_SECTOR (OSK_SECTOR / OSK_HDR_SLOT)
 
 typedef struct {
 	uint32_t magic;
@@ -89,8 +186,16 @@ typedef struct {
 	 * OSK_NONCE_RESERVE Nonces und wiederholt keine einzige. */
 	uint64_t nonce_next;
 
-	uint32_t index_root[OSK_PROFILE_MAX];  /* Adresse der Indexfassung, 0 = leer */
-	uint32_t index_len[OSK_PROFILE_MAX];   /* Laenge dort, mit Rahmen */
+	/* Wo die Indexbloecke jedes Profils liegen. Die Adressen stehen im
+	 * Klartext, und das muss so sein: der Tresor muss Platz im Index-Ring
+	 * vergeben koennen, ohne die Bloecke eines GESPERRTEN Profils zu
+	 * ueberschreiben - deren Adressen darf er also auch dann kennen.
+	 * Verraten wird dadurch, wie viele Eintraege ein Profil hat; die Groesse
+	 * einer Indexfassung hat das schon in Fassung 3 ungefaehr gezeigt. */
+	uint32_t index_block[OSK_PROFILE_MAX][OSK_IDX_BLOCKS_MAX]; /* 0 = unbenutzt */
+	uint16_t index_count[OSK_PROFILE_MAX];			   /* Eintraege im Profil */
+	uint8_t index_blocks[OSK_PROFILE_MAX];			   /* belegte Bloecke */
+
 	uint32_t index_alloc;		       /* Suchzeiger im Index-Ring */
 	uint32_t blob_cursor;		       /* Suchzeiger im Datenbereich, laeuft im Kreis */
 	uint32_t item_next;		       /* naechste freie Eintragskennung, nie wiederholt */
@@ -98,8 +203,15 @@ typedef struct {
 
 	/* Zum Protokoll steht hier nichts: sein Ringkopf wird beim Oeffnen im
 	 * Ring selbst gesucht. Stuende er im Kopf, kostete jeder
-	 * Protokolleintrag einen Kopfsatz - mitten in einer Transaktion. */
-	uint8_t reserved[12];
+	 * Protokolleintrag einen Kopfsatz - mitten in einer Transaktion.
+	 *
+	 * Die Groesse ist mit Bedacht gewaehlt: sie schiebt crc32 genau an das
+	 * Ende der Struktur. Die Pruefsumme wird ueber alles davor gerechnet,
+	 * und das Ende wird als sizeof minus vier Byte bestimmt - gaebe es
+	 * hinter crc32 eine Auffuellung des Uebersetzers, deckte die Pruefsumme
+	 * sich selbst mit und wuerde nie stimmen. Der Riegel darunter haelt
+	 * das fest. */
+	uint8_t reserved[16];
 
 	/* Belegung der Datenplaetze, ein Bit je Platz. Sie gehoert in den Kopf,
 	 * damit ein Platz auch dann als belegt gilt, wenn das Profil gesperrt
@@ -111,6 +223,14 @@ typedef struct {
 } osk_hdr_t;
 
 OSK_STATIC_ASSERT(sizeof(osk_hdr_t) <= OSK_HDR_SLOT, hdr_fits_slot);
+OSK_STATIC_ASSERT(sizeof(osk_hdr_t) != sizeof(osk_hdr_v3_t), hdr_sizes_differ);
+
+/* Die Pruefsumme steht am Ende, ohne Auffuellung dahinter - sonst deckte sie
+ * sich selbst mit. Gilt fuer beide Fassungen des Kopfes. */
+OSK_STATIC_ASSERT(offsetof(osk_hdr_t, crc32) == sizeof(osk_hdr_t) - sizeof(uint32_t),
+		  hdr_crc_is_last);
+OSK_STATIC_ASSERT(offsetof(osk_hdr_v3_t, crc32) == sizeof(osk_hdr_v3_t) - sizeof(uint32_t),
+		  hdr_v3_crc_is_last);
 
 #define OSK_NONCE_RESERVE 64u
 
@@ -125,9 +245,15 @@ typedef enum {
 } osk_nonce_purpose_t;
 
 /* ---- Index ------------------------------------------------------------ */
-/* Je Profil eine Indexfassung. Eine Fassung wird vollstaendig an einen neuen
- * Platz geschrieben; erst der neue Kopfsatz macht sie gueltig. Dadurch wandert
- * der Index bei jeder Aenderung weiter und nutzt den Ring gleichmaessig ab. */
+/* Je Profil mehrere Indexbloecke zu je 64 Saetzen. Ein Block wird vollstaendig
+ * an einen neuen Platz geschrieben; erst der neue Kopfsatz macht ihn gueltig.
+ * Dadurch wandert der Index bei jeder Aenderung weiter und nutzt den Ring
+ * gleichmaessig ab.
+ *
+ * Eine Aenderung schreibt nur den EINEN betroffenen Block neu, nicht den
+ * ganzen Index. Die Bloecke sind bis auf den letzten immer voll - so sagt die
+ * Nummer eines Eintrags ohne Nachrechnen, in welchem Block er steht:
+ * Block = Nummer / 64, Platz darin = Nummer % 64. */
 
 #define OSK_IDX_MAGIC 0x58444B4Fu /* "OKDX" */
 
@@ -169,23 +295,37 @@ typedef struct {
 
 OSK_STATIC_ASSERT(sizeof(osk_idx_rec_t) == 320, idx_rec_320);
 
-/* Kopf einer Indexfassung, verschluesselt wie die Saetze dahinter. */
+/* Kopf eines Indexblocks, verschluesselt wie die Saetze dahinter.
+ *
+ * Die Blocknummer steht IM verschluesselten Teil und nicht in den zusaetzlichen
+ * Daten. Das ist Absicht: die zusaetzlichen Daten sind in allen Fassungen die
+ * Profilnummer allein, und nur darum laesst sich eine alte Fassung ueberhaupt
+ * oeffnen, ohne vorher zu wissen, welche es ist. Geprueft wird die Nummer nach
+ * dem Entschluesseln. Das schuetzt genauso gut: der Pruefwert deckt den Kopf
+ * mit, ein Block mit anderer Nummer laesst sich also nicht faelschen, und ein
+ * echter Block an die Stelle eines anderen geschoben faellt an der Nummer auf.
+ *
+ * In den Fassungen 1 bis 3 lag hier eine 0 (Teil von reserved). Eine alte
+ * Indexfassung liest sich dadurch als Block 0 - genau richtig. */
 typedef struct {
 	uint32_t magic;
 	uint16_t format;
-	uint16_t count;
+	uint16_t count; /* Saetze in DIESEM Block */
 	uint32_t generation;
 	uint8_t profile;
-	uint8_t reserved[19];
+	uint8_t pad0;
+	uint16_t block; /* Nummer des Blocks im Profil (ab Fassung 4) */
+	uint8_t reserved[16];
 } osk_idx_head_t;
 
 OSK_STATIC_ASSERT(sizeof(osk_idx_head_t) == 32, idx_head_32);
 
-/* Eine ganze Indexfassung im Klartext. Dieser Puffer ist der Arbeitsplatz des
- * Tresors: geladen ist immer nur ein Profil. */
+/* Ein Indexblock im Klartext. Dieser Puffer ist der Arbeitsplatz des Tresors:
+ * geladen ist immer nur EIN Block EINES Profils. Daran haengt die
+ * Eintragsgrenze, nicht am Flash. */
 typedef struct {
 	osk_idx_head_t head;
-	osk_idx_rec_t recs[OSK_ITEMS_MAX];
+	osk_idx_rec_t recs[OSK_IDX_BLOCK_RECS];
 } osk_idx_page_t;
 
 /* Was im Klartext vor der verschluesselten Indexfassung steht. */
@@ -197,6 +337,21 @@ typedef struct {
 } osk_idx_frame_t;
 
 OSK_STATIC_ASSERT(sizeof(osk_idx_frame_t) == 24, idx_frame_24);
+
+/* Platz, den ein Block im Index-Ring belegt - fuer jeden Block gleich, auch
+ * fuer einen halb gefuellten. Dadurch braucht der Kopf keine Laengenliste, und
+ * die Platzvergabe rechnet mit einer Zahl statt mit achtundvierzig. */
+#define OSK_IDX_BLOCK_SPAN                                                               \
+	((((uint32_t)(sizeof(osk_idx_frame_t) + sizeof(osk_idx_page_t) + OSK_TAG_LEN)) + \
+	  OSK_SECTOR - 1u) &                                                             \
+	 ~(OSK_SECTOR - 1u))
+
+/* Alle gueltigen Bloecke muessen gleichzeitig in den Ring passen, und zwar mit
+ * Luft: ein neuer Block wird immer an einen FREIEN Platz geschrieben, bevor der
+ * alte ungueltig wird. */
+OSK_STATIC_ASSERT((OSK_AREA_IDX_LEN + OSK_AREA_IDX2_LEN) >
+		      2u * OSK_PROFILE_MAX * OSK_IDX_BLOCKS_MAX * OSK_IDX_BLOCK_SPAN,
+		  idx_ring_has_room);
 
 /* ---- Geheimnisse ------------------------------------------------------ */
 /* Jedes Geheimnis liegt auf einem eigenen Platz von zwei Sektoren, mit eigener

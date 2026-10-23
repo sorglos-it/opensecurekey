@@ -198,11 +198,22 @@ osk_result_t osk_backup_write(const char *pass, size_t pass_len, const osk_argon
 		if (r != OSK_OK) {
 			break;
 		}
-		osk_idx_page_t *page = osk_index_page();
-		uint16_t n = page->head.count;
+		size_t n = osk_index_count(p);
 
-		for (uint16_t i = 0; i < n && r == OSK_OK; i++) {
-			osk_idx_rec_t *rec = &page->recs[i];
+		for (size_t i = 0; i < n && r == OSK_OK; i++) {
+			osk_idx_rec_t *from = NULL;
+			osk_idx_rec_t copy;
+
+			r = osk_index_rec(p, i, &from);
+			if (r != OSK_OK) {
+				break;
+			}
+			/* Eine Kopie, kein Zeiger: der Arbeitspuffer haelt nur
+			 * EINEN Indexblock, und beim naechsten Satz kann er
+			 * gewechselt haben. */
+			copy = *from;
+
+			osk_idx_rec_t *rec = &copy;
 			osk_backup_item_t item;
 			size_t secret_len = 0;
 
@@ -233,6 +244,7 @@ osk_result_t osk_backup_write(const char *pass, size_t pass_len, const osk_argon
 					  OSK_NONCE_BACKUP, 4u + sizeof(item) + secret_len, sink,
 					  ctx, h);
 			osk_crypto_wipe(&item, sizeof(item));
+			osk_crypto_wipe(&copy, sizeof(copy));
 			seq++;
 			count++;
 		}

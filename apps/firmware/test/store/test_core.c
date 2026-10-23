@@ -337,10 +337,10 @@ static void case_limits(void)
 	osk_test_case("Ein Profil ist voll, wenn es voll ist");
 	t_device(0, 1u, T_PIN);
 
-	for (int i = 0; i < OSK_ITEMS_MAX; i++) {
+	for (unsigned i = 0; i < OSK_ITEMS_MAX; i++) {
 		char name[32];
 
-		snprintf(name, sizeof(name), "eintrag-%d", i);
+		snprintf(name, sizeof(name), "eintrag-%u", i);
 		T_OK(t_add(0, name, "x.example", "geheim", false, NULL));
 	}
 	T_EQ(t_count(0), OSK_ITEMS_MAX);

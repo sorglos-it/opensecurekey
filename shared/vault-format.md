@@ -12,31 +12,62 @@ explains it. If the two disagree, the header is right and this file is a bug.
 
 The vault owns one flash partition. Nothing else writes into it.
 
-| Area | Size | Content |
-| --- | --- | --- |
-| header | 8 KiB (2 sectors) | version, nonce counter, addresses, slot bitmap — plaintext |
-| index | 1 MiB | one encrypted generation per profile |
-| log | 128 KiB | 512 slots of one page, each encrypted on its own |
-| secrets | 8 MiB | 1024 slots of 8 KiB, one secret per slot |
+The partition has two regions, and that is a decision, not an accident.
+**Region 0 is byte for byte what versions 1 to 3 had. Region 1 was appended
+behind it in version 4.**
 
-Sectors are 4 KiB, pages 256 B. The geometry is checked against the real chip
-when the vault is opened; a chip with other sizes is refused rather than
-written to.
+| Area | Offset | Size | Content |
+| --- | --- | --- | --- |
+| old header | 0 | 8 KiB (2 sectors) | the header of versions 1–3; read only, never written again |
+| index, part 0 | 8 KiB | 1 MiB | encrypted index blocks |
+| log | 1 MiB + 8 KiB | 128 KiB | 512 slots of one page, each encrypted on its own |
+| secrets 0–1023 | 9.1 MiB | 8 MiB | 1024 slots of 8 KiB, one secret per slot |
+| header | 9.13 MiB | 64 KiB (16 sectors) | version, nonce counter, block addresses, slot bitmap — plaintext |
+| index, part 1 | 9.19 MiB | 3 MiB | encrypted index blocks |
+| secrets 1024–3071 | 12.19 MiB | 16 MiB | 2048 further slots of 8 KiB |
+
+**28.2 MiB in total** (29,564,928 B). Sectors are 4 KiB, pages 256 B. The
+geometry is checked against the real chip when the vault is opened; a chip with
+other sizes is refused rather than written to.
+
+Why appended and not enlarged in place: a slot number says where a secret
+lives, so moving the areas would move every secret. A device upgraded from
+version 3 would then have to copy its whole data area while exactly that data
+is the only copy it has. Appending costs an ugly second region and two branches
+of address arithmetic, and it costs **no** relocation at all — the upgrade never
+moves a byte of secret data. The two old header sectors (8 KiB) are left lying
+there once the upgrade is through; that is the whole price.
 
 ## Limits
 
 | | |
 | --- | --- |
 | profiles per device | 4, each with its own PIN |
-| items per profile | 64, so 256 in a device |
+| items per profile | 768, so 3072 in a device |
 | longest secret | 4096 B (small files included) |
 | name / address | 64 / 128 characters |
 | log entries | up to 512, oldest dropped |
 
-Items per profile is a deliberate limit: one index generation is held in RAM
-(64 records of 320 B, so ~20 KiB, plus the same again as ciphertext while it is
-written), and the nRF52840 has 256 KiB in total. Raising it means paging the
-index, not changing a constant.
+**3072 is the number the budget allows, and here is the arithmetic.** One item
+takes exactly one secret slot of 8 KiB, so 3072 items are 24 MiB of data area.
+The index needs one 24 KiB place per 64 items — 48 places for a full device —
+and a ring wants room to move, so it gets 170 places (4 MiB over the two parts),
+3.5 times the live set. With the log and the header that is 28.2 MiB.
+
+The chip has 64 MiB, and 29.5 MiB of it is already spoken for: the three
+portable programs (27.5 MiB, measured), 1 MiB for the second firmware slot and
+about 1 MiB of file system. That leaves 34.5 MiB. **4096 items would not fit**:
+32 MiB of slots plus a 2.7 MiB index is 34.9 MiB, over the line before any
+margin. Getting to 4000 would mean a 4 KiB slot — and that would shorten the
+longest secret and, worse, move every existing slot. Not worth it for 25 % more
+entries; see `../docs/hardware.md`.
+
+Items per profile is a limit of the **index block**, not of the flash: one block
+of 64 records of 320 B is ~20 KiB of RAM, plus the same again as ciphertext
+while it is written, and the nRF52840 has 256 KiB in total. Only ever one block
+is in RAM, so 768 items cost exactly as much RAM as 64 did. Raising it further
+means more blocks per profile (`OSK_IDX_BLOCKS_MAX`) and more slots — both are
+flash, and the flash is what ran out.
 
 ## The header
 
@@ -44,10 +75,23 @@ Plaintext, because nothing can be opened without it. It holds nothing secret:
 format version, a sequence number, the nonce counter, where each profile's index
 generation sits, and a bitmap of which secret slots are taken.
 
-It is written as a sequence of equal-sized records across two sectors. Each new
-record goes into the next free page; the valid one is the record with the
-highest sequence number and a correct checksum. When a sector is full, the other
-one is erased and writing continues there.
+It is written as a sequence of equal-sized records across a ring of 16 sectors.
+A record is 1 KiB — four flash pages, because the slot bitmap for 3072 slots
+alone is 384 B. Each new record goes into the next free slot; the valid one is
+the record with the highest sequence number and a correct checksum. When a
+sector is full, the next one in the ring is erased and writing continues there.
+
+The ring is in region 1, not in the two old header sectors. It could not stay
+there: four records per sector would mean an erase on every fourth change,
+four times as often as before, and the area cannot grow forwards because the old
+index ring starts right behind it. With 16 sectors the wear is now *better* than
+it was — measured over 400 changes: 90 erases spread over 16 sectors, the worst
+of them 6.
+
+The size of `reserved` in the header is chosen so that the checksum is the last
+field with no compiler padding behind it. The checksum is computed over
+`sizeof` minus four bytes; with padding behind it, it would cover itself and
+never match. There is a static assertion on that — it cost an hour to find once.
 
 That gives three things at once:
 
@@ -55,10 +99,11 @@ That gives three things at once:
   checksum and is ignored, so the previous record still rules. Erasing only
   turns bits to 1, and `0xFFFFFFFF` is not a valid magic number, so a
   half-erased sector can never be mistaken for a record.
-- **Wear spreading.** 16 records fit in a sector, so a sector is erased only
-  every 16th change. Measured over 400 changes: 25 erases across the two
-  sectors.
-- **One place for the truth.** Which index generation counts, which slots are
+- **Wear spreading.** Four records fit in a sector and there are 16 sectors, so
+  a sector is erased only every fourth record and the erases spread over the
+  whole ring. Measured over 400 changes: 90 erases over 2751 writes, the worst
+  single sector 6 times.
+- **One place for the truth.** Which index block counts, which slots are
   taken and how far the nonce counter has come are decided by exactly one
   record.
 
@@ -86,19 +131,40 @@ cuts.
 
 ## Index
 
-One generation per profile, encrypted as a whole with that profile's key. The
-plaintext is a small header plus one fixed 320-byte record per item: id, type,
-profile, flags, timestamp, which slot holds the secret, its length and nonce,
-the search tag, the name and the address. Never the secret itself.
+A profile's index is a row of **blocks** of up to 64 records, each block
+encrypted on its own with that profile's key. The plaintext of a block is a
+small header plus one fixed 320-byte record per item: id, type, profile, flags,
+timestamp, which slot holds the secret, its length and nonce, the search tag,
+the name and the address. Never the secret itself.
 
-A generation is always written to a **new** place in the ring, and it only
-becomes valid with the header record that points to it. So the index moves on
-every change, which spreads wear by itself: measured over 400 changes, 146 of
-the 256 index sectors were used, none more than once.
+**Only one block is in RAM.** That is the point of version 4 and the reason the
+limit could go from 64 items to 768 without the nRF52840 needing more memory.
+Every block occupies the same 24 KiB place in the ring even when it is half
+empty, so the header needs a list of 48 addresses and no list of lengths.
 
-The additional authenticated data is the profile number. The format version is
-inside the encrypted generation header, so a generation can be read without
-knowing beforehand which version it is — that is what makes migration work.
+All blocks but the last are full. That makes the arithmetic trivial and needs no
+directory: item number *n* sits in block *n / 64* at place *n % 64*. The number
+of items per profile is in the plaintext header, so counting and bounds-checking
+cost no decryption.
+
+A block is always written to a **new** place in the ring, and it only becomes
+valid with the header record that points to it. So the index moves on every
+change, which spreads wear by itself. Measured over 400 changes of one item in a
+profile that holds one item: 170 index sectors used, none more than twice — the
+block is short there, so only the first sector of each place gets dirty. With a
+**full** block of 20 KiB all six sectors of a place are used; measured over 200
+changes: 377 index sectors, none more than once.
+
+The additional authenticated data is the profile number alone — in every format
+version. **The block number is inside the encrypted block header, not in the
+additional data.** That is deliberate: a block can only be read without knowing
+its version beforehand if the additional data is the same in all versions, and
+that is what makes migration work. It protects just as well, because the
+authentication tag covers the block header: a block with a different number
+cannot be forged, and a genuine block moved to another block's place is caught
+by the number after decryption. In versions 1 to 3 that field was zero, and a
+version-3 index therefore reads as block 0 — which is exactly right, because
+there was only one.
 
 ## The search tag
 
@@ -113,9 +179,38 @@ every single item, which makes a login unusable.
 The tag sits **inside the encrypted index**, not in the plaintext header. A
 plaintext list would be faster to search, but it would tell anyone who reads the
 flash which services the user has an account with. So the search runs over the
-index, which is in RAM anyway once the profile is unlocked, while the secrets
-themselves are never touched. A locked profile finds nothing at all
-(`OSK_ERR_DENIED`).
+index, while the secrets themselves are never touched. A locked profile finds
+nothing at all (`OSK_ERR_DENIED`).
+
+### What a search costs
+
+Since version 4 the index is paged, so a search has to read and decrypt **every
+block of the profile** — the tag it is looking for can be in any of them. That
+is the price of the higher limit, and it was measured rather than assumed
+(`test_paging.c`, case "Suchen ueber die Kennung"):
+
+| Items in the profile | blocks decrypted | bytes decrypted | per search, PC |
+| --- | --- | --- | --- |
+| 64 | 1 | 20 KiB | ~150 µs |
+| 768 (full) | 12 | 240 KiB | 1.20–1.45 ms |
+
+**The microseconds are a PC number and say nothing about the device.** They were
+measured on a desktop against the crypto *double*; the real AES-GCM comes from
+the nRF52840's CryptoCell and was never run. The honest numbers are the left
+three columns: one block per 64 items, 240 KiB read and decrypted for a full
+profile, and **no secret touched and no confirmation asked** — that part is
+asserted, not timed.
+
+Six repeated runs gave 1.20, 1.25, 1.25, 1.25, 1.30 and 1.45 ms, so the
+measurement is stable to about 10 %.
+
+What this means for FIDO2 is **open until it is measured on hardware**. 240 KiB
+has to come off the QSPI flash and through AES-GCM for every passkey login. If
+that turns out too slow, the shortcut is known and not built: one extra
+encrypted block per profile holding only `{tag digest, item id}` pairs, 8 bytes
+per item, so 3072 items fit in a single block — one decryption instead of
+twelve. It costs a second write per change and one more invariant to keep, and
+nothing measured says it is needed yet. It is not in version 4 for that reason.
 
 Two details that are tested:
 
@@ -173,9 +268,15 @@ whole area — measured: 400 changes touched 400 different slots, none twice.
 ## A change, step by step
 
 1. New secret onto a **free** slot.
-2. New index generation to a **free** place in the ring.
-3. **Header record** that points at both — from here the change counts.
+2. The affected index block(s) to **free** places in the ring.
+3. **Header record** that points at all of them — from here the change counts.
 4. Old slot released and erased.
+
+Step 2 is usually one block. Deleting is the exception: the last item moves into
+the gap, and if the gap and the last item are in different blocks, **two** blocks
+are written — both before the header record, so both become valid together or
+neither does. That path has its own power-cut test over all 87 of its write
+positions.
 
 A power cut before step 3 leaves the old header valid, so the old state. During
 step 3 the checksum fails and the old record still rules. During step 4 a taken
@@ -217,11 +318,32 @@ The header carries the format version, and so does every index generation:
 | --- | --- | --- |
 | v1 | 240 B | the first format |
 | v2 | 256 B | read-only flag, HOTP counter |
-| v3 | 320 B | the search tag (current) |
+| v3 | 320 B | the search tag |
+| v4 | 320 B | the index in blocks: 768 items per profile instead of 64 (current) |
+
+**Version 4 did not change the record at all.** What changed is the plaintext
+header and the layout of the partition. That makes the upgrade from version 3
+the cheapest one so far:
+
+- The old header is recognised by its `hdr_size`, read as `osk_hdr_v3_t` and
+  converted **in RAM** at mount time — exactly the way old index records are
+  converted. Its one index generation per profile becomes that profile's block
+  0, at the address it already had. The item count was not in the old header; it
+  is filled in when block 0 is first read, from the block's own count, and that
+  is the whole truth because a profile with one block has no other items.
+- **Not one byte of secret data moves.** Slots 0 to 1023 are still where they
+  were, which is the reason region 1 was appended instead of the areas being
+  enlarged.
+- Header records from then on go into the new 64 KiB ring. The old record stays
+  behind with a lower sequence number, and the youngest record always wins, so
+  it never comes back. Mount reads both areas.
+- A vault with mixed versions reads either way, so a power cut during the
+  upgrade is the same non-event it was before — tested at all 10 write positions
+  for each of v1, v2 and v3.
 
 Migration needs no step of its own and cannot lose data:
 
-- An old generation is converted **in RAM** while it is loaded, so the vault is
+- An old index block is converted **in RAM** while it is loaded, so the vault is
   fully readable right after a firmware update. Every old format has its own
   converter straight to the current one, and the records are rewritten from the
   back forwards because they grow inside the same buffer. One converter per old
@@ -319,11 +441,22 @@ breaks off is detected by the closing chunk.
   authentic, so nothing notices. Fixing this needs a monotonic counter in the
   SE050 that is compared when opening. **Open.**
 - **Metadata.** The number of stored secrets can be read from the plaintext slot
-  bitmap, and the size of an index generation shows roughly how many items a
-  profile has. Names, addresses and secrets stay encrypted.
+  bitmap, and since version 4 the plaintext header also gives the **exact**
+  number of items **per profile** (in version 3 the size of an index generation
+  gave it away to within a record). The block addresses are in plaintext too,
+  because the vault has to be able to allocate index space without overwriting
+  the blocks of a *locked* profile, and so it must know where they are even
+  then. Names, addresses and secrets stay encrypted.
 - **Interrupted restore.** A backup restore or a device-to-device transfer that
   breaks off part way leaves the items read so far in the vault. Each one is
   atomic, so the vault is sound, but it is not all-or-nothing across the file.
 - **Nothing on hardware.** Every number here was measured against a RAM flash
-  double with test doubles for crypto and the SE050. Timing, erase durations and
-  Argon2id cost on the real chip are unmeasured.
+  double with test doubles for crypto and the SE050. Timing, erase durations,
+  the cost of a tag search and the Argon2id cost on the real chip are
+  unmeasured.
+- **8 KiB for a 32-byte password.** A slot is two sectors because the longest
+  secret is 4096 B and a frame plus the authentication tag push it 36 bytes over
+  one sector. For a password that is a 250-fold waste, and it is what caps the
+  device at 3072 items. Two slot classes, or a 4060-byte limit and one-sector
+  slots, would buy 6000 items — at the price of relocating every existing
+  secret. **Open**, and only worth reopening if 3072 turns out to be too few.

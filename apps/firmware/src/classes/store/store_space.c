@@ -2,19 +2,24 @@
  *
  * Reihenfolge jeder Aenderung - und nur diese macht sie atomar:
  *   1. neues Geheimnis auf einen FREIEN Datenplatz schreiben
- *   2. neue Indexfassung an einen FREIEN Platz im Index-Ring schreiben
- *   3. Kopfsatz schreiben, der auf beides zeigt  <- ab hier gilt es
+ *   2. betroffene Indexbloecke an FREIE Plaetze im Index-Ring schreiben
+ *   3. Kopfsatz schreiben, der auf alles zeigt  <- ab hier gilt es
  *   4. alten Datenplatz freigeben und loeschen
  * Bricht der Strom vor Schritt 3 weg, gilt der alte Kopfsatz und damit der
  * alte Zustand. Bricht er in Schritt 3 weg, ist die Pruefsumme falsch und der
  * alte Satz gilt weiter. Bricht er in Schritt 4 weg, bleibt ein belegter, aber
- * unbenutzter Platz zurueck - lesbar ist der Tresor in jedem Fall. */
+ * unbenutzter Platz zurueck - lesbar ist der Tresor in jedem Fall.
+ *
+ * Der Index eines Profils liegt in Bloecken zu 64 Saetzen. Im RAM ist immer
+ * nur EIN Block: daran haengt die Eintragsgrenze. Eine Aenderung schreibt nur
+ * die Bloecke neu, die sie anfasst - in der Regel einen, beim Loeschen zwei. */
 
 #include <string.h>
 #include "store_internal.h"
 
 static osk_idx_page_t g_idx;
 static int g_idx_profile = -1;
+static int g_idx_block = -1;
 static uint8_t g_idx_ct[sizeof(osk_idx_page_t) + OSK_TAG_LEN];
 static uint8_t g_blob[OSK_BLOB_SLOT];
 
@@ -28,12 +33,26 @@ int osk_index_loaded_profile(void)
 	return g_idx_profile;
 }
 
+int osk_index_loaded_block(void)
+{
+	return g_idx_block;
+}
+
 void osk_index_drop(void)
 {
 	/* Der Index enthaelt Namen und Adressen - nichts davon bleibt liegen. */
 	osk_crypto_wipe(&g_idx, sizeof(g_idx));
 	osk_crypto_wipe(g_idx_ct, sizeof(g_idx_ct));
 	g_idx_profile = -1;
+	g_idx_block = -1;
+}
+
+size_t osk_index_count(uint8_t profile)
+{
+	if (profile >= OSK_PROFILE_MAX) {
+		return 0u;
+	}
+	return osk_store_state()->hdr.index_count[profile];
 }
 
 /* ---- Index ------------------------------------------------------------ */
@@ -43,30 +62,29 @@ static uint32_t frame_crc(const osk_idx_frame_t *f)
 	return osk_crc32(f, sizeof(*f) - sizeof(f->crc32));
 }
 
-osk_result_t osk_index_load(uint8_t profile)
+/* Richtet den Arbeitspuffer als leeren Block ein - ohne jeden Flash-Zugriff.
+ * So kostet ein noch leeres Profil und ein noch nicht angelegter Block
+ * nichts. */
+static void index_set_empty(uint8_t profile, uint16_t block)
+{
+	memset(&g_idx, 0, sizeof(g_idx));
+	g_idx.head.magic = OSK_IDX_MAGIC;
+	g_idx.head.format = OSK_FMT_CURRENT;
+	g_idx.head.count = 0u;
+	g_idx.head.generation = 0u;
+	g_idx.head.profile = profile;
+	g_idx.head.block = block;
+}
+
+static osk_result_t index_read_block(uint8_t profile, uint16_t block)
 {
 	osk_store_state_t *st = osk_store_state();
 	osk_idx_frame_t frame;
 	osk_result_t r;
-
-	if (profile >= OSK_PROFILE_MAX) {
-		return OSK_ERR_ARG;
-	}
-	if (g_idx_profile == (int)profile) {
-		return OSK_OK;
-	}
-	osk_index_drop();
-
-	uint32_t root = st->hdr.index_root[profile];
+	uint32_t root = st->hdr.index_block[profile][block];
 
 	if (root == 0u) {
-		/* leeres Profil - kein Fehler, nur nichts darin */
-		g_idx.head.magic = OSK_IDX_MAGIC;
-		g_idx.head.format = OSK_FMT_CURRENT;
-		g_idx.head.count = 0u;
-		g_idx.head.generation = 0u;
-		g_idx.head.profile = profile;
-		g_idx_profile = (int)profile;
+		index_set_empty(profile, block);
 		return OSK_OK;
 	}
 
@@ -88,19 +106,25 @@ osk_result_t osk_index_load(uint8_t profile)
 	size_t plain_len = 0;
 	uint8_t aad[1] = {profile};
 
-	/* Die Fassung steht im verschluesselten Kopf der Indexfassung, nicht in
-	 * den zusaetzlichen Daten. Nur so laesst sich eine Fassung lesen, ohne
+	/* Die Fassung steht im verschluesselten Kopf des Blocks, nicht in den
+	 * zusaetzlichen Daten. Nur so laesst sich eine Fassung lesen, ohne
 	 * vorher zu wissen, welche es ist. */
 	r = osk_crypto_open(&st->key_profile[profile], frame.nonce, aad, sizeof(aad), g_idx_ct,
 			    frame.ct_len, (uint8_t *)&g_idx, sizeof(g_idx), &plain_len);
 	if (r != OSK_OK) {
 		/* Falscher Schluessel heisst: falsche PIN fuer dieses Profil. */
-		osk_index_drop();
 		return (r == OSK_ERR_FORMAT) ? OSK_ERR_DENIED : r;
 	}
 	if (plain_len < sizeof(osk_idx_head_t) || g_idx.head.magic != OSK_IDX_MAGIC ||
-	    g_idx.head.profile != profile || g_idx.head.count > OSK_ITEMS_MAX) {
-		osk_index_drop();
+	    g_idx.head.profile != profile || g_idx.head.count > OSK_IDX_BLOCK_RECS) {
+		return OSK_ERR_FORMAT;
+	}
+	/* Die Blocknummer im verschluesselten Kopf muss die erwartete sein.
+	 * Sonst waere ein echter Block an die Stelle eines anderen geschoben
+	 * worden - dieselbe Zusicherung, die sonst die zusaetzlichen Daten
+	 * geben, nur hier nach dem Entschluesseln geprueft. In den Fassungen 1
+	 * bis 3 stand dort eine 0, und dort gibt es nur Block 0. */
+	if (g_idx.head.block != block) {
 		return OSK_ERR_FORMAT;
 	}
 
@@ -117,24 +141,84 @@ osk_result_t osk_index_load(uint8_t profile)
 		rec_size = OSK_IDX_REC_V2_SIZE;
 		break;
 	case OSK_FMT_V3:
+	case OSK_FMT_V4:
 		rec_size = sizeof(osk_idx_rec_t);
 		break;
 	default:
-		osk_index_drop();
 		return OSK_ERR_FORMAT;
 	}
 	if (plain_len != sizeof(osk_idx_head_t) + (size_t)g_idx.head.count * rec_size) {
-		osk_index_drop();
 		return OSK_ERR_FORMAT;
 	}
-	if (g_idx.head.format != OSK_FMT_CURRENT) {
+	if (g_idx.head.format == OSK_FMT_V1 || g_idx.head.format == OSK_FMT_V2) {
 		r = osk_index_upgrade(g_idx.head.format, plain_len);
 		if (r != OSK_OK) {
-			osk_index_drop();
 			return r;
 		}
 	}
+	g_idx.head.format = OSK_FMT_CURRENT;
+	return OSK_OK;
+}
+
+osk_result_t osk_index_load_block(uint8_t profile, uint16_t block)
+{
+	osk_store_state_t *st = osk_store_state();
+	osk_result_t r;
+
+	if (profile >= OSK_PROFILE_MAX || block >= OSK_IDX_BLOCKS_MAX) {
+		return OSK_ERR_ARG;
+	}
+	if (g_idx_profile == (int)profile && g_idx_block == (int)block) {
+		return OSK_OK;
+	}
+	osk_index_drop();
+
+	r = index_read_block(profile, block);
+	if (r != OSK_OK) {
+		osk_index_drop();
+		return r;
+	}
 	g_idx_profile = (int)profile;
+	g_idx_block = (int)block;
+
+	/* Ein Tresor der Fassungen 1 bis 3 hatte keinen Eintragszaehler im
+	 * Kopf: er hatte je Profil genau einen Block, und dessen Zahl ist die
+	 * ganze Wahrheit. Sie wird hier nachgetragen. Fuer einen Tresor der
+	 * Fassung 4 mit einem Block ist das dieselbe Zahl, also ein Nichts. */
+	if (block == 0u && st->hdr.index_blocks[profile] <= 1u) {
+		st->hdr.index_count[profile] = g_idx.head.count;
+	}
+	return OSK_OK;
+}
+
+osk_result_t osk_index_load(uint8_t profile)
+{
+	return osk_index_load_block(profile, 0u);
+}
+
+osk_result_t osk_index_rec(uint8_t profile, size_t index, osk_idx_rec_t **out)
+{
+	osk_result_t r;
+
+	if (profile >= OSK_PROFILE_MAX || out == NULL) {
+		return OSK_ERR_ARG;
+	}
+	if (index >= osk_index_count(profile)) {
+		return OSK_ERR_NOT_FOUND;
+	}
+	r = osk_index_load_block(profile, (uint16_t)(index / OSK_IDX_BLOCK_RECS));
+	if (r != OSK_OK) {
+		return r;
+	}
+
+	size_t in_block = index % OSK_IDX_BLOCK_RECS;
+
+	if (in_block >= g_idx.head.count) {
+		/* Kopf und Block sind uneinig - das ist ein Formatfehler und
+		 * kein leerer Platz. Geraten wird nichts. */
+		return OSK_ERR_FORMAT;
+	}
+	*out = &g_idx.recs[in_block];
 	return OSK_OK;
 }
 
@@ -144,18 +228,21 @@ osk_result_t osk_index_store(uint8_t profile)
 	osk_idx_frame_t frame;
 	osk_result_t r;
 
-	if (profile >= OSK_PROFILE_MAX || g_idx_profile != (int)profile) {
+	if (profile >= OSK_PROFILE_MAX || g_idx_profile != (int)profile || g_idx_block < 0) {
 		return OSK_ERR_ARG;
 	}
-	if (g_idx.head.count > OSK_ITEMS_MAX) {
+	if (g_idx.head.count > OSK_IDX_BLOCK_RECS) {
 		return OSK_ERR_INTERNAL;
 	}
+
+	uint16_t block = (uint16_t)g_idx_block;
 
 	g_idx.head.magic = OSK_IDX_MAGIC;
 	/* Geschrieben wird immer die jetzige Fassung - damit wandert ein alter
 	 * Tresor Profil fuer Profil mit, sobald etwas geaendert wird. */
 	g_idx.head.format = OSK_FMT_CURRENT;
 	g_idx.head.profile = profile;
+	g_idx.head.block = block;
 	g_idx.head.generation += 1u;
 
 	size_t plain_len =
@@ -182,13 +269,13 @@ osk_result_t osk_index_store(uint8_t profile)
 	uint32_t total = osk_round_page((uint32_t)(sizeof(frame) + ct_len));
 	uint32_t addr = 0;
 
-	r = osk_space_index_alloc(total, &addr);
+	r = osk_space_index_alloc(&addr);
 	if (r != OSK_OK) {
 		return r;
 	}
 
 	/* Seitenweise schreiben: erst der Rahmen samt Anfang des Kryptotextes,
-	 * dann der Rest. Der Rahmen steht zuerst, aber gueltig wird die Fassung
+	 * dann der Rest. Der Rahmen steht zuerst, aber gueltig wird der Block
 	 * ohnehin erst mit dem Kopfsatz. */
 	uint8_t page[OSK_PAGE];
 	uint32_t written = 0;
@@ -225,17 +312,126 @@ osk_result_t osk_index_store(uint8_t profile)
 	}
 
 	/* Nur im Zustand merken. Gueltig wird es mit osk_hdr_commit(). */
-	st->hdr.index_root[profile] = addr;
-	st->hdr.index_len[profile] = total;
+	st->hdr.index_block[profile][block] = addr;
+	if (block + 1u > st->hdr.index_blocks[profile]) {
+		st->hdr.index_blocks[profile] = (uint8_t)(block + 1u);
+	}
+	return OSK_OK;
+}
+
+/* Schreibt den geladenen Block - oder laesst ihn wegfallen, wenn er leer
+ * geworden ist. Block 0 bleibt immer bestehen, auch leer: an ihm haengt, dass
+ * ein Profil ueberhaupt lesbar ist. */
+static osk_result_t index_finish_block(uint8_t profile, uint16_t block)
+{
+	osk_store_state_t *st = osk_store_state();
+
+	if (g_idx.head.count == 0u && block > 0u) {
+		st->hdr.index_block[profile][block] = 0u;
+		st->hdr.index_blocks[profile] = (uint8_t)block;
+		return OSK_OK;
+	}
+	return osk_index_store(profile);
+}
+
+osk_result_t osk_index_append(uint8_t profile, osk_idx_rec_t **out)
+{
+	osk_store_state_t *st = osk_store_state();
+	osk_result_t r;
+
+	if (profile >= OSK_PROFILE_MAX || out == NULL) {
+		return OSK_ERR_ARG;
+	}
+
+	size_t count = osk_index_count(profile);
+
+	if (count >= OSK_ITEMS_MAX) {
+		return OSK_ERR_FULL;
+	}
+
+	uint16_t block = (uint16_t)(count / OSK_IDX_BLOCK_RECS);
+	size_t in_block = count % OSK_IDX_BLOCK_RECS;
+
+	r = osk_index_load_block(profile, block);
+	if (r != OSK_OK) {
+		return r;
+	}
+	/* Bis auf den letzten sind alle Bloecke voll. Stimmt das nicht, ist
+	 * der Zaehler im Kopf und der Block uneinig. */
+	if (g_idx.head.count != in_block) {
+		return OSK_ERR_FORMAT;
+	}
+	memset(&g_idx.recs[in_block], 0, sizeof(osk_idx_rec_t));
+	g_idx.head.count = (uint16_t)(in_block + 1u);
+	st->hdr.index_count[profile] = (uint16_t)(count + 1u);
+	*out = &g_idx.recs[in_block];
+	return OSK_OK;
+}
+
+osk_result_t osk_index_remove(uint8_t profile, size_t index)
+{
+	osk_store_state_t *st = osk_store_state();
+	osk_idx_rec_t moved;
+	osk_result_t r;
+
+	if (profile >= OSK_PROFILE_MAX) {
+		return OSK_ERR_ARG;
+	}
+
+	size_t count = osk_index_count(profile);
+
+	if (index >= count) {
+		return OSK_ERR_NOT_FOUND;
+	}
+
+	size_t last = count - 1u;
+	uint16_t last_block = (uint16_t)(last / OSK_IDX_BLOCK_RECS);
+	size_t last_in = last % OSK_IDX_BLOCK_RECS;
+	uint16_t hole_block = (uint16_t)(index / OSK_IDX_BLOCK_RECS);
+	size_t hole_in = index % OSK_IDX_BLOCK_RECS;
+
+	/* Luecke schliessen: der letzte Satz rutscht nach vorn. Liegen die
+	 * beiden in verschiedenen Bloecken, werden darum ZWEI Bloecke neu
+	 * geschrieben - beide vor dem Kopfsatz, also beide zusammen gueltig. */
+	r = osk_index_load_block(profile, last_block);
+	if (r != OSK_OK) {
+		return r;
+	}
+	if (last_in >= g_idx.head.count) {
+		return OSK_ERR_FORMAT;
+	}
+	moved = g_idx.recs[last_in];
+	memset(&g_idx.recs[last_in], 0, sizeof(osk_idx_rec_t));
+	g_idx.head.count = (uint16_t)last_in;
+
+	if (last_block == hole_block) {
+		if (hole_in != last_in) {
+			g_idx.recs[hole_in] = moved;
+		}
+		r = index_finish_block(profile, last_block);
+	} else {
+		r = index_finish_block(profile, last_block);
+		if (r == OSK_OK) {
+			r = osk_index_load_block(profile, hole_block);
+		}
+		if (r == OSK_OK) {
+			if (hole_in >= g_idx.head.count) {
+				r = OSK_ERR_FORMAT;
+			} else {
+				g_idx.recs[hole_in] = moved;
+				r = osk_index_store(profile);
+			}
+		}
+	}
+	osk_crypto_wipe(&moved, sizeof(moved));
+	if (r != OSK_OK) {
+		return r;
+	}
+	st->hdr.index_count[profile] = (uint16_t)(count - 1u);
 	return OSK_OK;
 }
 
 /* ---- Geheimnisse ------------------------------------------------------ */
-
-static uint32_t slot_addr(uint32_t slot)
-{
-	return OSK_AREA_BLOB_OFF + slot * OSK_BLOB_SLOT;
-}
 
 static uint32_t blob_crc(const osk_blob_frame_t *f)
 {
@@ -282,9 +478,9 @@ osk_result_t osk_blob_write(uint32_t slot, osk_item_id_t id, const uint8_t *secr
 
 	uint32_t total = osk_round_page((uint32_t)(sizeof(frame) + ct_len));
 
-	r = osk_space_ensure_erased(slot_addr(slot), OSK_BLOB_SLOT);
+	r = osk_space_ensure_erased(osk_blob_addr(slot), OSK_BLOB_SLOT);
 	if (r == OSK_OK) {
-		r = osk_flash_program(slot_addr(slot), g_blob, total);
+		r = osk_flash_program(osk_blob_addr(slot), g_blob, total);
 	}
 	if (r == OSK_OK) {
 		r = osk_flash_sync();
@@ -310,7 +506,7 @@ osk_result_t osk_blob_read(const osk_idx_rec_t *rec, const osk_key_t *key, uint8
 		return OSK_ERR_FORMAT;
 	}
 
-	r = osk_flash_read(slot_addr(rec->slot), &frame, sizeof(frame));
+	r = osk_flash_read(osk_blob_addr(rec->slot), &frame, sizeof(frame));
 	if (r != OSK_OK) {
 		return r;
 	}
@@ -319,7 +515,7 @@ osk_result_t osk_blob_read(const osk_idx_rec_t *rec, const osk_key_t *key, uint8
 		return OSK_ERR_FORMAT;
 	}
 
-	r = osk_flash_read(slot_addr(rec->slot) + sizeof(frame), g_blob, frame.ct_len);
+	r = osk_flash_read(osk_blob_addr(rec->slot) + sizeof(frame), g_blob, frame.ct_len);
 	if (r != OSK_OK) {
 		return r;
 	}
@@ -335,5 +531,5 @@ osk_result_t osk_blob_erase(uint32_t slot)
 	if (slot >= OSK_BLOB_SLOTS) {
 		return OSK_ERR_ARG;
 	}
-	return osk_space_ensure_erased(slot_addr(slot), OSK_BLOB_SLOT);
+	return osk_space_ensure_erased(osk_blob_addr(slot), OSK_BLOB_SLOT);
 }

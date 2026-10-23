@@ -87,6 +87,46 @@ static bool hdr_valid(const osk_hdr_t *h)
 	       h->crc32 == hdr_crc(h);
 }
 
+/* ---- Kopf der Fassungen 1 bis 3 lesen -------------------------------- */
+
+static bool hdr_v3_valid(const osk_hdr_v3_t *h)
+{
+	return h->magic == OSK_HDR_MAGIC && h->hdr_size == sizeof(osk_hdr_v3_t) &&
+	       h->format <= OSK_FMT_V3 && h->crc32 == osk_crc32(h, sizeof(*h) - sizeof(h->crc32));
+}
+
+/* Rechnet einen alten Kopf im RAM auf die Fassung 4 um. Genau wie bei den
+ * Indexsaetzen gilt: was die alte Fassung nicht hatte, bleibt leer, und
+ * geraten wird nichts.
+ *
+ * Die EINE Indexfassung eines alten Profils wird Block 0 des Profils. Ihre
+ * Adresse bleibt, wo sie ist - darum muss hier kein Byte umziehen. Die Anzahl
+ * der Eintraege stand im alten Kopf nicht; sie wird beim ersten Laden des
+ * Blocks nachgetragen (siehe osk_index_load). */
+static void hdr_from_v3(const osk_hdr_v3_t *old, osk_hdr_t *out)
+{
+	memset(out, 0, sizeof(*out));
+	out->magic = old->magic;
+	out->format = old->format;
+	out->hdr_size = (uint16_t)sizeof(*out);
+	out->seq = old->seq;
+	out->nonce_next = old->nonce_next;
+	out->blob_cursor = old->blob_cursor;
+	out->item_next = old->item_next;
+
+	/* Die Platzvergabe im Index-Ring faengt vorn an. Die alten Bloecke
+	 * stehen in index_block und werden dabei uebergangen. */
+	out->index_alloc = 0u;
+
+	for (int p = 0; p < OSK_PROFILE_MAX; p++) {
+		out->profile_used[p] = old->profile_used[p];
+		out->index_block[p][0] = old->index_root[p];
+		out->index_blocks[p] = (old->index_root[p] != 0u) ? 1u : 0u;
+		out->index_count[p] = 0u; /* wird beim Laden nachgetragen */
+	}
+	memcpy(out->slot_used, old->slot_used, sizeof(old->slot_used));
+}
+
 osk_result_t osk_hdr_mount(void)
 {
 	osk_hdr_t cand;
@@ -96,8 +136,9 @@ osk_result_t osk_hdr_mount(void)
 	memset(&g_state.hdr, 0, sizeof(g_state.hdr));
 	g_state.hdr_slot = 0;
 
+	/* Erst der Ring der Fassung 4. */
 	for (uint32_t i = 0; i < OSK_HDR_SLOTS; i++) {
-		uint32_t addr = OSK_AREA_HDR_OFF + i * OSK_HDR_SLOT;
+		uint32_t addr = OSK_AREA_HDR2_OFF + i * OSK_HDR_SLOT;
 
 		r = osk_flash_read(addr, &cand, sizeof(cand));
 		if (r != OSK_OK) {
@@ -114,6 +155,29 @@ osk_result_t osk_hdr_mount(void)
 			found = true;
 		}
 	}
+
+	/* Dann die zwei alten Kopfsektoren. Ein alter Satz gewinnt nur, wenn
+	 * seine Folgenummer hoeher ist - nach der Wanderung ist sie das nie,
+	 * denn jeder neue Satz zaehlt sie hoch. */
+	for (uint32_t i = 0; i < OSK_HDR_V3_SLOTS; i++) {
+		uint32_t addr = OSK_AREA_HDR_OFF + i * OSK_HDR_V3_SLOT;
+		osk_hdr_v3_t old;
+
+		r = osk_flash_read(addr, &old, sizeof(old));
+		if (r != OSK_OK) {
+			return r;
+		}
+		if (!hdr_v3_valid(&old)) {
+			continue;
+		}
+		if (!found || old.seq > g_state.hdr.seq) {
+			hdr_from_v3(&old, &g_state.hdr);
+			/* Kein Platz im neuen Ring: der naechste Kopfsatz sucht
+			 * sich dort selbst den ersten. */
+			g_state.hdr_slot = 0u;
+			found = true;
+		}
+	}
 	if (!found) {
 		return OSK_ERR_NOT_FOUND;
 	}
@@ -125,28 +189,42 @@ osk_result_t osk_hdr_mount(void)
 	return OSK_OK;
 }
 
-/* Naechster Platz: derselbe Sektor, solange er reicht, sonst der andere -
- * dieser wird vorher geloescht. Der gueltige Satz bleibt dabei unberuehrt. */
+/* Naechster Platz: derselbe Sektor, solange er reicht, sonst der naechste im
+ * Ring - dieser wird vorher geloescht. Der gueltige Satz bleibt dabei
+ * unberuehrt, denn er steht in einem anderen Sektor. */
+#define OSK_HDR_SECTORS (OSK_AREA_HDR2_LEN / OSK_SECTOR)
+
 static osk_result_t hdr_next_slot(uint32_t *addr_out, uint32_t *sector_out)
 {
-	uint32_t sector = g_state.hdr.sector_of_slot & 1u;
-	uint32_t base = OSK_AREA_HDR_OFF + sector * OSK_SECTOR;
-	uint32_t next = g_state.hdr_slot + OSK_HDR_SLOT;
+	bool fresh = g_state.hdr_slot < OSK_AREA_HDR2_OFF ||
+		     g_state.hdr_slot >= OSK_AREA_HDR2_OFF + OSK_AREA_HDR2_LEN;
 
-	if (g_state.hdr_slot == 0 && g_state.hdr.seq == 0) {
-		/* frisch angelegt: erster Platz im ersten Sektor */
-		*addr_out = OSK_AREA_HDR_OFF;
+	if (fresh) {
+		/* Frisch angelegt oder gerade von einer alten Fassung
+		 * uebernommen: der erste Platz des ersten Sektors. Geloescht
+		 * wird er, weil dort Reste liegen koennen. */
+		osk_result_t r = osk_space_ensure_erased(OSK_AREA_HDR2_OFF, OSK_SECTOR);
+
+		if (r != OSK_OK) {
+			return r;
+		}
+		*addr_out = OSK_AREA_HDR2_OFF;
 		*sector_out = 0;
 		return OSK_OK;
 	}
+
+	uint32_t sector = g_state.hdr.sector_of_slot % OSK_HDR_SECTORS;
+	uint32_t base = OSK_AREA_HDR2_OFF + sector * OSK_SECTOR;
+	uint32_t next = g_state.hdr_slot + OSK_HDR_SLOT;
+
 	if (next < base + OSK_SECTOR) {
 		*addr_out = next;
 		*sector_out = sector;
 		return OSK_OK;
 	}
 
-	uint32_t other = sector ^ 1u;
-	uint32_t other_base = OSK_AREA_HDR_OFF + other * OSK_SECTOR;
+	uint32_t other = (sector + 1u) % OSK_HDR_SECTORS;
+	uint32_t other_base = OSK_AREA_HDR2_OFF + other * OSK_SECTOR;
 	osk_result_t r = osk_space_ensure_erased(other_base, OSK_SECTOR);
 
 	if (r != OSK_OK) {
@@ -194,7 +272,12 @@ osk_result_t osk_hdr_format(uint16_t format)
 {
 	osk_result_t r;
 
+	/* Beide Kopfbereiche: der alte, damit kein Satz einer alten Fassung
+	 * liegen bleibt und beim naechsten Oeffnen mitredet, und der neue. */
 	r = osk_space_ensure_erased(OSK_AREA_HDR_OFF, OSK_AREA_HDR_LEN);
+	if (r == OSK_OK) {
+		r = osk_space_ensure_erased(OSK_AREA_HDR2_OFF, OSK_AREA_HDR2_LEN);
+	}
 	if (r != OSK_OK) {
 		return r;
 	}
@@ -202,7 +285,7 @@ osk_result_t osk_hdr_format(uint16_t format)
 	memset(&g_state.hdr, 0, sizeof(g_state.hdr));
 	g_state.hdr.format = format;
 	g_state.hdr.nonce_next = 1u; /* Nonce 0 wird nie benutzt */
-	g_state.hdr.index_alloc = OSK_AREA_IDX_OFF;
+	g_state.hdr.index_alloc = 0u;
 	g_state.hdr.blob_cursor = 0u;
 	g_state.hdr.item_next = 1u; /* Kennung 0 heisst "kein Eintrag" */
 	g_state.hdr.seq = 0u;
@@ -315,56 +398,70 @@ static bool overlaps(uint32_t a, uint32_t alen, uint32_t b, uint32_t blen)
 	return a < b + blen && b < a + alen;
 }
 
-osk_result_t osk_space_index_alloc(uint32_t len, uint32_t *addr_out)
+/* Der Index-Ring besteht aus zwei Abschnitten (siehe die Einteilung in
+ * osk_vault_format.h). Beide sind in gleich grosse Plaetze von einem Block
+ * geteilt und werden als EIN Ring hintereinander durchlaufen. */
+#define OSK_IDX_PLACES_SEG0 (OSK_AREA_IDX_LEN / OSK_IDX_BLOCK_SPAN)
+#define OSK_IDX_PLACES_SEG1 (OSK_AREA_IDX2_LEN / OSK_IDX_BLOCK_SPAN)
+#define OSK_IDX_PLACES (OSK_IDX_PLACES_SEG0 + OSK_IDX_PLACES_SEG1)
+
+static uint32_t idx_place_addr(uint32_t place)
 {
-	uint32_t need = (osk_round_page(len) + OSK_SECTOR - 1u) & ~(OSK_SECTOR - 1u);
-	uint32_t start = g_state.hdr.index_alloc;
-
-	if (need == 0u || need > OSK_AREA_IDX_LEN) {
-		return OSK_ERR_ARG;
+	if (place < OSK_IDX_PLACES_SEG0) {
+		return OSK_AREA_IDX_OFF + place * OSK_IDX_BLOCK_SPAN;
 	}
-	if (start < OSK_AREA_IDX_OFF || start >= OSK_AREA_IDX_OFF + OSK_AREA_IDX_LEN) {
-		start = OSK_AREA_IDX_OFF;
-	}
-	start &= ~(OSK_SECTOR - 1u);
+	return OSK_AREA_IDX2_OFF + (place - OSK_IDX_PLACES_SEG0) * OSK_IDX_BLOCK_SPAN;
+}
 
-	/* Hoechstens so viele Versuche, wie der Ring Sektoren hat - danach ist
-	 * der Ring wirklich voll und nicht nur ungluecklich belegt. */
-	uint32_t tries = OSK_AREA_IDX_LEN / OSK_SECTOR;
-
-	for (uint32_t t = 0; t < tries; t++) {
-		if (start + need > OSK_AREA_IDX_OFF + OSK_AREA_IDX_LEN) {
-			start = OSK_AREA_IDX_OFF;
-		}
-		bool blocked = false;
-
-		for (int p = 0; p < OSK_PROFILE_MAX; p++) {
-			uint32_t root = g_state.hdr.index_root[p];
+/* Liegt an dieser Stelle ein Block, der noch gilt? Geprueft wird gegen ALLE
+ * Profile, auch gesperrte - darum stehen die Adressen im Klartext-Kopf.
+ *
+ * Ein Block, der von einer alten Fassung uebernommen wurde, liegt nicht auf
+ * einem Platz dieses Rasters. Er wird mit der vollen Blockgroesse gesperrt;
+ * das ist mehr, als er wirklich braucht, und darum sicher. */
+static bool idx_place_taken(uint32_t addr)
+{
+	for (int p = 0; p < OSK_PROFILE_MAX; p++) {
+		for (uint32_t b = 0; b < OSK_IDX_BLOCKS_MAX; b++) {
+			uint32_t root = g_state.hdr.index_block[p][b];
 
 			if (root == 0u) {
 				continue;
 			}
-			if (overlaps(start, need, root,
-				     g_state.hdr.index_len[p] == 0u ? OSK_SECTOR
-								    : g_state.hdr.index_len[p])) {
-				blocked = true;
-				/* hinter die gueltige Fassung springen */
-				uint32_t end = root + g_state.hdr.index_len[p];
-
-				start = (end + OSK_SECTOR - 1u) & ~(OSK_SECTOR - 1u);
-				break;
+			if (overlaps(addr, OSK_IDX_BLOCK_SPAN, root, OSK_IDX_BLOCK_SPAN)) {
+				return true;
 			}
 		}
-		if (blocked) {
+	}
+	return false;
+}
+
+osk_result_t osk_space_index_alloc(uint32_t *addr_out)
+{
+	uint32_t cur = g_state.hdr.index_alloc % OSK_IDX_PLACES;
+
+	if (addr_out == NULL) {
+		return OSK_ERR_ARG;
+	}
+
+	/* Hoechstens so viele Versuche, wie der Ring Plaetze hat - danach ist
+	 * der Ring wirklich voll und nicht nur ungluecklich belegt. */
+	for (uint32_t t = 0; t < OSK_IDX_PLACES; t++) {
+		uint32_t place = (cur + t) % OSK_IDX_PLACES;
+		uint32_t addr = idx_place_addr(place);
+
+		if (idx_place_taken(addr)) {
 			continue;
 		}
-		osk_result_t r = osk_space_ensure_erased(start, need);
+		osk_result_t r = osk_space_ensure_erased(addr, OSK_IDX_BLOCK_SPAN);
 
 		if (r != OSK_OK) {
 			return r;
 		}
-		*addr_out = start;
-		g_state.hdr.index_alloc = start + need;
+		*addr_out = addr;
+		/* Der Suchzeiger bleibt nie stehen: so wird ein gerade
+		 * freigewordener Platz nicht gleich wieder genommen. */
+		g_state.hdr.index_alloc = (place + 1u) % OSK_IDX_PLACES;
 		return OSK_OK;
 	}
 	return OSK_ERR_FULL;
@@ -394,7 +491,7 @@ osk_result_t osk_space_slot_alloc(uint32_t *slot_out)
 {
 	/* Der Suchzeiger laeuft im Kreis und bleibt nie stehen. So wird ein
 	 * gerade freigewordener Platz nicht gleich wieder genommen, und der
-	 * Verschleiss verteilt sich ueber alle 1024 Plaetze - das ist wichtig,
+	 * Verschleiss verteilt sich ueber alle Plaetze - das ist wichtig,
 	 * weil ein Tresor immer dieselben paar Eintraege neu schreibt. */
 	uint32_t cur = g_state.hdr.blob_cursor % OSK_BLOB_SLOTS;
 

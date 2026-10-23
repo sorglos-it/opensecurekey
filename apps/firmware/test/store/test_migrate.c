@@ -56,8 +56,49 @@ typedef struct {
 OSK_STATIC_ASSERT(sizeof(rec_v1_t) == OSK_IDX_REC_V1_SIZE, test_rec_v1_240);
 OSK_STATIC_ASSERT(sizeof(rec_v2_t) == OSK_IDX_REC_V2_SIZE, test_rec_v2_256);
 
-static uint8_t g_plain[sizeof(osk_idx_head_t) + OSK_ITEMS_MAX * OSK_IDX_REC_V2_SIZE];
+static uint8_t g_plain[sizeof(osk_idx_head_t) + OSK_IDX_BLOCK_RECS * sizeof(osk_idx_rec_t)];
 static uint8_t g_ct[sizeof(g_plain) + OSK_TAG_LEN];
+
+/* Laenge der von Hand geschriebenen alten Indexfassung je Profil. */
+static uint32_t g_old_len[OSK_PROFILE_MAX];
+
+/* Schreibt einen Kopfsatz in der alten Gestalt (osk_hdr_v3_t) in die zwei
+ * alten Kopfsektoren. Das ist der Kopf, den die Fassungen 1 bis 3 wirklich
+ * geschrieben haben - nur so prueft der Test die Wanderung des Kopfes und
+ * nicht bloss die des Index.
+ *
+ * Er bekommt die hoechste Folgenummer, damit er beim naechsten Oeffnen gilt.
+ * Die Adressen der Indexfassungen kommen aus dem jetzigen Zustand: dort steht
+ * je Profil in Block 0 genau die Fassung, die make_old geschrieben hat. */
+static void commit_old_header(uint16_t format)
+{
+	osk_store_state_t *st = osk_store_state();
+	osk_hdr_v3_t v3;
+	uint8_t page[OSK_HDR_V3_SLOT];
+
+	memset(&v3, 0, sizeof(v3));
+	v3.magic = OSK_HDR_MAGIC;
+	v3.format = format;
+	v3.hdr_size = (uint16_t)sizeof(v3);
+	v3.seq = st->hdr.seq + 1u;
+	v3.sector_of_slot = 0u;
+	v3.nonce_next = st->hdr.nonce_next;
+	for (int p = 0; p < OSK_PROFILE_MAX; p++) {
+		v3.index_root[p] = st->hdr.index_block[p][0];
+		v3.index_len[p] = g_old_len[p];
+		v3.profile_used[p] = st->hdr.profile_used[p];
+	}
+	v3.index_alloc = OSK_AREA_IDX_OFF;
+	v3.blob_cursor = st->hdr.blob_cursor;
+	v3.item_next = st->hdr.item_next;
+	memcpy(v3.slot_used, st->hdr.slot_used, sizeof(v3.slot_used));
+	v3.crc32 = osk_crc32(&v3, sizeof(v3) - sizeof(v3.crc32));
+
+	T_OK(osk_space_ensure_erased(OSK_AREA_HDR_OFF, OSK_AREA_HDR_LEN));
+	memset(page, 0xFF, sizeof(page));
+	memcpy(page, &v3, sizeof(v3));
+	T_OK(osk_flash_program(OSK_AREA_HDR_OFF, page, sizeof(page)));
+}
 
 /* Schreibt den Index eines Profils im alten Aufbau und setzt die Fassung im
  * Kopf. Alles andere - Geheimnisse, Schluessel, Protokoll - bleibt. */
@@ -68,19 +109,30 @@ static void make_old(uint8_t profile, uint16_t format)
 	osk_idx_frame_t frame;
 	osk_idx_head_t head;
 	size_t ct_len = 0;
-	size_t rec_size = (format == OSK_FMT_V1) ? OSK_IDX_REC_V1_SIZE : OSK_IDX_REC_V2_SIZE;
+	size_t rec_size = (format == OSK_FMT_V1)   ? OSK_IDX_REC_V1_SIZE
+			  : (format == OSK_FMT_V2) ? OSK_IDX_REC_V2_SIZE
+						   : sizeof(osk_idx_rec_t);
 
 	T_OK(osk_index_load(profile));
 	page = osk_index_page();
 	head = page->head;
 	head.format = format;
+	/* Die Fassungen 1 bis 3 kannten kein Feld fuer die Blocknummer - dort
+	 * lagen Nullen. */
+	head.pad0 = 0u;
+	head.block = 0u;
 
 	memcpy(g_plain, &head, sizeof(head));
 	for (uint16_t i = 0; i < head.count; i++) {
 		const osk_idx_rec_t *n = &page->recs[i];
 		uint8_t *dst = g_plain + sizeof(head) + (size_t)i * rec_size;
 
-		if (format == OSK_FMT_V1) {
+		if (format == OSK_FMT_V3) {
+			/* Fassung 3 hatte denselben Satz wie Fassung 4. Nur der
+			 * Kopf und die Einteilung haben sich geaendert - genau
+			 * das ist der Weg, der hier geprueft wird. */
+			memcpy(dst, n, sizeof(*n));
+		} else if (format == OSK_FMT_V1) {
 			rec_v1_t o;
 
 			memset(&o, 0, sizeof(o));
@@ -131,7 +183,7 @@ static void make_old(uint8_t profile, uint16_t format)
 	uint32_t total = osk_round_page((uint32_t)(sizeof(frame) + ct_len));
 	uint32_t addr = 0;
 
-	T_OK(osk_space_index_alloc(total, &addr));
+	T_OK(osk_space_index_alloc(&addr));
 
 	static uint8_t page_buf[OSK_PAGE];
 	uint32_t written = 0;
@@ -156,11 +208,11 @@ static void make_old(uint8_t profile, uint16_t format)
 		T_OK(osk_flash_program(addr + written, page_buf, sizeof(page_buf)));
 		written += OSK_PAGE;
 	}
-	st->hdr.index_root[profile] = addr;
-	st->hdr.index_len[profile] = total;
-	st->hdr.format = (uint16_t)format;
+	st->hdr.index_block[profile][0] = addr;
+	st->hdr.index_blocks[profile] = 1u;
+	g_old_len[profile] = total;
 	osk_index_drop();
-	T_OK(osk_hdr_commit());
+	commit_old_header(format);
 }
 
 static osk_item_id_t g_id[3];
@@ -171,6 +223,7 @@ static void build_old(uint16_t format)
 	osk_item_meta_t meta;
 
 	t_device(0, 1u, T_PIN);
+	memset(g_old_len, 0, sizeof(g_old_len));
 	T_OK(t_add(0, "eins", "eins.example", "kennwort-eins", false, &g_id[0]));
 	T_OK(t_add(0, "zwei", "zwei.example", "kennwort-zwei", true, &g_id[1]));
 
@@ -221,10 +274,16 @@ static void case_read_old(uint16_t format)
 
 	T_OK(osk_store_list(0, 2, &meta));
 	T_STR(meta.name, "drei");
-	/* Keine Fassung vor 3 hatte ein Feld fuer die Kennung. Sie ist weg,
-	 * und sie wird nicht geraten - eine falsche Kennung waere schlimmer
-	 * als keine. */
-	T_EQ(meta.tag_len, 0);
+	if (format >= OSK_FMT_V3) {
+		/* Fassung 3 hatte die Kennung schon - sie muss ankommen. */
+		T_EQ(meta.tag_len, sizeof(TAG));
+		T_TRUE(memcmp(meta.tag, TAG, sizeof(TAG)) == 0);
+	} else {
+		/* Keine Fassung vor 3 hatte ein Feld fuer die Kennung. Sie ist
+		 * weg, und sie wird nicht geraten - eine falsche Kennung waere
+		 * schlimmer als keine. */
+		T_EQ(meta.tag_len, 0);
+	}
 
 	uint64_t c = 1u;
 
@@ -400,9 +459,9 @@ static void case_unknown_format(void)
 
 void test_migrate(void)
 {
-	const uint16_t formats[2] = {OSK_FMT_V1, OSK_FMT_V2};
+	const uint16_t formats[3] = {OSK_FMT_V1, OSK_FMT_V2, OSK_FMT_V3};
 
-	for (int i = 0; i < 2; i++) {
+	for (int i = 0; i < 3; i++) {
 		printf("    [Fassung %u -> %u]\n", (unsigned)formats[i], (unsigned)OSK_FMT_CURRENT);
 		case_read_old(formats[i]);
 		case_migrate(formats[i]);

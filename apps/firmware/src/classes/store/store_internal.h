@@ -53,8 +53,10 @@ osk_result_t osk_nonce_take(osk_nonce_purpose_t purpose, uint8_t out[OSK_NONCE_L
  * mitten im Loeschen. */
 osk_result_t osk_space_ensure_erased(uint32_t addr, uint32_t len);
 
-/* Sucht Platz im Index-Ring, der keine gueltige Fassung ueberschreibt. */
-osk_result_t osk_space_index_alloc(uint32_t len, uint32_t *addr_out);
+/* Sucht Platz fuer EINEN Indexblock, der keinen gueltigen Block
+ * ueberschreibt - auch keinen eines gesperrten Profils. Alle Plaetze sind
+ * gleich gross (OSK_IDX_BLOCK_SPAN), darum braucht die Vergabe keine Laenge. */
+osk_result_t osk_space_index_alloc(uint32_t *addr_out);
 
 /* Sucht einen freien Datenplatz. Der Suchzeiger laeuft im Kreis weiter, damit
  * nicht immer dieselben Sektoren beschrieben werden. */
@@ -64,18 +66,45 @@ void osk_space_slot_set(uint32_t slot, bool used);
 bool osk_space_slot_is_used(uint32_t slot);
 
 /* ---- Index ------------------------------------------------------------ */
+/* Der Index eines Profils liegt in Bloecken zu OSK_IDX_BLOCK_RECS Saetzen. Im
+ * RAM ist immer nur EIN Block eines Profils - hier steckt die Eintragsgrenze
+ * des Tresors, nicht im Flash.
+ *
+ * Wer einen Satz braucht, nimmt osk_index_rec(): das waehlt den Block selbst.
+ * osk_index_page() ist der geladene Block und nur fuer die Arbeit INNERHALB
+ * eines Blocks gedacht. */
 
-/* Der Arbeitspuffer: genau eine Indexfassung liegt im RAM. */
 osk_idx_page_t *osk_index_page(void);
-int osk_index_loaded_profile(void); /* -1 = keine */
+int osk_index_loaded_profile(void); /* -1 = keiner */
+int osk_index_loaded_block(void);   /* -1 = keiner */
 void osk_index_drop(void);
 
-/* Laedt die gueltige Fassung eines Profils in den Arbeitspuffer. Ein leeres
- * Profil ergibt count = 0, keinen Fehler. */
-osk_result_t osk_index_load(uint8_t profile);
+/* Eintraege eines Profils. Steht im Klartext-Kopf, kostet also keinen
+ * Flash-Zugriff und kein Entschluesseln. */
+size_t osk_index_count(uint8_t profile);
 
-/* Schreibt den Arbeitspuffer an einen neuen Platz und merkt Adresse und
- * Laenge im Zustand. Gueltig wird die Fassung erst mit osk_hdr_commit(). */
+/* Macht ein Profil lesbar: laedt seinen Block 0. Ein leeres Profil ergibt
+ * count = 0, keinen Fehler. Muss vor osk_index_rec() gelaufen sein - bei einem
+ * Tresor der Fassungen 1 bis 3 wird dabei der Eintragszaehler nachgetragen. */
+osk_result_t osk_index_load(uint8_t profile);
+osk_result_t osk_index_load_block(uint8_t profile, uint16_t block);
+
+/* Der Satz mit dieser Nummer, aus dem passenden Block. Der Zeiger gilt, bis
+ * ein anderer Block oder ein anderes Profil geladen wird - also bis zum
+ * naechsten Aufruf, der den Index anfasst. */
+osk_result_t osk_index_rec(uint8_t profile, size_t index, osk_idx_rec_t **out);
+
+/* Haengt einen leeren Satz hinten an und gibt ihn heraus. Schreibt noch
+ * nichts: dafuer ist osk_index_store() da. */
+osk_result_t osk_index_append(uint8_t profile, osk_idx_rec_t **out);
+
+/* Nimmt einen Satz heraus; der letzte rutscht in die Luecke. Schreibt die
+ * betroffenen Bloecke - einen, oder zwei, wenn Luecke und letzter Satz in
+ * verschiedenen Bloecken liegen. Gueltig mit osk_hdr_commit(). */
+osk_result_t osk_index_remove(uint8_t profile, size_t index);
+
+/* Schreibt den GELADENEN Block an einen neuen Platz und merkt die Adresse im
+ * Zustand. Gueltig wird der Block erst mit osk_hdr_commit(). */
 osk_result_t osk_index_store(uint8_t profile);
 
 /* ---- Geheimnisse ------------------------------------------------------ */
