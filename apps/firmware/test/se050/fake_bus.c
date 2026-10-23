@@ -190,7 +190,7 @@ void fb_add(fake_bus_t *fb, fb_mode_t mode, const uint8_t *want, size_t want_len
 }
 
 void fb_add_frame(fake_bus_t *fb, fb_mode_t mode, uint8_t nad, uint8_t pcb, const uint8_t *inf,
-		  uint8_t inf_len)
+		  uint16_t inf_len)
 {
 	uint8_t frame[FB_MAX_FRAME];
 	const size_t n = osk_se050_t1_build(frame, sizeof(frame), nad, pcb, inf, inf_len);
@@ -219,17 +219,45 @@ void fb_set_cut(fake_bus_t *fb, size_t cut)
 
 void fb_add_open_reply(fake_bus_t *fb)
 {
-	/* Antwort auf den S-Block "Schnittstelle zuruecksetzen": derselbe
-	 * Code mit gesetztem Antwortbit, dazu ein kurzer Kennblock. Was im
-	 * Kennblock steht, wertet der Treiber nicht aus. */
-	static const uint8_t atr[] = {0x01, 0x02, 0x03, 0x04};
-	const uint8_t pcb = SE050_PCB_TYPE_S | SE050_PCB_S_RESPONSE | SE050_S_IF_SOFT_RESET;
-	fb_add_frame(fb, FB_OK, SE050_NAD_TO_HOST, pcb, atr, sizeof(atr));
+	/* Oeffnen sind DREI S-Bloecke (GPC_SPE_172 Abschnitt 4.1): SWR, CIP,
+	 * IFS. Der Testbus muss alle drei beantworten - sonst verbraucht
+	 * open() die Schritte, die der Test fuer seinen eigenen Fall
+	 * angelegt hat, und das Fehlerbild steht dann woanders. */
+
+	/* 1. S(SWR response) - ohne Daten. */
+	fb_add_frame(fb, FB_OK, SE050_NAD_TO_HOST,
+		     SE050_PCB_TYPE_S | SE050_PCB_S_RESPONSE | SE050_S_SWR, NULL, 0);
+
+	/* 2. S(CIP response), Aufbau nach Abschnitt 4.3:
+	 *    PVER | LenIIN | IIN | PLID | LenPLP | PLP | LenDLLP | DLLP |
+	 *    LenHB | HB. Im DLLP stehen BWT und IFSC (Tabelle 4-7). */
+	static const uint8_t cip[] = {
+	    0x01,	/* PVER            */
+	    0x00,	/* LenIIN = 0      */
+	    0x02,	/* PLID = I2C      */
+	    0x01, 0xAA, /* LenPLP = 1, PLP */
+	    0x04,	/* LenDLLP = 4     */
+	    0x01, 0xF4, /* BWT  = 500 ms   */
+	    0x00, 0xFE, /* IFSC = 254      */
+	    0x00,	/* LenHB = 0       */
+	};
+	fb_add_frame(fb, FB_OK, SE050_NAD_TO_HOST,
+		     SE050_PCB_TYPE_S | SE050_PCB_S_RESPONSE | SE050_S_CIP, cip,
+		     (uint16_t)sizeof(cip));
+
+	/* 3. S(IFS response) - spiegelt den Wert des Wirts zurueck. */
+	static const uint8_t ifsd[] = {
+	    (uint8_t)(SE050_IFSD >> 8),
+	    (uint8_t)(SE050_IFSD & 0xFFu),
+	};
+	fb_add_frame(fb, FB_OK, SE050_NAD_TO_HOST,
+		     SE050_PCB_TYPE_S | SE050_PCB_S_RESPONSE | SE050_S_IFS, ifsd,
+		     (uint16_t)sizeof(ifsd));
 }
 
 void fb_add_close_reply(fake_bus_t *fb)
 {
-	const uint8_t pcb = SE050_PCB_TYPE_S | SE050_PCB_S_RESPONSE | SE050_S_END_APDU;
+	const uint8_t pcb = SE050_PCB_TYPE_S | SE050_PCB_S_RESPONSE | SE050_S_RELEASE;
 	fb_add_frame(fb, FB_OK, SE050_NAD_TO_HOST, pcb, NULL, 0);
 }
 

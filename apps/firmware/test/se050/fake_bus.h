@@ -18,7 +18,13 @@
 #include "se050_bus.h"
 
 #define FB_MAX_STEPS 32
-#define FB_MAX_FRAME 300
+/* Groesster Rahmen, den ein Schritt aufbewahrt. Bewusst knapp: der
+ * Testbus haelt FB_MAX_STEPS Schritte mit je zwei Puffern dieser Groesse,
+ * und jeder Pruefblock legt sich ein eigenes fake_bus_t auf den Stapel.
+ * Mit 1200 Byte lief der Windows-Bau in einen Stapelueberlauf (1 MB
+ * Vorgabe gegen 8 MB unter Linux) - der Linux-Lauf hatte das nicht
+ * gezeigt. Was die Tests wirklich ablegen, bleibt unter 300 Byte. */
+#define FB_MAX_FRAME 320
 
 /* Was der Testbus bei einem Schritt tun soll. */
 typedef enum {
@@ -106,7 +112,7 @@ void fb_add(fake_bus_t *fb, fb_mode_t mode, const uint8_t *want, size_t want_len
  * richtiger Pruefsumme - so steht in den Tests nur, was wirklich
  * interessiert. */
 void fb_add_frame(fake_bus_t *fb, fb_mode_t mode, uint8_t nad, uint8_t pcb, const uint8_t *inf,
-		  uint8_t inf_len);
+		  uint16_t inf_len);
 
 /* Nur bei FB_TRUNCATE: wie viele Byte des letzten Rahmens noch kommen. */
 void fb_set_cut(fake_bus_t *fb, size_t cut);

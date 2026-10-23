@@ -22,9 +22,14 @@ typedef struct {
 	uint8_t seq_tx;
 	uint8_t seq_rx;
 
-	/* Groesste INF-Laenge, die der Baustein annimmt. Startet bei
-	 * SE050_IFSD_DEFAULT und wird von einem S-IFS kleiner gesetzt. */
-	uint8_t ifsc;
+	/* Groesste INF-Laenge, die der BAUSTEIN annehmen kann. Startet bei
+	 * SE050_IFSC_DEFAULT (8 Byte - gerade genug fuer die S(CIP request))
+	 * und wird aus der CIP auf den wirklichen Wert gehoben. */
+	uint16_t ifsc;
+
+	/* Wartezeit je Block in Millisekunden. Startet bei
+	 * SE050_BWT_DEFAULT_MS und kommt danach ebenfalls aus der CIP. */
+	uint32_t bwt_ms;
 
 	/* true, sobald ein Rahmen abgewiesen oder abgebrochen wurde. Solange
 	 * das steht, sendet der Treiber keinen neuen Befehl, sondern setzt
@@ -36,7 +41,14 @@ typedef struct {
 } osk_se050_t1_t;
 
 /* Schnittstelle zuruecksetzen und Zaehler auf Anfang. Danach ist die
- * Schicht bereit. Der Baustein bekommt einen S-Block "Soft Reset". */
+ * Schicht bereit.
+ *
+ * Drei Schritte nach GPC_SPE_172 Abschnitt 4.1 und 4.2.2:
+ *   1. S(SWR request) - Schnittstelle zuruecksetzen. Daran erkennt der
+ *      Baustein auch, welches der zwei T=1-Protokolle gilt.
+ *   2. S(CIP request) - BWT und IFSC des Bausteins erfragen. Schlaegt es
+ *      fehl, bleibt es bei 8 Byte und 300 ms: langsam, aber richtig.
+ *   3. S(IFS request) - dem Baustein sagen, wie viel WIR annehmen. */
 osk_result_t osk_se050_t1_open(osk_se050_t1_t *t1, osk_se050_bus_t *bus);
 
 /* Sitzung beenden: S-Block "End of APDU session", danach schlaeft der
@@ -61,7 +73,7 @@ osk_result_t osk_se050_t1_resync(osk_se050_t1_t *t1);
  * die Angaben nicht passen. Getrennt herausgezogen, damit der Rahmenbau
  * ohne Bus geprueft werden kann. */
 size_t osk_se050_t1_build(uint8_t *buf, size_t cap, uint8_t nad, uint8_t pcb, const uint8_t *inf,
-			  uint8_t inf_len);
+			  uint16_t inf_len);
 
 /* Einen Rahmen pruefen: Laenge stimmig und Pruefsumme richtig.
  * len ist die Gesamtlaenge einschliesslich Prolog und Epilog. */
