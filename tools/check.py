@@ -210,14 +210,19 @@ def build_and_run_cmake(folder, extra):
     out_dir = os.path.join(folder, 'build')
     flags = [] if extra else ['-DCMAKE_C_FLAGS=' + ' '.join(SAN_FLAGS),
                               '-DCMAKE_EXE_LINKER_FLAGS=' + ' '.join(SAN_FLAGS)]
-    code, out = common.run(['cmake', '-S', folder, '-B', out_dir] + flags, capture=True)
+    # Visual Studio ist ein Mehrfach-Erzeuger: die EXE landet in build/Debug/,
+    # und ctest findet sie ohne --config nicht ("Not Run"). Darum ueberall
+    # dieselbe Bauart angeben, auch wo sie nichts aendert.
+    config = ['--config', 'Debug']
+    code, out = common.run(['cmake', '-S', folder, '-B', out_dir,
+                            '-DCMAKE_BUILD_TYPE=Debug'] + flags, capture=True)
     if code != 0:
         return code, out
-    code, build_out = common.run(['cmake', '--build', out_dir], capture=True)
+    code, build_out = common.run(['cmake', '--build', out_dir] + config, capture=True)
     if code != 0:
         return code, (out or '') + (build_out or '')
-    code, test_out = common.run(['ctest', '--test-dir', out_dir, '--output-on-failure', '-V'],
-                                capture=True)
+    code, test_out = common.run(['ctest', '--test-dir', out_dir, '-C', 'Debug',
+                                 '--output-on-failure', '-V'], capture=True)
     return code, test_out
 
 
