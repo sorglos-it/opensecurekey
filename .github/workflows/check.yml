@@ -1,0 +1,59 @@
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Das nRF Connect SDK ist hier nicht installiert: die Firmware wird als
+      # "uebersprungen" gemeldet, nicht als gebaut. check.py nennt das offen.
+      - name: tools/check.py
+        run: python tools/check.py --report dist/check-report.json
+
+      # Zweite, unabhaengige Sicherung: ein gruener Lauf ohne ausgefuehrte Tests
+      # ist kein gruener Lauf. Fehlt der Bericht oder steht dort 0, scheitert die CI.
+      - name: Zahl der ausgefuehrten Tests pruefen
+        shell: python
+        run: |
+          import json, sys
+          try:
+              report = json.load(open('dist/check-report.json', encoding='utf-8'))
+          except (OSError, ValueError) as error:
+              sys.exit('FEHLER: Kein lesbarer Pruefbericht: %s' % error)
+          tests = report.get('tests_run', 0)
+          print('Ausgefuehrte Tests: %d' % tests)
+          if tests <= 0:
+              sys.exit('FEHLER: Es lief kein einziger Test.')
+          skipped = [r for r in report['results'] if r['status'] != 'ok' and r['status'] != 'FEHLER']
+          for r in skipped:
+              print('::notice::%s/%s uebersprungen: %s' % (r['part'], r['step'], r['detail']))
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: check-report-${{ matrix.os }}
+          path: dist/check-report.json
+          if-no-files-found: error
