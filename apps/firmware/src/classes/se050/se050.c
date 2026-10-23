@@ -56,24 +56,6 @@ static uint16_t g_applet_config;
 
 /* ------------------------------------------------------------- Hilfen */
 
-/* Laenge des oeffentlichen Schluessels je Kurve (AN12413 Tabelle 1):
- * Weierstrass unkomprimiert 0x04 mit X und Y, Curve25519 glatt 32 Byte. */
-static size_t pub_len_of(osk_curve_t c)
-{
-	switch (c) {
-	case OSK_CURVE_P256:
-	case OSK_CURVE_SECP256K1:
-		return 65u;
-	case OSK_CURVE_P384:
-		return 97u;
-	case OSK_CURVE_ED25519:
-	case OSK_CURVE_X25519:
-		return 32u;
-	default:
-		return 0u;
-	}
-}
-
 static osk_result_t curve_id_of(osk_curve_t c, uint8_t *out)
 {
 	switch (c) {

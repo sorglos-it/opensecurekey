@@ -34,7 +34,11 @@ int main(void)
 	printf("\nVertragsfunktionen gegen den Nachbau\n");
 	test_contract();
 
-	printf("\n%d Pruefungen, %d durchgefallen\n", g_tt_checks, g_tt_failed);
+	/* Diese Zeile liest tools/check.py aus (Muster
+	 * "<name>: N Faelle, M Fehler"). Ohne sie zaehlt der Lauf dort als
+	 * "keine Pruefung ausgefuehrt" - und gruener Code ohne eine einzige
+	 * Pruefung ist kein gruener Lauf. */
+	printf("\nse050: %d Faelle, %d Fehler\n", g_tt_checks, g_tt_failed);
 	if (g_tt_failed == 0) {
 		printf("GRUEN\n");
 		return 0;
