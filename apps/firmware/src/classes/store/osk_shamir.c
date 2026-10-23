@@ -177,7 +177,9 @@ osk_result_t osk_shamir_combine(const osk_share_t *shares, size_t count,
 
 static char hex_digit(uint8_t v)
 {
-	return (char)((v < 10u) ? ('0' + v) : ('A' + (v - 10u)));
+	/* Beide Zweige ausdruecklich als int rechnen: sonst ist der eine int und
+	 * der andere unsigned, und gcc 14 bricht mit -Werror=sign-compare ab. */
+	return (char)((v < 10u) ? ('0' + (int)v) : ('A' + (int)v - 10));
 }
 
 static int hex_value(char c)

@@ -76,10 +76,15 @@ Aus **AN12973 "SE051 configurations", Rev. 2.0, 8. Juli 2024, Tabelle 3**:
 | Twisted Edwards (Ed25519) | — | **ja** |
 | Montgomery (Curve25519) | — | ja |
 | RSA bis 4096 bit | — | **ja** |
-| Nutzspeicher, maximal nichtflüchtig | 104 kB | **104 kB** |
+| Nutzspeicher, nichtflüchtig | 46–104 kB | **46–104 kB** |
 | RAM (beim Abwählen gelöscht) | 608 Byte | 608 Byte |
 
-**SE051C2 erfüllt alle drei Pflichtpunkte und hat 104 kB statt 50 kB Nutzspeicher**
+**SE051C2 erfüllt alle drei Pflichtpunkte.** Beim Speicher ist die Tabelle
+genauer zu lesen, als es dieser Abschnitt zunächst tat: sie nennt „46 kB to
+104 kB", mit eigenen Zeilen für „Full Feature" (46 kB) und „Maximum" (104 kB).
+Das ist eine **Bestellausführung**, keine Eigenschaft der Variante — welche die
+Teststand-Platine trägt, wird vor der Bestellung geklärt. Mindestens sind es
+46 kB und damit fast das Doppelte des SE050
 — also doppelt so viel Platz für Schlüssel. Das Gehäuse ist dasselbe: HX2QFN20,
 3 × 3 mm × 0,32 mm, 0,4 mm Raster, SOT1969-1 (SE051 Datenblatt Rev. 2.0,
 Abschnitt 8). Die Platine muss für den Wechsel nicht geändert werden.
@@ -114,7 +119,7 @@ Beschaltungsvorgabe, nicht nur Software. Siehe `hardware/schematic.md`.
 ### Was das für die Architektur bedeutet
 
 `docs/architecture.md` begründet "Schlüssel werden abgeleitet, nicht gespeichert"
-mit den 50 kB des SE050. Mit 104 kB ist der Druck geringer. Die Ableitung bleibt
+mit den 50 kB des SE050. Mit 46 bis 104 kB ist der Druck geringer. Die Ableitung bleibt
 trotzdem richtig — sie ist der Grund, warum ein Zweitgerät möglich ist. Nur das
 Argument "sonst geht der Speicher aus" ist jetzt schwächer. Das gehört dem
 Architektur-Strang, nicht mir; ich melde es nur.

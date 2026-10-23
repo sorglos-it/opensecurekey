@@ -48,11 +48,19 @@ breakable. So that promise could not be kept, and it is gone.
 
 Two modes exist instead, and a profile picks one:
 
-**"this device only"** — the key pair is generated inside the chip, exported only
-as an encrypted blob, carried in the credential ID, and imported again to sign.
-The private part is never outside in the clear and nothing accumulates in the
-chip's 104 kB. Cost: the wrapping key is tied to this device, so there is no
-second device for these credentials.
+**"this device only"** — one permanent key pair per credential, generated inside
+the chip and never exported at all. The private part never exists outside: there
+is no blob to steal and no unwrapping step. Cost: each credential occupies space
+in the chip's memory (46 kB or 104 kB, depending on the ordering option), so the number of services is finite — the interface warns
+in good time (`osk_se050_free_memory()`) instead of failing at the limit. And
+there is no second device for these credentials.
+
+An earlier draft wanted to export the key as an encrypted blob and import it to
+sign. That does not work and is recorded here so nobody tries it again: the
+SE05x exports only *transient* objects, wraps them with chip-internal keys that
+cannot be chosen, and refuses the import unless the original object still exists
+(AN12413 3.2.8, 4.7.3.2, 4.7.1.8). It carries a value across a deselect — it does
+not park credentials outside.
 
 **"mirrored"** — a root secret that moves to a paired second device over an
 encrypted channel between the two secure elements, with derivation done in the
@@ -62,6 +70,17 @@ stick can be replaced instead of ending every account bound to it.
 Neither is strictly safer. Losing the only device destroys more accounts than a
 stolen device usually does, so "mirrored" is the sensible default for everyday
 logins — while a crypto seed belongs in "this device only".
+
+**The choice is made once and cannot be changed.** A secret born inside the chip
+can never be mirrored afterwards, because nothing leaves the SE05x — not even
+under a negotiated key (`ExportObject` cannot do it, `ReadObject` refuses private
+and symmetric keys, 4.7.3.1). So a mirrored profile's root secret has to be
+created *outside* both chips, during pairing, and written into each. That has to
+happen before the secret exists.
+
+For the setup wizard this means the question comes first, in plain words, and it
+says that the answer is final. Changing your mind later means starting a new
+profile and re-registering every service.
 
 ## Folders
 

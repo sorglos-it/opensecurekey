@@ -31,6 +31,25 @@ Status: design. No audit has been done.
 
 ## Decisions that trade security for use
 
+## What a compromised firmware can still do
+
+The mirrored mode writes a root secret into the chip, so a firmware that lies to
+the user could read it **while it is being written**. Afterwards it cannot, and
+that is not a matter of discipline but of what the part allows:
+
+- Symmetric keys have no "allow read" policy at all, and `ReadObject` refuses
+  symmetric and private keys outright (AN12413 3.7.1, 4.7.3.1). There is no
+  setting anyone could get wrong.
+- The object is created with `ALLOW_KDF` and `ALLOW_SIGN` only — no `ALLOW_WRITE`,
+  so not even a malicious firmware can overwrite it, and no `ALLOW_IMPORT_EXPORT`.
+- `REQUIRE_SM` on top: the object can only be used inside a secured channel.
+
+So the damage a compromised firmware can do is confined to the moment of setup.
+After that it can *use* the secret, but it cannot read it, replace it, or carry
+it out. That is the honest boundary: this protects the secret, not the session —
+a firmware that signs things behind your back needs the signed bootloader to
+prevent, nothing else.
+
 ## The SE050 ships with published keys
 
 AN12973 Rev. 2.0, table 6 lists the factory SCP03 keys (ENC, MAC, DEK) of every

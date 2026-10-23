@@ -215,6 +215,30 @@ Der nächste Schritt ist das Zeichnen in EasyEDA, nach
 [../hardware/schematic.md](../hardware/schematic.md) und
 [../hardware/pinout.md](../hardware/pinout.md).
 
+## Zwei Werkseinstellungen, die nicht sind, was man erwartet
+
+Aus AN12973 Rev. 2.0, Tabelle 3 — beide gefunden, als der SE050-Strang die
+Tabelle als Bild gerendert hat, weil die Textauswertung der PDF die Spalten
+verschob:
+
+- **Der Stromsparmodus mit Zustandserhalt ist ab Werk abgeschaltet.** In der
+  Tabelle steht „Power-Down (with state retention), ~430 µA – Disabled", und die
+  Fußnote sagt: einschaltbar nur über das Perso-Applet (AN13015). Ohne diesen
+  Schritt bleibt nur „Deep Power-Down" mit unter 5 µA, bei dem der Zustand
+  **verloren** geht. Das Energiebudget rechnet bisher so, als stünde beides zur
+  Wahl. Vor der Platine klären, sonst stimmt die Laufzeitrechnung nicht.
+- **Clock Stretching ist ab Werk ebenfalls aus.** Die Zeile „I2C Target, up to
+  3,4 Mbit/s" gilt laut Tabelle nur „with clock stretching enabled" — auch das
+  geht nur über das Perso-Applet. Ohne es ist die Höchstfrequenz niedriger. Das
+  betrifft den I2C-Treiber auf dem nRF52840, nicht das Layout.
+
+Dazu: **Der Nutzspeicher ist eine Bestellausführung, keine Eigenschaft der
+Variante** — 46 kB („Full Feature") oder 104 kB („Maximum"). Welche die
+Teststand-Platine trägt, wird vor der Bestellung geklärt.
+
+Alle drei sind Einstellungen am fertigen Chip, kein Grund für ein anderes Teil.
+Aber sie müssen in die Erstinbetriebnahme, sonst fallen sie erst am Gerät auf.
+
 ## Was gemessen werden muss, bevor die Zahlen gelten
 
 - der tatsächliche Gesamt-Ruhestrom (das Datenblatt gibt die Weck-Szenarien nur
