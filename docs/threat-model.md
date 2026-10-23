@@ -44,7 +44,7 @@ above is not true.
 
 | Decision | Cost | Why |
 | --- | --- | --- |
-| Passkeys can be mirrored to a second device | keys are no longer device-bound | without it a lost device means lost accounts |
+| Passkeys can be mirrored to a second device (per profile) | the root secret passes through the nRF52840's memory during derivation, and the keys are no longer device-bound | without it a lost device means every account bound to it is gone; "this device only" is available per profile for what must never leave |
 | Server mode without a button press per signature | malware on that server can sign | a server cannot wait for a human; limited to named keys and logged |
 | Read-only drive with the programs on it | more USB interfaces to get right | a key nobody can use is not secure either |
 

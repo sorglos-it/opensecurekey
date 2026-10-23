@@ -36,12 +36,32 @@ a plain smart card chip answers. Here the firmware answers, so the device needs
 its own power for NFC and Bluetooth. The battery also keeps the clock running,
 which TOTP and timestamps need.
 
-## Keys are derived, not stored
+## Two key modes, chosen per profile
 
-The SE050 has 50 kB of user memory. Storing one key per service would run out.
-Instead a single root secret lives in the chip, and every FIDO credential, SSH key
-and wallet address is derived from it inside the chip. That also makes a second
-device possible: pair it, move the root secret, and it is a real spare.
+The first design said: one root secret in the chip, everything derived from it
+**inside** the chip. That turned out to be impossible on this part. The SE05x can
+derive bytes (HKDF, PBKDF2), but it returns them to the host — there is no command
+that derives a key pair into an internal object, and `WriteECKey` only takes a
+private value handed to it from outside. Deriving on the host would push the
+private key through the nRF52840, whose read protection this document treats as
+breakable. So that promise could not be kept, and it is gone.
+
+Two modes exist instead, and a profile picks one:
+
+**"this device only"** — the key pair is generated inside the chip, exported only
+as an encrypted blob, carried in the credential ID, and imported again to sign.
+The private part is never outside in the clear and nothing accumulates in the
+chip's 104 kB. Cost: the wrapping key is tied to this device, so there is no
+second device for these credentials.
+
+**"mirrored"** — a root secret that moves to a paired second device over an
+encrypted channel between the two secure elements, with derivation done in the
+firmware. Cost: the secret is briefly in the nRF52840's memory. Benefit: a lost
+stick can be replaced instead of ending every account bound to it.
+
+Neither is strictly safer. Losing the only device destroys more accounts than a
+stolen device usually does, so "mirrored" is the sensible default for everyday
+logins — while a crypto seed belongs in "this device only".
 
 ## Folders
 
