@@ -13,14 +13,20 @@ beweisen. **Zielplatine** ist, was später auf die eigene Platine kommt.
 | --- | --- | --- |
 | Rechenkern | nRF52840-DK (PCA10056) | Raytac MDBT50Q-1MV2 (Modul, vorzertifiziert) |
 | Sicherheitschip | MIKROE-5392 "SE051 Plug & Trust Click" | SE051C2HQ1/Z01XDZ (HX2QFN20, 3 × 3 mm) |
-| Flash | auf dem DK vorhanden | W25Q512JV (512 Mbit = 64 MByte) |
-| OLED | 0,96" SSD1306, SPI | gleiches Glas, ohne Trägerplatine |
-| Fingerabdruck | FPC BM-Lite Entwicklungskit | FPC BM-Lite Modul — **offener Punkt**, siehe unten |
-| Laderegler | — (DK läuft am USB) | siehe `power-budget.md` |
-| Akku | — | LiPo, Größe aus `power-budget.md` |
-| NFC-Antenne | 13,56-MHz-Flexantenne, 2-polig | als Leiterbahn auf der Platine |
-| Taster, LED | auf dem DK vorhanden | SMD |
+| Flash | auf dem DK vorhanden | **W25Q512JVEIQ** (3 V, 512 Mbit = 64 MByte, WSON8) |
+| OLED | Crystalfontz **CFAL12864N-A-B4** (0,96") | **CFAL4864A-071BW** (0,71", 13,9 × 22 × 1,26 mm) |
+| Fingerabdruck | FPC BM-Lite Entwicklungskit | **offener Punkt** — Vorschlag: Stufe 1 ohne Sensor |
+| Laderegler | — (DK läuft am USB) | **MCP73832T-2ACI/OT** + diskrete Lastumschaltung |
+| Akkuschutz | — | **keiner** — Zelle mit PCM + Verpolschutz |
+| Akku | — | **Adafruit 1317** (150 mAh) oder BerryBase **LP-401230-J** (100 mAh) |
+| USB-C | auf dem DK vorhanden | **GCT USB4085-GF-A** + 2 × 5,1 kΩ + USBLC6-2SC6 |
+| NFC-Antenne | **liegt dem DK bei** | als Leiterbahn auf der Platine |
+| Taster | auf dem DK vorhanden | **Panasonic EVQP7A01P** (1,35 mm hoch, 2,2 N) |
+| LED | auf dem DK vorhanden | **Everlight 19-337C** (1,6 × 1,6 × 0,5 mm) |
 | Messmittel | Logikanalysator 8 Kanal USB | — |
+
+Berichtigt gegenüber dem Entwurf: dem nRF52840-DK **liegt eine NFC-Antenne bei**
+(Nordic, Kit-Inhalt) — der Posten „NFC-Antenne, weil das DK keine hat" entfällt.
 
 ## Sicherheitschip: SE051C2 statt SE050C2
 
@@ -251,6 +257,343 @@ So bleibt das Gerät klein und offen, und die Frage "BM-Lite ohne NDA?" blockier
 den Baubeginn nicht. Diese Entscheidung ist nicht meine — sie gehört dem Nutzer;
 ich lege sie vor.
 
+## Flash: W25Q512JVEIQ (3 V), nicht die 1,8-V-Fassung
+
+Quelle: **Winbond W25Q512JV, Revision B, 25. Juni 2019**.
+
+| Größe | Wert | Abschnitt |
+| --- | --- | --- |
+| Versorgung | **2,7–3,6 V** | Kap. 1 |
+| Standby ICC1 | typ. 10 µA, max. 60 µA | Kap. 9.4 |
+| **Deep Power Down ICC2** | **typ. 1 µA**, max. 20 µA | Kap. 9.4 |
+| Lesestrom bei 50 MHz | typ. 20 mA, max. 35 mA | Kap. 9.4 |
+| Lesestrom bei 104 MHz | typ. 25 mA, max. 40 mA | Kap. 9.4 |
+| Schreiben (Page Program) | typ. 20 mA, max. 25 mA | Kap. 9.4 |
+| Löschen (Sector/Block) | typ. 20 mA, max. 25 mA | Kap. 9.4 |
+| Takt | 133 MHz bei 3,0–3,6 V | Kap. 9.6 |
+
+**Warum die JV und nicht die NW:** Der nRF52840 arbeitet mit VDD 1,7–3,6 V
+(nominal 3,0 V); seine GPIO-Pegel richten sich nach VDD. Bei 3,3 V passt das
+direkt zu den 2,7–3,6 V der JV — **kein Pegelwandler**. Die NW (1,65–1,95 V)
+würde eine 1,8-V-Schiene erzwingen, was Sicherheitschip und OLED auf der
+3,3-V-Schiene ausschließt. Vom NW-Datenblatt war außerdem **keine Fassung
+beschaffbar** (Winbond-Seite: „part no. is not available"); alle Ströme des NW
+sind `ungeprueft`.
+
+**Wichtig fürs Energiebudget:** Der QSPI des nRF52840 deckelt bei **32 MHz**
+(SCK = 32 MHz/(SCKFREQ+1), SCKFREQ 0–15). Die 133 MHz der JV sind also nie das
+Nadelöhr. Einen Datenblattwert für 32 MHz gibt es nicht (`ungeprueft`, nicht
+interpoliert) — gerechnet wird mit den 20 mA der 50-MHz-Spalte.
+
+Und: der Flash muss per Befehl `B9h` **schlafen gelegt** werden (1 µA), nicht
+nur über /CS abgewählt (das wären 10 µA). Das ist eine Firmware-Pflicht.
+
+| Händler | Bestellnummer | Preis 1 St. | Bestand |
+| --- | --- | --- | --- |
+| Digi-Key | 256-W25Q512JVEIQ-TUBE-ND | 21,19 USD | **nicht angezeigt**, Ersatztyp vorgeschlagen |
+
+**Offen:** Die Lieferbarkeit ist unbestätigt — Digi-Key zeigt für diese Nummer
+keinen Bestand und schlägt einen Ersatztyp vor. Mouser war während der
+Recherche nicht erreichbar, LCSC-Preise nicht abrufbar. **Vor der Bestellung
+klären.** WSON8 hat außerdem **keinen /RESET-Pin**.
+
+## Laden: MCP73832, nicht MCP73831
+
+Quelle: **Microchip DS20001984H**, MCP73831/2, Rev. H.
+
+| Größe | Wert | Abschnitt |
+| --- | --- | --- |
+| Ladestrom | **I = 1000 V / R_PROG** | 5.1.2, S. 15 |
+| R_PROG-Bereich | 2 kΩ … 67 kΩ | DC-Tabelle S. 4 |
+| Bereich | 15 mA … 500 mA | S. 1 |
+| **Rückentladung aus dem Akku ohne USB** | **< 2 µA** | 4.1, 4.3, S. 13 |
+| Ruhestrom, Ladung beendet | max. 200 µA | S. 3 |
+| PROG offen (aus) | max. 5 µA | S. 3 |
+| Gehäuse | SOT-23-5 (`/OT`), 0,95 mm Raster | S. 1 |
+
+**Ladeschlussspannung über die Typnummer:** `-2` = **4,20 V** (richtig für eine
+normale LiPo), `-3` = 4,35 V, `-4` = 4,40 V, `-5` = 4,50 V.
+**Achtung: `-3`/`-4`/`-5` überladen eine normale 4,2-V-Zelle.**
+
+**Bestellnummer: `MCP73832T-2ACI/OT`** — Digi-Key DE `MCP73832T-2ACI/OTCT-ND`,
+**0,67 € netto**. Mit R_PROG = 10 kΩ → 100 mA, 20 kΩ → 50 mA. Für eine
+100–150-mAh-Zelle ist 50–100 mA richtig.
+
+**Warum der '32 und nicht der '31:** Sie unterscheiden sich nur am STAT-Pin.
+Beim '31 (Tri-State) heißt „fertig" High, beim '32 (Open-Drain) hochohmig — also
+wie „kein USB". Der '31 trennt die Fälle, aber ein Tri-State-Pegel ist an einem
+nRF52840-GPIO ohne Pull nicht zuverlässig zu lesen. **Saubere Lösung: STAT am
+'32 mit Pull-up lesen und VBUS getrennt erfassen** — dann braucht es die
+Unterscheidung nicht.
+
+### Power-Path: diskret, nicht als IC
+
+Der Wunsch „am USB laufen, ohne den Akku zu belasten" heißt Power-Path. Vier
+ICs wurden geprüft:
+
+| | MCP73832 | BQ24040 | BQ25100 | BQ24075 | MCP73871 |
+| --- | --- | --- | --- | --- | --- |
+| echter Power-Path | nein | **nein** | **nein** | **ja** | ja |
+| Gehäuse | **SOT-23-5** | WSON-10 | DSBGA 1,6×0,9 | VQFN-16 + Pad | QFN-20 + Pad |
+| handlötbar | **ja** | nein | nein | nein | nein |
+| Akkuruhestrom | < 2 µA | ~1 µA | 75 nA | 4,3 µA | 30–40 µA |
+| Thermistor nötig | **nein** | ja | ja | ja | ja |
+| Preis Digi-Key DE | **0,67 €** | 0,83 € (20 Wochen) | 1,83 € | 2,13 € | 2,12 € |
+
+**Zwei Befunde:** BQ24040 und BQ25100 haben laut ihren eigenen Datenblättern
+**gar keinen** Power-Path — die Last hängt parallel zum Akku. Echtes DPPM haben
+nur BQ24075 und MCP73871, und **beide brauchen Reflow** (Wärmepad muss Kontakt
+haben). Handlötbar ist allein der MCP73832 im SOT-23-5.
+
+**Empfehlung:** MCP73832 + Lastumschaltung aus zwei P-Kanal-MOSFETs
+(Ideal-Diode-Paar): liegt VBUS an, speist USB die Last und der Akkupfad sperrt.
+Zwei handlötbare SOT-23-Teile. Bei unserem Lastprofil (Milliampere, nicht
+Hunderte) ist das billiger und kleiner als ein Power-Path-IC.
+
+**`ungeprueft` und offen:** Diese Umschaltung ist **nicht durchgerechnet** —
+keine Bauteilauswahl, kein belegter Spannungsabfall, und kein Nachweis, dass
+der Lastsprung beim Umschalten die Brownout-Erkennung des nRF52840 nicht
+auslöst. Soll es doch ein IC sein, dann **BQ24075** (nicht MCP73871): echtes
+DPPM, 4,3 µA statt 30 µA, 3 × 3 statt 4 × 4 mm, fast gleicher Preis.
+
+## Akkuschutz: keiner auf der Platine — aber Verpolschutz
+
+Der Entwurf nannte `DW01A` + `FS8205`. Das ist für dieses Gerät die falsche
+Wahl, und zwar aus einem einfachen Grund: **die käufliche Zelle hat den Schutz
+schon eingebaut.**
+
+| Zelle | Schutz | Belegte Schwellen |
+| --- | --- | --- |
+| Adafruit 1317 (150 mAh) | **ja** | Abschaltung bei 3,0 V, Kurzschlussschutz |
+| SparkFun 400 mAh | **ja** | keine Zahlen genannt |
+| EEMB LP502030-**PCM**-LD | **ja** | Überladung 4,28 ± 0,05 V, Tiefentladung 3,0 ± 0,10 V, Dauerstrom 0,3 A, Spitze 0,8 A / 3 s |
+
+Ein zweites `DW01A` + `FS8205` in Serie kostet Platz, zwei weitere
+Durchgangswiderstände im Strompfad und eine weitere Fehlerquelle. Dazu kommt:
+die Überstromschwelle des DW01A ist eine **Spannung über die MOSFETs**
+(200 mV typ.); mit dem FS8205A (2 × 21 mΩ) sind das rund **4,8 A** (gerechnet,
+keine Datenblattangabe) — für ein Milliampere-Gerät also gar kein
+Überstromschutz, nur Kurzschlussschutz.
+
+**Was die Zell-PCM aber nicht kann: Verpolschutz.** Eine verpolt angelötete
+Zelle legt die Spannung direkt auf V_BAT des Ladereglers und auf den
+Sicherheitschip. Dagegen hilft nur eine Maßnahme auf der Platine.
+
+**Entscheidung:**
+
+1. Zelle **mit belegtem Schutz** beschaffen (Modellname muss `PCM` enthalten —
+   EEMB führt dieselbe Bauform **auch ohne**!).
+2. **Kein zweites Schutz-IC** auf der Platine.
+3. **Verpolschutz am Akkueingang** (Serien-MOSFET) — Pflicht.
+4. **Firmware-Abschaltschwelle oberhalb der PCM-Schwelle** der verbauten Zelle,
+   sonst schaltet die PCM mitten in einer Signatur ab. Bei Adafruit 1317 liegt
+   die PCM bei 3,0 V; die Firmware muss vorher aufhören.
+
+Soll die Platine für **beliebige, auch nackte** Zellen taugen, dann **S-8261**
+(nicht DW01A): Schwellen in 5-mV-Schritten einstellbar, ±25 mV statt ±50 mV,
+0,1 µA statt 1,5 µA im Tiefentladezustand, gleiches SOT-23-6. **Aber:** bei
+Digi-Key nur als 3000er-Rolle mit 16 Wochen Lieferzeit — **Einzelbezug offen**.
+Ein Schutz-IC **mit** eingebauten MOSFETs wurde nicht gefunden; S-8261, BQ2970
+und die Ricoh-Teile brauchen alle ein externes Dual-FET.
+
+## Akku
+
+Fünf Angaben des Entwurfs waren falsch und sind berichtigt: Adafruit 4236 hat
+**420 mAh** (nicht 105), Adafruit 3898 ist 7,8 mm **zu dick**, SparkFun
+PRT-13852 ist die **40-mAh**-Zelle, PRT-10718 leitet auf die 400-mAh-Zelle, und
+EEMB LP401230 hat **100 mAh** (nicht 120).
+
+| # | Zelle | Bestellnr. | Preis | Kapazität | Dicke × Breite × Länge | Anschluss | Schutz |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **1** | **Adafruit LiPo 150 mAh** | **1317** | **5,95 USD** | 150 mAh | **3,8 × 19,75 × 26,02 mm** | JST-PH 2.0 | **ja** |
+| **2** | **BerryBase PKCELL LP-401230** | **LP-401230-J** | **3,40 €** | 100 mAh | **4,05 × 12,0 × 30,5 mm** | JST-PH 2.0 | **ja** |
+| 3 | Adafruit LiPo 100 mAh | 1570 | 5,95 USD | 100 mAh | 3,8 × 11,5 × 31 mm | JST-PH 2.0 | ja |
+| 4 | SparkFun Li-Ion 110 mAh | PRT-13853 | 7,53 USD | 110 mAh | max 4,0 × 15,0 × 25,0 mm | JST-PH 2.0 | ja |
+| 5 | EEMB LP502030-PCM-LD | — | `ungeprueft` | 250 mAh | max 5,3 × 20,5 × 31 mm | **blanke Lötfahnen** | ja |
+
+**Empfehlung: Adafruit 1317 (150 mAh).** Mit 3,8 mm die dünnste belegte Zelle,
+und die einzige mit vollständigem Herstellerdatenblatt (PKCELL QA.S.0228,
+Ausgabe A, 28.07.2014): 1 C = 150 mA Dauerentladung und > 300 Zyklen sind
+belegt, Ladestrom höchstens 150 mA, empfohlen 100 mA.
+
+**Für EU-Beschaffung: BerryBase LP-401230-J (100 mAh, 3,40 €).** Der schmale
+12-mm-Streifen passt unter eine Anhängerplatine, wo die 20-mm-Zellen nicht
+hinkommen. EU-Händler heißt außerdem: kein Luftfracht- und Zollthema.
+
+**Nicht empfohlen:** die EEMB mit 250 mAh — 5,3 mm und blanke Lötfahnen. Sie
+hat das beste Datenblatt und die beste Zyklenzahl; sie ist die Wahl, falls
+250 mAh wichtiger werden als 4 mm Bauhöhe.
+
+**Offen und wichtig:**
+
+- **Der Pulsstrom ist bei keiner einzigen Zelle belegt.** Kein Datenblatt nennt
+  einen. Für ein Gerät, das beim Funken Stromstöße zieht, ist das die größte
+  Lücke. Siehe `power-budget.md`.
+- **Die Selbstentladung pro Monat ist bei keiner Zelle belegt** — beide
+  gelesenen Datenblätter nennen nur „Kapazitätserhalt nach 28 Tagen". Die
+  Laufzeitrechnung muss daher mit einer Annahme arbeiten.
+- **Keine Zelle hat einen Thermistor** (Adafruit sagt das ausdrücklich). Darum
+  passt der MCP73832 ohne TS-Pin, und die Power-Path-ICs mit NTC-Eingang nicht.
+- Versand: einzelne Zellen sind **UN3480** und seit 01.01.2022 **nur als
+  Luftfracht, ≤ 30 % Ladezustand** erlaubt. Kauf bei einem EU-Händler umgeht
+  das ganz.
+
+## USB-C
+
+### Die Widerstände
+
+| Punkt | Wert |
+| --- | --- |
+| Rd je CC-Leitung | **5,1 kΩ** |
+| **Je CC-Pin ein eigener Widerstand** | Pflicht (Type-C Spec 1.4, Abschn. 4.5.1.3.2, Fig. 4-9 — normativ) |
+
+**5,1 kΩ je CC ist richtig — aber es müssen zwei getrennte sein.** Der
+Raspberry Pi 4 hat beide CC-Pins auf **einen** Widerstand gelegt; Folge: mit
+einem e-marked Kabel (SuperSpeed oder 5 A) **lädt das Gerät nicht**, weil der
+Lader den Ra des e-markers (800 Ω–1,2 kΩ) nicht mehr vom Rd trennen kann und
+0 V statt 5 V liefert. Das ist der klassische Fehler, und er ist gratis zu
+vermeiden.
+
+**Ein reiner Rd-Sink ohne PD darf nur ziehen, was die Quelle per Rp anbietet**,
+und muss dazu die CC-Spannung messen. Wer nicht messen will, muss mit
+„Default USB Power" rechnen.
+
+`ungeprueft`: die Rd-Toleranz (keine erreichbare Quelle nennt eine — die
+kursierenden ±20 %/±5 % gelten für Rp auf der Quellenseite), die genauen
+Stromgrenzen ohne PD, 22 Ω in D+/D− (keine Quelle fordert sie für USB 2.0), und
+Abschnitt/Tabelle in der aktuellen Spezifikation (Release 2.5, 08.04.2026 — PDF
+nur per Download). Belegt ist Release 1.4.
+
+### Buchse oder Stecker
+
+| Teil | Art | Preis | Bestellnr. |
+| --- | --- | --- | --- |
+| **GCT USB4085-GF-A** | USB 2.0 Buchse, **Durchsteck** | **0,80 €** | Digi-Key 2073-USB4085-GF-ACT-ND, 84 113 am Lager |
+| GCT USB4105 | gleiche Elektrik, **SMT** | — | — |
+| Molex 1054440001 | **Stecker**, Straddle Mount am Platinenrand | 2,72 € | Digi-Key, **14 Wochen** |
+
+USB4085: 16 Durchsteckpins Ø 0,65 mm + 4 Haltestifte, 5 A VBUS, **20 000
+Steckzyklen**, Körper 8,94 × 9,17 mm, Schirm = GND. Für Handlötung die klar
+beste Wahl.
+
+**Zum Platinenrand-Stecker** (wie bei bekannten FIDO-Sticks): machbar, aber
+belegte Randbedingungen sind **Leiterplattendicke 0,8 mm** statt 1,6 mm (alle
+gefundenen Edge-Mount-Stecker passen nur auf 0,8 mm) und **ENIG statt HASL**
+(die dickere HASL-Schicht macht das erste Stecken schwer). Für einen direkt in
+die Platine geätzten Stecker ohne Bauteil wurde **keine Quelle zur Konformität
+mit der Type-C-Steckerspezifikation gefunden — `ungeprueft`.**
+
+### ESD-Schutz
+
+| Teil | Daten | Preis |
+| --- | --- | --- |
+| **ST USBLC6-2SC6** | 2 Datenleitungen + VBUS, **3,5 pF**, 150 nA Leckstrom, IEC 61000-4-2 Level 4 (±15 kV Luft, ±8 kV Kontakt), SOT-23-6 | ~0,23 € (RS, 10er-Pack) |
+| Nexperia PRTR5V0U2X | **1 pF** — deutlich besser, SOT143B | ~0,38 USD |
+| Nexperia PESD5V0X1BCL | VBUS, VRWM **5,5 V**, DFN1006 | `ungeprueft` |
+
+Der USBLC6-2 klemmt VBUS über Pin 3 mit, ist dafür mit 5 A aber dünn — ein
+eigenes VBUS-Teil ist sinnvoll. Dabei **VRWM 5,5 V** nehmen, nicht 5,0 V: ein
+5-V-Teil mit Durchbruch ab 5,8 V liegt zu knapp an den USB-Toleranzen.
+
+**Offen, und für einen Sicherheitsschlüssel wichtig:** Das **ESD-Konzept für
+die CC-Leitungen und die Schirm-Anbindung der Buchse** (direkt an GND oder über
+RC) wurde nicht recherchiert.
+
+## OLED: 0,71 Zoll statt 0,96 Zoll
+
+Der Entwurf nannte ein 0,96"-SSD1306-Modul. Für ein Anhängergerät gibt es ein
+deutlich besser passendes Glas.
+
+| Teil | Größe | Auflösung | Modulmaß | Preis | Bestand |
+| --- | --- | --- | --- | --- | --- |
+| **Crystalfontz CFAL4864A-071BW** | **0,71"** | 48 × 64 | **13,90 × 22,00 × 1,26 mm**, aktiv 10,54 × 14,70 mm | **4,59 USD** | **914 St.** |
+| Crystalfontz CFAL12864N-A-B4 | 0,96" | 128 × 64 | 26,70 × 19,26 mm | 7,51 USD | 176 St. |
+| Adafruit 326 | 0,96" | 128 × 64 | 29,2 × 26,7 × **6,2 mm** | 17,50 USD | — |
+
+**Empfehlung Zielplatine: CFAL4864A-071BW.** 1,26 mm dick, Controller
+**SSD1306 namentlich genannt**, 3,3-V-Logik, SPI und I2C, Anschluss über
+FPC mit 12-poligem ZIF-Steckverbinder, 0,5 mm Raster. Jede Zahl von der
+Herstellerseite gelesen.
+
+**Empfehlung Teststand: CFAL12864N-A-B4** statt Adafruit 326 — das
+Adafruit-Board ist mit 6,2 mm und 5-V-Regler plus Aufwärtswandler für einen
+Schlüssel zu dick, und Adafruit **nennt den Controller nicht einmal** (es kann
+ein SSD1315 sein).
+
+**SH1106 nicht nehmen:** 132 statt 128 Spalten heißt Offset-Gefummel im
+Treiber, und er braucht mit VDD1 + VDD2 + VPP eine Schiene mehr.
+
+**Wichtig für das Energiebudget:** Die oft zitierten 50 µA / 430 µA aus dem
+SSD1306-Datenblatt (Rev 1.1, April 2008, Tab. 12-1) sind die **IC-Ströme bei
+extern angelegten 12 V ohne Panel-Last** — nicht der Modulstrom. Der reale
+Verbrauch entsteht fast vollständig im Ladungspumpen- und Panelzweig.
+Crystalfontz nennt für das 0,96"-Glas 16 mA typisch, für das 0,71" max. 25 mA.
+Sleep ist bei beiden Controllern max. 10 µA.
+
+**Offen:** Der Modulstrom eines 0,71"-Glases bei 3,3 V mit aktiver
+Ladungspumpe ist aus keiner gelesenen Quelle belegt. Das Energiebudget rechnet
+darum mit den 25 mA der Herstellerseite als obere Grenze.
+
+## Taster und LED
+
+| Teil | Daten | Preis | Bestellnr. |
+| --- | --- | --- | --- |
+| **Panasonic EVQP7J01P** | 3,5 × 2,9 mm, **Höhe 1,35 mm**, seitlich betätigt, **1,6 N**, Hub 0,2 mm, 100 000 Zyklen, Prellzeit max. 10 ms | `ungeprueft` | — |
+| Panasonic EVQP7A01P | gleich, aber **2,2 N** | **0,25 €** | Digi-Key P16763CT-ND |
+
+Quelle: Panasonic-Katalog ANCTB21E, Juli 2025. **Von allen geprüften Tastern
+erfüllen nur diese beiden die Vorgabe „unter 2 mm" mit belegtem Datenblatt.**
+C&K PTS810 und Alps SKRPACE010 sind 2,5 mm hoch.
+
+Die 1,6-N-Fassung ist angenehmer, die 2,2-N-Fassung macht versehentliches
+Drücken im Hosensack unwahrscheinlicher. **Für einen Sicherheitsschlüssel, bei
+dem ein Druck eine Signatur freigibt, ist 2,2 N die richtige Wahl** — und
+`EVQP7A01P` ist zudem die mit belegtem Preis. Die 10 ms Prellzeit gehören in
+die Firmware.
+
+### RGB-LED: diskret, nicht adressierbar
+
+| Teil | Daten |
+| --- | --- |
+| **Everlight 19-337C/RSBHGHC-A88/4T** | **1,6 × 1,6 × 0,5 mm**, 6 Pins = **drei getrennte LEDs** (weder gemeinsame Anode noch Kathode), VF rot 1,7–2,4 V, blau/grün 2,6–3,2 V bei 20 mA, IF max. 25 mA |
+
+Quelle: Everlight DSE-0021229, Rev. 4, 08.11.2022.
+
+**Keine WS2812B/SK6812.** Grund, belegt aus dem Worldsemi-Datenblatt
+WS2812B-Mini-V3/W: **Ruhestrom < 0,6 mA im Dauerbetrieb** — allein davon wäre
+eine 100-mAh-Zelle in etwa 7 Tagen leer (eigene Rechnung). Dazu braucht sie
+mindestens 3,7 V, was eine halb entladene LiPo nicht mehr liefert, und ihr
+3535-Gehäuse ist fast fünfmal so groß. Die diskrete LED hat **null**
+Ruhestrom.
+
+**Achtung beim Löten:** Der ESD-Schutz der Everlight ist bei blau und grün nur
+**150 V** (rot 2000 V). Handlöten höchstens 350 °C / 3 s.
+
+**Offen:** Blau und grün haben VF bis 3,2 V — an einer 3,3-V-Schiene ist das
+knapp, mit entladener Zelle (3,0 V) reicht es nicht. Entweder mit reduziertem
+Strom betreiben, oder rot als Hauptfarbe nutzen, oder einen Aufwärtswandler
+prüfen. **Nicht gerechnet** — gehört in den Schaltplan-Feinschliff.
+Der Einzelstückpreis ist `ungeprueft`.
+
+## Was die Recherche nicht belegen konnte
+
+Ehrlich gesagt, damit niemand auf einer Zahl aufbaut, die es nicht gibt:
+
+- **Mouser war durchgehend nicht erreichbar.** In den Abschnitten Versorgung,
+  USB-C, OLED, Taster und LED steht darum **keine Mouser-Nummer**. LCSC-Preise
+  laden per JavaScript und waren nicht abrufbar; die LCSC-Nummern C424093,
+  C38066, C165948, C7519, C12333 sind belegt, ihre **Preise nicht**.
+- Ebenfalls gesperrt (403/Timeout): st.com, infineon.com, buydisplay.com,
+  ckswitches.com, der Download der USB-Type-C-Spezifikation.
+- **W25Q512NW: kein Datenblatt beschaffbar.** Alle Ströme, die WSON8-Belegung
+  und die Bestellcode-Auflösung fehlen.
+- **Der diskrete Power-Path ist nicht durchgerechnet.**
+- **Der Pulsstrom ist bei keiner Zelle belegt**, die Selbstentladung bei keiner.
+- **Die thermische Auslegung des MCP73832 ist nicht gerechnet** (~180 mW im
+  SOT-23-5 bei 5 V / 3,2 V / 100 mA).
+- `SE050C2`-Abkündigung und das „not recommended" für LCSC C424093 stammen von
+  Aggregatoren, nicht von den Herstellern.
+
 ## Quellen
 
 - SE050 Datenblatt, Rev. 3.8, 18. Oktober 2023 — https://www.nxp.com/docs/en/data-sheet/SE050-DATASHEET.pdf
@@ -261,3 +604,18 @@ ich lege sie vor.
   (Kurven-Kennungen: Secp256k1 = 0x10, ID_ECC_ED_25519 = 0x40)
 - FPC BM-Lite — https://www.fpc.com/products/fingerprints/fingerprint-systems/bm-lite/
 - Grow R503 Handbuch V1.4.1, 09/2023; Adafruit 4651 — https://www.adafruit.com/product/4651
+- Winbond W25Q512JV, Revision B, 25. Juni 2019 — https://www.winbond.com/resource-files/W25Q512JV%20SPI%20RevB%2006252019%20KMS.pdf
+- Microchip DS20001984H, MCP73831/2, Rev. H — https://ww1.microchip.com/downloads/en/DeviceDoc/MCP73831-Family-Data-Sheet-DS20001984H.pdf
+- TI BQ24075 SLUS810N (Okt. 2021), BQ24040 SLUS941H (Feb. 2021), BQ25100 SLUSBV8C
+- Fortune DW01A+G-DS-10_EN, Rev. 1.0, Okt. 2013; FS8205A-DS-12_EN, Rev. 1.2, Aug. 2009
+- ABLIC S-8261, Rev. 5.5_00 — https://www.ablic.com/en/doc/datasheet/battery_protection/S8261_E.pdf
+- PKCELL „Li-Polymer 402025 150mAh 3.7V with PCM", QA.S.0228, Ausgabe A, 28.07.2014
+- EEMB LP502030-PCM-LD, ZJQM-RD-SPC-A03249, Ver. 0.0, 15.12.2017
+- Solomon Systech SSD1306, Rev 1.1, April 2008; SH1106 V2.2 (ohne Datum)
+- Crystalfontz CFAL4864A-071BW — https://crystalfontz.com/product/cfal4864a071bw
+- GCT USB4085, Zeichnung Rev. B, 28.02.2023 — https://gct.co/files/drawings/usb4085.pdf
+- Panasonic Taster-Katalog ANCTB21E, Juli 2025
+- Everlight 19-337C, DSE-0021229, Rev. 4, 08.11.2022
+- Worldsemi WS2812B-Mini-V3/W — https://learn.watterott.com/kb/ws281x/WS2812B-Mini-v3.pdf
+- nRF52840 Product Specification, Online-Fassung, abgerufen 23.10.2026 — https://docs.nordicsemi.com/r/bundle/ps_nrf52840
+- nRF52840 DK, Kit-Inhalt (NFC-Antenne liegt bei) — https://docs.nordicsemi.com/r/bundle/ug_nrf52840_dk/page/ug/dk/kit_content.html
