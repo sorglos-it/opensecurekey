@@ -189,10 +189,16 @@ block of the profile** — the tag it is looking for can be in any of them. That
 is the price of the higher limit, and it was measured rather than assumed
 (`test_paging.c`, case "Suchen ueber die Kennung"):
 
-| Items in the profile | blocks decrypted | bytes decrypted | per search, PC |
+| Items searched | blocks decrypted | bytes decrypted | per search, PC |
 | --- | --- | --- | --- |
-| 64 | 1 | 20 KiB | ~150 µs |
-| 768 (full) | 12 | 240 KiB | 1.20–1.45 ms |
+| 64 (one block) | 1 | 20 KiB | ~100–150 µs |
+| 768 (one full profile) | 12 | 240 KiB | 1.20–1.45 ms |
+| 3072 (all four profiles) | 48 | 962 KiB | 4.8–5.9 ms |
+
+The last row is the whole full device, which is the closest this geometry gets
+to the 4000 entries the question was asked about — 4000 do not fit, see
+**Limits**. It works out at about 1.8 ms per 1000 entries on this PC, so the
+cost is linear in the number of entries, as the block count says it must be.
 
 **The microseconds are a PC number and say nothing about the device.** They were
 measured on a desktop against the crypto *double*; the real AES-GCM comes from
@@ -201,8 +207,9 @@ three columns: one block per 64 items, 240 KiB read and decrypted for a full
 profile, and **no secret touched and no confirmation asked** — that part is
 asserted, not timed.
 
-Six repeated runs gave 1.20, 1.25, 1.25, 1.25, 1.30 and 1.45 ms, so the
-measurement is stable to about 10 %.
+Six repeated runs of the one-profile case gave 1.20, 1.25, 1.25, 1.25, 1.30 and
+1.45 ms, five runs of the whole-device case 4.8, 5.0, 5.3, 5.5 and 5.9 ms — so
+the measurement is stable to about 10 %.
 
 What this means for FIDO2 is **open until it is measured on hardware**. 240 KiB
 has to come off the QSPI flash and through AES-GCM for every passkey login. If

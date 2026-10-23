@@ -58,9 +58,11 @@ chip cannot see which services you have an account with. Only the device itself,
 after you have unlocked it, can look through them.
 
 Because the list is read in pieces, a search has to go through every piece — 12
-of them in a full profile, 240 KiB of decryption. On a PC with stand-in crypto
-that takes about 1.2 to 1.45 milliseconds; **what it takes on the real chip is
-not measured, because there is no chip yet.** If it turns out too slow for a
+of them in a full profile, 240 KiB of decryption, and 48 pieces or 962 KiB if
+all four profiles are open at once. On a PC with stand-in crypto that takes
+about 1.2 to 1.45 milliseconds for one profile and 4.8 to 5.9 for all four;
+**what it takes on the real chip is not measured, because there is no chip
+yet.** If it turns out too slow for a
 passkey login, there is a known way to make one piece enough instead of twelve.
 It is written down in `../shared/vault-format.md` and deliberately not built, so
 that nobody pays for it before a measurement says it is needed.

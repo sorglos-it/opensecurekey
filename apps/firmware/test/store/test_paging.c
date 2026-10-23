@@ -233,6 +233,157 @@ static void case_delete_power(void)
 	printf("      %u Schreibstellen beim Loeschen ueber zwei Bloecke geprueft\n", steps + 1u);
 }
 
+/* Der 65. Eintrag ist eine neue Schreibstelle: hier entsteht ein Block, den es
+ * vorher nicht gab. Vorher war jedes Anlegen ein Schreiben in einen Block, der
+ * schon stand. */
+static void case_new_block_power(void)
+{
+	uint32_t steps;
+
+	t_device(0, 1u, T_PIN);
+	fill(0, 64u, g_ids);
+	fake_flash_count_reset();
+	T_OK(t_add(0, "zaehllauf", "z.example", "x", false, NULL));
+	steps = fake_flash_writes();
+
+	osk_test_case("Der 65. Eintrag legt einen Block an: Ausfall an jeder Schreibstelle");
+	for (uint32_t at = 1; at <= steps + 1u; at++) {
+		t_device(0, 1u, T_PIN);
+		fill(0, 64u, g_ids);
+		fake_crypto_nonce_reset();
+		fake_flash_count_reset();
+		fake_flash_fail_after(at);
+
+		osk_item_id_t id = 0;
+		osk_result_t r = t_add(0, "satz-64", "x.example", "geheim-0-64", false, &id);
+
+		t_reboot();
+
+		size_t n = t_count(0);
+
+		/* 64 oder 65 - nie ein Profil, das einen zweiten Block meldet,
+		 * den es nicht lesen kann. */
+		T_TRUE(n == 64u || n == 65u);
+		if (r == OSK_OK) {
+			T_EQ(n, 65);
+		}
+		for (size_t k = 0; k < n; k++) {
+			osk_item_meta_t meta;
+
+			T_OK(osk_store_list(0, k, &meta));
+			T_TRUE(secret_of_is(0, (unsigned)k, meta.id));
+		}
+		T_EQ(fake_crypto_nonce_dups(), 0);
+		T_EQ(fake_crypto_vault_nonce_dups(), 0);
+	}
+	printf("      %u Schreibstellen beim Anlegen eines Blocks geprueft\n", steps + 1u);
+}
+
+/* Und der Weg zurueck: ein Block, der leer wird, faellt weg. Auch das ist eine
+ * Schreibstelle, die es vor Fassung 4 nicht gab. */
+static void case_block_away_power(void)
+{
+	uint32_t steps;
+
+	t_device(0, 1u, T_PIN);
+	fill(0, 65u, g_ids);
+	fake_flash_count_reset();
+	T_OK(osk_store_delete(g_ids[64]));
+	steps = fake_flash_writes();
+
+	osk_test_case("Ein Block faellt weg: Ausfall an jeder Schreibstelle");
+	for (uint32_t at = 1; at <= steps + 1u; at++) {
+		t_device(0, 1u, T_PIN);
+		fill(0, 65u, g_ids);
+		fake_crypto_nonce_reset();
+		fake_flash_count_reset();
+		fake_flash_fail_after(at);
+
+		osk_result_t r = osk_store_delete(g_ids[64]);
+
+		t_reboot();
+
+		size_t n = t_count(0);
+
+		T_TRUE(n == 64u || n == 65u);
+		if (r == OSK_OK) {
+			T_EQ(n, 64);
+		}
+		for (size_t k = 0; k < n; k++) {
+			osk_item_meta_t meta;
+
+			T_OK(osk_store_list(0, k, &meta));
+			T_TRUE(secret_of_is(0, (unsigned)k, meta.id));
+		}
+		T_EQ(fake_crypto_nonce_dups(), 0);
+		T_EQ(fake_crypto_vault_nonce_dups(), 0);
+	}
+	printf("      %u Schreibstellen beim Wegfallen eines Blocks geprueft\n", steps + 1u);
+}
+
+/* ---- Die Nonce beim Blockwechsel -------------------------------------- */
+
+/* Jeder Block wird mit eigener Nonce verschluesselt, und der Zaehler dahinter
+ * waechst nur. Hier wird das nicht geglaubt, sondern gezaehlt: ueber viele
+ * Wechsel zwischen den Bloecken, ueber Neustarts, und ueber einen
+ * Stromausfall. Wiederholt sich eine Nonce unter demselben Schluessel, ist
+ * AES-GCM nicht ein bisschen schwaecher, sondern gebrochen. */
+static void case_nonce_across_blocks(void)
+{
+	osk_test_case("Beim Blockwechsel wiederholt sich keine Nonce");
+	t_device(0, 1u, T_PIN);
+	fill(0, 130u, g_ids);
+	fake_crypto_nonce_reset();
+
+	/* Abwechselnd in Block 2, 0 und 1 schreiben: jeder Schritt ist ein
+	 * Blockwechsel, und jeder schreibt eine neue Indexfassung. */
+	const unsigned ORDER[3] = {129u, 3u, 70u};
+	size_t before = fake_crypto_nonce_count();
+	unsigned writes = 0;
+
+	for (unsigned round = 0; round < 8u; round++) {
+		for (int k = 0; k < 3; k++) {
+			char secret[32];
+			unsigned i = ORDER[k];
+
+			snprintf(secret, sizeof(secret), "wechsel-%u-%u", round, i);
+			T_OK(osk_store_update(g_ids[i], NULL, (const uint8_t *)secret,
+					      strlen(secret)));
+			writes++;
+		}
+		if (round == 3u) {
+			t_reboot(); /* der Zaehler muss auch das ueberleben */
+		}
+	}
+	T_EQ(fake_crypto_nonce_dups(), 0);
+	T_EQ(fake_crypto_vault_nonce_dups(), 0);
+
+	/* Jeder Schreibvorgang hat mindestens zwei Nonces gekostet (Geheimnis
+	 * und Indexblock) - und jede davon steht genau einmal im Verzeichnis.
+	 * Waere eine wiederverwendet worden, waere das Verzeichnis kuerzer. */
+	size_t fresh = fake_crypto_nonce_count() - before;
+
+	printf("      %u Aenderungen ueber drei Bloecke: %u verschiedene Nonces, 0 doppelt\n",
+	       writes, (unsigned)fresh);
+	T_TRUE(fresh >= (size_t)writes * 2u);
+
+	osk_test_case("Auch ueber einen Stromausfall hinweg");
+	fake_flash_fail_after(3u);
+	(void)osk_store_update(g_ids[129], NULL, (const uint8_t *)"abbruch", 7);
+	t_reboot();
+	for (unsigned round = 0; round < 3u; round++) {
+		for (int k = 0; k < 3; k++) {
+			char secret[32];
+
+			snprintf(secret, sizeof(secret), "danach-%u-%d", round, k);
+			T_OK(osk_store_update(g_ids[ORDER[k]], NULL, (const uint8_t *)secret,
+					      strlen(secret)));
+		}
+	}
+	T_EQ(fake_crypto_nonce_dups(), 0);
+	T_EQ(fake_crypto_vault_nonce_dups(), 0);
+}
+
 static void case_block_falls_away(void)
 {
 	osk_test_case("Ein Block, der leer wird, faellt weg");
@@ -304,6 +455,48 @@ static void case_device_full(void)
 	T_TRUE(secret_of_is(0, 0u, g_ids[0]));
 	T_TRUE(secret_of_is(0, OSK_ITEMS_MAX / 2u, g_ids[OSK_ITEMS_MAX / 2u]));
 	T_TRUE(secret_of_is(0, OSK_ITEMS_MAX - 1u, g_ids[OSK_ITEMS_MAX - 1u]));
+
+	/* Die Suche, die Thomas gemeint hat: nicht ein Profil, sondern alles,
+	 * was aufgeschlossen ist. 3072 Eintraege sind die naechste Zahl zu den
+	 * erfragten 4000 - mehr passt in diese Geometrie nicht hinein. */
+	osk_test_case("Suchen ueber das ganze volle Geraet: gemessen");
+	uint8_t tag[OSK_TAG_MAX];
+	osk_item_id_t found[4];
+	size_t len = 0;
+	const unsigned ROUNDS = 10u;
+
+	memset(tag, 0xAB, sizeof(tag));
+
+	osk_index_drop();
+	fake_crypto_open_reset();
+	fake_ui_reset();
+	for (uint8_t p = 0; p < OSK_PROFILE_MAX; p++) {
+		T_OK(osk_store_find_tag(p, OSK_ITEM_LOGIN, tag, sizeof(tag), found, 4, &len));
+		T_EQ(len, 0);
+	}
+
+	size_t calls = fake_crypto_open_calls();
+	size_t bytes = fake_crypto_open_bytes();
+	clock_t t0 = clock();
+
+	for (unsigned i = 0; i < ROUNDS; i++) {
+		osk_index_drop();
+		for (uint8_t p = 0; p < OSK_PROFILE_MAX; p++) {
+			T_OK(osk_store_find_tag(p, OSK_ITEM_LOGIN, tag, sizeof(tag), found, 4,
+						&len));
+		}
+	}
+	clock_t t1 = clock();
+	double us = (double)(t1 - t0) * 1e6 / (double)CLOCKS_PER_SEC / (double)ROUNDS;
+
+	printf("      alle 4 Profile (3072 Eintraege): %u Bloecke, %u KiB, %.0f us je Suche\n",
+	       (unsigned)calls, (unsigned)(bytes / 1024u), us);
+	printf("      das sind %.0f us je 1000 Eintraege - 4000 Eintraege passen nicht herein\n",
+	       us * 1000.0 / 3072.0);
+
+	/* Ein Block je 64 Eintraege, ueber alle vier Profile. */
+	T_EQ(calls, (OSK_PROFILE_MAX * OSK_ITEMS_MAX) / 64u);
+	T_EQ(fake_ui_asks(), 0);
 
 	osk_test_case("Im Flash steht auch im neuen Bereich kein Klartext");
 	/* 768 Bloecke geschrieben: der Index-Ring ist dabei in den zweiten
@@ -420,6 +613,9 @@ void test_paging(void)
 	case_block_edges();
 	case_delete_across_blocks();
 	case_delete_power();
+	case_new_block_power();
+	case_block_away_power();
+	case_nonce_across_blocks();
 	case_block_falls_away();
 	case_device_full();
 	case_find_cost();
