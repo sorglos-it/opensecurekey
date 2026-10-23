@@ -71,6 +71,22 @@ Neither is strictly safer. Losing the only device destroys more accounts than a
 stolen device usually does, so "mirrored" is the sensible default for everyday
 logins — while a crypto seed belongs in "this device only".
 
+**A real SE051 may lack what "mirrored" was going to use.** The feature bits are
+set at the factory and cannot be changed afterwards, and the one FIPS-validated
+part we have evidence for ships with EdDSA and Curve25519 **off** and with FIPS
+mode available — and in FIPS mode the part refuses ECDH outright (AN12413
+4.10.3.1). The variant table says SE051C2 *can* do these; the delivered part is
+what counts, and one call to `osk_se050_open()` answers it.
+
+That does not sink the mirrored mode, because its root secret is created on the
+host anyway — see below. What it does sink on such a part is using the chip's
+own ECDH to secure the pairing channel: that key agreement would have to run in
+the firmware instead. For a transport key that exists for one pairing, that is
+acceptable; for the server-to-server use in `integration.md` it is not, because
+there the private key is supposed to stay in the chip for years. On a FIPS part
+that use case is simply unavailable, and the program must say so rather than
+fail with something that looks like a missing PIN.
+
 **The choice is made once and cannot be changed.** A secret born inside the chip
 can never be mirrored afterwards, because nothing leaves the SE05x — not even
 under a negotiated key (`ExportObject` cannot do it, `ReadObject` refuses private

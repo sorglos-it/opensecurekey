@@ -303,6 +303,33 @@ Flash-Baustein vorgesehen, der nicht bestückt wird.** Ein unbestückter
 Fußabdruck kostet nichts außer ein paar Quadratmillimetern. Reicht der Platz
 eines Tages nicht, wird er bestückt, statt eine neue Platine zu zeichnen.
 
+## Zwei Dinge, die erst das gelieferte Teil beantwortet
+
+Beide sind im Werk gesetzt und danach **unveränderlich**. Keine lässt sich vor
+der Lieferung sicher klären, beide beantwortet ein einziger Lauf von
+`osk_se050_open()`, sobald der Chip da ist:
+
+1. **Der Nutzspeicher** — 46 kB („Full Feature") oder 104 kB („Maximum").
+2. **Das Merkmalbild.** Die NIST-Sicherheitspolicy für den FIPS-validierten
+   SE051 nennt den Wert `0x27F2`: darin sind **EdDSA aus**, **Curve25519 aus**
+   und der FIPS-Modus verfügbar — und im FIPS-Modus verweigert der Baustein
+   **ECDH grundsätzlich** (AN12413 4.10.3.1).
+
+Das ist **eine** Ausführung, nicht zwingend die bestellte: AN12973 Tabelle 3
+schreibt der Variante SE051C2 sowohl Ed25519 als auch Curve25519 zu. Aber die
+Variante sagt, was sie *kann*; das Merkmalbild sagt, was das *gelieferte Stück*
+darf.
+
+Trifft es zu, fehlen drei Dinge, die der Entwurf voraussetzt: SSH-Schlüssel
+über Ed25519, die Verschlüsselung Server zu Server über X25519, und der
+Schlüsselaustausch im Chip beim Koppeln eines zweiten Geräts. Der Treiber
+meldet das bereits sauber (`OSK_ERR_UNSUPPORTED` statt einer Ablehnung, die
+nach fehlender PIN aussieht), aber die Funktionen wären weg.
+
+**Darum beim Eintreffen als Allererstes:** Chip anschließen, `osk_se050_open()`
+laufen lassen, Merkmalbild und freien Speicher ins Messprotokoll schreiben.
+Erst danach lohnt jede weitere Messung.
+
 ## Was gemessen werden muss, bevor die Zahlen gelten
 
 - der tatsächliche Gesamt-Ruhestrom (das Datenblatt gibt die Weck-Szenarien nur
