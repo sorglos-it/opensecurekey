@@ -30,6 +30,21 @@
   (`hardware/schematic.md`), pin assignment checked against the nRF52840
   (`hardware/pinout.md`), board shape and layout rules
   (`hardware/layout-notes.md`)
+- SE050/SE051 driver for the firmware: T=1' over I2C (framing, CRC-16/X-25,
+  retry, timeouts, chaining), APDU and TLV layer, and SCP03 as the mandatory
+  encrypted channel between the nRF52840 and the secure element. A narrow bus
+  interface keeps the same driver code usable against a test bus on a PC, which
+  is why there are tests at all. AES and AES-CMAC always come from an audited
+  library — PSA Crypto on the device, Windows CNG or OpenSSL in the test
+  builds — never from this repository, and no vendor code was read or copied.
+  872 test cases green on a PC under MSVC and under gcc with AddressSanitizer
+  and UndefinedBehaviorSanitizer. Verified against published values: AES, CBC
+  and CMAC against NIST SP 800-38A/38B, the CRC against its standard check
+  value, and the SCP03 derivation input against the worked examples in AN12413.
+  **Nothing has run on the device** — there is no hardware. The frame layer is
+  additionally unconfirmed because NXP's own T=1' description (UM11225) is not
+  publicly downloadable; those values are derived from ISO/IEC 7816-3 and
+  marked as unconfirmed in one single file. Details in `docs/se050.md`.
 - Repository skeleton following the house standard
 - Architecture, threat model and hardware notes in `docs/`
 - Internal interface headers for firmware modules
@@ -66,3 +81,22 @@
   element. AN12973 Rev. 2.0 Table 6 publishes the factory ENC, MAC and DEK keys
   in the clear, so with factory settings the I²C link between the two chips is
   not encrypted — contrary to what `docs/threat-model.md` claims.
+  Two things are required and **neither alone is enough**:
+  `osk_se050_rotate_scp_keys()` for key set 11 **and** key set 12 — set 12 is a
+  recovery set that can rewrite set 11, and for generic products NXP holds it,
+  so rotating only 11 leaves a back door (AN12973 section 2.3) — and then
+  `osk_se050_require_scp()`, because the chip ships as `SCP_NOT_REQUIRED`
+  (AN12413 section 4.6.2) and would otherwise answer commands arriving with no
+  channel at all. The factory key values are deliberately not copied into this
+  repository.
+- The PIN is stored as an AESKey authentication object rather than a UserID, so
+  that the SE050 reports the failed-attempt counter: for UserID objects it does
+  not (AN12413 section 3.2.4.4, errata APP.3). Without that, the lockout
+  promised in `docs/threat-model.md` would depend on the firmware counting
+  along, and firmware is what the secure element does not protect against.
+- A per-service key pair is created inside the chip and never leaves it, so the
+  number of services is bounded by chip memory rather than unlimited.
+  `osk_se050_free_memory()` exists so the device can warn before that limit
+  instead of discovering it when creating a key fails. The chip reports only
+  `0x7FFF` for anything at or above 32768 bytes, so the figure is a lower bound
+  good enough to warn with, not to calculate with.
