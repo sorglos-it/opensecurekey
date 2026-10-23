@@ -12,12 +12,21 @@ Grundlage ist die belegte Teileauswahl in [parts.md](parts.md).
 
 ## Kurzfassung
 
+> **Der Sicherheitschip ist zurückgestellt.** Ob die Variante SE051C2 das
+> Merkmal `CONFIG_HMAC` trägt — ohne das lassen sich keine HMACKey-Objekte
+> anlegen, und das Grundgeheimnis des Geräts muss eines sein — ist noch nicht
+> belegt. Der SE050-Treiber-Strang prüft das in AN12973.
+> **Bis dahin die MIKROE-5392 nicht bestellen.** Eigener Abschnitt weiter unten,
+> mit allen Platinen, die es stattdessen gäbe.
+
 | | |
 | --- | --- |
-| Kernteile (Mouser, alles am Lager) | **85,93 €** brutto + Versand `ungeprüft` |
+| Jetzt bestellbar (Mouser, am Lager) | **60,34 €** brutto + Versand `ungeprüft` |
 | Kleinteile (Amazon) | **22,98 €** brutto |
 | Kleinteile (BerryBase) | **15,95 €** brutto inkl. Versand |
-| **Zusammen** | **ca. 125 €** brutto, zzgl. Mouser-Versand |
+| **Jetzt zusammen** | **ca. 99 €** brutto, zzgl. Mouser-Versand |
+| Sicherheitschip später (MIKROE-5392) | 25,59 € brutto — **zurückgestellt** |
+| **Mit Sicherheitschip** | **ca. 125 €** |
 
 Drei Bestellungen bei drei Händlern. Warum nicht eine: kein Händler führt alles.
 Die Begründung steht unten bei jedem Posten.
@@ -26,6 +35,8 @@ Die Begründung steht unten bei jedem Posten.
 Woche ab **Montag, 27.10.2026** — BerryBase 1–3 Werktage, Amazon zum 27.10.
 zugesagt, Mouser versendet taggleich aus Texas (Laufzeit 2–4 Werktage,
 `ungeprüft`). Spätestens Anfang November.
+**Der Sicherheitschip kommt später** und braucht dann eine zweite
+Mouser-Bestellung mit eigenem Versand — das ist der Preis des Zurückstellens.
 
 ## Drei Berichtigungen gegenüber der bisherigen Kaufliste
 
@@ -46,19 +57,20 @@ zugesagt, Mouser versendet taggleich aus Texas (Laufzeit 2–4 Werktage,
 
 ---
 
-## Mouser Deutschland — die Kernteile
+## Mouser Deutschland — die Rechenkerne
 
-Mouser ist am 23.10.2026 der **einzige** Händler, der alle drei Kernteile am
-Lager hat. Preise netto (so weist Mouser aus).
+Preise netto (so weist Mouser aus).
 
 | Teil | Mouser-Nr. | Menge | Einzel netto | Lager | Link |
 | --- | --- | --- | --- | --- | --- |
 | nRF52840-DK (PCA10056) | 949-NRF52840-DK | 1 | 41,37 € | **443** sofort lieferbar | [mouser.de](https://www.mouser.de/ProductDetail/949-NRF52840-DK) |
-| SE051 Plug&Trust Click | 932-MIKROE-5392 | 1 | 21,50 € | **92** sofort lieferbar | [mouser.de](https://www.mouser.de/ProductDetail/932-MIKROE-5392) |
 | nRF52840-Dongle (PCA10059) | 949-NRF52840-DONGLE | 1 | 9,34 € | **1.114** sofort lieferbar | [mouser.de](https://www.mouser.de/ProductDetail/949-NRF52840-DONGLE) |
-| | | | **72,21 € netto** | | |
-| 19 % MwSt. | | | 13,72 € | | |
-| | | | **85,93 € brutto** | | |
+| | | | **50,71 € netto** | | |
+| 19 % MwSt. | | | 9,63 € | | |
+| | | | **60,34 € brutto** | | |
+
+**Nicht in dieser Bestellung:** der SE051 Plug&Trust Click (932-MIKROE-5392,
+21,50 € netto, 92 am Lager). Er ist zurückgestellt — siehe nächster Abschnitt.
 
 - **Mindestbestellwert: keiner.** Belegt auf der Mouser-Hilfeseite
   „Bestellungen und Versand": „Es gibt keine Mindestbestellmenge."
@@ -75,39 +87,86 @@ Lager hat. Preise netto (so weist Mouser aus).
 - Lieferzeit ab Hersteller (für Mengen über Lager): DK 33 Wochen, Click
   4 Wochen, Dongle 21 Wochen. Für je 1 Stück ohne Bedeutung — es ist am Lager.
 
-### Was gegen den SE051-Click spricht, wenn er wegfällt
+---
 
-Er ist der Kern des Teststands: ohne ihn ist keine Messung möglich. Deshalb
-Ersatzquellen, alle am 23.10.2026 geprüft:
+## Sicherheitschip — zurückgestellt, Variante wird noch bestätigt
+
+Er ist der Kern des Teststands: ohne ihn ist keine Messung möglich. Trotzdem
+geht er **nicht** mit in die erste Bestellung.
+
+**Warum:** Das Grundgeheimnis des Geräts muss ein **HMACKey**-Objekt sein, und
+HMACKey-Objekte lassen sich nur anlegen, wenn das Applet das Merkmal
+`CONFIG_HMAC` (0x0010) trägt. Ob die Variante **SE051C2** das hat, ist noch
+nicht belegt; der SE050-Treiber-Strang sieht in AN12973 nach. Fällt die Antwort
+negativ aus, ändert sich, welche Platine gekauft wird — und eine bereits
+unterwegs befindliche MIKROE-5392 wäre Geld für nichts.
+
+**Vorgemerkt, sobald grünes Licht kommt:**
 
 | Quelle | Preis | Lager | Taugt? |
 | --- | --- | --- | --- |
 | **Mouser** 932-MIKROE-5392 | 21,50 € netto | **92** | **erste Wahl** |
 | [mikroe.com](https://www.mikroe.com/se051-plugtrust-click) direkt | 25,00 USD | Hersteller | zweite Wahl; Versand aus Serbien, Kosten `ungeprüft`. Mikroe schreibt auf der Seite, die Produkte unterlägen keinen US-Zöllen |
 | **Farnell DE** 4696282 | 19,47 € netto | **0** — „Bestellbar, Lieferung nach Auftragsbestätigung" | billigster Preis, aber nicht lieferbar |
-| **DigiKey DE** 1471-MIKROE-5392 | 21,95 € netto | **0** — 1 Stück überfällig, Termin 16.10.2026 bereits verstrichen | nein |
+| **DigiKey DE** 1471-MIKROE-5392-ND | 21,95 € netto | **0** — 1 Stück überfällig, Termin 16.10.2026 verstrichen | nein |
 | TME | — | — | Seite wehrt automatische Abrufe ab; `ungeprüft` |
 
 Mikroe nennt auf der eigenen Produktseite dieselben Bestände: Mouser 92,
 DigiKey 0, Farnell 0. Zwei unabhängige Quellen, gleiches Bild.
 
-**Nicht nehmen:** OM-SE050ARD-E (DigiKey, 73,75 € netto). Trägt den SE050E2 —
-**kein RSA**, also kein PIV und kein OpenPGP. Stand schon in parts.md.
+### Wenn der SE051C2 es nicht kann: was es überhaupt als Platine gibt
 
-### Ersatzquellen für die anderen beiden Mouser-Posten
+Vollständig durchgesehen bei mikroe.com, Mouser DE und DigiKey DE am
+23.10.2026. Das Ergebnis ist unangenehm schmal.
+
+| Platine | Chip darauf | Preis | Lager | Urteil |
+| --- | --- | --- | --- | --- |
+| **MIKROE-5392** SE051 Plug&Trust Click | **SE051C2** | 21,50 € netto (Mouser) | **92** | bisherige Wahl, Merkmal offen |
+| **MIKROE-4656** Plug&Trust Click | **SE050C** | 11,70 USD direkt (war 18,00) | **Mouser 0, DigiKey 0, Farnell 0, TME 0** — Status **„Phase out"** | nur noch beim Hersteller, abgekündigt |
+| **MIKROE-5391** A5000 Plug&Trust Click | A5000 | 14,00 USD | Hersteller | **reiner Authentifizierer**, kein allgemeiner Schlüsselspeicher — fast sicher ungeeignet |
+| **OM-SE050ARD-E** | **SE050E2** | 72,23 € netto (Mouser) | **135** | **kein RSA** → kein PIV, kein OpenPGP. Schon in parts.md verworfen |
+| **OM-SE050ARD** | **SE050C2** | 81,13 € netto (DigiKey) | 10, aber **„Bei DigiKey nicht mehr erhältlich"** | letzte Reste |
+| **OM-SE050ARD-F** | SE050F2 | — | **0** (DigiKey) | nicht lieferbar |
+| Murata LBUA0VG2BP-EVK-P | **SE051W** + QN9090 + SR150 | 158,03 € netto (DigiKey) | 384 | UWB-Kit; die einzige andere Platine mit einem SE051 darauf, aber Preis und Umfang stehen in keinem Verhältnis |
+
+**Das heißt:** Es gibt **kein SE051-Arduino-Kit von NXP** bei Mouser oder
+DigiKey — nur die Mikroe-Click. Fällt der SE051C2 aus, bleiben als Platine
+praktisch nur der abgekündigte SE050C (MIKROE-4656, nirgends mehr am Lager)
+oder das teure OM-SE050ARD mit dem SE050C2, von dem DigiKey noch 10 Stück
+abverkauft.
+
+**Die nackten Chips gibt es dagegen reichlich** — alle HX2QFN20, 3 × 3 mm,
+bei Mouser DE:
+
+| Teil | Preis | Lager |
+| --- | --- | --- |
+| SE051C2HQ1/Z01XDZ | 5,02 € | 14.140 |
+| SE051A2HQ1/Z01XEZ | 4,71 € | 1.369 |
+| SE051W2HQ1/Z019TZ | 5,57 € | 1.242 |
+| SE050C2HQ1/Z01SDZ | 4,33 € | 0, erwartet ab 23.11.2026 |
+| SE051P2HQ1/Z011AZ | 3,30 € | nur ab 3.000 Stück, 16 Wochen |
+
+Ein 3 × 3 mm großes HX2QFN20 lässt sich nicht aufs Steckbrett löten. Diesen Weg
+zu gehen hieße, eine eigene Adapterplatine fertigen zu lassen — Wochen statt
+Tage. **Deshalb ist die Antwort aus AN12973 die teuerste offene Frage des
+Projekts**, nicht nur die teuerste Zeile dieser Liste.
+
+---
+
+### Ersatzquellen für die beiden Rechenkerne
 
 | Posten | Ersatz | Preis netto | Lager |
 | --- | --- | --- | --- |
 | nRF52840-DK | **Farnell DE** [2842321](https://de.farnell.com/nordic-semiconductor/nrf52840-dk/dev-kit-bluetooth-low-energy-soc/dp/2842321) | **40,88 €** | **74** am Lager, Versand **frei ab 50 € netto**, Express am nächsten Werktag |
-| nRF52840-DK | DigiKey DE 1490-1072-ND | 42,98 € | 479 am Lager |
+| nRF52840-DK | DigiKey DE 1490-1072-ND | 42,98 € | 479 am Lager, Versand **frei ab 75 € netto** |
 | nRF52840-Dongle | Farnell DE 2902521 | 9,86 € | **0** — Lieferung ab 20.11.2026 |
 | nRF52840-Dongle | GeeekPi MDK, Amazon [B07TSJHTSY](https://www.amazon.de/dp/B07TSJHTSY) | 24,99 € brutto | lieferbar, aber 15 € teurer ohne Mehrwert |
 
 **Farnell ist die saubere EU-Rückfalllösung für das DK:** Preis und
 Versandbedingungen stehen auf der Produktseite, innerhalb der EU fällt kein
-Zoll an. Nur: Farnell hat weder den Click noch den Dongle am Lager. Wer das DK
-dort und den Click bei Mouser kauft, zahlt zweimal Versand und bleibt bei
-Mouser unter 50 € — deshalb ist alles-bei-Mouser voraussichtlich günstiger.
+Zoll an. Nur: Farnell hat den Dongle nicht am Lager (ab 20.11.2026), und beim
+DK allein bliebe die Bestellung mit 40,88 € unter der 50-€-Schwelle für den
+freien Versand.
 
 ---
 
@@ -199,21 +258,35 @@ Einmal zu viel gefragt ist billiger als zweimal bestellt.
 
 ## Gesamtsumme
 
+### Jetzt bestellen
+
 | Händler | Waren brutto | Versand | Zusammen |
 | --- | --- | --- | --- |
-| Mouser | 85,93 € | `ungeprüft` | 85,93 € + Versand |
+| Mouser (DK + Dongle) | 60,34 € | `ungeprüft` | 60,34 € + Versand |
 | Amazon | 22,98 € | 0 € zugesagt, Bedingungen `ungeprüft` | 22,98 € |
 | BerryBase | 11,00 € | 4,95 € | 15,95 € |
-| **Zusammen** | **119,91 €** | | **ca. 125 €** |
+| **Zusammen** | **94,32 €** | | **ca. 99 €** |
 
-Gegenüber der alten Schätzung von „ca. 135 €" also rund 10 € weniger — und das
-mit geprüften Zahlen statt Momentaufnahmen, obwohl ein Posten (der Dongle) um
-15 € billiger geworden ist und dafür zwei Kabel und eine Stiftleiste
-dazugekommen sind.
+### Später, nach dem grünen Licht
 
-**Unsicher bleibt genau eines:** ob Mouser Zoll und Einfuhrumsatzsteuer schon
-im Preis trägt. Schlägt beides obendrauf, liegt die Bestellung bei rund 140 €
-statt 125 €. Thomas sieht die Zahl an der Kasse, bevor er bestellt.
+| | | |
+| --- | --- | --- |
+| MIKROE-5392 bei Mouser | 21,50 € netto | **25,59 € brutto** |
+
+Zusammen also **ca. 125 €** wie bisher gerechnet — nur in zwei Schritten, und
+der zweite Schritt zahlt den Mouser-Versand ein zweites Mal.
+
+Gegenüber der alten Schätzung von „ca. 135 €" sind es rund 10 € weniger, mit
+geprüften Zahlen statt Momentaufnahmen — obwohl zwei Kabel und eine Stiftleiste
+dazugekommen sind. Der Dongle allein spart 15 €.
+
+**Zwei Dinge bleiben unsicher, eins davon teuer:**
+
+1. **Welche Chip-Variante.** Siehe Abschnitt Sicherheitschip. Das entscheidet
+   AN12973, nicht der Preis.
+2. **Ob Mouser Zoll und Einfuhrumsatzsteuer schon im Preis trägt.** Schlägt
+   beides obendrauf, liegt die erste Bestellung bei rund 72 € statt 60 €.
+   Thomas sieht die Zahl an der Kasse, bevor er bestellt.
 
 ## Quellen
 
