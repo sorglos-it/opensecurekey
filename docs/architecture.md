@@ -51,7 +51,7 @@ Two modes exist instead, and a profile picks one:
 **"this device only"** — one permanent key pair per credential, generated inside
 the chip and never exported at all. The private part never exists outside: there
 is no blob to steal and no unwrapping step. Cost: each credential occupies space
-in the chip's 104 kB, so the number of services is finite — the interface warns
+in the chip's memory (46 kB or 104 kB, depending on the ordering option), so the number of services is finite — the interface warns
 in good time (`osk_se050_free_memory()`) instead of failing at the limit. And
 there is no second device for these credentials.
 
