@@ -136,28 +136,65 @@ Der Akku ist ein Verschleißteil. Bei 300 belegten Ladezyklen und einem
 Nachladen je Woche sind das etwa sechs Jahre — er sollte als Verschleißteil
 benannt oder austauschbar sein. **Noch zu entscheiden.**
 
+## Die Entscheidungen
+
+### Sendeleistung höchstens 4 dBm, kein zweiter Spannungswandler
+
+Damit bleibt die 25-mA-Grenze aus Befund 2 gültig, und die Nebenverbraucher
+dürfen am internen `VDD` hängen. Ein Schlüssel am Schlüsselbund redet mit einem
+Handy in Armlänge, nicht durch zwei Wände; ein Wandler nur für Reichweite, die
+niemand braucht, wäre Vorrat.
+
+**Bedingung, die eingehalten werden muss:** Die Firmware begrenzt `TXPOWER` auf
+höchstens +4 dBm, und die Lastschalter Q4/Q5 sind Pflicht. Über 4 dBm bleiben
+nur 5 mA — damit ließe sich kein einziger Nebenverbraucher mehr betreiben.
+
+### Akku und NFC-Antenne: Trennung und Ferritfolie
+
+**Beides zusammen.** Die Platine wird **70 statt 62 mm** lang, damit Akku und
+Antenne in verschiedenen Dritteln liegen, **und** eine Ferritfolie entkoppelt
+die Zelle. So geht jedes Handy mit NFC und Akku vor.
+
+NFC erst in Stufe 2 wäre falsch: der Akku ist überhaupt nur deshalb im Gerät,
+weil NFC und Bluetooth ohne Rechner laufen sollen.
+
+**Wird das Gehäuse dadurch zu groß, weicht die Kapazität, nicht der Abstand** —
+dann die schmale Zelle (BerryBase, 100 mAh, 12 mm breit) und etwa 4,5 statt 6,7
+Monate Laufzeit.
+
+### Ladungspumpen-Kondensatoren der Anzeige: keine nötig
+
+Am Datenblatt geklärt (Crystalfontz CFAL4864A-071BW, Ausgabe 2017-07-05,
+Abschn. 6). Die zwölf Pins des Steckverbinders sind GND, D2, D1, D0, D/C#,
+/RES#, CS#, BS1, BS0, VDD, VBAT, GND — **es gibt keine Pins `C1P/C1N/C2P/C2N`
+und keinen `VCC`-Pin.** Die Ladungspumpe sitzt also auf dem Modul und erzeugt
+die Panelspannung selbst aus `VBAT`; bestätigt durch die Strommessung, die mit
+`VCC = 7,5 V` angegeben ist, obwohl `VCC` nirgends herausgeführt ist.
+
+**Auf unserer Platine ist nichts nötig.** Nebenbei belegt: der Strom ist
+**typisch 12 mA, höchstens 25 mA** — der obere Wert, mit dem das Energiebudget
+rechnet, ist also die echte Obergrenze.
+
+### Fingerabdrucksensor: die Platine kann beides
+
+Die Entscheidung liegt beim Nutzer. Die Platine wartet nicht darauf: das
+Stiftfeld J5 und seine vier Leitungen werden **jetzt verlegt, aber nicht
+bestückt**, und das Gehäuse bekommt an der Stelle eine Aussparung mit
+Blindstück. So ist später nur ein Gehäuseteil zu ändern, nicht die Platine.
+
 ## Was als Nächstes entschieden werden muss
 
-In der Reihenfolge, in der es das Weiterarbeiten behindert:
-
-1. **Fingerabdrucksensor: Stufe 1 ohne ihn?** Hängt an der Frage, ob der
-   BM-Lite-Befehlssatz ohne Geheimhaltungsvertrag zu bekommen ist. Betrifft
-   Bauform, Bauhöhe und Seitenaufteilung.
-2. **Akku gegen NFC-Antenne:** räumlich trennen (Platine 8 mm länger),
-   Ferritfolie dazwischen, oder NFC erst in Stufe 2? Betrifft Platinen- und
-   Gehäuseform. Einzelheiten in
-   [../hardware/layout-notes.md](../hardware/layout-notes.md).
-3. **Sendeleistung auf höchstens 4 dBm begrenzen** und dafür ohne zweiten
-   Spannungswandler auskommen — oder umgekehrt?
-4. **Ladungspumpen-Kondensatoren der Anzeige:** trägt die Flexfahne sie? Muss
-   vor dem Zeichnen geklärt sein.
+**Nur noch der Fingerabdrucksensor** — mein Vorschlag steht oben unter
+Befund 3, die Entscheidung liegt beim Nutzer. Alles andere ist entschieden und
+eingearbeitet.
 
 ## Was gemessen werden muss, bevor die Zahlen gelten
 
 - der tatsächliche Gesamt-Ruhestrom (das Datenblatt gibt die Weck-Szenarien nur
   als Entweder-oder an, eine belegte Summe gibt es nicht)
-- der Strom der Anzeige bei 3,3 V mit laufender Ladungspumpe — größter
-  Einzelposten je Benutzung, durch keine Quelle belegt (16–25 mA)
+- der Strom der Anzeige im Betrieb: das Datenblatt nennt typisch **12 mA**,
+  höchstens **25 mA** — welcher Wert bei unserer Bildschirmbelegung gilt,
+  entscheidet über etwa einen Monat Laufzeit
 - die Betriebsströme von QSPI, I2C und SPI — **Nordic spezifiziert sie in
   keiner Fassung des Datenblatts**
 - die Dauer einer Signatur im Sicherheitschip

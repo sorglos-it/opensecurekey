@@ -50,9 +50,32 @@ Spannungsregler ist nicht nötig.**
 
 Die 3,3-V-Schiene für Sicherheitschip, Flash und Anzeige kommt aus dem
 **`VDD`-Ausgang** des Rechenkerns. **Damit gilt die Grenze `IEXT,HIGH` = 25 mA
-bei Sendeleistung ≤ 4 dBm bzw. nur 5 mA über 4 dBm** (Abschn. 5.3.8.2). Das ist
-der Grund für die Lastschalter Q4/Q5 und für die Begrenzung der Sendeleistung —
-Einzelheiten und Alternativen in `../docs/power-budget.md`.
+bei Sendeleistung ≤ 4 dBm bzw. nur 5 mA über 4 dBm** (Abschn. 5.3.8.2).
+
+### Entschieden: Sendeleistung höchstens 4 dBm, kein zweiter Wandler
+
+Damit bleibt die 25-mA-Grenze gültig, und die Nebenverbraucher dürfen aus dem
+internen `VDD` gespeist werden. Ein eigener Abwärts-Aufwärts-Wandler für eine
+zweite 3,0-V-Schiene entfällt.
+
+Begründung: Ein Schlüssel am Schlüsselbund redet mit einem Handy in Armlänge,
+nicht durch zwei Wände. Ein Wandler, der nur Funkreichweite bringt, die niemand
+braucht, wäre Vorrat — weniger Teile heißt weniger Platz, weniger Ruhestrom und
+weniger Fehlerquellen.
+
+**Was daraus folgt und eingehalten werden muss:**
+
+- **Die Firmware begrenzt `TXPOWER` auf höchstens +4 dBm.** Das ist keine
+  Empfehlung, sondern die Bedingung dafür, dass die 25 mA gelten. Über 4 dBm
+  bleiben nur 5 mA, und damit ließe sich kein einziger Nebenverbraucher mehr
+  betreiben.
+- **Die Lastschalter Q4 (Anzeige) und Q5 (Sensor) sind Pflicht**, und die
+  Firmware schaltet nie zwei große Verbraucher gleichzeitig: Anzeige **oder**
+  Flash **oder** Signatur.
+
+Der Verzicht kostet wenig: bei 0 dBm mit DC-DC-Wandler sind es 4,8 mA
+Sendestrom, bei +8 dBm ohne Wandler 32,7 mA. Die verworfenen Alternativen
+stehen in `../docs/power-budget.md`.
 
 ### Netze
 
@@ -309,15 +332,23 @@ Pegelwandler**.
 DS1 ist das Glas CFAL4864A-071BW mit SSD1306, Anschluss über J4 (FPC-ZIF,
 12-polig, 0,5 mm). Betrieb im **4-Draht-SPI-Modus**.
 
-| Signal | nach | Bemerkung |
-| --- | --- | --- |
-| D0 / SCLK | `P0.27` | Takt |
-| D1 / SDIN | `P0.20` | Daten |
-| /CS | `P1.11` | Auswahl |
-| D/C | `P1.12` | Befehl oder Daten |
-| /RES | `P1.13` | Reset, low ≥ 3 µs |
-| VDD (Logik) | `VDD_OLED` | 2,8–3,3 V |
-| VSS | `GND` | — |
+Pinbelegung vollständig aus dem **Crystalfontz-Datenblatt CFAL4864A-071BW,
+Ausgabe 2017-07-05, Abschnitt 6 „Interface PIN Function"**:
+
+| J4 Pin | Signal | nach | Bemerkung |
+| --- | --- | --- | --- |
+| 1 | GND | `GND` | **Masse 1 von 2 — beide müssen angeschlossen werden** |
+| 2 | D2 | **offen** | nur im I2C-Betrieb nötig |
+| 3 | **D1 / SDIN** | `P0.20` | Daten |
+| 4 | **D0 / SCLK** | `P0.27` | Takt |
+| 5 | **D/C#** | `P1.12` | Befehl oder Daten |
+| 6 | **/RES#** | `P1.13` | Reset, low ≥ 3 µs |
+| 7 | **CS#** | `P1.11` | Auswahl, low aktiv |
+| 8 | **BS1** | `GND` | Betriebsartwahl |
+| 9 | **BS0** | `GND` | Betriebsartwahl |
+| 10 | **VDD** | `VDD_OLED` | 3,3 V nominal |
+| 11 | **VBAT** | `VDD_OLED` | 3,3 V nominal |
+| 12 | GND | `GND` | **Masse 2 von 2** |
 
 | von | nach | Wert |
 | --- | --- | --- |
@@ -325,15 +356,48 @@ DS1 ist das Glas CFAL4864A-071BW mit SSD1306, Anschluss über J4 (FPC-ZIF,
 | Q4 Gate | `P1.14` | über R9 = 100 kΩ |
 | `VDD_OLED` | `GND` | C13 = 1 µF + C14 = 100 nF |
 
-**Die Ladungspumpe und ihre Kondensatoren sind der offene Punkt dieses
-Abschnitts.** Der SSD1306 hat eine eingebaute Ladungspumpe für die
-Panelspannung (VCC 7–15 V). Ob das gewählte Glas die Pumpkondensatoren schon
-auf seiner Flexfahne trägt oder ob sie auf unsere Platine müssen, ist aus der
-Herstellerseite **nicht ersichtlich** — `ungeprueft`. **Vor dem Zeichnen beim
-Hersteller klären oder am gelieferten Teil nachsehen.** Der SH1106 braucht sie
-nachweislich extern (Pins C1N/C1P/C2N/C2P); der SSD1306 hat dafür die Pins
-`C1P/C1N/C2P/C2N` ebenfalls, und die Flexfahne eines Fertigglases führt sie
-üblicherweise nicht heraus — aber „üblicherweise" ist kein Beleg.
+Drei Dinge, die man aus der Tabelle leicht überliest:
+
+- **`BS1` = 0 und `BS0` = 0 wählen den 4-Draht-SPI-Betrieb** (Datenblatt
+  Abschn. 6, Tabelle am Pin 9). Beide Pins fest auf Masse, keine GPIOs nötig.
+- **`VDD` (Pin 10) und `VBAT` (Pin 11) müssen miteinander verbunden werden** —
+  das Datenblatt sagt es bei beiden Pins ausdrücklich: *„Connect VDD and VBAT
+  together."* Beide an `VDD_OLED`.
+- **Beide Massepins müssen angeschlossen werden**, nicht nur einer: *„Ground 1
+  of 2, both must be connected."*
+
+### Die Ladungspumpen-Frage ist geklärt: keine externen Kondensatoren
+
+Das war der offene Punkt dieses Abschnitts. Das Datenblatt beantwortet ihn
+eindeutig, und zwar durch das, was **nicht** am Steckverbinder liegt:
+
+**Die 12 Pins sind GND, D2, D1, D0, D/C#, /RES#, CS#, BS1, BS0, VDD, VBAT,
+GND. Es gibt keine Pins `C1P`, `C1N`, `C2P`, `C2N` — und auch keinen
+`VCC`-Pin für die Panelspannung.**
+
+Daraus folgt: **die Ladungspumpe und ihre Kondensatoren sitzen auf dem Modul.**
+Das Modul erzeugt seine Panelspannung selbst aus `VBAT`. Bestätigt wird das
+durch die Strommessung im Datenblatt, die mit **`VCC = 7,5 V`** als
+Betriebsbedingung angegeben ist, obwohl `VCC` nirgends herausgeführt ist — die
+7,5 V entstehen also intern.
+
+**Auf unserer Platine sind keine Ladungspumpen-Kondensatoren nötig.** Es
+braucht nur die 3,3-V-Zuführung und die Abblockkondensatoren C13/C14.
+
+Elektrische Daten aus demselben Datenblatt:
+
+| Größe | Wert |
+| --- | --- |
+| `VDD` Logik | 2,8 min / **3,3 typ** / 3,3 max |
+| `VBAT`-Strom `IBAT` bei VCC = 7,5 V | **typ. 12,0 mA, max. 25,0 mA** |
+| absolute Grenze `VDD` | **4 V** |
+| absolute Grenze `VCC` | 15 V |
+| Betriebstemperatur | −40 … +80 °C |
+
+Die absolute Grenze von **4 V** auf `VDD` ist zu beachten: die Anzeige darf
+**nicht** an `VSYS` (bis 5,5 V) hängen, sondern nur an der geregelten
+3,3-V-Schiene. Das ist im Entwurf so, aber es ist eine Grenze, die man nicht
+ausprobieren will.
 
 **Warum der Lastschalter Q4:** Der Controller zieht im Schlaf bis zu 10 µA auf
 `IDD` und bis zu 10 µA auf `ICC` (SSD1306 Rev 1.1, Tab. 12-1). Bei einem
@@ -587,16 +651,19 @@ wird.
 
 In der Reihenfolge, in der es das Zeichnen behindert:
 
-1. **Die Ladungspumpen-Kondensatoren der Anzeige** — trägt die Flexfahne sie,
-   oder müssen sie auf die Platine? Das verändert den Schaltplan.
-2. **Die Vorwiderstände der LED** und ob blau überhaupt sinnvoll ist.
-3. **Die Bauteilauswahl für Q1 bis Q5** samt Leckstrom im Ruhezustand und dem
+1. **Die Vorwiderstände der LED** und ob blau überhaupt sinnvoll ist.
+2. **Die Bauteilauswahl für Q1 bis Q5** samt Leckstrom im Ruhezustand und dem
    Nachweis, dass die Lastumschaltung keinen Brownout auslöst.
-4. **Der Spannungsteiler für die Akkumessung** und ob er geschaltet wird.
-5. **Die Lastkapazität des Uhrenquarzes** — Quarz noch nicht ausgewählt.
-6. **Das ESD-Konzept für die CC-Leitungen** und die Schirmanbindung.
-7. **Die Raytac-Modulpinnummern** für die Signale, die in `pinout.md` noch
+3. **Der Spannungsteiler für die Akkumessung** und ob er geschaltet wird.
+4. **Die Lastkapazität des Uhrenquarzes** — Quarz noch nicht ausgewählt.
+5. **Das ESD-Konzept für die CC-Leitungen** und die Schirmanbindung.
+6. **Die Raytac-Modulpinnummern** für die Signale, die in `pinout.md` noch
    keine haben — am gerenderten PDF nachzutragen, bevor das Bauteil gezeichnet
    wird.
-8. Die Werte der NFC-Kondensatoren C19/C21 im Raytac-Referenzschaltbild stehen
+7. Die Werte der NFC-Kondensatoren C19/C21 im Raytac-Referenzschaltbild stehen
    nur in der Grafik und waren nicht auslesbar (`ungeprueft`).
+
+**Erledigt:** Die Ladungspumpen-Frage der Anzeige ist am Datenblatt geklärt —
+die Kondensatoren sitzen auf dem Modul, auf unserer Platine ist nichts nötig.
+Die Sendeleistung ist auf höchstens 4 dBm entschieden, ein zweiter
+Spannungswandler entfällt.

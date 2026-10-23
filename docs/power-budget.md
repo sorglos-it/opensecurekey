@@ -76,10 +76,15 @@ Drei Wege, drei Preise:
 | B | Eigene 3,0-V-Schiene aus dem Akku für OLED, Flash und Sicherheitschip | ein Abwärts-Aufwärts-Wandler mehr (LiPo 3,0–4,2 V über **und** unter 3,0 V); mehr Platz, mehr Ruhestrom |
 | C | Sendeleistung frei, aber alle Nebenverbraucher an eine eigene Schiene | wie B |
 
-**Empfehlung: Weg A.** Für einen Schlüssel, der am Körper getragen und ans
+**Entschieden: Weg A.** Für einen Schlüssel, der am Körper getragen und ans
 Handy gehalten wird, reichen 0 dBm. Der Gewinn ist groß: bei 0 dBm mit
 DC-DC-Wandler sind es **4,8 mA** Sendestrom, bei +8 dBm ohne Wandler
 **32,7 mA** — fast das Siebenfache (PS v1.1, Abschn. 6.20.15.2).
+
+Ein Wandler, der nur Funkreichweite bringt, die niemand braucht, wäre Vorrat:
+mehr Teile, mehr Platz, mehr Ruhestrom, mehr Fehlerquellen. **Die Firmware
+begrenzt `TXPOWER` daher auf höchstens +4 dBm** — das ist die Bedingung dafür,
+dass die 25 mA gelten, keine Empfehlung.
 
 **Pflicht in jedem Fall: der DC-DC-Wandler muss an.** Er halbiert fast alles:
 
@@ -245,11 +250,13 @@ der Fingerabdrucksensor, die Signatur und der Flash zusammen. Zwei Folgerungen:
 
 - **Die Anzeige so kurz wie möglich einschalten.** Jede Sekunde Anzeige kostet
   etwa so viel wie 45 Minuten Ruhe.
-- Die 25 mA sind die Herstellerobergrenze für das 0,71"-Glas; der tatsächliche
-  Verbrauch bei 3,3 V mit laufender Ladungspumpe ist aus **keiner** gelesenen
-  Quelle belegt (`ungeprueft`). Für das 0,96"-Glas nennt derselbe Hersteller
-  16 mA typisch. **Messen, sobald das Glas da ist** — dieser eine Wert
-  verschiebt die Laufzeit erheblich.
+- Das Datenblatt des 0,71"-Glases nennt für `IBAT` bei `VCC` = 7,5 V
+  **typisch 12,0 mA und höchstens 25,0 mA** (Crystalfontz CFAL4864A-071BW,
+  Ausgabe 2017-07-05, Abschnitt „Electrical Characteristics"). Das Budget hier
+  rechnet mit den **25 mA**, also mit der Obergrenze — bei 12 mA sinkt die
+  Ladung je Benutzung von 26,3 auf etwa 15,5 µAh und die Laufzeit steigt von
+  etwa 6,7 auf etwa **8 Monate**. Welcher Wert bei unserer Bildschirmbelegung
+  gilt, hängt davon ab, wie viele Pixel leuchten; **das ist zu messen.**
 
 ### Spitzenstrom — und die Lücke, die bleibt
 
@@ -379,8 +386,9 @@ Nach den Vier Stufen von „geprüft": alles hier ist **gerechnet**, nichts ist
 
 1. **Der tatsächliche Gesamt-Ruhestrom.** Die Entweder-oder-Natur der
    Weck-Szenarien im Datenblatt lässt keine belegte Summe zu.
-2. **Der OLED-Modulstrom bei 3,3 V mit laufender Ladungspumpe.** Größter
-   Einzelposten je Benutzung, und durch keine Quelle belegt. Spanne 16–25 mA.
+2. **Welcher der beiden Datenblattwerte für die Anzeige gilt** — typisch 12 mA
+   oder höchstens 25 mA. Größter Einzelposten je Benutzung; der Unterschied
+   sind etwa 1,3 Monate Laufzeit. Hängt davon ab, wie viele Pixel leuchten.
 3. **Die Betriebsströme von QSPI, I2C und SPI.** Nordic spezifiziert sie in
    **keiner** Fassung des Datenblatts — für diese drei Peripherien gibt es
    keinerlei Stromangabe. Zum Vergleich nennt Nordic für einen einzelnen

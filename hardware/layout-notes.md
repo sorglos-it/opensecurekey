@@ -22,9 +22,12 @@ Die Teilemaße stammen aus `../docs/parts.md`, die Netze aus `schematic.md`.
 **Das dickste Teil ist der Akku mit 3,8 mm, das längste mit 26 mm.** Beides
 bestimmt die Bauform.
 
-## Vorschlag für die Bauform
+## Bauform: 24 × 70 mm
 
-**Platine 24 × 62 mm, 0,8 mm dick, vier Lagen, beidseitig bestückt.**
+**Platine 24 × 70 mm, 0,8 mm dick, vier Lagen, beidseitig bestückt.**
+
+Die 70 mm statt 62 mm sind die räumliche Trennung von Akku und NFC-Antenne —
+siehe den nächsten Abschnitt. Die 8 mm sind bewusst ausgegeben.
 
 Zur Dicke: **0,8 mm statt 1,6 mm ist keine freie Wahl**, wenn der USB-C-Stecker
 später direkt am Platinenrand sitzen soll — alle gefundenen
@@ -36,56 +39,56 @@ Gesamthöhe grob: 0,8 mm Platine + 3,8 mm Akku + 2,05 mm Modul auf der anderen
 Seite ≈ **6,7 mm plus Gehäuse**, also etwa 8–9 mm fertig. Das ist für einen
 Schlüsselanhänger vertretbar. **Nicht gerechnet**, nur zusammengezählt.
 
-## Der Konflikt: Akku gegen NFC-Antenne
-
-Das ist die wichtigste Layout-Entscheidung, und sie ist noch nicht gefallen.
+## Akku gegen NFC-Antenne: Trennung UND Ferritfolie
 
 **Der Akku darf nicht hinter der NFC-Antenne liegen** — er dämpft das Feld. Die
 Begründung ist belegt: Das Taoglas-Datenblatt zur Flexantenne sagt, dass die
 Reichweite **ohne Ferritlage auf leitfähigem Untergrund praktisch null** ist.
 Eine LiPo-Zelle mit ihrer Aluminiumhülle ist genau so ein Untergrund.
 
-Auf 24 × 62 mm ist das eng. Drei Wege:
+**Entschieden: beides zusammen** — räumlich trennen, soweit die Bauform es
+hergibt, **und** eine Ferritfolie dazwischen. Das ist der Weg, den jedes Handy
+mit NFC und Akku geht; die Folie kostet wenige Cent und einen halben
+Millimeter. Weil die Abstimmung ohnehin am Netzwerkanalysator gemessen wird und
+nicht gerechnet werden kann, planen wir mit Reserve statt auf Kante.
 
-### Weg 1: Räumliche Trennung — Platine länger
+**NFC in Stufe 1 weglassen kommt nicht in Frage:** Der Akku ist überhaupt nur
+deshalb im Gerät, weil NFC und Bluetooth ohne Rechner laufen sollen. Ein Gerät
+mit Akku und ohne NFC hätte den Akku umsonst.
+
+### Die Aufteilung
 
 ```
    ┌──────────────────────────────────────────────────────┐
    │ USB-C │  Modul U1  │   Akku unten    │  NFC-Antenne  │
-   │  J1   │  (Antenne  │   OLED oben     │  als Schleife │
-   │       │   nach     │   SE051, Flash  │  rundum       │
-   │       │   außen)   │                 │  + Taster     │
+   │  J1   │  (Antenne  │   + Ferritfolie │  als Schleife │
+   │       │   nach     │   OLED oben     │  + Taster     │
+   │       │   außen)   │   SE051, Flash  │               │
    └──────────────────────────────────────────────────────┘
      0    9        25            48              70 mm
 ```
 
-Antenne und Akku liegen in verschiedenen Dritteln. Kostet **etwa 8 mm mehr
-Länge** (70 statt 62 mm). Kein Ferrit nötig, volle Reichweite.
+- Antenne und Akku liegen in **verschiedenen Dritteln** der Platine.
+- **Ferritfolie auf der Akkuseite**, zwischen Zelle und Platine, überdeckt die
+  Zellfläche und reicht in Richtung Antenne über. Genaue Fläche ergibt sich
+  beim Zeichnen.
+- Die Antennenschleife liegt im letzten Drittel, mit ausgenommener
+  Massefläche darunter.
 
-**Das ist der sauberste Weg und die Empfehlung**, solange die Länge
-hinnehmbar ist. 70 × 24 mm ist noch Schlüsselanhängerformat — etwa so groß wie
-ein Autoschlüssel.
+70 × 24 mm ist noch Schlüsselanhängerformat — etwa so groß wie ein
+Autoschlüssel.
 
-### Weg 2: Ferritlage zwischen Akku und Antenne
+### Wenn das Gehäuse dadurch zu groß wird
 
-Antenne als Schleife um die ganze Platine, Akku in der Mitte, dazwischen eine
-Ferritfolie. Platine bleibt bei 62 mm.
+Dann **nicht** den Abstand opfern, sondern die **schmale Zelle** nehmen:
+BerryBase LP-401230, 100 mAh, **4,05 × 12,0 × 30,5 mm**. Sie ist nur 12 mm
+breit statt 19,75 mm und lässt neben sich Platz, sodass die Platine kürzer
+werden kann. Preis: Laufzeit sinkt von etwa 6,7 auf etwa 4,5 Monate
+(`../docs/power-budget.md`).
 
-**Nachteil:** Die Reichweite sinkt, um wie viel ist **`ungeprueft`**. Dazu
-kommen eine zusätzliche Folie in der Fertigung und mehr Bauhöhe.
-
-### Weg 3: NFC in Stufe 1 weglassen
-
-Stufe 1 nur USB und Bluetooth. Die Antennenfläche und die beiden
-Abstimmkondensatoren werden **vorgesehen, aber nicht bestückt**.
-
-**Dafür spricht mehr, als es zunächst scheint:** Die NFC-Abstimmung ist ohnehin
-eine **Messaufgabe mit Netzwerkanalysator** (siehe `schematic.md`), nicht etwas,
-das man einmal richtig zeichnet. Sie von der ersten Platine zu trennen, nimmt
-Risiko aus dem ersten Aufbau.
-
-**Noch nicht entschieden.** Die Entscheidung gehört dem Nutzer; sie betrifft
-die Platinenlänge und damit die Gehäuseform.
+**Die Reihenfolge ist also: Abstand behalten, Kapazität opfern** — nicht
+umgekehrt. Ein Schlüssel, dessen NFC nicht funktioniert, hilft niemandem;
+einer, der statt sieben nur viereinhalb Monate hält, schon.
 
 ## Weitere Vorgaben
 
@@ -151,6 +154,12 @@ die Platinenlänge und damit die Gehäuseform.
 
 - Die aktive Fläche ist **10,54 × 14,70 mm**. Das Gehäusefenster muss mindestens
   so groß sein, mit etwas Rand für die Fertigungstoleranz.
+- **Keine Ladungspumpen-Kondensatoren nötig** — sie sitzen auf dem Modul. Am
+  Datenblatt geklärt: der 12-polige Steckverbinder führt weder `C1P/C1N/C2P/C2N`
+  noch `VCC` heraus. Neben der Anzeige braucht es nur C13/C14 und den
+  Lastschalter Q4. Einzelheiten in `schematic.md`.
+- `VDD` (Pin 10) und `VBAT` (Pin 11) werden **miteinander verbunden**, beide
+  Massepins (1 und 12) **müssen** angeschlossen werden.
 - Die FPC-Fahne ist biegsam, aber nicht beliebig: Der ZIF-Steckverbinder J4
   sitzt **hinter** dem Glas, nicht daneben, damit die Fahne nach innen umgelegt
   wird und nicht seitlich Platz braucht.
@@ -176,15 +185,29 @@ die Platinenlänge und damit die Gehäuseform.
 - Drei getrennte Leitungen (sechs Pins, keine gemeinsame Elektrode), also drei
   Vorwiderstände dicht an der LED.
 
-### Fingerabdrucksensor, wenn er kommt
+### Fingerabdrucksensor: die Platine muss beides können
+
+**Vorgabe: so planen, dass mit und ohne Sensor dieselbe Platine taugt.** Das
+Stiftfeld J5 wird vorgesehen, aber **nicht bestückt**. Die Entscheidung über
+den Sensor liegt noch beim Nutzer; die Platine wartet nicht darauf.
+
+Was das konkret heißt:
 
 - Das FPC BM-Lite ist **15 × 15 × 2,8 mm** — das größte Einzelteil nach dem
-  Akku und **dicker als der Akku**. Es bestimmt dann die Bauhöhe.
-- Es gehört auf die **Seite, die der Finger berührt**, also dieselbe Seite wie
-  der Taster oder gegenüber der Anzeige. Beides geht nicht gleichzeitig gut —
-  **das ist der Grund, warum die Bauform vom Sensorentscheid abhängt.**
-- In Stufe 1 bleibt nur das Stiftfeld J5; es gehört an eine Kante, damit ein
-  Flachbandkabel zum Ausprobieren herausgeführt werden kann.
+  Akku und **dicker als der Akku**. Es würde die Bauhöhe bestimmen.
+- Es gehört auf die **Seite, die der Finger berührt**. Die Anzeige liegt
+  gegenüber dem Akku; der Sensor kommt auf die **Akkuseite**, in das freie
+  Stück des mittleren Drittels neben der Zelle. Mit der schmalen Zelle (12 mm)
+  passt er dort; mit der 19,75 mm breiten wird es eng.
+- **Das Gehäuse bekommt an dieser Stelle von Anfang an eine Aussparung**, die
+  in Stufe 1 mit einem Blindstück geschlossen wird. So ist nur ein
+  Gehäuseteil zu ändern, nicht die Platine.
+- J5 (Stiftfeld 1 × 6, 1,27 mm) gehört an die **Kante dieses Felds**, damit in
+  Stufe 1 ein Flachbandkabel zum Ausprobieren herausgeführt werden kann, ohne
+  dass das Gehäuse im Weg ist.
+- Die vier schnellen Leitungen zum Stiftfeld (`P0.13`–`P0.16`) werden **jetzt
+  schon verlegt**, nicht später nachgetragen — nachträgliches Verlegen in ein
+  fertiges Layout ist teurer als ein paar ungenutzte Leiterbahnen.
 
 ### Lagenaufbau
 
@@ -217,17 +240,23 @@ Sie stehen hier, weil sie schon einmal Zeit gekostet haben:
 
 ## Offene Punkte
 
-1. **Akku gegen NFC-Antenne: Weg 1, 2 oder 3?** Betrifft die Platinenlänge und
-   die Gehäuseform. Entscheidung durch den Nutzer.
-2. **Wird der Fingerabdrucksensor vorgesehen?** Mit ihm ist das Gerät dicker
-   und die Seitenaufteilung anders.
-3. **Die Freihaltezone um die Chipantenne des Moduls** ist aus dem
+1. **Die Freihaltezone um die Chipantenne des Moduls** ist aus dem
    Raytac-Dokument noch nicht entnommen (`ungeprueft`).
-4. **Windungszahl und Fläche der NFC-Leiterbahnantenne** — nur durch Messung zu
+2. **Windungszahl und Fläche der NFC-Leiterbahnantenne** — nur durch Messung zu
    bestimmen.
-5. Die zusammengezählte Bauhöhe von etwa 6,7 mm plus Gehäuse ist **nicht
-   gerechnet**, nur addiert; Toleranzen und Klebeschichten fehlen.
-6. Ob ein zweiter, passiver NFC-Pfad direkt am Sicherheitschip (dessen LA/LB
+3. **Welche Ferritfolie und wie dick?** Die Entscheidung „mit Folie" steht,
+   das Material nicht. Zu klären: Permeabilität bei 13,56 MHz, Dicke
+   (Zielwert etwa 0,3–0,5 mm) und Bezugsquelle in Kleinmenge. Die Angabe
+   „wenige Cent und ein halber Millimeter" ist `ungeprueft`.
+4. Die zusammengezählte Bauhöhe von etwa 6,7 mm plus Folie plus Gehäuse ist
+   **nicht gerechnet**, nur addiert; Toleranzen und Klebeschichten fehlen.
+5. Ob ein zweiter, passiver NFC-Pfad direkt am Sicherheitschip (dessen LA/LB
    derzeit auf Masse liegen) sinnvoll ist — das bräuchte eine zweite Antenne
    oder eine Umschaltung. **Nicht entschieden**, Einzelheiten in
    `schematic.md`.
+
+**Entschieden und eingearbeitet:** Akku und NFC-Antenne werden räumlich
+getrennt **und** durch eine Ferritfolie entkoppelt (Platine 70 statt 62 mm);
+wird das Gehäuse zu groß, weicht die Kapazität, nicht der Abstand. Die Platine
+nimmt den Fingerabdrucksensor auf, ohne auf die Entscheidung zu warten. Die
+Ladungspumpen-Kondensatoren der Anzeige entfallen.
