@@ -14,7 +14,7 @@ Computer / phone
   NFC       type 4 tag           ─┤          │
   BLE       GATT (our app only)  ─┘          │
                                              │
-                display shows it · approve with finger or PIN + button
+                   display shows it · approve with PIN + button
                                              │
                     ┌────────────────────────┴──────────────┐
               SE050 (I2C)                            Flash (QSPI, 64 MB)
