@@ -1,0 +1,32 @@
+{{template "head" .}}
+<h2>{{.Texts.Get "devices.found"}}</h2>
+<p id="devices-empty" hidden>{{.Texts.Get "devices.none"}}</p>
+<ul id="devices"></ul>
+<h2>{{.Texts.Get "unlock.title"}}</h2>
+<form id="unlock">
+  <p>
+    <label for="pin">{{.Texts.Get "field.pin"}}</label>
+    <input type="password" id="pin" name="pin" maxlength="64" autocomplete="off" inputmode="numeric">
+  </p>
+  <p class="hint">{{.Texts.Get "unlock.hint"}}</p>
+  <button type="submit">{{.Texts.Get "action.unlock"}}</button>
+</form>
+<h2>{{.Texts.Get "pair.title"}}</h2>
+<p>{{.Texts.Get "pair.intro"}}</p>
+<button type="button" class="pair" data-kind="host">{{.Texts.Get "action.pair.host"}}</button>
+<button type="button" class="pair" data-kind="device">{{.Texts.Get "action.pair.device"}}</button>
+<output id="pair-result"></output>
+<h2>{{.Texts.Get "log.title"}}</h2>
+<button type="button" id="log-load">{{.Texts.Get "action.log"}}</button>
+<table id="log">
+  <caption>{{.Texts.Get "log.caption"}}</caption>
+  <thead>
+    <tr>
+      <th scope="col">{{.Texts.Get "field.time"}}</th>
+      <th scope="col">{{.Texts.Get "field.event"}}</th>
+      <th scope="col">{{.Texts.Get "field.askedby"}}</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+{{template "foot" .}}

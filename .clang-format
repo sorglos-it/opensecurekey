@@ -1,0 +1,17 @@
+# Stil der Firmware: wie Zephyr und der Linux-Kernel, damit SDK-Code und
+# eigener Code gleich aussehen. Die Header in apps/firmware/include/ sind
+# bereits so geschrieben.
+BasedOnStyle: LLVM
+UseTab: Always
+TabWidth: 8
+IndentWidth: 8
+ColumnLimit: 100
+BreakBeforeBraces: Linux
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+IndentCaseLabels: false
+PointerAlignment: Right
+SpaceAfterCStyleCast: false
+SortIncludes: false
+AlignEscapedNewlines: Left
