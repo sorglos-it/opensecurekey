@@ -48,15 +48,14 @@ static uint8_t gf_inv(uint8_t a)
 
 /* ---- Teilen ----------------------------------------------------------- */
 
-osk_result_t osk_shamir_split(const uint8_t secret[OSK_SHARE_SECRET],
-			      uint8_t k, uint8_t n, osk_share_t *out)
+osk_result_t osk_shamir_split(const uint8_t secret[OSK_SHARE_SECRET], uint8_t k, uint8_t n,
+			      osk_share_t *out)
 {
 	uint8_t coeff[OSK_SHARE_SECRET][OSK_SHARE_MAX_N];
 	uint8_t digest[OSK_HASH_LEN];
 	osk_result_t r;
 
-	if (secret == NULL || out == NULL || k < OSK_SHARE_MIN_K || k > n ||
-	    n > OSK_SHARE_MAX_N) {
+	if (secret == NULL || out == NULL || k < OSK_SHARE_MIN_K || k > n || n > OSK_SHARE_MAX_N) {
 		return OSK_ERR_ARG;
 	}
 
@@ -82,7 +81,7 @@ osk_result_t osk_shamir_split(const uint8_t secret[OSK_SHARE_SECRET],
 	}
 
 	for (uint8_t s = 0; s < n; s++) {
-		uint8_t x = (uint8_t)(s + 1u);   /* Stelle 0 ist das Geheimnis */
+		uint8_t x = (uint8_t)(s + 1u); /* Stelle 0 ist das Geheimnis */
 
 		memset(&out[s], 0, sizeof(out[s]));
 		out[s].version = 1u;
@@ -114,8 +113,7 @@ osk_result_t osk_shamir_combine(const osk_share_t *shares, size_t count,
 	uint8_t digest[OSK_HASH_LEN];
 	uint8_t k = 0;
 
-	if (shares == NULL || secret_out == NULL || count == 0u ||
-	    count > OSK_SHARE_MAX_N) {
+	if (shares == NULL || secret_out == NULL || count == 0u || count > OSK_SHARE_MAX_N) {
 		return OSK_ERR_ARG;
 	}
 
@@ -124,8 +122,7 @@ osk_result_t osk_shamir_combine(const osk_share_t *shares, size_t count,
 		return OSK_ERR_FORMAT;
 	}
 	for (size_t i = 0; i < count; i++) {
-		if (shares[i].version != 1u || shares[i].k != k ||
-		    shares[i].index == 0u) {
+		if (shares[i].version != 1u || shares[i].k != k || shares[i].index == 0u) {
 			return OSK_ERR_FORMAT;
 		}
 		for (size_t j = 0; j < i; j++) {
@@ -150,8 +147,7 @@ osk_result_t osk_shamir_combine(const osk_share_t *shares, size_t count,
 				continue;
 			}
 			num = gf_mul(num, shares[j].index);
-			den = gf_mul(den, (uint8_t)(shares[i].index ^
-						    shares[j].index));
+			den = gf_mul(den, (uint8_t)(shares[i].index ^ shares[j].index));
 		}
 		uint8_t w = gf_mul(num, gf_inv(den));
 
@@ -198,8 +194,7 @@ static int hex_value(char c)
 	return -1;
 }
 
-osk_result_t osk_shamir_share_text(const osk_share_t *share, char *out,
-				   size_t cap)
+osk_result_t osk_shamir_share_text(const osk_share_t *share, char *out, size_t cap)
 {
 	size_t pos = 0;
 
@@ -244,8 +239,7 @@ osk_result_t osk_shamir_share_parse(const char *text, osk_share_t *out)
 	if (text == NULL || out == NULL) {
 		return OSK_ERR_ARG;
 	}
-	if (!(text[0] == 'O' || text[0] == 'o') ||
-	    !(text[1] == 'S' || text[1] == 's') ||
+	if (!(text[0] == 'O' || text[0] == 'o') || !(text[1] == 'S' || text[1] == 's') ||
 	    !(text[2] == 'K' || text[2] == 'k') || text[3] != '1') {
 		return OSK_ERR_FORMAT;
 	}

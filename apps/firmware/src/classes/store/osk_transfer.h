@@ -35,21 +35,21 @@
 #include "osk_crypto.h"
 #include "store_chunk.h"
 
-#define OSK_TRANSFER_FMT      1
-#define OSK_TRANSFER_PUB_MAX  65u   /* P-256, unkomprimiert */
-#define OSK_TRANSFER_DIGITS   6u    /* Zahl zum Vergleichen */
+#define OSK_TRANSFER_FMT 1
+#define OSK_TRANSFER_PUB_MAX 65u /* P-256, unkomprimiert */
+#define OSK_TRANSFER_DIGITS 6u	 /* Zahl zum Vergleichen */
 
 /* Was beide Seiten waehrend einer Uebertragung bei sich haben. Das Geheime
  * darin wird mit osk_transfer_end geloescht. */
 typedef struct {
-	uint8_t  own_pub[OSK_TRANSFER_PUB_MAX];
-	size_t   own_pub_len;
-	uint8_t  peer_pub[OSK_TRANSFER_PUB_MAX];
-	size_t   peer_pub_len;
+	uint8_t own_pub[OSK_TRANSFER_PUB_MAX];
+	size_t own_pub_len;
+	uint8_t peer_pub[OSK_TRANSFER_PUB_MAX];
+	size_t peer_pub_len;
 	osk_key_t key;
-	char     digits[OSK_TRANSFER_DIGITS + 1];
+	char digits[OSK_TRANSFER_DIGITS + 1];
 	uint32_t seq;
-	bool     confirmed;
+	bool confirmed;
 } osk_transfer_t;
 
 /* Schritt 1: fluechtigen Schluessel anlegen und den oeffentlichen Teil
@@ -58,17 +58,16 @@ osk_result_t osk_transfer_begin(osk_transfer_t *t);
 
 /* Schritte 3 und 4: gemeinsames Geheimnis, Schluessel, Vergleichszahl - und
  * die Freigabe am Geraet. Ohne sie geht kein Byte hinaus. */
-osk_result_t osk_transfer_accept_peer(osk_transfer_t *t, const uint8_t *peer_pub,
-				      size_t peer_len);
+osk_result_t osk_transfer_accept_peer(osk_transfer_t *t, const uint8_t *peer_pub, size_t peer_len);
 
 /* Schritt 5, gebende Seite: alle spiegelbaren Eintraege der aufgeschlossenen
  * Profile. */
-osk_result_t osk_transfer_send(osk_transfer_t *t, osk_chunk_sink_fn sink,
-			       void *ctx, size_t *sent_items);
+osk_result_t osk_transfer_send(osk_transfer_t *t, osk_chunk_sink_fn sink, void *ctx,
+			       size_t *sent_items);
 
 /* Schritt 5, nehmende Seite. */
-osk_result_t osk_transfer_receive(osk_transfer_t *t, osk_chunk_src_fn src,
-				  void *ctx, size_t *got_items);
+osk_result_t osk_transfer_receive(osk_transfer_t *t, osk_chunk_src_fn src, void *ctx,
+				  size_t *got_items);
 
 void osk_transfer_end(osk_transfer_t *t);
 

@@ -12,15 +12,15 @@
 
 /* Kennung des Grundgeheimnisses im SE050. Daraus leitet der Chip den
  * geraetegebundenen Wert ab, der nie herauskommt. */
-#define OSK_KEYID_VAULT_ROOT  0x0000F100u
+#define OSK_KEYID_VAULT_ROOT 0x0000F100u
 
 /* Laufender Zustand. Alles Geheime darin wird beim Sperren geloescht. */
 typedef struct {
 	bool open;
 	osk_hdr_t hdr;
-	uint32_t hdr_slot;        /* Adresse des gueltigen Kopfsatzes */
-	uint64_t nonce_cur;       /* naechste herauszugebende Nonce */
-	osk_key_t key_dev;        /* geraetegebunden, aus dem SE050 */
+	uint32_t hdr_slot;  /* Adresse des gueltigen Kopfsatzes */
+	uint64_t nonce_cur; /* naechste herauszugebende Nonce */
+	osk_key_t key_dev;  /* geraetegebunden, aus dem SE050 */
 	osk_key_t key_log;
 	osk_key_t key_profile[OSK_PROFILE_MAX];
 	bool profile_open[OSK_PROFILE_MAX];
@@ -45,8 +45,7 @@ void osk_hdr_restore(const osk_hdr_t *snap);
 osk_result_t osk_hdr_format(uint16_t format);
 
 /* Holt eine Nonce. Der Zaehler im Kopf wird vorher festgehalten. */
-osk_result_t osk_nonce_take(osk_nonce_purpose_t purpose,
-			    uint8_t out[OSK_NONCE_LEN]);
+osk_result_t osk_nonce_take(osk_nonce_purpose_t purpose, uint8_t out[OSK_NONCE_LEN]);
 
 /* ---- Platz ------------------------------------------------------------ */
 
@@ -68,7 +67,7 @@ bool osk_space_slot_is_used(uint32_t slot);
 
 /* Der Arbeitspuffer: genau eine Indexfassung liegt im RAM. */
 osk_idx_page_t *osk_index_page(void);
-int osk_index_loaded_profile(void);   /* -1 = keine */
+int osk_index_loaded_profile(void); /* -1 = keine */
 void osk_index_drop(void);
 
 /* Laedt die gueltige Fassung eines Profils in den Arbeitspuffer. Ein leeres
@@ -81,33 +80,33 @@ osk_result_t osk_index_store(uint8_t profile);
 
 /* ---- Geheimnisse ------------------------------------------------------ */
 
-osk_result_t osk_blob_write(uint32_t slot, osk_item_id_t id,
-			    const uint8_t *secret, size_t len,
+osk_result_t osk_blob_write(uint32_t slot, osk_item_id_t id, const uint8_t *secret, size_t len,
 			    const osk_key_t *key, uint32_t *ct_len_out,
 			    uint8_t nonce_out[OSK_NONCE_LEN]);
 
-osk_result_t osk_blob_read(const osk_idx_rec_t *rec, const osk_key_t *key,
-			   uint8_t *out, size_t cap, size_t *len_out);
+osk_result_t osk_blob_read(const osk_idx_rec_t *rec, const osk_key_t *key, uint8_t *out, size_t cap,
+			   size_t *len_out);
 
 /* Loescht einen Datenplatz. Erst nach dem Kopfsatz, der ihn freigibt. */
 osk_result_t osk_blob_erase(uint32_t slot);
 
 /* ---- Protokoll -------------------------------------------------------- */
 
-osk_result_t osk_log_add_internal(uint16_t what, osk_item_id_t id,
-				  const char *asked_by);
+osk_result_t osk_log_add_internal(uint16_t what, osk_item_id_t id, const char *asked_by);
 
 /* Laesst den Ringkopf neu suchen - nach dem Formatieren und im Test. */
 void osk_log_reset_mount(void);
 
 /* ---- Wanderung -------------------------------------------------------- */
 
-/* Rechnet eine geladene Indexfassung der Fassung 1 auf Fassung 2 um, im RAM.
- * So bleibt ein alter Tresor lesbar, noch bevor er umgeschrieben wird. */
-osk_result_t osk_index_upgrade_v1(size_t plain_len);
+/* Rechnet eine geladene Indexfassung einer alten Fassung auf die jetzige um,
+ * im RAM. So bleibt ein alter Tresor lesbar, noch bevor er umgeschrieben
+ * wird. */
+osk_result_t osk_index_upgrade(uint16_t from_format, size_t plain_len);
 
-/* Groesse eines Indexsatzes der Fassung 1. */
+/* Groesse eines Indexsatzes der alten Fassungen. */
 #define OSK_IDX_REC_V1_SIZE 240u
+#define OSK_IDX_REC_V2_SIZE 256u
 
 /* ---- Hilfen ----------------------------------------------------------- */
 

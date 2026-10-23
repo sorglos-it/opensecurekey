@@ -97,8 +97,7 @@ static bool is_vault_nonce(const uint8_t *nonce)
 static void note_nonce(const uint8_t *key, const uint8_t *nonce)
 {
 	for (size_t i = 0; i < g_seen_n; i++) {
-		bool same_nonce = memcmp(g_seen[i].nonce, nonce,
-					 OSK_NONCE_LEN) == 0;
+		bool same_nonce = memcmp(g_seen[i].nonce, nonce, OSK_NONCE_LEN) == 0;
 
 		if (!same_nonce) {
 			continue;
@@ -128,9 +127,8 @@ static uint64_t base(const osk_key_t *key, const uint8_t *nonce)
 	return h;
 }
 
-static void tag_of(const osk_key_t *key, const uint8_t *nonce,
-		   const uint8_t *aad, size_t aad_len, const uint8_t *plain,
-		   size_t plain_len, uint8_t out[OSK_TAG_LEN])
+static void tag_of(const osk_key_t *key, const uint8_t *nonce, const uint8_t *aad, size_t aad_len,
+		   const uint8_t *plain, size_t plain_len, uint8_t out[OSK_TAG_LEN])
 {
 	uint64_t h = base(key, nonce);
 	uint64_t n = (uint64_t)aad_len;
@@ -145,8 +143,7 @@ static void tag_of(const osk_key_t *key, const uint8_t *nonce,
 	expand(h ^ 0x5A5A5A5Aull, out, OSK_TAG_LEN);
 }
 
-static void stream(const osk_key_t *key, const uint8_t *nonce, uint8_t *buf,
-		   size_t len)
+static void stream(const osk_key_t *key, const uint8_t *nonce, uint8_t *buf, size_t len)
 {
 	uint8_t ks[64];
 	uint64_t h = base(key, nonce);
@@ -154,8 +151,7 @@ static void stream(const osk_key_t *key, const uint8_t *nonce, uint8_t *buf,
 	for (size_t off = 0; off < len; off += sizeof(ks)) {
 		uint64_t blk = off;
 
-		expand(mix(h, (const uint8_t *)&blk, sizeof(blk)), ks,
-		       sizeof(ks));
+		expand(mix(h, (const uint8_t *)&blk, sizeof(blk)), ks, sizeof(ks));
 		size_t take = len - off;
 
 		if (take > sizeof(ks)) {
@@ -167,14 +163,11 @@ static void stream(const osk_key_t *key, const uint8_t *nonce, uint8_t *buf,
 	}
 }
 
-osk_result_t osk_crypto_seal(const osk_key_t *key,
-			     const uint8_t nonce[OSK_NONCE_LEN],
-			     const uint8_t *aad, size_t aad_len,
-			     const uint8_t *plain, size_t plain_len,
-			     uint8_t *ct_out, size_t ct_cap, size_t *ct_len_out)
+osk_result_t osk_crypto_seal(const osk_key_t *key, const uint8_t nonce[OSK_NONCE_LEN],
+			     const uint8_t *aad, size_t aad_len, const uint8_t *plain,
+			     size_t plain_len, uint8_t *ct_out, size_t ct_cap, size_t *ct_len_out)
 {
-	if (key == NULL || nonce == NULL || plain == NULL || ct_out == NULL ||
-	    ct_len_out == NULL) {
+	if (key == NULL || nonce == NULL || plain == NULL || ct_out == NULL || ct_len_out == NULL) {
 		return OSK_ERR_ARG;
 	}
 	if (ct_cap < plain_len + OSK_TAG_LEN) {
@@ -184,18 +177,14 @@ osk_result_t osk_crypto_seal(const osk_key_t *key,
 
 	memcpy(ct_out, plain, plain_len);
 	stream(key, nonce, ct_out, plain_len);
-	tag_of(key, nonce, aad, aad_len, plain, plain_len,
-	       ct_out + plain_len);
+	tag_of(key, nonce, aad, aad_len, plain, plain_len, ct_out + plain_len);
 	*ct_len_out = plain_len + OSK_TAG_LEN;
 	return OSK_OK;
 }
 
-osk_result_t osk_crypto_open(const osk_key_t *key,
-			     const uint8_t nonce[OSK_NONCE_LEN],
-			     const uint8_t *aad, size_t aad_len,
-			     const uint8_t *ct, size_t ct_len,
-			     uint8_t *plain_out, size_t plain_cap,
-			     size_t *plain_len_out)
+osk_result_t osk_crypto_open(const osk_key_t *key, const uint8_t nonce[OSK_NONCE_LEN],
+			     const uint8_t *aad, size_t aad_len, const uint8_t *ct, size_t ct_len,
+			     uint8_t *plain_out, size_t plain_cap, size_t *plain_len_out)
 {
 	uint8_t tag[OSK_TAG_LEN];
 	uint8_t *tmp;
@@ -232,8 +221,7 @@ osk_result_t osk_crypto_open(const osk_key_t *key,
 	return OSK_OK;
 }
 
-osk_result_t osk_crypto_sha256(const uint8_t *msg, size_t len,
-			       uint8_t out[OSK_HASH_LEN])
+osk_result_t osk_crypto_sha256(const uint8_t *msg, size_t len, uint8_t out[OSK_HASH_LEN])
 {
 	uint64_t n = (uint64_t)len;
 	uint64_t h = mix(0x9E3779B97F4A7C15ull, (const uint8_t *)&n, sizeof(n));
@@ -245,10 +233,9 @@ osk_result_t osk_crypto_sha256(const uint8_t *msg, size_t len,
 	return OSK_OK;
 }
 
-osk_result_t osk_crypto_hkdf(const uint8_t *ikm, size_t ikm_len,
-			     const uint8_t *salt, size_t salt_len,
-			     const uint8_t *info, size_t info_len,
-			     uint8_t *out, size_t out_len)
+osk_result_t osk_crypto_hkdf(const uint8_t *ikm, size_t ikm_len, const uint8_t *salt,
+			     size_t salt_len, const uint8_t *info, size_t info_len, uint8_t *out,
+			     size_t out_len)
 {
 	uint64_t h = 0x243F6A8885A308D3ull;
 	uint64_t n;
@@ -273,9 +260,8 @@ osk_result_t osk_crypto_hkdf(const uint8_t *ikm, size_t ikm_len,
 	return OSK_OK;
 }
 
-osk_result_t osk_crypto_argon2id(const osk_argon2_params_t *p,
-				 const char *passphrase, size_t pass_len,
-				 const uint8_t salt[OSK_SALT_LEN], uint8_t *out,
+osk_result_t osk_crypto_argon2id(const osk_argon2_params_t *p, const char *passphrase,
+				 size_t pass_len, const uint8_t salt[OSK_SALT_LEN], uint8_t *out,
 				 size_t out_len)
 {
 	uint64_t h = 0xA2A2A2A2A2A2A2A2ull;

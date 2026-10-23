@@ -20,8 +20,7 @@ void osk_chunk_wipe(void)
 }
 
 /* Abdruck fortschreiben: h = SHA-256(h || Kryptotext des Stuecks). */
-static osk_result_t roll(uint8_t h[OSK_HASH_LEN], const uint8_t *ct,
-			 size_t ct_len)
+static osk_result_t roll(uint8_t h[OSK_HASH_LEN], const uint8_t *ct, size_t ct_len)
 {
 	if (ct_len > OSK_CHUNK_CT_MAX) {
 		return OSK_ERR_ARG;
@@ -33,8 +32,8 @@ static osk_result_t roll(uint8_t h[OSK_HASH_LEN], const uint8_t *ct,
 
 /* Die laufende Nummer gehoert in die zusaetzlichen Daten, damit ein Stueck
  * nicht an eine andere Stelle verschoben werden kann. */
-static void seq_aad(const uint8_t *aad, size_t aad_len, uint32_t seq,
-		    uint8_t *out, size_t cap, size_t *out_len)
+static void seq_aad(const uint8_t *aad, size_t aad_len, uint32_t seq, uint8_t *out, size_t cap,
+		    size_t *out_len)
 {
 	if (aad_len + 4u > cap) {
 		*out_len = 0;
@@ -49,11 +48,9 @@ static void seq_aad(const uint8_t *aad, size_t aad_len, uint32_t seq,
 	*out_len = aad_len + 4u;
 }
 
-osk_result_t osk_chunk_put(const uint8_t *aad, size_t aad_len,
-			   const osk_key_t *key, uint32_t seq,
-			   osk_nonce_purpose_t purpose, size_t plain_len,
-			   osk_chunk_sink_fn sink, void *ctx,
-			   uint8_t h[OSK_HASH_LEN])
+osk_result_t osk_chunk_put(const uint8_t *aad, size_t aad_len, const osk_key_t *key, uint32_t seq,
+			   osk_nonce_purpose_t purpose, size_t plain_len, osk_chunk_sink_fn sink,
+			   void *ctx, uint8_t h[OSK_HASH_LEN])
 {
 	uint8_t full[OSK_CHUNK_AAD_MAX];
 	size_t full_len = 0;
@@ -69,8 +66,8 @@ osk_result_t osk_chunk_put(const uint8_t *aad, size_t aad_len,
 	seq_aad(aad, aad_len, seq, full, sizeof(full), &full_len);
 	osk_nonce_build(seq, purpose, nonce);
 
-	r = osk_crypto_seal(key, nonce, full, full_len, g_plain, plain_len,
-			    g_ct, sizeof(g_ct), &ct_len);
+	r = osk_crypto_seal(key, nonce, full, full_len, g_plain, plain_len, g_ct, sizeof(g_ct),
+			    &ct_len);
 	if (r != OSK_OK) {
 		return r;
 	}
@@ -87,11 +84,9 @@ osk_result_t osk_chunk_put(const uint8_t *aad, size_t aad_len,
 	return roll(h, g_ct, ct_len);
 }
 
-osk_result_t osk_chunk_get(const uint8_t *aad, size_t aad_len,
-			   const osk_key_t *key, uint32_t seq,
-			   osk_nonce_purpose_t purpose, osk_chunk_src_fn src,
-			   void *ctx, size_t *plain_len_out,
-			   uint8_t h[OSK_HASH_LEN])
+osk_result_t osk_chunk_get(const uint8_t *aad, size_t aad_len, const osk_key_t *key, uint32_t seq,
+			   osk_nonce_purpose_t purpose, osk_chunk_src_fn src, void *ctx,
+			   size_t *plain_len_out, uint8_t h[OSK_HASH_LEN])
 {
 	uint8_t full[OSK_CHUNK_AAD_MAX];
 	size_t full_len = 0;
@@ -99,8 +94,7 @@ osk_result_t osk_chunk_get(const uint8_t *aad, size_t aad_len,
 	uint8_t len_le[4];
 	osk_result_t r;
 
-	if (src == NULL || key == NULL || plain_len_out == NULL ||
-	    aad_len + 4u > sizeof(full)) {
+	if (src == NULL || key == NULL || plain_len_out == NULL || aad_len + 4u > sizeof(full)) {
 		return OSK_ERR_ARG;
 	}
 	r = src(ctx, len_le, sizeof(len_le));
@@ -126,8 +120,8 @@ osk_result_t osk_chunk_get(const uint8_t *aad, size_t aad_len,
 
 	seq_aad(aad, aad_len, seq, full, sizeof(full), &full_len);
 	osk_nonce_build(seq, purpose, nonce);
-	r = osk_crypto_open(key, nonce, full, full_len, g_ct, ct_len, g_plain,
-			    sizeof(g_plain), plain_len_out);
+	r = osk_crypto_open(key, nonce, full, full_len, g_ct, ct_len, g_plain, sizeof(g_plain),
+			    plain_len_out);
 	if (r == OSK_ERR_FORMAT) {
 		/* Falscher Pruefwert heisst: falsches Kennwort, falsche
 		 * Gegenstelle oder beschaedigte Daten. */

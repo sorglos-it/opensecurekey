@@ -86,43 +86,53 @@ osk_result_t osk_index_load(uint8_t profile)
 	}
 
 	size_t plain_len = 0;
-	uint8_t aad[1] = { profile };
+	uint8_t aad[1] = {profile};
 
 	/* Die Fassung steht im verschluesselten Kopf der Indexfassung, nicht in
 	 * den zusaetzlichen Daten. Nur so laesst sich eine Fassung lesen, ohne
 	 * vorher zu wissen, welche es ist. */
-	r = osk_crypto_open(&st->key_profile[profile], frame.nonce,
-			    aad, sizeof(aad), g_idx_ct, frame.ct_len,
-			    (uint8_t *)&g_idx, sizeof(g_idx), &plain_len);
+	r = osk_crypto_open(&st->key_profile[profile], frame.nonce, aad, sizeof(aad), g_idx_ct,
+			    frame.ct_len, (uint8_t *)&g_idx, sizeof(g_idx), &plain_len);
 	if (r != OSK_OK) {
 		/* Falscher Schluessel heisst: falsche PIN fuer dieses Profil. */
 		osk_index_drop();
 		return (r == OSK_ERR_FORMAT) ? OSK_ERR_DENIED : r;
 	}
-	if (plain_len < sizeof(osk_idx_head_t) ||
-	    g_idx.head.magic != OSK_IDX_MAGIC ||
-	    g_idx.head.profile != profile ||
-	    g_idx.head.count > OSK_ITEMS_MAX) {
+	if (plain_len < sizeof(osk_idx_head_t) || g_idx.head.magic != OSK_IDX_MAGIC ||
+	    g_idx.head.profile != profile || g_idx.head.count > OSK_ITEMS_MAX) {
 		osk_index_drop();
 		return OSK_ERR_FORMAT;
 	}
 
-	size_t want_v2 = sizeof(osk_idx_head_t) +
-			 (size_t)g_idx.head.count * sizeof(osk_idx_rec_t);
-	size_t want_v1 = sizeof(osk_idx_head_t) +
-			 (size_t)g_idx.head.count * OSK_IDX_REC_V1_SIZE;
+	/* Welche Satzgroesse zu welcher Fassung gehoert. Stimmt die Laenge des
+	 * Klartextes damit nicht, ist es keine Fassung, die diese Firmware
+	 * kennt - dann wird nichts geraten. */
+	size_t rec_size = 0;
 
-	if (g_idx.head.format == OSK_FMT_V2 && plain_len == want_v2) {
-		/* jetzige Fassung, nichts zu tun */
-	} else if (g_idx.head.format == OSK_FMT_V1 && plain_len == want_v1) {
-		r = osk_index_upgrade_v1(plain_len);
+	switch (g_idx.head.format) {
+	case OSK_FMT_V1:
+		rec_size = OSK_IDX_REC_V1_SIZE;
+		break;
+	case OSK_FMT_V2:
+		rec_size = OSK_IDX_REC_V2_SIZE;
+		break;
+	case OSK_FMT_V3:
+		rec_size = sizeof(osk_idx_rec_t);
+		break;
+	default:
+		osk_index_drop();
+		return OSK_ERR_FORMAT;
+	}
+	if (plain_len != sizeof(osk_idx_head_t) + (size_t)g_idx.head.count * rec_size) {
+		osk_index_drop();
+		return OSK_ERR_FORMAT;
+	}
+	if (g_idx.head.format != OSK_FMT_CURRENT) {
+		r = osk_index_upgrade(g_idx.head.format, plain_len);
 		if (r != OSK_OK) {
 			osk_index_drop();
 			return r;
 		}
-	} else {
-		osk_index_drop();
-		return OSK_ERR_FORMAT;
 	}
 	g_idx_profile = (int)profile;
 	return OSK_OK;
@@ -148,19 +158,19 @@ osk_result_t osk_index_store(uint8_t profile)
 	g_idx.head.profile = profile;
 	g_idx.head.generation += 1u;
 
-	size_t plain_len = sizeof(osk_idx_head_t) +
-			   (size_t)g_idx.head.count * sizeof(osk_idx_rec_t);
+	size_t plain_len =
+	    sizeof(osk_idx_head_t) + (size_t)g_idx.head.count * sizeof(osk_idx_rec_t);
 	size_t ct_len = 0;
-	uint8_t aad[1] = { profile };
+	uint8_t aad[1] = {profile};
 
 	memset(&frame, 0, sizeof(frame));
 	r = osk_nonce_take(OSK_NONCE_INDEX, frame.nonce);
 	if (r != OSK_OK) {
 		return r;
 	}
-	r = osk_crypto_seal(&st->key_profile[profile], frame.nonce,
-			    aad, sizeof(aad), (const uint8_t *)&g_idx,
-			    plain_len, g_idx_ct, sizeof(g_idx_ct), &ct_len);
+	r = osk_crypto_seal(&st->key_profile[profile], frame.nonce, aad, sizeof(aad),
+			    (const uint8_t *)&g_idx, plain_len, g_idx_ct, sizeof(g_idx_ct),
+			    &ct_len);
 	if (r != OSK_OK) {
 		return r;
 	}
@@ -232,8 +242,7 @@ static uint32_t blob_crc(const osk_blob_frame_t *f)
 	return osk_crc32(f, sizeof(*f) - sizeof(f->crc32));
 }
 
-osk_result_t osk_blob_write(uint32_t slot, osk_item_id_t id,
-			    const uint8_t *secret, size_t len,
+osk_result_t osk_blob_write(uint32_t slot, osk_item_id_t id, const uint8_t *secret, size_t len,
 			    const osk_key_t *key, uint32_t *ct_len_out,
 			    uint8_t nonce_out[OSK_NONCE_LEN])
 {
@@ -241,8 +250,7 @@ osk_result_t osk_blob_write(uint32_t slot, osk_item_id_t id,
 	osk_blob_frame_t frame;
 	osk_result_t r;
 
-	if (slot >= OSK_BLOB_SLOTS || len == 0 || len > OSK_SECRET_MAX ||
-	    secret == NULL) {
+	if (slot >= OSK_BLOB_SLOTS || len == 0 || len > OSK_SECRET_MAX || secret == NULL) {
 		return OSK_ERR_ARG;
 	}
 
@@ -266,8 +274,7 @@ osk_result_t osk_blob_write(uint32_t slot, osk_item_id_t id,
 	memcpy(g_blob, &frame, sizeof(frame));
 	r = osk_crypto_seal(key, nonce_out, (const uint8_t *)&frame,
 			    sizeof(frame) - sizeof(frame.crc32), secret, len,
-			    g_blob + sizeof(frame),
-			    sizeof(g_blob) - sizeof(frame), &ct_len);
+			    g_blob + sizeof(frame), sizeof(g_blob) - sizeof(frame), &ct_len);
 	if (r != OSK_OK) {
 		osk_crypto_wipe(g_blob, sizeof(g_blob));
 		return r;
@@ -290,18 +297,16 @@ osk_result_t osk_blob_write(uint32_t slot, osk_item_id_t id,
 	return OSK_OK;
 }
 
-osk_result_t osk_blob_read(const osk_idx_rec_t *rec, const osk_key_t *key,
-			   uint8_t *out, size_t cap, size_t *len_out)
+osk_result_t osk_blob_read(const osk_idx_rec_t *rec, const osk_key_t *key, uint8_t *out, size_t cap,
+			   size_t *len_out)
 {
 	osk_blob_frame_t frame;
 	osk_result_t r;
 
-	if (rec == NULL || out == NULL || len_out == NULL ||
-	    rec->slot >= OSK_BLOB_SLOTS) {
+	if (rec == NULL || out == NULL || len_out == NULL || rec->slot >= OSK_BLOB_SLOTS) {
 		return OSK_ERR_ARG;
 	}
-	if (rec->blob_ct_len < OSK_TAG_LEN ||
-	    rec->blob_ct_len > sizeof(g_blob) - sizeof(frame)) {
+	if (rec->blob_ct_len < OSK_TAG_LEN || rec->blob_ct_len > sizeof(g_blob) - sizeof(frame)) {
 		return OSK_ERR_FORMAT;
 	}
 
@@ -314,14 +319,13 @@ osk_result_t osk_blob_read(const osk_idx_rec_t *rec, const osk_key_t *key,
 		return OSK_ERR_FORMAT;
 	}
 
-	r = osk_flash_read(slot_addr(rec->slot) + sizeof(frame), g_blob,
-			   frame.ct_len);
+	r = osk_flash_read(slot_addr(rec->slot) + sizeof(frame), g_blob, frame.ct_len);
 	if (r != OSK_OK) {
 		return r;
 	}
 	r = osk_crypto_open(key, rec->nonce, (const uint8_t *)&frame,
-			    sizeof(frame) - sizeof(frame.crc32), g_blob,
-			    frame.ct_len, out, cap, len_out);
+			    sizeof(frame) - sizeof(frame.crc32), g_blob, frame.ct_len, out, cap,
+			    len_out);
 	osk_crypto_wipe(g_blob, sizeof(g_blob));
 	return r;
 }

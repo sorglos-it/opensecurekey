@@ -38,8 +38,8 @@ static void build(void)
 }
 
 /* Was nach jedem Ausfall gelten muss. */
-static void check_intact(const char *want_old, const char *want_new,
-			 size_t want_count, osk_result_t r)
+static void check_intact(const char *want_old, const char *want_new, size_t want_count,
+			 osk_result_t r)
 {
 	t_reboot();
 
@@ -97,9 +97,7 @@ static void case_update(void)
 		fake_flash_count_reset();
 		fake_flash_fail_after(at);
 
-		osk_result_t r = osk_store_update(g_id[1], NULL,
-						  (const uint8_t *)"NEU-ZWEI",
-						  8);
+		osk_result_t r = osk_store_update(g_id[1], NULL, (const uint8_t *)"NEU-ZWEI", 8);
 		check_intact(S2, "NEU-ZWEI", 3, r);
 	}
 	printf("      %u Schreibstellen beim Aendern geprueft\n", steps + 1u);
@@ -122,8 +120,7 @@ static void case_add(void)
 		fake_flash_fail_after(at);
 
 		osk_item_id_t id = 0;
-		osk_result_t r = t_add(0, "vier", "vier.example", "kennwort-vier",
-				       false, &id);
+		osk_result_t r = t_add(0, "vier", "vier.example", "kennwort-vier", false, &id);
 
 		t_reboot();
 		size_t n = t_count(0);
@@ -191,8 +188,7 @@ static void case_profile(void)
 	osk_test_case("Profil anlegen: Ausfall an jeder Schreibstelle");
 	t_device(0, 1u, T_PIN);
 	fake_flash_count_reset();
-	T_OK(osk_store_profile_create(1, (const uint8_t *)T_PIN2,
-				      strlen(T_PIN2)));
+	T_OK(osk_store_profile_create(1, (const uint8_t *)T_PIN2, strlen(T_PIN2)));
 	steps = fake_flash_writes();
 
 	for (uint32_t at = 1; at <= steps + 1u; at++) {
@@ -202,8 +198,8 @@ static void case_profile(void)
 		fake_flash_count_reset();
 		fake_flash_fail_after(at);
 
-		osk_result_t r = osk_store_profile_create(
-			1, (const uint8_t *)T_PIN2, strlen(T_PIN2));
+		osk_result_t r =
+		    osk_store_profile_create(1, (const uint8_t *)T_PIN2, strlen(T_PIN2));
 
 		t_reboot();
 		/* Profil 0 bleibt in jedem Fall heil. */
@@ -218,9 +214,7 @@ static void case_profile(void)
 		}
 		if (exists) {
 			t_use(1u, T_PIN2);
-			T_OK(osk_store_profile_unlock(1,
-						      (const uint8_t *)T_PIN2,
-						      strlen(T_PIN2)));
+			T_OK(osk_store_profile_unlock(1, (const uint8_t *)T_PIN2, strlen(T_PIN2)));
 			T_EQ(t_count(1), 0);
 			t_use(1u, T_PIN);
 		}
@@ -242,8 +236,8 @@ static void case_half_written_header(void)
 	uint8_t page[OSK_HDR_SLOT];
 	uint32_t next = st->hdr_slot + OSK_HDR_SLOT;
 
-	fake.seq += 1000u;            /* waere der jueengste Satz */
-	fake.index_root[0] = 0u;      /* und wuerde das Profil leer melden */
+	fake.seq += 1000u;	 /* waere der jueengste Satz */
+	fake.index_root[0] = 0u; /* und wuerde das Profil leer melden */
 	fake.crc32 = 0xDEADBEEFu;
 
 	memset(page, 0xFF, sizeof(page));
@@ -270,8 +264,7 @@ static void case_last_step(void)
 		fake_flash_count_reset();
 		fake_flash_fail_after(at);
 
-		osk_result_t r = osk_store_update(g_id[1], NULL,
-						  (const uint8_t *)"LETZTE", 6);
+		osk_result_t r = osk_store_update(g_id[1], NULL, (const uint8_t *)"LETZTE", 6);
 		check_intact(S2, "LETZTE", 3, r);
 	}
 }

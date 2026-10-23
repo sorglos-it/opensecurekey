@@ -22,7 +22,7 @@ void fake_flash_free(void);
 
 /* Bank 0 oder 1. Jede ist ein eigenes Geraet. */
 void fake_flash_select(int bank);
-int  fake_flash_bank(void);
+int fake_flash_bank(void);
 
 /* Alles auf 0xFF, Zaehler zurueck. Nur die gewaehlte Bank. */
 void fake_flash_wipe(void);

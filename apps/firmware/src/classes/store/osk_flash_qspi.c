@@ -21,10 +21,10 @@
 #include <zephyr/storage/flash_map.h>
 #include "osk_vault_format.h"
 
-#define VAULT_NODE  vault_partition
-#define VAULT_OFF   FIXED_PARTITION_OFFSET(VAULT_NODE)
-#define VAULT_SIZE  FIXED_PARTITION_SIZE(VAULT_NODE)
-#define VAULT_DEV   FIXED_PARTITION_DEVICE(VAULT_NODE)
+#define VAULT_NODE vault_partition
+#define VAULT_OFF FIXED_PARTITION_OFFSET(VAULT_NODE)
+#define VAULT_SIZE FIXED_PARTITION_SIZE(VAULT_NODE)
+#define VAULT_DEV FIXED_PARTITION_DEVICE(VAULT_NODE)
 
 static const struct device *dev(void)
 {
@@ -61,8 +61,7 @@ osk_result_t osk_flash_geometry(osk_flash_geometry_t *out)
 		return OSK_ERR_IO;
 	}
 	out->size = VAULT_SIZE;
-	out->page_size = p->write_block_size < OSK_PAGE ? OSK_PAGE
-							: p->write_block_size;
+	out->page_size = p->write_block_size < OSK_PAGE ? OSK_PAGE : p->write_block_size;
 	/* Die Sektorgroesse steht nicht in den Parametern; sie kommt aus dem
 	 * Geraetebaum des Bausteins. Stimmt sie nicht, sagt der Tresor beim
 	 * Oeffnen OSK_ERR_UNSUPPORTED - und zwar bevor er etwas schreibt. */
@@ -80,8 +79,7 @@ osk_result_t osk_flash_read(uint32_t addr, void *buf, size_t len)
 	if (buf == NULL) {
 		return OSK_ERR_ARG;
 	}
-	return (flash_read(dev(), VAULT_OFF + addr, buf, len) == 0) ? OSK_OK
-								    : OSK_ERR_IO;
+	return (flash_read(dev(), VAULT_OFF + addr, buf, len) == 0) ? OSK_OK : OSK_ERR_IO;
 }
 
 osk_result_t osk_flash_program(uint32_t addr, const void *buf, size_t len)
@@ -94,8 +92,7 @@ osk_result_t osk_flash_program(uint32_t addr, const void *buf, size_t len)
 	if (buf == NULL || (addr % OSK_PAGE) != 0u || (len % OSK_PAGE) != 0u) {
 		return OSK_ERR_ARG;
 	}
-	return (flash_write(dev(), VAULT_OFF + addr, buf, len) == 0) ? OSK_OK
-								     : OSK_ERR_IO;
+	return (flash_write(dev(), VAULT_OFF + addr, buf, len) == 0) ? OSK_OK : OSK_ERR_IO;
 }
 
 osk_result_t osk_flash_erase(uint32_t addr, size_t len)
@@ -108,8 +105,7 @@ osk_result_t osk_flash_erase(uint32_t addr, size_t len)
 	if ((addr % OSK_SECTOR) != 0u || (len % OSK_SECTOR) != 0u) {
 		return OSK_ERR_ARG;
 	}
-	return (flash_erase(dev(), VAULT_OFF + addr, len) == 0) ? OSK_OK
-								: OSK_ERR_IO;
+	return (flash_erase(dev(), VAULT_OFF + addr, len) == 0) ? OSK_OK : OSK_ERR_IO;
 }
 
 osk_result_t osk_flash_sync(void)

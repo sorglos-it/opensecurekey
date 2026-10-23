@@ -52,8 +52,7 @@ static void to_a(void)
 	fake_flash_select(0);
 	t_use(1u, T_PIN);
 	T_OK(osk_store_open());
-	T_OK(osk_store_profile_unlock(0, (const uint8_t *)T_PIN,
-				      strlen(T_PIN)));
+	T_OK(osk_store_profile_unlock(0, (const uint8_t *)T_PIN, strlen(T_PIN)));
 }
 
 static void to_b(void)
@@ -62,15 +61,28 @@ static void to_b(void)
 	fake_flash_select(1);
 	t_use(2u, T_PIN2);
 	T_OK(osk_store_open());
-	T_OK(osk_store_profile_unlock(0, (const uint8_t *)T_PIN2,
-				      strlen(T_PIN2)));
+	T_OK(osk_store_profile_unlock(0, (const uint8_t *)T_PIN2, strlen(T_PIN2)));
 }
 
 /* A bekommt drei Eintraege, davon zwei spiegelbar. B bleibt leer. */
 static void build_pair(void)
 {
+	osk_item_meta_t meta;
+	uint8_t tag[OSK_TAG_MAX];
+
 	t_device(0, 1u, T_PIN);
-	T_OK(t_add(0, "Bank", "bank.example", "kennwort-eins", true, NULL));
+	T_OK(osk_crypto_sha256((const uint8_t *)"bank.example", 12, tag));
+	memset(&meta, 0, sizeof(meta));
+	meta.type = OSK_ITEM_LOGIN;
+	meta.profile = 0;
+	meta.name = "Bank";
+	meta.site = "bank.example";
+	meta.mirrored = true;
+	meta.tag_len = OSK_TAG_MAX;
+	memcpy(meta.tag, tag, OSK_TAG_MAX);
+	osk_item_id_t bank_id = 0;
+
+	T_OK(osk_store_add(&meta, (const uint8_t *)"kennwort-eins", 13, &bank_id));
 	T_OK(t_add(0, "Geheim", "intern.example", "bleibt-hier", false, NULL));
 	T_OK(t_add(0, "Post", "post.example", "kennwort-zwei", true, NULL));
 
@@ -141,6 +153,17 @@ static void case_happy(void)
 
 	T_TRUE(id != 0);
 	T_TRUE(t_secret_is(id, "kennwort-eins"));
+
+	/* Auch die Kennung zum Suchen ist mitgekommen. */
+	uint8_t tag[OSK_TAG_MAX];
+	osk_item_id_t tag_hits[4];
+	size_t tag_len = 0;
+
+	T_OK(osk_crypto_sha256((const uint8_t *)"bank.example", 12, tag));
+	T_OK(osk_store_find_tag(0, OSK_ITEM_LOGIN, tag, OSK_TAG_MAX, tag_hits, 4, &tag_len));
+	T_EQ(tag_len, 1);
+	T_EQ(tag_hits[0], id);
+
 	id = t_find_name(0, "Post");
 	T_TRUE(id != 0);
 	T_TRUE(t_secret_is(id, "kennwort-zwei"));
@@ -165,8 +188,7 @@ static void case_happy(void)
 	fake_flash_select(1);
 	t_use(2u, T_PIN2);
 	T_OK(osk_store_open());
-	T_OK(osk_store_profile_unlock(0, (const uint8_t *)T_PIN2,
-				      strlen(T_PIN2)));
+	T_OK(osk_store_profile_unlock(0, (const uint8_t *)T_PIN2, strlen(T_PIN2)));
 	T_EQ(t_count(0), 2);
 	T_TRUE(t_secret_is(t_find_name(0, "Bank"), "kennwort-eins"));
 
@@ -233,8 +255,7 @@ static void case_mitm(void)
 	to_a();
 	osk_transfer_end(&ta);
 	T_OK(osk_transfer_begin(&ta));
-	T_RES(osk_transfer_accept_peer(&ta, ta.own_pub, ta.own_pub_len),
-	      OSK_ERR_DENIED);
+	T_RES(osk_transfer_accept_peer(&ta, ta.own_pub, ta.own_pub_len), OSK_ERR_DENIED);
 	osk_transfer_end(&ta);
 	(void)len_b;
 	(void)pub_b;
@@ -300,7 +321,7 @@ static void case_damaged_wire(void)
 	to_a();
 	g_wire_len = 0;
 	T_OK(osk_transfer_send(&ta, sink, NULL, &sent));
-	g_wire_len -= 60u;   /* das Abschlussstueck fehlt */
+	g_wire_len -= 60u; /* das Abschlussstueck fehlt */
 
 	to_b();
 	g_wire_pos = 0;

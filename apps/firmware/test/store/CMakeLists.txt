@@ -32,6 +32,7 @@ add_executable(store_tests
 	fake_ui.c
 	test_util.c
 	test_core.c
+	test_tag.c
 	test_power.c
 	test_migrate.c
 	test_backup.c

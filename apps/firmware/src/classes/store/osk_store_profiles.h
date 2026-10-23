@@ -16,16 +16,14 @@
 #include "osk_result.h"
 #include "osk_store.h"
 
-#define OSK_PIN_MIN   6    /* Zeichen, nicht Ziffern */
-#define OSK_PIN_MAX  64
+#define OSK_PIN_MIN 6 /* Zeichen, nicht Ziffern */
+#define OSK_PIN_MAX 64
 
 /* Richtet ein Profil ein. Scheitert, wenn es schon eingerichtet ist. */
-osk_result_t osk_store_profile_create(uint8_t profile, const uint8_t *pin,
-				      size_t pin_len);
+osk_result_t osk_store_profile_create(uint8_t profile, const uint8_t *pin, size_t pin_len);
 
 /* Schliesst ein Profil auf. OSK_ERR_DENIED heisst: falsche PIN. */
-osk_result_t osk_store_profile_unlock(uint8_t profile, const uint8_t *pin,
-				      size_t pin_len);
+osk_result_t osk_store_profile_unlock(uint8_t profile, const uint8_t *pin, size_t pin_len);
 
 void osk_store_profile_lock(uint8_t profile);
 bool osk_store_profile_is_unlocked(uint8_t profile);

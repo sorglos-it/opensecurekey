@@ -38,8 +38,7 @@ uint32_t osk_crc32(const void *buf, size_t len)
 	return ~crc;
 }
 
-void osk_nonce_build(uint64_t counter, osk_nonce_purpose_t purpose,
-		     uint8_t out[OSK_NONCE_LEN])
+void osk_nonce_build(uint64_t counter, osk_nonce_purpose_t purpose, uint8_t out[OSK_NONCE_LEN])
 {
 	for (int i = 0; i < 8; i++) {
 		out[i] = (uint8_t)(counter >> (8 * i));
@@ -202,10 +201,10 @@ osk_result_t osk_hdr_format(uint16_t format)
 
 	memset(&g_state.hdr, 0, sizeof(g_state.hdr));
 	g_state.hdr.format = format;
-	g_state.hdr.nonce_next = 1u;   /* Nonce 0 wird nie benutzt */
+	g_state.hdr.nonce_next = 1u; /* Nonce 0 wird nie benutzt */
 	g_state.hdr.index_alloc = OSK_AREA_IDX_OFF;
 	g_state.hdr.blob_cursor = 0u;
-	g_state.hdr.item_next = 1u;    /* Kennung 0 heisst "kein Eintrag" */
+	g_state.hdr.item_next = 1u; /* Kennung 0 heisst "kein Eintrag" */
 	g_state.hdr.seq = 0u;
 	g_state.hdr_slot = 0u;
 	g_state.nonce_cur = 1u;
@@ -249,8 +248,7 @@ void osk_hdr_restore(const osk_hdr_t *snap)
 
 /* ---- Nonce ------------------------------------------------------------ */
 
-osk_result_t osk_nonce_take(osk_nonce_purpose_t purpose,
-			    uint8_t out[OSK_NONCE_LEN])
+osk_result_t osk_nonce_take(osk_nonce_purpose_t purpose, uint8_t out[OSK_NONCE_LEN])
 {
 	if (g_state.nonce_cur >= g_state.hdr.nonce_next) {
 		/* Vorrat erschoepft: neuen Bereich festhalten, bevor eine
@@ -284,8 +282,7 @@ osk_result_t osk_space_ensure_erased(uint32_t addr, uint32_t len)
 		bool clean = true;
 
 		for (uint32_t p = 0; p < OSK_SECTOR && clean; p += OSK_PAGE) {
-			osk_result_t r = osk_flash_read(addr + off + p, buf,
-							sizeof(buf));
+			osk_result_t r = osk_flash_read(addr + off + p, buf, sizeof(buf));
 			if (r != OSK_OK) {
 				return r;
 			}
@@ -320,15 +317,13 @@ static bool overlaps(uint32_t a, uint32_t alen, uint32_t b, uint32_t blen)
 
 osk_result_t osk_space_index_alloc(uint32_t len, uint32_t *addr_out)
 {
-	uint32_t need = (osk_round_page(len) + OSK_SECTOR - 1u) &
-			~(OSK_SECTOR - 1u);
+	uint32_t need = (osk_round_page(len) + OSK_SECTOR - 1u) & ~(OSK_SECTOR - 1u);
 	uint32_t start = g_state.hdr.index_alloc;
 
 	if (need == 0u || need > OSK_AREA_IDX_LEN) {
 		return OSK_ERR_ARG;
 	}
-	if (start < OSK_AREA_IDX_OFF ||
-	    start >= OSK_AREA_IDX_OFF + OSK_AREA_IDX_LEN) {
+	if (start < OSK_AREA_IDX_OFF || start >= OSK_AREA_IDX_OFF + OSK_AREA_IDX_LEN) {
 		start = OSK_AREA_IDX_OFF;
 	}
 	start &= ~(OSK_SECTOR - 1u);
@@ -350,15 +345,13 @@ osk_result_t osk_space_index_alloc(uint32_t len, uint32_t *addr_out)
 				continue;
 			}
 			if (overlaps(start, need, root,
-				     g_state.hdr.index_len[p] == 0u
-					     ? OSK_SECTOR
-					     : g_state.hdr.index_len[p])) {
+				     g_state.hdr.index_len[p] == 0u ? OSK_SECTOR
+								    : g_state.hdr.index_len[p])) {
 				blocked = true;
 				/* hinter die gueltige Fassung springen */
 				uint32_t end = root + g_state.hdr.index_len[p];
 
-				start = (end + OSK_SECTOR - 1u) &
-					~(OSK_SECTOR - 1u);
+				start = (end + OSK_SECTOR - 1u) & ~(OSK_SECTOR - 1u);
 				break;
 			}
 		}
@@ -393,8 +386,7 @@ void osk_space_slot_set(uint32_t slot, bool used)
 	if (used) {
 		g_state.hdr.slot_used[slot / 8u] |= (uint8_t)(1u << (slot % 8u));
 	} else {
-		g_state.hdr.slot_used[slot / 8u] &=
-			(uint8_t)~(1u << (slot % 8u));
+		g_state.hdr.slot_used[slot / 8u] &= (uint8_t)~(1u << (slot % 8u));
 	}
 }
 

@@ -27,8 +27,7 @@ static void case_split_combine(void)
 	for (int a = 0; a < 5; a++) {
 		for (int b = a + 1; b < 5; b++) {
 			for (int c = b + 1; c < 5; c++) {
-				osk_share_t pick[3] = { shares[a], shares[b],
-							shares[c] };
+				osk_share_t pick[3] = {shares[a], shares[b], shares[c]};
 
 				T_OK(osk_shamir_combine(pick, 3u, back));
 				T_MEM(back, secret, OSK_SHARE_SECRET);
@@ -45,12 +44,12 @@ static void case_split_combine(void)
 	T_RES(osk_shamir_combine(shares, 2u, back), OSK_ERR_DENIED);
 
 	osk_test_case("Derselbe Umschlag zweimal ist kein zweiter Teil");
-	osk_share_t twice[3] = { shares[0], shares[0], shares[1] };
+	osk_share_t twice[3] = {shares[0], shares[0], shares[1]};
 
 	T_RES(osk_shamir_combine(twice, 3u, back), OSK_ERR_ARG);
 
 	osk_test_case("Ein falscher Teil wird erkannt, nicht geraten");
-	osk_share_t broken[3] = { shares[0], shares[1], shares[2] };
+	osk_share_t broken[3] = {shares[0], shares[1], shares[2]};
 
 	broken[1].y[7] ^= 0x40u;
 	T_RES(osk_shamir_combine(broken, 3u, back), OSK_ERR_DENIED);
@@ -68,8 +67,7 @@ static void case_split_combine(void)
 	osk_test_case("Unsinnige Vorgaben werden abgelehnt");
 	T_RES(osk_shamir_split(secret, 1u, 3u, shares), OSK_ERR_ARG);
 	T_RES(osk_shamir_split(secret, 4u, 3u, shares), OSK_ERR_ARG);
-	T_RES(osk_shamir_split(secret, 2u, OSK_SHARE_MAX_N + 1u, shares),
-	      OSK_ERR_ARG);
+	T_RES(osk_shamir_split(secret, 2u, OSK_SHARE_MAX_N + 1u, shares), OSK_ERR_ARG);
 }
 
 static void case_text(void)
@@ -88,9 +86,8 @@ static void case_text(void)
 	T_TRUE(strlen(text) > 70u);
 	T_TRUE(strncmp(text, "OSK1-", 5) == 0);
 	for (const char *p = text; *p != '\0'; p++) {
-		bool ok = (*p >= '0' && *p <= '9') ||
-			  (*p >= 'A' && *p <= 'F') || *p == '-' || *p == 'O' ||
-			  *p == 'S' || *p == 'K';
+		bool ok = (*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || *p == '-' ||
+			  *p == 'O' || *p == 'S' || *p == 'K';
 
 		T_TRUE(ok);
 	}
@@ -142,8 +139,7 @@ static void case_text(void)
 
 	osk_test_case("Kein Umschlag, nur Text: abgelehnt");
 	T_RES(osk_shamir_share_parse("hallo welt", &again), OSK_ERR_FORMAT);
-	T_RES(osk_shamir_share_parse("OSK1-2-3-01-XYZ", &again),
-	      OSK_ERR_FORMAT);
+	T_RES(osk_shamir_share_parse("OSK1-2-3-01-XYZ", &again), OSK_ERR_FORMAT);
 }
 
 void test_shamir(void)

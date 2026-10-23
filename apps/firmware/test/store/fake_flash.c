@@ -19,7 +19,7 @@ static int g_cur;
 static uint32_t g_writes;
 static uint32_t g_fail_after;
 static bool g_dead;
-static bool g_torn;   /* der eine zerrissene Vorgang ist schon passiert */
+static bool g_torn; /* der eine zerrissene Vorgang ist schon passiert */
 
 void fake_flash_init(void)
 {
@@ -180,8 +180,8 @@ static bool spend_write(void)
 
 osk_result_t osk_flash_program(uint32_t addr, const void *buf, size_t len)
 {
-	if (buf == NULL || (uint64_t)addr + len > OSK_VAULT_SIZE ||
-	    (addr % OSK_PAGE) != 0u || (len % OSK_PAGE) != 0u) {
+	if (buf == NULL || (uint64_t)addr + len > OSK_VAULT_SIZE || (addr % OSK_PAGE) != 0u ||
+	    (len % OSK_PAGE) != 0u) {
 		return OSK_ERR_ARG;
 	}
 	if (!spend_write()) {
@@ -193,8 +193,7 @@ osk_result_t osk_flash_program(uint32_t addr, const void *buf, size_t len)
 			size_t half = len / 2u;
 
 			for (size_t i = 0; i < half; i++) {
-				g_bank[g_cur].mem[addr + i] &=
-					((const uint8_t *)buf)[i];
+				g_bank[g_cur].mem[addr + i] &= ((const uint8_t *)buf)[i];
 			}
 		}
 		return OSK_ERR_IO;
@@ -208,8 +207,8 @@ osk_result_t osk_flash_program(uint32_t addr, const void *buf, size_t len)
 
 osk_result_t osk_flash_erase(uint32_t addr, size_t len)
 {
-	if ((uint64_t)addr + len > OSK_VAULT_SIZE ||
-	    (addr % OSK_SECTOR) != 0u || (len % OSK_SECTOR) != 0u) {
+	if ((uint64_t)addr + len > OSK_VAULT_SIZE || (addr % OSK_SECTOR) != 0u ||
+	    (len % OSK_SECTOR) != 0u) {
 		return OSK_ERR_ARG;
 	}
 	if (!spend_write()) {

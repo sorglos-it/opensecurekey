@@ -38,8 +38,7 @@ static void case_profiles(void)
 	/* Zweites Profil mit eigener PIN. Die PIN des Chips ist dieselbe -
 	 * getrennt sind die Schluessel. */
 	fake_se050_set_pin(T_PIN2);
-	T_OK(osk_store_profile_create(1, (const uint8_t *)T_PIN2,
-				      strlen(T_PIN2)));
+	T_OK(osk_store_profile_create(1, (const uint8_t *)T_PIN2, strlen(T_PIN2)));
 	T_OK(t_add(1, "zweites", "b.example", "geheim-b", false, NULL));
 	fake_se050_set_pin(T_PIN);
 	T_OK(t_add(0, "erstes", "a.example", "geheim-a", false, NULL));
@@ -57,20 +56,16 @@ static void case_profiles(void)
 	fake_se050_set_pin(T_PIN);
 	/* Die PIN des Chips stimmt, der abgeleitete Schluessel aber nicht -
 	 * der Pruefwert der Verschluesselung schlaegt an. */
-	T_RES(osk_store_profile_unlock(1, (const uint8_t *)T_PIN,
-				       strlen(T_PIN)),
-	      OSK_ERR_DENIED);
+	T_RES(osk_store_profile_unlock(1, (const uint8_t *)T_PIN, strlen(T_PIN)), OSK_ERR_DENIED);
 
 	osk_test_case("Falsche PIN wird vom Chip gezaehlt");
 	uint8_t before = fake_se050_tries_left();
 
-	T_RES(osk_store_profile_unlock(0, (const uint8_t *)"falschfalsch", 12),
-	      OSK_ERR_DENIED);
+	T_RES(osk_store_profile_unlock(0, (const uint8_t *)"falschfalsch", 12), OSK_ERR_DENIED);
 	T_EQ(fake_se050_tries_left(), before - 1u);
 
 	osk_test_case("Zu kurze PIN wird abgelehnt");
-	T_RES(osk_store_profile_create(2, (const uint8_t *)"12345", 5),
-	      OSK_ERR_ARG);
+	T_RES(osk_store_profile_create(2, (const uint8_t *)"12345", 5), OSK_ERR_ARG);
 }
 
 static void case_items(void)
@@ -79,10 +74,8 @@ static void case_items(void)
 
 	osk_test_case("Anlegen, auflisten, suchen");
 	t_device(0, 1u, T_PIN);
-	T_OK(t_add(0, "Bank", "login.bank.example", "kennwort-eins", true,
-		   &id1));
-	T_OK(t_add(0, "Post", "mail.post.example", "kennwort-zwei", false,
-		   &id2));
+	T_OK(t_add(0, "Bank", "login.bank.example", "kennwort-eins", true, &id1));
+	T_OK(t_add(0, "Post", "mail.post.example", "kennwort-zwei", false, &id2));
 	T_EQ(t_count(0), 2);
 	T_TRUE(id1 != id2);
 	T_TRUE(id1 != 0 && id2 != 0);
@@ -113,8 +106,7 @@ static void case_items(void)
 	T_TRUE(t_secret_is(id2, "kennwort-zwei"));
 
 	osk_test_case("Aendern laesst das andere Geheimnis in Ruhe");
-	T_OK(osk_store_update(id1, NULL, (const uint8_t *)"neues-kennwort",
-			      14));
+	T_OK(osk_store_update(id1, NULL, (const uint8_t *)"neues-kennwort", 14));
 	T_TRUE(t_secret_is(id1, "neues-kennwort"));
 	T_TRUE(t_secret_is(id2, "kennwort-zwei"));
 
@@ -131,8 +123,7 @@ static void case_items(void)
 	uint8_t buf[64];
 	size_t got = 0;
 
-	T_RES(osk_store_reveal(id2, "test", buf, sizeof(buf), &got),
-	      OSK_ERR_NOT_FOUND);
+	T_RES(osk_store_reveal(id2, "test", buf, sizeof(buf), &got), OSK_ERR_NOT_FOUND);
 
 	osk_test_case("Eine Kennung wird nie wieder vergeben");
 	osk_item_id_t id3 = 0;
@@ -148,8 +139,7 @@ static void case_readonly(void)
 
 	osk_test_case("Schreibgeschuetzt heisst nicht aenderbar");
 	t_device(0, 1u, T_PIN);
-	T_OK(t_add(0, "Firmenschluessel", "vpn.example", "unantastbar", false,
-		   &id));
+	T_OK(t_add(0, "Firmenschluessel", "vpn.example", "unantastbar", false, &id));
 	T_OK(osk_store_item_set_readonly(id, true));
 
 	uint8_t flags = 0;
@@ -157,8 +147,7 @@ static void case_readonly(void)
 	T_OK(osk_store_item_flags(id, &flags));
 	T_TRUE((flags & OSK_FLAG_READONLY) != 0u);
 
-	T_RES(osk_store_update(id, NULL, (const uint8_t *)"anders", 6),
-	      OSK_ERR_DENIED);
+	T_RES(osk_store_update(id, NULL, (const uint8_t *)"anders", 6), OSK_ERR_DENIED);
 	T_RES(osk_store_delete(id), OSK_ERR_DENIED);
 	T_TRUE(t_secret_is(id, "unantastbar"));
 
@@ -206,8 +195,7 @@ static void case_reveal(void)
 	fake_ui_answer(false);
 	memset(buf, 0xAA, sizeof(buf));
 	len = 12345u;
-	T_RES(osk_store_reveal(id, "firefox", buf, sizeof(buf), &len),
-	      OSK_ERR_DENIED);
+	T_RES(osk_store_reveal(id, "firefox", buf, sizeof(buf), &len), OSK_ERR_DENIED);
 	T_EQ(len, 0);
 	T_EQ(fake_ui_asks(), 1);
 	/* Der Puffer bleibt unberuehrt - kein gekuerztes Geheimnis. */
@@ -257,8 +245,7 @@ static void case_reveal(void)
 
 	osk_test_case("Auch die Ablehnung steht im Protokoll");
 	fake_ui_answer(false);
-	T_RES(osk_store_reveal(id, "schadcode", buf, sizeof(buf), &len),
-	      OSK_ERR_DENIED);
+	T_RES(osk_store_reveal(id, "schadcode", buf, sizeof(buf), &len), OSK_ERR_DENIED);
 	T_OK(osk_log_get(0, &e));
 	T_EQ(e.what, OSK_LOG_REVEAL_DENY);
 	T_STR(e.asked_by, "schadcode");
@@ -316,8 +303,7 @@ static void case_nonce(void)
 		char secret[32];
 
 		snprintf(secret, sizeof(secret), "kennwort-%d", i);
-		T_OK(osk_store_update(id, NULL, (const uint8_t *)secret,
-				      strlen(secret)));
+		T_OK(osk_store_update(id, NULL, (const uint8_t *)secret, strlen(secret)));
 	}
 	T_TRUE(fake_crypto_nonce_count() > 100);
 	T_EQ(fake_crypto_nonce_dups(), 0);
@@ -338,8 +324,7 @@ static void case_nonce(void)
 		char secret[32];
 
 		snprintf(secret, sizeof(secret), "nach-neustart-%d", i);
-		T_OK(osk_store_update(id, NULL, (const uint8_t *)secret,
-				      strlen(secret)));
+		T_OK(osk_store_update(id, NULL, (const uint8_t *)secret, strlen(secret)));
 		t_reboot();
 	}
 	T_EQ(fake_crypto_nonce_dups(), 0);
@@ -359,8 +344,7 @@ static void case_limits(void)
 		T_OK(t_add(0, name, "x.example", "geheim", false, NULL));
 	}
 	T_EQ(t_count(0), OSK_ITEMS_MAX);
-	T_RES(t_add(0, "einer-zuviel", "x.example", "geheim", false, NULL),
-	      OSK_ERR_FULL);
+	T_RES(t_add(0, "einer-zuviel", "x.example", "geheim", false, NULL), OSK_ERR_FULL);
 
 	osk_test_case("Zu langes Geheimnis wird abgelehnt");
 	static uint8_t big[OSK_SECRET_MAX + 1];

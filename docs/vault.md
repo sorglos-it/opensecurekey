@@ -34,7 +34,19 @@ profile shows nothing at all — not even how its entries are called.
 
 **A firmware update does not lose data.** The vault says which version it is,
 and an older one is read as it is and rewritten as you go. Nothing has to be
-exported and imported.
+exported and imported. A vault from a *newer* firmware is not opened at all
+rather than read wrongly.
+
+## Finding without opening
+
+Some entries carry a short mark that says which service they belong to. The
+device can look through those marks without decrypting anything and without
+asking you — that is what makes a passkey login quick even with hundreds of
+entries.
+
+The mark is stored encrypted like everything else, so somebody who reads the
+chip cannot see which services you have an account with. Only the device itself,
+after your PIN or your finger, can look through them.
 
 ## Entry types
 

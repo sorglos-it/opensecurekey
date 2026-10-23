@@ -20,28 +20,29 @@ static const char INFO_CMP[] = "osk/transfer/1/compare";
  * Kennung, denn die gehoert zum alten Geraet. */
 typedef struct {
 	uint16_t type;
-	uint8_t  profile;
-	uint8_t  flags;
+	uint8_t profile;
+	uint8_t flags;
 	uint64_t changed_utc;
 	uint64_t counter;
 	uint32_t secret_len;
-	char     name[64];
-	char     site[128];
+	uint8_t tag[OSK_TAG_MAX];
+	uint8_t tag_len;
+	uint8_t pad[3];
+	char name[64];
+	char site[128];
 } osk_transfer_item_t;
 
-OSK_STATIC_ASSERT(sizeof(osk_transfer_item_t) <= OSK_CHUNK_ITEM_HEAD,
-		  transfer_item_fits);
+OSK_STATIC_ASSERT(sizeof(osk_transfer_item_t) <= OSK_CHUNK_ITEM_HEAD, transfer_item_fits);
 
 /* ---- Schluessel und Vergleichszahl ------------------------------------ */
 
 /* Beide Seiten muessen dieselben Zahlen bekommen, obwohl jede ihren eigenen
  * Schluessel "zuerst" hat. Darum werden die beiden oeffentlichen Teile nach
  * ihren Bytes sortiert, bevor sie eingerechnet werden. */
-static void sorted_pubs(const osk_transfer_t *t, const uint8_t **lo,
-			size_t *lo_len, const uint8_t **hi, size_t *hi_len)
+static void sorted_pubs(const osk_transfer_t *t, const uint8_t **lo, size_t *lo_len,
+			const uint8_t **hi, size_t *hi_len)
 {
-	size_t n = (t->own_pub_len < t->peer_pub_len) ? t->own_pub_len
-						     : t->peer_pub_len;
+	size_t n = (t->own_pub_len < t->peer_pub_len) ? t->own_pub_len : t->peer_pub_len;
 	int cmp = memcmp(t->own_pub, t->peer_pub, n);
 
 	if (cmp == 0) {
@@ -63,9 +64,8 @@ static void sorted_pubs(const osk_transfer_t *t, const uint8_t **lo,
 /* Der Mitschnitt der Verhandlung: beide oeffentlichen Teile, sortiert. Er
  * geht in den Schluessel UND in die Vergleichszahl ein. Nur deshalb beweist
  * die Zahl auf der Anzeige, dass beide Seiten denselben Partner haben. */
-static osk_result_t transcript(const osk_transfer_t *t, const char *info,
-			       size_t info_len, uint8_t *out, size_t out_len,
-			       const uint8_t *ikm, size_t ikm_len)
+static osk_result_t transcript(const osk_transfer_t *t, const char *info, size_t info_len,
+			       uint8_t *out, size_t out_len, const uint8_t *ikm, size_t ikm_len)
 {
 	uint8_t buf[64u + 2u * OSK_TRANSFER_PUB_MAX];
 	const uint8_t *lo, *hi;
@@ -82,8 +82,7 @@ static osk_result_t transcript(const osk_transfer_t *t, const char *info,
 	memcpy(buf + pos, hi, hi_len);
 	pos += hi_len;
 
-	osk_result_t r = osk_crypto_hkdf(ikm, ikm_len, NULL, 0, buf, pos, out,
-					 out_len);
+	osk_result_t r = osk_crypto_hkdf(ikm, ikm_len, NULL, 0, buf, pos, out, out_len);
 
 	osk_crypto_wipe(buf, sizeof(buf));
 	return r;
@@ -93,7 +92,7 @@ static osk_result_t transcript(const osk_transfer_t *t, const char *info,
 
 osk_result_t osk_transfer_begin(osk_transfer_t *t)
 {
-	osk_key_policy_t policy = { .exportable = false, .needs_touch = false };
+	osk_key_policy_t policy = {.exportable = false, .needs_touch = false};
 	osk_result_t r;
 
 	if (t == NULL) {
@@ -111,24 +110,22 @@ osk_result_t osk_transfer_begin(osk_transfer_t *t)
 	if (r != OSK_OK) {
 		return r;
 	}
-	return osk_se050_key_public(OSK_KEYID_TRANSFER, t->own_pub,
-				    sizeof(t->own_pub), &t->own_pub_len);
+	return osk_se050_key_public(OSK_KEYID_TRANSFER, t->own_pub, sizeof(t->own_pub),
+				    &t->own_pub_len);
 }
 
-osk_result_t osk_transfer_accept_peer(osk_transfer_t *t, const uint8_t *peer_pub,
-				      size_t peer_len)
+osk_result_t osk_transfer_accept_peer(osk_transfer_t *t, const uint8_t *peer_pub, size_t peer_len)
 {
 	uint8_t shared[OSK_TRANSFER_PUB_MAX];
 	size_t shared_len = 0;
 	uint8_t cmp[4];
 	osk_result_t r;
 
-	if (t == NULL || peer_pub == NULL || peer_len == 0u ||
-	    peer_len > sizeof(t->peer_pub) || t->own_pub_len == 0u) {
+	if (t == NULL || peer_pub == NULL || peer_len == 0u || peer_len > sizeof(t->peer_pub) ||
+	    t->own_pub_len == 0u) {
 		return OSK_ERR_ARG;
 	}
-	if (peer_len == t->own_pub_len &&
-	    memcmp(peer_pub, t->own_pub, peer_len) == 0) {
+	if (peer_len == t->own_pub_len && memcmp(peer_pub, t->own_pub, peer_len) == 0) {
 		/* Der eigene oeffentliche Teil zurueckgespiegelt: so wuerde ein
 		 * Rechner in der Mitte versuchen, beide Seiten mit sich selbst
 		 * reden zu lassen. */
@@ -137,17 +134,17 @@ osk_result_t osk_transfer_accept_peer(osk_transfer_t *t, const uint8_t *peer_pub
 	memcpy(t->peer_pub, peer_pub, peer_len);
 	t->peer_pub_len = peer_len;
 
-	r = osk_se050_ecdh(OSK_KEYID_TRANSFER, peer_pub, peer_len, shared,
-			   sizeof(shared), &shared_len);
+	r = osk_se050_ecdh(OSK_KEYID_TRANSFER, peer_pub, peer_len, shared, sizeof(shared),
+			   &shared_len);
 	if (r != OSK_OK) {
 		return r;
 	}
 
-	r = transcript(t, INFO_KEY, sizeof(INFO_KEY) - 1, t->key.b,
-		       sizeof(t->key.b), shared, shared_len);
+	r = transcript(t, INFO_KEY, sizeof(INFO_KEY) - 1, t->key.b, sizeof(t->key.b), shared,
+		       shared_len);
 	if (r == OSK_OK) {
-		r = transcript(t, INFO_CMP, sizeof(INFO_CMP) - 1, cmp,
-			       sizeof(cmp), shared, shared_len);
+		r = transcript(t, INFO_CMP, sizeof(INFO_CMP) - 1, cmp, sizeof(cmp), shared,
+			       shared_len);
 	}
 	osk_crypto_wipe(shared, sizeof(shared));
 	if (r != OSK_OK) {
@@ -158,8 +155,8 @@ osk_result_t osk_transfer_accept_peer(osk_transfer_t *t, const uint8_t *peer_pub
 	/* Sechs Stellen aus den ersten vier Byte. Mehr Stellen liest niemand
 	 * zuverlaessig ab, weniger waeren zu leicht zu treffen: eine Faelschung
 	 * muss 1 zu 1 000 000 raten, und zwar bei laufender Anzeige. */
-	uint32_t v = ((uint32_t)cmp[0] << 24) | ((uint32_t)cmp[1] << 16) |
-		     ((uint32_t)cmp[2] << 8) | (uint32_t)cmp[3];
+	uint32_t v = ((uint32_t)cmp[0] << 24) | ((uint32_t)cmp[1] << 16) | ((uint32_t)cmp[2] << 8) |
+		     (uint32_t)cmp[3];
 
 	v %= 1000000u;
 	for (int i = (int)OSK_TRANSFER_DIGITS - 1; i >= 0; i--) {
@@ -170,11 +167,11 @@ osk_result_t osk_transfer_accept_peer(osk_transfer_t *t, const uint8_t *peer_pub
 	osk_crypto_wipe(cmp, sizeof(cmp));
 
 	osk_ask_req_t req = {
-		.kind = OSK_ASK_PAIR,
-		.subject = "pair",
-		.detail = t->digits,
-		.asked_by = NULL,
-		.timeout_ms = 60000u,
+	    .kind = OSK_ASK_PAIR,
+	    .subject = "pair",
+	    .detail = t->digits,
+	    .asked_by = NULL,
+	    .timeout_ms = 60000u,
 	};
 
 	r = osk_ui_confirm(&req);
@@ -200,8 +197,7 @@ void osk_transfer_end(osk_transfer_t *t)
 /* Die zusaetzlichen Daten jedes Stuecks: Fassung und beide oeffentlichen
  * Teile, sortiert. Ein Stueck aus einer anderen Uebertragung passt damit
  * nicht. */
-static void transfer_aad(const osk_transfer_t *t, uint8_t *out, size_t cap,
-			 size_t *len_out)
+static void transfer_aad(const osk_transfer_t *t, uint8_t *out, size_t cap, size_t *len_out)
 {
 	const uint8_t *lo, *hi;
 	size_t lo_len, hi_len, pos = 0;
@@ -219,8 +215,8 @@ static void transfer_aad(const osk_transfer_t *t, uint8_t *out, size_t cap,
 	*len_out = pos;
 }
 
-osk_result_t osk_transfer_send(osk_transfer_t *t, osk_chunk_sink_fn sink,
-			       void *ctx, size_t *sent_items)
+osk_result_t osk_transfer_send(osk_transfer_t *t, osk_chunk_sink_fn sink, void *ctx,
+			       size_t *sent_items)
 {
 	osk_store_state_t *st = osk_store_state();
 	uint8_t aad[1u + 2u * OSK_TRANSFER_PUB_MAX];
@@ -267,8 +263,7 @@ osk_result_t osk_transfer_send(osk_transfer_t *t, osk_chunk_sink_fn sink,
 			memset(plain, 0, OSK_CHUNK_PLAIN_MAX);
 			plain[0] = (uint8_t)OSK_CHUNK_ITEM;
 
-			r = osk_blob_read(rec, &st->key_profile[p],
-					  plain + 4u + sizeof(item),
+			r = osk_blob_read(rec, &st->key_profile[p], plain + 4u + sizeof(item),
 					  OSK_SECRET_MAX, &secret_len);
 			if (r != OSK_OK) {
 				break;
@@ -280,14 +275,14 @@ osk_result_t osk_transfer_send(osk_transfer_t *t, osk_chunk_sink_fn sink,
 			item.changed_utc = rec->changed_utc;
 			item.counter = rec->counter;
 			item.secret_len = (uint32_t)secret_len;
+			item.tag_len = rec->tag_len;
+			memcpy(item.tag, rec->tag, sizeof(item.tag));
 			memcpy(item.name, rec->name, sizeof(item.name));
 			memcpy(item.site, rec->site, sizeof(item.site));
 			memcpy(plain + 4u, &item, sizeof(item));
 
-			r = osk_chunk_put(aad, aad_len, &t->key, t->seq,
-					  OSK_NONCE_TRANSFER,
-					  4u + sizeof(item) + secret_len, sink,
-					  ctx, h);
+			r = osk_chunk_put(aad, aad_len, &t->key, t->seq, OSK_NONCE_TRANSFER,
+					  4u + sizeof(item) + secret_len, sink, ctx, h);
 			osk_crypto_wipe(&item, sizeof(item));
 			t->seq++;
 			count++;
@@ -303,9 +298,8 @@ osk_result_t osk_transfer_send(osk_transfer_t *t, osk_chunk_sink_fn sink,
 			plain[4 + i] = (uint8_t)(c >> (8 * i));
 		}
 		memcpy(plain + 8u, h, OSK_HASH_LEN);
-		r = osk_chunk_put(aad, aad_len, &t->key, t->seq,
-				  OSK_NONCE_TRANSFER, 8u + OSK_HASH_LEN, sink,
-				  ctx, h);
+		r = osk_chunk_put(aad, aad_len, &t->key, t->seq, OSK_NONCE_TRANSFER,
+				  8u + OSK_HASH_LEN, sink, ctx, h);
 		t->seq++;
 	}
 	osk_chunk_wipe();
@@ -317,8 +311,8 @@ osk_result_t osk_transfer_send(osk_transfer_t *t, osk_chunk_sink_fn sink,
 	return OSK_OK;
 }
 
-osk_result_t osk_transfer_receive(osk_transfer_t *t, osk_chunk_src_fn src,
-				  void *ctx, size_t *got_items)
+osk_result_t osk_transfer_receive(osk_transfer_t *t, osk_chunk_src_fn src, void *ctx,
+				  size_t *got_items)
 {
 	uint8_t aad[1u + 2u * OSK_TRANSFER_PUB_MAX];
 	size_t aad_len = 0;
@@ -344,8 +338,8 @@ osk_result_t osk_transfer_receive(osk_transfer_t *t, osk_chunk_src_fn src,
 		size_t plain_len = 0;
 
 		memcpy(h_before, h, sizeof(h));
-		r = osk_chunk_get(aad, aad_len, &t->key, t->seq,
-				  OSK_NONCE_TRANSFER, src, ctx, &plain_len, h);
+		r = osk_chunk_get(aad, aad_len, &t->key, t->seq, OSK_NONCE_TRANSFER, src, ctx,
+				  &plain_len, h);
 		if (r != OSK_OK) {
 			break;
 		}
@@ -365,8 +359,7 @@ osk_result_t osk_transfer_receive(osk_transfer_t *t, osk_chunk_src_fn src,
 				want = (want << 8) | plain[4 + i];
 			}
 			if (want != (uint32_t)count ||
-			    !osk_crypto_equal(plain + 8u, h_before,
-					      OSK_HASH_LEN)) {
+			    !osk_crypto_equal(plain + 8u, h_before, OSK_HASH_LEN)) {
 				r = OSK_ERR_FORMAT;
 			}
 			break;
@@ -403,13 +396,18 @@ osk_result_t osk_transfer_receive(osk_transfer_t *t, osk_chunk_src_fn src,
 		meta.profile = item.profile;
 		meta.name = item.name;
 		meta.site = item.site;
-		meta.mirrored = true;   /* es kam ueber die Spiegelung */
+		meta.mirrored = true; /* es kam ueber die Spiegelung */
 		meta.paired_host_only = (item.flags & OSK_FLAG_PAIRED_ONLY) != 0u;
+		if (item.tag_len > OSK_TAG_MAX) {
+			r = OSK_ERR_FORMAT;
+			break;
+		}
+		meta.tag_len = item.tag_len;
+		memcpy(meta.tag, item.tag, sizeof(meta.tag));
 
 		osk_item_id_t new_id = 0;
 
-		r = osk_store_add(&meta, plain + 4u + sizeof(item),
-				  item.secret_len, &new_id);
+		r = osk_store_add(&meta, plain + 4u + sizeof(item), item.secret_len, &new_id);
 		osk_crypto_wipe(&item, sizeof(item));
 		if (r != OSK_OK) {
 			break;

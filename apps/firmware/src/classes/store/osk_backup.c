@@ -13,8 +13,7 @@
 #include "osk_backup.h"
 #include "osk_ui.h"
 
-OSK_STATIC_ASSERT(sizeof(osk_backup_item_t) <= OSK_CHUNK_ITEM_HEAD,
-		  backup_item_fits);
+OSK_STATIC_ASSERT(sizeof(osk_backup_item_t) <= OSK_CHUNK_ITEM_HEAD, backup_item_fits);
 OSK_STATIC_ASSERT(sizeof(osk_backup_head_t) == 52, backup_head_52);
 
 /* ---- Kennwort --------------------------------------------------------- */
@@ -80,14 +79,13 @@ static uint32_t head_crc(const osk_backup_head_t *h)
 	return osk_crc32(h, sizeof(*h) - sizeof(h->crc32));
 }
 
-static osk_result_t derive_file_key(const osk_backup_head_t *head,
-				    const char *pass, size_t pass_len,
-				    osk_key_t *out)
+static osk_result_t derive_file_key(const osk_backup_head_t *head, const char *pass,
+				    size_t pass_len, osk_key_t *out)
 {
 	osk_argon2_params_t p = {
-		.m_cost_kib = head->m_cost_kib,
-		.t_cost = head->t_cost,
-		.lanes = head->lanes,
+	    .m_cost_kib = head->m_cost_kib,
+	    .t_cost = head->t_cost,
+	    .lanes = head->lanes,
 	};
 
 	if (p.m_cost_kib == 0u || p.t_cost == 0u || p.lanes == 0u) {
@@ -99,22 +97,18 @@ static osk_result_t derive_file_key(const osk_backup_head_t *head,
 		 * Auskunft als ein Absturz mangels RAM. */
 		return OSK_ERR_UNSUPPORTED;
 	}
-	return osk_crypto_argon2id(&p, pass, pass_len, head->salt, out->b,
-				   sizeof(out->b));
+	return osk_crypto_argon2id(&p, pass, pass_len, head->salt, out->b, sizeof(out->b));
 }
 
-static osk_result_t read_head(osk_backup_src_fn src, void *ctx,
-			      osk_backup_head_t *head)
+static osk_result_t read_head(osk_backup_src_fn src, void *ctx, osk_backup_head_t *head)
 {
 	osk_result_t r = src(ctx, (uint8_t *)head, sizeof(*head));
 
 	if (r != OSK_OK) {
 		return r;
 	}
-	if (head->magic0 != OSK_BACKUP_MAGIC0 ||
-	    head->magic1 != OSK_BACKUP_MAGIC1 ||
-	    head->file_format != OSK_BACKUP_FILE_FMT ||
-	    head->crc32 != head_crc(head)) {
+	if (head->magic0 != OSK_BACKUP_MAGIC0 || head->magic1 != OSK_BACKUP_MAGIC1 ||
+	    head->file_format != OSK_BACKUP_FILE_FMT || head->crc32 != head_crc(head)) {
 		return OSK_ERR_FORMAT;
 	}
 	if (head->vault_format > OSK_FMT_CURRENT) {
@@ -127,11 +121,11 @@ static osk_result_t read_head(osk_backup_src_fn src, void *ctx,
 static osk_result_t ask(const char *what)
 {
 	osk_ask_req_t req = {
-		.kind = OSK_ASK_PAIR,
-		.subject = what,
-		.detail = NULL,
-		.asked_by = NULL,
-		.timeout_ms = 60000u,
+	    .kind = OSK_ASK_PAIR,
+	    .subject = what,
+	    .detail = NULL,
+	    .asked_by = NULL,
+	    .timeout_ms = 60000u,
 	};
 	osk_result_t r = osk_ui_confirm(&req);
 
@@ -143,10 +137,9 @@ static osk_result_t ask(const char *what)
 
 /* ---- Schreiben -------------------------------------------------------- */
 
-osk_result_t osk_backup_write(const char *pass, size_t pass_len,
-			      const osk_argon2_params_t *params,
-			      osk_backup_sink_fn sink, void *ctx,
-			      size_t *written_items, osk_key_t *key_out)
+osk_result_t osk_backup_write(const char *pass, size_t pass_len, const osk_argon2_params_t *params,
+			      osk_backup_sink_fn sink, void *ctx, size_t *written_items,
+			      osk_key_t *key_out)
 {
 	osk_store_state_t *st = osk_store_state();
 	osk_backup_head_t head;
@@ -180,8 +173,7 @@ osk_result_t osk_backup_write(const char *pass, size_t pass_len,
 	head.magic1 = OSK_BACKUP_MAGIC1;
 	head.file_format = OSK_BACKUP_FILE_FMT;
 	head.vault_format = OSK_FMT_CURRENT;
-	head.m_cost_kib = (params != NULL) ? params->m_cost_kib
-					   : OSK_ARGON2_DEV_MEM_KIB;
+	head.m_cost_kib = (params != NULL) ? params->m_cost_kib : OSK_ARGON2_DEV_MEM_KIB;
 	head.t_cost = (params != NULL) ? params->t_cost : OSK_ARGON2_DEV_TIME;
 	head.lanes = (params != NULL) ? params->lanes : 1u;
 	r = osk_crypto_random(head.salt, sizeof(head.salt));
@@ -217,8 +209,7 @@ osk_result_t osk_backup_write(const char *pass, size_t pass_len,
 			memset(plain, 0, OSK_CHUNK_PLAIN_MAX);
 			plain[0] = (uint8_t)OSK_CHUNK_ITEM;
 
-			r = osk_blob_read(rec, &st->key_profile[p],
-					  plain + 4u + sizeof(item),
+			r = osk_blob_read(rec, &st->key_profile[p], plain + 4u + sizeof(item),
 					  OSK_SECRET_MAX, &secret_len);
 			if (r != OSK_OK) {
 				break;
@@ -232,13 +223,14 @@ osk_result_t osk_backup_write(const char *pass, size_t pass_len,
 			item.changed_utc = rec->changed_utc;
 			item.counter = rec->counter;
 			item.secret_len = (uint32_t)secret_len;
+			item.tag_len = rec->tag_len;
+			memcpy(item.tag, rec->tag, sizeof(item.tag));
 			memcpy(item.name, rec->name, sizeof(item.name));
 			memcpy(item.site, rec->site, sizeof(item.site));
 			memcpy(plain + 4u, &item, sizeof(item));
 
-			r = osk_chunk_put((const uint8_t *)&head, sizeof(head),
-					  &key, seq, OSK_NONCE_BACKUP,
-					  4u + sizeof(item) + secret_len, sink,
+			r = osk_chunk_put((const uint8_t *)&head, sizeof(head), &key, seq,
+					  OSK_NONCE_BACKUP, 4u + sizeof(item) + secret_len, sink,
 					  ctx, h);
 			osk_crypto_wipe(&item, sizeof(item));
 			seq++;
@@ -256,9 +248,8 @@ osk_result_t osk_backup_write(const char *pass, size_t pass_len,
 			plain[4 + i] = (uint8_t)(c >> (8 * i));
 		}
 		memcpy(plain + 8u, h, OSK_HASH_LEN);
-		r = osk_chunk_put((const uint8_t *)&head, sizeof(head), &key,
-				  seq, OSK_NONCE_BACKUP, 8u + OSK_HASH_LEN,
-				  sink, ctx, h);
+		r = osk_chunk_put((const uint8_t *)&head, sizeof(head), &key, seq, OSK_NONCE_BACKUP,
+				  8u + OSK_HASH_LEN, sink, ctx, h);
 	}
 
 	osk_chunk_wipe();
@@ -276,9 +267,8 @@ osk_result_t osk_backup_write(const char *pass, size_t pass_len,
 
 /* ---- Lesen ------------------------------------------------------------ */
 
-static osk_result_t read_items(const osk_backup_head_t *head,
-			       const osk_key_t *key, osk_backup_src_fn src,
-			       void *ctx, size_t *restored_items)
+static osk_result_t read_items(const osk_backup_head_t *head, const osk_key_t *key,
+			       osk_backup_src_fn src, void *ctx, size_t *restored_items)
 {
 	uint8_t h[OSK_HASH_LEN];
 	uint8_t h_before[OSK_HASH_LEN];
@@ -292,9 +282,8 @@ static osk_result_t read_items(const osk_backup_head_t *head,
 		size_t plain_len = 0;
 
 		memcpy(h_before, h, sizeof(h));
-		r = osk_chunk_get((const uint8_t *)head, sizeof(*head), key,
-				  seq, OSK_NONCE_BACKUP, src, ctx, &plain_len,
-				  h);
+		r = osk_chunk_get((const uint8_t *)head, sizeof(*head), key, seq, OSK_NONCE_BACKUP,
+				  src, ctx, &plain_len, h);
 		if (r != OSK_OK) {
 			break;
 		}
@@ -314,8 +303,7 @@ static osk_result_t read_items(const osk_backup_head_t *head,
 			}
 			/* Der Abdruck im Abschluss deckt alle Stuecke VOR ihm. */
 			if (want != (uint32_t)count ||
-			    !osk_crypto_equal(plain + 8u, h_before,
-					      OSK_HASH_LEN)) {
+			    !osk_crypto_equal(plain + 8u, h_before, OSK_HASH_LEN)) {
 				r = OSK_ERR_FORMAT;
 			}
 			break;
@@ -358,6 +346,12 @@ static osk_result_t read_items(const osk_backup_head_t *head,
 		meta.site = item.site;
 		meta.mirrored = (item.flags & OSK_FLAG_MIRRORED) != 0u;
 		meta.paired_host_only = (item.flags & OSK_FLAG_PAIRED_ONLY) != 0u;
+		if (item.tag_len > OSK_TAG_MAX) {
+			r = OSK_ERR_FORMAT;
+			break;
+		}
+		meta.tag_len = item.tag_len;
+		memcpy(meta.tag, item.tag, sizeof(meta.tag));
 
 		osk_item_id_t new_id = 0;
 
@@ -366,8 +360,7 @@ static osk_result_t read_items(const osk_backup_head_t *head,
 		 * gelesenen Eintraege da und der Tresor ist heil. Die Kennungen
 		 * werden neu vergeben - die alten gehoeren zu einem anderen
 		 * Geraet. */
-		r = osk_store_add(&meta, plain + 4u + sizeof(item),
-				  item.secret_len, &new_id);
+		r = osk_store_add(&meta, plain + 4u + sizeof(item), item.secret_len, &new_id);
 		osk_crypto_wipe(&item, sizeof(item));
 		if (r != OSK_OK) {
 			break;
@@ -388,8 +381,7 @@ static osk_result_t read_items(const osk_backup_head_t *head,
 	return OSK_OK;
 }
 
-osk_result_t osk_backup_read(const char *pass, size_t pass_len,
-			     osk_backup_src_fn src, void *ctx,
+osk_result_t osk_backup_read(const char *pass, size_t pass_len, osk_backup_src_fn src, void *ctx,
 			     size_t *restored_items)
 {
 	osk_backup_head_t head;
@@ -423,8 +415,7 @@ osk_result_t osk_backup_read(const char *pass, size_t pass_len,
 	return r;
 }
 
-osk_result_t osk_backup_read_with_key(const osk_key_t *key,
-				      osk_backup_src_fn src, void *ctx,
+osk_result_t osk_backup_read_with_key(const osk_key_t *key, osk_backup_src_fn src, void *ctx,
 				      size_t *restored_items)
 {
 	osk_backup_head_t head;

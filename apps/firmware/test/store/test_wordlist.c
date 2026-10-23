@@ -67,6 +67,5 @@ void test_wordlist(void)
 		}
 	}
 	/* Auch der kuerzeste Vorschlag erfuellt die Regel von selbst. */
-	T_TRUE(OSK_PASS_WORDS * shortest + (OSK_PASS_WORDS - 1u) >=
-	       OSK_PASS_MIN);
+	T_TRUE(OSK_PASS_WORDS * shortest + (OSK_PASS_WORDS - 1u) >= OSK_PASS_MIN);
 }

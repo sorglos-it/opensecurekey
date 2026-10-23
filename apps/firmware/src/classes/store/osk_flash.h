@@ -16,9 +16,9 @@
 #include "osk_result.h"
 
 typedef struct {
-	uint32_t size;          /* nutzbare Groesse der Tresorpartition in Byte */
-	uint32_t sector_size;   /* kleinste loeschbare Einheit */
-	uint32_t page_size;     /* kleinste schreibbare Einheit */
+	uint32_t size;	      /* nutzbare Groesse der Tresorpartition in Byte */
+	uint32_t sector_size; /* kleinste loeschbare Einheit */
+	uint32_t page_size;   /* kleinste schreibbare Einheit */
 } osk_flash_geometry_t;
 
 osk_result_t osk_flash_geometry(osk_flash_geometry_t *out);

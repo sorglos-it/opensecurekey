@@ -32,6 +32,7 @@ $sources = @(
     (Join-Path $here 'fake_ui.c'),
     (Join-Path $here 'test_util.c'),
     (Join-Path $here 'test_core.c'),
+    (Join-Path $here 'test_tag.c'),
     (Join-Path $here 'test_power.c'),
     (Join-Path $here 'test_migrate.c'),
     (Join-Path $here 'test_backup.c'),

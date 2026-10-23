@@ -23,8 +23,8 @@
 #include <string.h>
 #include "store_internal.h"
 
-static uint32_t g_seq;        /* hoechste gefundene Folgenummer, 0 = leer */
-static uint32_t g_next;       /* Platz fuer den naechsten Satz */
+static uint32_t g_seq;	/* hoechste gefundene Folgenummer, 0 = leer */
+static uint32_t g_next; /* Platz fuer den naechsten Satz */
 static bool g_mounted;
 
 static uint32_t slot_addr(uint32_t slot)
@@ -42,8 +42,7 @@ static uint32_t slot_crc(const osk_log_slot_t *s)
 
 static bool slot_valid(const osk_log_slot_t *s)
 {
-	return s->magic == OSK_LOG_MAGIC && s->seq != 0u &&
-	       s->crc32 == slot_crc(s);
+	return s->magic == OSK_LOG_MAGIC && s->seq != 0u && s->crc32 == slot_crc(s);
 }
 
 /* Ist auf diesem Platz noch nie etwas gestanden? */
@@ -80,8 +79,7 @@ static osk_result_t log_mount(void)
 	g_next = 0u;
 
 	for (uint32_t i = 0; i < OSK_LOG_SLOTS; i++) {
-		osk_result_t r = osk_flash_read(slot_addr(i), &slot,
-						sizeof(slot));
+		osk_result_t r = osk_flash_read(slot_addr(i), &slot, sizeof(slot));
 		if (r != OSK_OK) {
 			return r;
 		}
@@ -163,9 +161,8 @@ osk_result_t osk_log_add(const osk_log_entry_t *e)
 	for (int i = 0; i < 4; i++) {
 		aad[i] = (uint8_t)(slot.seq >> (8 * i));
 	}
-	r = osk_crypto_seal(&st->key_log, slot.nonce, aad, sizeof(aad),
-			    (const uint8_t *)&plain, sizeof(plain), slot.ct,
-			    sizeof(slot.ct), &ct_len);
+	r = osk_crypto_seal(&st->key_log, slot.nonce, aad, sizeof(aad), (const uint8_t *)&plain,
+			    sizeof(plain), slot.ct, sizeof(slot.ct), &ct_len);
 	osk_crypto_wipe(&plain, sizeof(plain));
 	if (r != OSK_OK) {
 		return r;
@@ -207,8 +204,7 @@ osk_result_t osk_log_add(const osk_log_entry_t *e)
 	return OSK_OK;
 }
 
-osk_result_t osk_log_add_internal(uint16_t what, osk_item_id_t id,
-				  const char *asked_by)
+osk_result_t osk_log_add_internal(uint16_t what, osk_item_id_t id, const char *asked_by)
 {
 	osk_log_entry_t e;
 
@@ -229,8 +225,7 @@ static osk_result_t walk(size_t index, osk_log_slot_t *out, size_t *count_out)
 	size_t seen = 0;
 
 	for (uint32_t step = 1; step <= OSK_LOG_SLOTS; step++) {
-		uint32_t slot = (g_next + OSK_LOG_SLOTS - step) %
-				OSK_LOG_SLOTS;
+		uint32_t slot = (g_next + OSK_LOG_SLOTS - step) % OSK_LOG_SLOTS;
 		osk_log_slot_t cur;
 		bool empty = false;
 		osk_result_t r = slot_is_empty(slot, &empty);
@@ -307,9 +302,8 @@ osk_result_t osk_log_get(size_t index, osk_log_entry_t *out)
 	for (int i = 0; i < 4; i++) {
 		aad[i] = (uint8_t)(slot.seq >> (8 * i));
 	}
-	r = osk_crypto_open(&st->key_log, slot.nonce, aad, sizeof(aad), slot.ct,
-			    sizeof(slot.ct), (uint8_t *)&plain, sizeof(plain),
-			    &plain_len);
+	r = osk_crypto_open(&st->key_log, slot.nonce, aad, sizeof(aad), slot.ct, sizeof(slot.ct),
+			    (uint8_t *)&plain, sizeof(plain), &plain_len);
 	if (r != OSK_OK) {
 		return r;
 	}
@@ -335,8 +329,7 @@ osk_result_t osk_log_clear(void)
 	if (!st->open) {
 		return OSK_ERR_LOCKED;
 	}
-	osk_result_t r = osk_space_ensure_erased(OSK_AREA_LOG_OFF,
-						 OSK_AREA_LOG_LEN);
+	osk_result_t r = osk_space_ensure_erased(OSK_AREA_LOG_OFF, OSK_AREA_LOG_LEN);
 	if (r != OSK_OK) {
 		return r;
 	}

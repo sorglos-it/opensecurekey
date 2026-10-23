@@ -6,8 +6,8 @@
 #include "osk_crypto.h"
 
 #define TRIES_MAX 8u
-#define PRIV_LEN  32u
-#define PUB_LEN   32u
+#define PRIV_LEN 32u
+#define PUB_LEN 32u
 
 #define DEVICES 4
 
@@ -100,8 +100,8 @@ osk_result_t osk_se050_random(uint8_t *out, size_t len)
 
 /* Das Grundgeheimnis verlaesst den Chip nie - herausgegeben wird nur die
  * Ableitung. Genau das stellt diese Funktion nach. */
-osk_result_t osk_se050_hkdf(osk_key_id_t id, const uint8_t *info,
-			    size_t info_len, uint8_t *out, size_t out_len)
+osk_result_t osk_se050_hkdf(osk_key_id_t id, const uint8_t *info, size_t info_len, uint8_t *out,
+			    size_t out_len)
 {
 	uint8_t ikm[8];
 
@@ -112,12 +112,11 @@ osk_result_t osk_se050_hkdf(osk_key_id_t id, const uint8_t *info,
 		ikm[i] = (uint8_t)(g_device >> (8 * i));
 		ikm[4 + i] = (uint8_t)(id >> (8 * i));
 	}
-	return osk_crypto_hkdf(ikm, sizeof(ikm), NULL, 0, info, info_len, out,
-			       out_len);
+	return osk_crypto_hkdf(ikm, sizeof(ikm), NULL, 0, info, info_len, out, out_len);
 }
 
-osk_result_t osk_se050_hmac(osk_key_id_t id, const uint8_t *msg, size_t msg_len,
-			    uint8_t *mac_out, size_t cap, size_t *len_out)
+osk_result_t osk_se050_hmac(osk_key_id_t id, const uint8_t *msg, size_t msg_len, uint8_t *mac_out,
+			    size_t cap, size_t *len_out)
 {
 	if (mac_out == NULL || len_out == NULL || cap < OSK_HASH_LEN) {
 		return OSK_ERR_ARG;
@@ -146,8 +145,8 @@ osk_result_t osk_se050_pin_verify(const uint8_t *pin, size_t len)
 	return OSK_ERR_DENIED;
 }
 
-osk_result_t osk_se050_pin_set(const uint8_t *old_pin, size_t old_len,
-			       const uint8_t *new_pin, size_t new_len)
+osk_result_t osk_se050_pin_set(const uint8_t *old_pin, size_t old_len, const uint8_t *new_pin,
+			       size_t new_len)
 {
 	osk_result_t r = osk_se050_pin_verify(old_pin, old_len);
 
@@ -196,8 +195,7 @@ osk_result_t osk_se050_key_delete(osk_key_id_t id)
 
 static const char INFO_PUB[] = "fake/pub";
 
-osk_result_t osk_se050_key_public(osk_key_id_t id, uint8_t *out, size_t cap,
-				  size_t *len_out)
+osk_result_t osk_se050_key_public(osk_key_id_t id, uint8_t *out, size_t cap, size_t *len_out)
 {
 	struct dev *d = cur();
 
@@ -207,25 +205,24 @@ osk_result_t osk_se050_key_public(osk_key_id_t id, uint8_t *out, size_t cap,
 	if (out == NULL || len_out == NULL || cap < PUB_LEN) {
 		return OSK_ERR_ARG;
 	}
-	osk_result_t r = osk_crypto_hkdf(d->priv, sizeof(d->priv), NULL, 0,
-					 (const uint8_t *)INFO_PUB,
-					 sizeof(INFO_PUB) - 1, out, PUB_LEN);
+	osk_result_t r =
+	    osk_crypto_hkdf(d->priv, sizeof(d->priv), NULL, 0, (const uint8_t *)INFO_PUB,
+			    sizeof(INFO_PUB) - 1, out, PUB_LEN);
 	if (r == OSK_OK) {
 		*len_out = PUB_LEN;
 	}
 	return r;
 }
 
-osk_result_t osk_se050_ecdh(osk_key_id_t id, const uint8_t *peer_pub,
-			    size_t peer_len, uint8_t *secret_out, size_t cap,
-			    size_t *len_out)
+osk_result_t osk_se050_ecdh(osk_key_id_t id, const uint8_t *peer_pub, size_t peer_len,
+			    uint8_t *secret_out, size_t cap, size_t *len_out)
 {
 	uint8_t own[PUB_LEN];
 	uint8_t both[2u * PUB_LEN];
 	size_t own_len = 0;
 
-	if (peer_pub == NULL || secret_out == NULL || len_out == NULL ||
-	    cap < OSK_HASH_LEN || peer_len != PUB_LEN) {
+	if (peer_pub == NULL || secret_out == NULL || len_out == NULL || cap < OSK_HASH_LEN ||
+	    peer_len != PUB_LEN) {
 		return OSK_ERR_ARG;
 	}
 	osk_result_t r = osk_se050_key_public(id, own, sizeof(own), &own_len);
@@ -251,9 +248,8 @@ osk_result_t osk_se050_ecdh(osk_key_id_t id, const uint8_t *peer_pub,
 	return r;
 }
 
-osk_result_t osk_se050_sign(osk_key_id_t id, const uint8_t *hash,
-			    size_t hash_len, uint8_t *sig_out, size_t cap,
-			    size_t *len_out)
+osk_result_t osk_se050_sign(osk_key_id_t id, const uint8_t *hash, size_t hash_len, uint8_t *sig_out,
+			    size_t cap, size_t *len_out)
 {
 	if (sig_out == NULL || len_out == NULL || cap < 64u) {
 		return OSK_ERR_ARG;

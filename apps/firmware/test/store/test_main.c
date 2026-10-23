@@ -66,14 +66,11 @@ struct suite {
 int main(void)
 {
 	static const struct suite suites[] = {
-		{ "Woerterliste", test_wordlist },
-		{ "Umschlaege (Shamir)", test_shamir },
-		{ "Grundlagen", test_core },
-		{ "Stromausfall", test_power },
-		{ "Wanderung 1 -> 2", test_migrate },
-		{ "Sicherungsdatei", test_backup },
-		{ "Stick zu Stick", test_transfer },
-		{ "Verschleiss", test_wear },
+	    {"Woerterliste", test_wordlist},  {"Umschlaege (Shamir)", test_shamir},
+	    {"Grundlagen", test_core},	      {"Kennung zum Suchen", test_tag},
+	    {"Stromausfall", test_power},     {"Wanderung alter Fassungen", test_migrate},
+	    {"Sicherungsdatei", test_backup}, {"Stick zu Stick", test_transfer},
+	    {"Verschleiss", test_wear},
 	};
 
 	printf("Tresor von opensecurekey - Pruefsaetze am PC\n");
@@ -85,8 +82,7 @@ int main(void)
 		printf("[%s]\n", suites[i].name);
 		t_init();
 		suites[i].fn();
-		printf("  %s\n\n", (osk_test_fails == before) ? "gruen"
-							     : "ROT");
+		printf("  %s\n\n", (osk_test_fails == before) ? "gruen" : "ROT");
 	}
 	fake_flash_free();
 

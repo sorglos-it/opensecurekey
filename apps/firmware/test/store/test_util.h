@@ -8,7 +8,7 @@
 #include "osk_store.h"
 #include "osk_result.h"
 
-#define T_PIN  "geheim1234"
+#define T_PIN "geheim1234"
 #define T_PIN2 "anders5678"
 
 /* Alle Attrappen in den Anfangszustand. */
@@ -26,8 +26,8 @@ void t_reboot(void);
 void t_use(uint32_t dev, const char *pin);
 
 /* Einen Eintrag anlegen - mit Namen, Adresse und Geheimnis als Text. */
-osk_result_t t_add(uint8_t profile, const char *name, const char *site,
-		   const char *secret, bool mirrored, osk_item_id_t *id_out);
+osk_result_t t_add(uint8_t profile, const char *name, const char *site, const char *secret,
+		   bool mirrored, osk_item_id_t *id_out);
 
 /* Geheimnis holen und mit dem Text vergleichen. Gibt true zurueck, wenn es
  * passt. Die Freigabe wird dabei bejaht. */

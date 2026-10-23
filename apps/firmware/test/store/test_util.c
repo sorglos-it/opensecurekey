@@ -64,12 +64,11 @@ void t_reboot(void)
 	fake_se050_device(g_dev);
 	fake_se050_set_pin(g_pin);
 	T_OK(osk_store_open());
-	T_OK(osk_store_profile_unlock(0, (const uint8_t *)g_pin,
-				      strlen(g_pin)));
+	T_OK(osk_store_profile_unlock(0, (const uint8_t *)g_pin, strlen(g_pin)));
 }
 
-osk_result_t t_add(uint8_t profile, const char *name, const char *site,
-		   const char *secret, bool mirrored, osk_item_id_t *id_out)
+osk_result_t t_add(uint8_t profile, const char *name, const char *site, const char *secret,
+		   bool mirrored, osk_item_id_t *id_out)
 {
 	osk_item_meta_t meta;
 	osk_item_id_t id = 0;
@@ -81,8 +80,7 @@ osk_result_t t_add(uint8_t profile, const char *name, const char *site,
 	meta.site = site;
 	meta.mirrored = mirrored;
 
-	osk_result_t r = osk_store_add(&meta, (const uint8_t *)secret,
-				       strlen(secret), &id);
+	osk_result_t r = osk_store_add(&meta, (const uint8_t *)secret, strlen(secret), &id);
 
 	if (id_out != NULL) {
 		*id_out = id;

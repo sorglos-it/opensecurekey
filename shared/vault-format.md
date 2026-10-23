@@ -33,8 +33,9 @@ written to.
 | name / address | 64 / 128 characters |
 | log entries | up to 512, oldest dropped |
 
-Items per profile is a deliberate v2 limit: one index generation is held in RAM
-(~16 KiB), and the nRF52840 has 256 KiB in total. Raising it means paging the
+Items per profile is a deliberate limit: one index generation is held in RAM
+(64 records of 320 B, so ~20 KiB, plus the same again as ciphertext while it is
+written), and the nRF52840 has 256 KiB in total. Raising it means paging the
 index, not changing a constant.
 
 ## The header
@@ -86,9 +87,9 @@ cuts.
 ## Index
 
 One generation per profile, encrypted as a whole with that profile's key. The
-plaintext is a small header plus one fixed 256-byte record per item: id, type,
+plaintext is a small header plus one fixed 320-byte record per item: id, type,
 profile, flags, timestamp, which slot holds the secret, its length and nonce,
-the name and the address. Never the secret itself.
+the search tag, the name and the address. Never the secret itself.
 
 A generation is always written to a **new** place in the ring, and it only
 becomes valid with the header record that points to it. So the index moves on
@@ -98,6 +99,30 @@ the 256 index sectors were used, none more than once.
 The additional authenticated data is the profile number. The format version is
 inside the encrypted generation header, so a generation can be read without
 knowing beforehand which version it is — that is what makes migration work.
+
+## The search tag
+
+An item can carry a tag of up to 32 bytes — not secret in itself, meant for
+finding the item without opening it. `osk_store_find_tag()` searches it and
+**decrypts no secret and asks for no confirmation**.
+
+FIDO2 needs this. When a site asks for a passkey, the right credential has to be
+found among hundreds; opening each one would be slow and would ask the user for
+every single item, which makes a login unusable.
+
+The tag sits **inside the encrypted index**, not in the plaintext header. A
+plaintext list would be faster to search, but it would tell anyone who reads the
+flash which services the user has an account with. So the search runs over the
+index, which is in RAM anyway once the profile is unlocked, while the secrets
+themselves are never touched. A locked profile finds nothing at all
+(`OSK_ERR_DENIED`).
+
+Two details that are tested:
+
+- A **partial** tag matches nothing. The length has to be equal, so a tag cannot
+  be guessed byte by byte, and the comparison has no timing difference.
+- A tag longer than 32 bytes counts as **no** tag rather than being truncated. A
+  half tag would find the wrong item.
 
 ## Item flags
 
@@ -186,13 +211,27 @@ really be read.
 
 ## Versions and migration
 
-The header carries the format version, and so does every index generation. v1 is
-the first format, v2 adds the read-only flag and an HOTP counter.
+The header carries the format version, and so does every index generation:
+
+| Version | Record | What it added |
+| --- | --- | --- |
+| v1 | 240 B | the first format |
+| v2 | 256 B | read-only flag, HOTP counter |
+| v3 | 320 B | the search tag (current) |
 
 Migration needs no step of its own and cannot lose data:
 
 - An old generation is converted **in RAM** while it is loaded, so the vault is
-  fully readable right after a firmware update.
+  fully readable right after a firmware update. Every old format has its own
+  converter straight to the current one, and the records are rewritten from the
+  back forwards because they grow inside the same buffer. One converter per old
+  format means more code than a chain, but each one is readable on its own and
+  can be tested on its own - and both are tested, v1 and v2.
+- What an old format did not have stays empty and is never guessed. A vault from
+  v1 or v2 has no search tags, so FIDO2 sets them again on first use — a wrong
+  tag would be worse than none.
+- A version **newer** than this firmware knows is refused when opening
+  (`OSK_ERR_FORMAT`) instead of being read with the wrong record size.
 - Writing always produces the current format. Whoever changes something
   migrates that profile on the way.
 - `osk_store_migrate()` does the same for all profiles at once, each as its own
@@ -217,8 +256,9 @@ otherwise the backup would be tied to the very device that was lost.
 [chunk]   the closing one: number of chunks and a digest over all of them
 ```
 
-Each chunk is encrypted on its own, so the device never holds more than one item
-in RAM. The file header and the chunk's running number are the additional
+Each chunk carries the search tag along with the item — otherwise FIDO2 would
+not find its credentials after a restore. Each chunk is encrypted on its own, so
+the device never holds more than one item in RAM. The file header and the chunk's running number are the additional
 authenticated data: a chunk cannot be moved into another file or to another
 position, and lowering the Argon2id parameters in the header makes the file
 unreadable instead of weaker. The closing chunk makes a truncated file fail.

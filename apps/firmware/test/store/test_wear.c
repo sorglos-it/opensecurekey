@@ -30,26 +30,19 @@ static void case_spread(void)
 
 	for (int i = 0; i < RUNS; i++) {
 		snprintf(secret, sizeof(secret), "kennwort-%d", i);
-		T_OK(osk_store_update(id, NULL, (const uint8_t *)secret,
-				      strlen(secret)));
+		T_OK(osk_store_update(id, NULL, (const uint8_t *)secret, strlen(secret)));
 	}
 	T_TRUE(t_secret_is(id, secret));
 
-	uint32_t slots = fake_flash_sectors_touched(OSK_AREA_BLOB_OFF,
-						    OSK_AREA_BLOB_LEN);
-	uint32_t idx = fake_flash_sectors_touched(OSK_AREA_IDX_OFF,
-						  OSK_AREA_IDX_LEN);
-	uint32_t worst_blob = fake_flash_erase_max(OSK_AREA_BLOB_OFF,
-						   OSK_AREA_BLOB_LEN);
-	uint32_t worst_idx = fake_flash_erase_max(OSK_AREA_IDX_OFF,
-						  OSK_AREA_IDX_LEN);
-	uint32_t worst_hdr = fake_flash_erase_max(OSK_AREA_HDR_OFF,
-						  OSK_AREA_HDR_LEN);
+	uint32_t slots = fake_flash_sectors_touched(OSK_AREA_BLOB_OFF, OSK_AREA_BLOB_LEN);
+	uint32_t idx = fake_flash_sectors_touched(OSK_AREA_IDX_OFF, OSK_AREA_IDX_LEN);
+	uint32_t worst_blob = fake_flash_erase_max(OSK_AREA_BLOB_OFF, OSK_AREA_BLOB_LEN);
+	uint32_t worst_idx = fake_flash_erase_max(OSK_AREA_IDX_OFF, OSK_AREA_IDX_LEN);
+	uint32_t worst_hdr = fake_flash_erase_max(OSK_AREA_HDR_OFF, OSK_AREA_HDR_LEN);
 
-	printf("      %d Aenderungen: %u Datensektoren, %u Indexsektoren\n",
-	       RUNS, slots, idx);
-	printf("      haeufigster Sektor: Daten %u, Index %u, Kopf %u\n",
-	       worst_blob, worst_idx, worst_hdr);
+	printf("      %d Aenderungen: %u Datensektoren, %u Indexsektoren\n", RUNS, slots, idx);
+	printf("      haeufigster Sektor: Daten %u, Index %u, Kopf %u\n", worst_blob, worst_idx,
+	       worst_hdr);
 
 	/* Jede Aenderung nimmt einen neuen Datenplatz; ein Platz sind zwei
 	 * Sektoren. Nach 400 Aenderungen muessen viele Plaetze dran gewesen
@@ -65,12 +58,11 @@ static void case_spread(void)
 	/* Der Kopf hat nur zwei Sektoren, aber 16 Plaetze je Sektor: er wird
 	 * hoechstens jedes sechzehnte Mal geloescht. */
 	uint32_t hdr_erases = fake_flash_erase_count(OSK_AREA_HDR_OFF) +
-			      fake_flash_erase_count(OSK_AREA_HDR_OFF +
-						     OSK_SECTOR);
+			      fake_flash_erase_count(OSK_AREA_HDR_OFF + OSK_SECTOR);
 	uint32_t writes = fake_flash_writes();
 
-	printf("      Kopfsektoren %u mal geloescht bei %u Schreibvorgaengen\n",
-	       hdr_erases, writes);
+	printf("      Kopfsektoren %u mal geloescht bei %u Schreibvorgaengen\n", hdr_erases,
+	       writes);
 	T_TRUE(hdr_erases * 8u < writes);
 }
 
@@ -106,8 +98,7 @@ static void case_slot_rotation(void)
 	/* Ein freier Platz darf keinen alten Kryptotext mehr enthalten. */
 	uint8_t buf[OSK_PAGE];
 
-	T_OK(osk_flash_read(OSK_AREA_BLOB_OFF + first * OSK_BLOB_SLOT, buf,
-			    sizeof(buf)));
+	T_OK(osk_flash_read(OSK_AREA_BLOB_OFF + first * OSK_BLOB_SLOT, buf, sizeof(buf)));
 	for (size_t i = 0; i < sizeof(buf); i++) {
 		if (buf[i] != 0xFFu) {
 			T_TRUE(false);

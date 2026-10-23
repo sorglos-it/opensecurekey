@@ -25,21 +25,19 @@ static const char INFO_PROFILE[] = "osk/vault/profile";
 static osk_result_t derive_device_key(void)
 {
 	osk_store_state_t *st = osk_store_state();
-	osk_result_t r = osk_se050_hkdf(OSK_KEYID_VAULT_ROOT,
-					(const uint8_t *)INFO_DEV,
-					sizeof(INFO_DEV) - 1, st->key_dev.b,
-					sizeof(st->key_dev.b));
+	osk_result_t r = osk_se050_hkdf(OSK_KEYID_VAULT_ROOT, (const uint8_t *)INFO_DEV,
+					sizeof(INFO_DEV) - 1, st->key_dev.b, sizeof(st->key_dev.b));
 	if (r != OSK_OK) {
 		osk_crypto_wipe(&st->key_dev, sizeof(st->key_dev));
 		return r;
 	}
 	return osk_crypto_hkdf(st->key_dev.b, sizeof(st->key_dev.b), NULL, 0,
-			       (const uint8_t *)INFO_LOG, sizeof(INFO_LOG) - 1,
-			       st->key_log.b, sizeof(st->key_log.b));
+			       (const uint8_t *)INFO_LOG, sizeof(INFO_LOG) - 1, st->key_log.b,
+			       sizeof(st->key_log.b));
 }
 
-static osk_result_t derive_profile_key(uint8_t profile, const uint8_t *pin,
-				       size_t pin_len, osk_key_t *out)
+static osk_result_t derive_profile_key(uint8_t profile, const uint8_t *pin, size_t pin_len,
+				       osk_key_t *out)
 {
 	osk_store_state_t *st = osk_store_state();
 	uint8_t pin_hash[OSK_HASH_LEN];
@@ -53,9 +51,8 @@ static osk_result_t derive_profile_key(uint8_t profile, const uint8_t *pin,
 	memcpy(info, INFO_PROFILE, sizeof(INFO_PROFILE) - 1);
 	info[sizeof(INFO_PROFILE) - 1] = (uint8_t)('0' + profile);
 
-	r = osk_crypto_hkdf(st->key_dev.b, sizeof(st->key_dev.b), pin_hash,
-			    sizeof(pin_hash), info, sizeof(info) - 1, out->b,
-			    sizeof(out->b));
+	r = osk_crypto_hkdf(st->key_dev.b, sizeof(st->key_dev.b), pin_hash, sizeof(pin_hash), info,
+			    sizeof(info) - 1, out->b, sizeof(out->b));
 	osk_crypto_wipe(pin_hash, sizeof(pin_hash));
 	return r;
 }
@@ -97,8 +94,7 @@ osk_result_t osk_store_open(void)
 		osk_crypto_wipe(&st->key_log, sizeof(st->key_log));
 		return r;
 	}
-	if (st->hdr.format < OSK_FMT_OLDEST_KNOWN ||
-	    st->hdr.format > OSK_FMT_CURRENT) {
+	if (st->hdr.format < OSK_FMT_OLDEST_KNOWN || st->hdr.format > OSK_FMT_CURRENT) {
 		/* Eine Fassung, die diese Firmware nicht kennt: lieber nicht
 		 * oeffnen als falsch lesen. */
 		osk_crypto_wipe(&st->key_dev, sizeof(st->key_dev));
@@ -138,16 +134,14 @@ bool osk_store_profile_exists(uint8_t profile)
 {
 	osk_store_state_t *st = osk_store_state();
 
-	return st->open && profile < OSK_PROFILE_MAX &&
-	       st->hdr.profile_used[profile] != 0u;
+	return st->open && profile < OSK_PROFILE_MAX && st->hdr.profile_used[profile] != 0u;
 }
 
 bool osk_store_profile_is_unlocked(uint8_t profile)
 {
 	osk_store_state_t *st = osk_store_state();
 
-	return st->open && profile < OSK_PROFILE_MAX &&
-	       st->profile_open[profile];
+	return st->open && profile < OSK_PROFILE_MAX && st->profile_open[profile];
 }
 
 void osk_store_profile_lock(uint8_t profile)
@@ -160,13 +154,11 @@ void osk_store_profile_lock(uint8_t profile)
 	if (osk_index_loaded_profile() == (int)profile) {
 		osk_index_drop();
 	}
-	osk_crypto_wipe(&st->key_profile[profile],
-			sizeof(st->key_profile[profile]));
+	osk_crypto_wipe(&st->key_profile[profile], sizeof(st->key_profile[profile]));
 	st->profile_open[profile] = false;
 }
 
-osk_result_t osk_store_profile_create(uint8_t profile, const uint8_t *pin,
-				      size_t pin_len)
+osk_result_t osk_store_profile_create(uint8_t profile, const uint8_t *pin, size_t pin_len)
 {
 	osk_store_state_t *st = osk_store_state();
 	osk_result_t r;
@@ -174,8 +166,8 @@ osk_result_t osk_store_profile_create(uint8_t profile, const uint8_t *pin,
 	if (!st->open) {
 		return OSK_ERR_LOCKED;
 	}
-	if (profile >= OSK_PROFILE_MAX || pin == NULL ||
-	    pin_len < OSK_PIN_MIN || pin_len > OSK_PIN_MAX) {
+	if (profile >= OSK_PROFILE_MAX || pin == NULL || pin_len < OSK_PIN_MIN ||
+	    pin_len > OSK_PIN_MAX) {
 		return OSK_ERR_ARG;
 	}
 	if (st->hdr.profile_used[profile] != 0u) {
@@ -216,8 +208,7 @@ osk_result_t osk_store_profile_create(uint8_t profile, const uint8_t *pin,
 	return OSK_OK;
 }
 
-osk_result_t osk_store_profile_unlock(uint8_t profile, const uint8_t *pin,
-				      size_t pin_len)
+osk_result_t osk_store_profile_unlock(uint8_t profile, const uint8_t *pin, size_t pin_len)
 {
 	osk_store_state_t *st = osk_store_state();
 	osk_result_t r;
@@ -225,8 +216,8 @@ osk_result_t osk_store_profile_unlock(uint8_t profile, const uint8_t *pin,
 	if (!st->open) {
 		return OSK_ERR_LOCKED;
 	}
-	if (profile >= OSK_PROFILE_MAX || pin == NULL ||
-	    pin_len < OSK_PIN_MIN || pin_len > OSK_PIN_MAX) {
+	if (profile >= OSK_PROFILE_MAX || pin == NULL || pin_len < OSK_PIN_MIN ||
+	    pin_len > OSK_PIN_MAX) {
 		return OSK_ERR_ARG;
 	}
 	if (st->hdr.profile_used[profile] == 0u) {
@@ -307,6 +298,11 @@ static void meta_from_rec(const osk_idx_rec_t *rec, osk_item_meta_t *out)
 	out->changed_utc = rec->changed_utc;
 	out->mirrored = (rec->flags & OSK_FLAG_MIRRORED) != 0u;
 	out->paired_host_only = (rec->flags & OSK_FLAG_PAIRED_ONLY) != 0u;
+	/* Die Kennung ist nicht geheim, aber sie steht nur im verschluesselten
+	 * Index. Sie wird kopiert und nicht als Zeiger weitergegeben, damit
+	 * der Aufrufer sie behalten kann, wenn der Arbeitspuffer wechselt. */
+	out->tag_len = (rec->tag_len > OSK_TAG_MAX) ? 0u : rec->tag_len;
+	memcpy(out->tag, rec->tag, OSK_TAG_MAX);
 }
 
 osk_result_t osk_store_list(uint8_t profile, size_t index, osk_item_meta_t *out)
@@ -360,8 +356,8 @@ static bool site_matches(const char *stored, const char *asked)
 	return off == 0u || asked[off - 1] == '.';
 }
 
-osk_result_t osk_store_find(uint8_t profile, const char *site,
-			    osk_item_id_t *out, size_t cap, size_t *len_out)
+osk_result_t osk_store_find(uint8_t profile, const char *site, osk_item_id_t *out, size_t cap,
+			    size_t *len_out)
 {
 	osk_result_t r = need_profile(profile);
 
@@ -387,9 +383,53 @@ osk_result_t osk_store_find(uint8_t profile, const char *site,
 	return (n > cap) ? OSK_ERR_FULL : OSK_OK;
 }
 
+/* Sucht ueber die nicht geheime Kennung. Hier wird KEIN Geheimnis
+ * entschluesselt und KEINE Freigabe verlangt: gesucht wird im Index, der beim
+ * Aufschliessen des Profils ohnehin schon im RAM liegt.
+ *
+ * Genau dafuer gibt es die Kennung. FIDO2 muss beim Anmelden unter hunderten
+ * Eintraegen den passenden finden; jeden einzelnen zu oeffnen waere langsam
+ * und wuerde fuer jeden eine Freigabe am Geraet verlangen. */
+osk_result_t osk_store_find_tag(uint8_t profile, osk_item_type_t type, const uint8_t *tag,
+				size_t tag_len, osk_item_id_t *out, size_t cap, size_t *len_out)
+{
+	osk_result_t r = need_profile(profile);
+
+	if (tag == NULL || out == NULL || len_out == NULL || tag_len == 0u ||
+	    tag_len > OSK_TAG_MAX) {
+		return OSK_ERR_ARG;
+	}
+	*len_out = 0;
+	if (r != OSK_OK) {
+		return r;
+	}
+	osk_idx_page_t *page = osk_index_page();
+	size_t n = 0;
+
+	for (uint16_t i = 0; i < page->head.count; i++) {
+		const osk_idx_rec_t *rec = &page->recs[i];
+
+		if (rec->tag_len != tag_len || rec->type != (uint16_t)type) {
+			continue;
+		}
+		/* Vergleich ohne Laufzeitunterschied: die Kennung ist nicht
+		 * geheim, aber sie ist aus einem Geheimnis abgeleitet, und
+		 * wer sie Byte fuer Byte erraten kann, erfaehrt mehr als er
+		 * soll. */
+		if (!osk_crypto_equal(rec->tag, tag, tag_len)) {
+			continue;
+		}
+		if (n < cap) {
+			out[n] = rec->id;
+		}
+		n++;
+	}
+	*len_out = (n > cap) ? cap : n;
+	return (n > cap) ? OSK_ERR_FULL : OSK_OK;
+}
+
 /* Sucht einen Eintrag in allen aufgeschlossenen Profilen. */
-static osk_result_t find_rec(osk_item_id_t id, uint8_t *profile_out,
-			     size_t *index_out)
+static osk_result_t find_rec(osk_item_id_t id, uint8_t *profile_out, size_t *index_out)
 {
 	osk_store_state_t *st = osk_store_state();
 
@@ -439,6 +479,20 @@ static uint8_t flags_from_meta(const osk_item_meta_t *meta, uint8_t keep)
 	return f;
 }
 
+/* Uebernimmt die Kennung zum Suchen. Eine zu lange Kennung gilt als keine -
+ * geraten wird nichts, und abgeschnitten wird sie auch nicht, denn eine halbe
+ * Kennung wuerde den falschen Eintrag finden. */
+static void set_tag(osk_idx_rec_t *rec, const osk_item_meta_t *meta)
+{
+	memset(rec->tag, 0, sizeof(rec->tag));
+	if (meta->tag_len == 0u || meta->tag_len > OSK_TAG_MAX) {
+		rec->tag_len = 0u;
+		return;
+	}
+	memcpy(rec->tag, meta->tag, meta->tag_len);
+	rec->tag_len = meta->tag_len;
+}
+
 /* Dreht eine gescheiterte Transaktion zurueck. */
 static osk_result_t rollback(const osk_hdr_t *snap, osk_result_t r)
 {
@@ -447,16 +501,15 @@ static osk_result_t rollback(const osk_hdr_t *snap, osk_result_t r)
 	return r;
 }
 
-osk_result_t osk_store_add(const osk_item_meta_t *meta, const uint8_t *secret,
-			   size_t secret_len, osk_item_id_t *id_out)
+osk_result_t osk_store_add(const osk_item_meta_t *meta, const uint8_t *secret, size_t secret_len,
+			   osk_item_id_t *id_out)
 {
 	osk_store_state_t *st = osk_store_state();
 	osk_hdr_t snap;
 	osk_result_t r;
 
-	if (meta == NULL || secret == NULL || id_out == NULL ||
-	    secret_len == 0u || secret_len > OSK_SECRET_MAX ||
-	    meta->name == NULL || meta->name[0] == 0) {
+	if (meta == NULL || secret == NULL || id_out == NULL || secret_len == 0u ||
+	    secret_len > OSK_SECRET_MAX || meta->name == NULL || meta->name[0] == 0) {
 		return OSK_ERR_ARG;
 	}
 	r = need_profile(meta->profile);
@@ -483,8 +536,8 @@ osk_result_t osk_store_add(const osk_item_meta_t *meta, const uint8_t *secret,
 	uint8_t nonce[OSK_NONCE_LEN];
 
 	/* 1. das Geheimnis an einen freien Platz */
-	r = osk_blob_write(slot, id, secret, secret_len,
-			   &st->key_profile[meta->profile], &ct_len, nonce);
+	r = osk_blob_write(slot, id, secret, secret_len, &st->key_profile[meta->profile], &ct_len,
+			   nonce);
 	if (r != OSK_OK) {
 		return rollback(&snap, r);
 	}
@@ -501,6 +554,7 @@ osk_result_t osk_store_add(const osk_item_meta_t *meta, const uint8_t *secret,
 	rec->blob_ct_len = ct_len;
 	rec->secret_len = (uint32_t)secret_len;
 	memcpy(rec->nonce, nonce, sizeof(nonce));
+	set_tag(rec, meta);
 	osk_str_copy(rec->name, sizeof(rec->name), meta->name);
 	osk_str_copy(rec->site, sizeof(rec->site), meta->site);
 	page->head.count += 1u;
@@ -524,8 +578,8 @@ osk_result_t osk_store_add(const osk_item_meta_t *meta, const uint8_t *secret,
 	return OSK_OK;
 }
 
-osk_result_t osk_store_update(osk_item_id_t id, const osk_item_meta_t *meta,
-			      const uint8_t *secret, size_t secret_len)
+osk_result_t osk_store_update(osk_item_id_t id, const osk_item_meta_t *meta, const uint8_t *secret,
+			      size_t secret_len)
 {
 	osk_store_state_t *st = osk_store_state();
 	osk_hdr_t snap;
@@ -566,8 +620,8 @@ osk_result_t osk_store_update(osk_item_id_t id, const osk_item_meta_t *meta,
 		uint32_t ct_len = 0;
 		uint8_t nonce[OSK_NONCE_LEN];
 
-		r = osk_blob_write(new_slot, id, secret, secret_len,
-				   &st->key_profile[profile], &ct_len, nonce);
+		r = osk_blob_write(new_slot, id, secret, secret_len, &st->key_profile[profile],
+				   &ct_len, nonce);
 		if (r != OSK_OK) {
 			return rollback(&snap, r);
 		}
@@ -579,6 +633,7 @@ osk_result_t osk_store_update(osk_item_id_t id, const osk_item_meta_t *meta,
 	if (meta != NULL) {
 		rec->type = (uint16_t)meta->type;
 		rec->flags = flags_from_meta(meta, rec->flags);
+		set_tag(rec, meta);
 		if (meta->name != NULL) {
 			osk_str_copy(rec->name, sizeof(rec->name), meta->name);
 		}
@@ -655,8 +710,8 @@ osk_result_t osk_store_delete(osk_item_id_t id)
 
 /* ---- Herausgeben ------------------------------------------------------ */
 
-osk_result_t osk_store_reveal(osk_item_id_t id, const char *asked_by,
-			      uint8_t *out, size_t cap, size_t *len_out)
+osk_result_t osk_store_reveal(osk_item_id_t id, const char *asked_by, uint8_t *out, size_t cap,
+			      size_t *len_out)
 {
 	osk_store_state_t *st = osk_store_state();
 	uint8_t profile = 0;
@@ -678,11 +733,11 @@ osk_result_t osk_store_reveal(osk_item_id_t id, const char *asked_by,
 	 * koennte ein Programm durch Probieren erfahren, wie lang das Geheimnis
 	 * ist, ohne dass der Nutzer je zugestimmt hat. */
 	osk_ask_req_t req = {
-		.kind = OSK_ASK_SECRET,
-		.subject = rec->name,
-		.detail = (rec->site[0] != '\0') ? rec->site : NULL,
-		.asked_by = asked_by,
-		.timeout_ms = OSK_REVEAL_TIMEOUT_MS,
+	    .kind = OSK_ASK_SECRET,
+	    .subject = rec->name,
+	    .detail = (rec->site[0] != '\0') ? rec->site : NULL,
+	    .asked_by = asked_by,
+	    .timeout_ms = OSK_REVEAL_TIMEOUT_MS,
 	};
 
 	r = osk_ui_confirm(&req);

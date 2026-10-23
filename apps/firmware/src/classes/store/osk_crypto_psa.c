@@ -38,7 +38,7 @@ static osk_result_t from_psa(psa_status_t s)
 		return OSK_ERR_FULL;
 	case PSA_ERROR_INVALID_SIGNATURE:
 	case PSA_ERROR_INVALID_PADDING:
-		return OSK_ERR_FORMAT;   /* Pruefwert stimmt nicht */
+		return OSK_ERR_FORMAT; /* Pruefwert stimmt nicht */
 	case PSA_ERROR_NOT_SUPPORTED:
 		return OSK_ERR_UNSUPPORTED;
 	case PSA_ERROR_INSUFFICIENT_MEMORY:
@@ -50,8 +50,8 @@ static osk_result_t from_psa(psa_status_t s)
 
 /* Ein Sitzungsschluessel wird fuer jeden Aufruf eingelegt und danach wieder
  * entfernt. Er liegt damit nur so kurz wie noetig im Chip. */
-static osk_result_t import_aes(const osk_key_t *key, psa_algorithm_t alg,
-			       psa_key_usage_t usage, psa_key_id_t *id_out)
+static osk_result_t import_aes(const osk_key_t *key, psa_algorithm_t alg, psa_key_usage_t usage,
+			       psa_key_id_t *id_out)
 {
 	psa_key_attributes_t attr = PSA_KEY_ATTRIBUTES_INIT;
 	psa_status_t s;
@@ -68,38 +68,30 @@ static osk_result_t import_aes(const osk_key_t *key, psa_algorithm_t alg,
 
 /* ---- AES-256-GCM ------------------------------------------------------ */
 
-osk_result_t osk_crypto_seal(const osk_key_t *key,
-			     const uint8_t nonce[OSK_NONCE_LEN],
-			     const uint8_t *aad, size_t aad_len,
-			     const uint8_t *plain, size_t plain_len,
-			     uint8_t *ct_out, size_t ct_cap, size_t *ct_len_out)
+osk_result_t osk_crypto_seal(const osk_key_t *key, const uint8_t nonce[OSK_NONCE_LEN],
+			     const uint8_t *aad, size_t aad_len, const uint8_t *plain,
+			     size_t plain_len, uint8_t *ct_out, size_t ct_cap, size_t *ct_len_out)
 {
 	psa_key_id_t id = PSA_KEY_ID_NULL;
 	osk_result_t r;
 
-	if (key == NULL || nonce == NULL || plain == NULL || ct_out == NULL ||
-	    ct_len_out == NULL) {
+	if (key == NULL || nonce == NULL || plain == NULL || ct_out == NULL || ct_len_out == NULL) {
 		return OSK_ERR_ARG;
 	}
 	r = import_aes(key, PSA_ALG_GCM, PSA_KEY_USAGE_ENCRYPT, &id);
 	if (r != OSK_OK) {
 		return r;
 	}
-	psa_status_t s = psa_aead_encrypt(id, PSA_ALG_GCM, nonce,
-					  OSK_NONCE_LEN, aad, aad_len, plain,
-					  plain_len, ct_out, ct_cap,
-					  ct_len_out);
+	psa_status_t s = psa_aead_encrypt(id, PSA_ALG_GCM, nonce, OSK_NONCE_LEN, aad, aad_len,
+					  plain, plain_len, ct_out, ct_cap, ct_len_out);
 
 	(void)psa_destroy_key(id);
 	return from_psa(s);
 }
 
-osk_result_t osk_crypto_open(const osk_key_t *key,
-			     const uint8_t nonce[OSK_NONCE_LEN],
-			     const uint8_t *aad, size_t aad_len,
-			     const uint8_t *ct, size_t ct_len,
-			     uint8_t *plain_out, size_t plain_cap,
-			     size_t *plain_len_out)
+osk_result_t osk_crypto_open(const osk_key_t *key, const uint8_t nonce[OSK_NONCE_LEN],
+			     const uint8_t *aad, size_t aad_len, const uint8_t *ct, size_t ct_len,
+			     uint8_t *plain_out, size_t plain_cap, size_t *plain_len_out)
 {
 	psa_key_id_t id = PSA_KEY_ID_NULL;
 	osk_result_t r;
@@ -114,10 +106,8 @@ osk_result_t osk_crypto_open(const osk_key_t *key,
 	}
 	/* PSA gibt bei falschem Pruefwert nichts heraus - genau das verspricht
 	 * osk_crypto.h dem Tresor. */
-	psa_status_t s = psa_aead_decrypt(id, PSA_ALG_GCM, nonce,
-					  OSK_NONCE_LEN, aad, aad_len, ct,
-					  ct_len, plain_out, plain_cap,
-					  plain_len_out);
+	psa_status_t s = psa_aead_decrypt(id, PSA_ALG_GCM, nonce, OSK_NONCE_LEN, aad, aad_len, ct,
+					  ct_len, plain_out, plain_cap, plain_len_out);
 
 	(void)psa_destroy_key(id);
 	if (s != PSA_SUCCESS) {
@@ -129,16 +119,14 @@ osk_result_t osk_crypto_open(const osk_key_t *key,
 
 /* ---- SHA-256 ---------------------------------------------------------- */
 
-osk_result_t osk_crypto_sha256(const uint8_t *msg, size_t len,
-			       uint8_t out[OSK_HASH_LEN])
+osk_result_t osk_crypto_sha256(const uint8_t *msg, size_t len, uint8_t out[OSK_HASH_LEN])
 {
 	size_t got = 0;
 
 	if (out == NULL || (msg == NULL && len > 0u)) {
 		return OSK_ERR_ARG;
 	}
-	psa_status_t s = psa_hash_compute(PSA_ALG_SHA_256, msg, len, out,
-					  OSK_HASH_LEN, &got);
+	psa_status_t s = psa_hash_compute(PSA_ALG_SHA_256, msg, len, out, OSK_HASH_LEN, &got);
 
 	if (s == PSA_SUCCESS && got != OSK_HASH_LEN) {
 		return OSK_ERR_INTERNAL;
@@ -148,10 +136,9 @@ osk_result_t osk_crypto_sha256(const uint8_t *msg, size_t len,
 
 /* ---- HKDF-SHA256 ------------------------------------------------------ */
 
-osk_result_t osk_crypto_hkdf(const uint8_t *ikm, size_t ikm_len,
-			     const uint8_t *salt, size_t salt_len,
-			     const uint8_t *info, size_t info_len,
-			     uint8_t *out, size_t out_len)
+osk_result_t osk_crypto_hkdf(const uint8_t *ikm, size_t ikm_len, const uint8_t *salt,
+			     size_t salt_len, const uint8_t *info, size_t info_len, uint8_t *out,
+			     size_t out_len)
 {
 	psa_key_derivation_operation_t op = PSA_KEY_DERIVATION_OPERATION_INIT;
 	psa_status_t s;
@@ -161,16 +148,16 @@ osk_result_t osk_crypto_hkdf(const uint8_t *ikm, size_t ikm_len,
 	}
 	s = psa_key_derivation_setup(&op, PSA_ALG_HKDF(PSA_ALG_SHA_256));
 	if (s == PSA_SUCCESS && salt != NULL && salt_len > 0u) {
-		s = psa_key_derivation_input_bytes(
-			&op, PSA_KEY_DERIVATION_INPUT_SALT, salt, salt_len);
+		s = psa_key_derivation_input_bytes(&op, PSA_KEY_DERIVATION_INPUT_SALT, salt,
+						   salt_len);
 	}
 	if (s == PSA_SUCCESS) {
-		s = psa_key_derivation_input_bytes(
-			&op, PSA_KEY_DERIVATION_INPUT_SECRET, ikm, ikm_len);
+		s = psa_key_derivation_input_bytes(&op, PSA_KEY_DERIVATION_INPUT_SECRET, ikm,
+						   ikm_len);
 	}
 	if (s == PSA_SUCCESS && info != NULL && info_len > 0u) {
-		s = psa_key_derivation_input_bytes(
-			&op, PSA_KEY_DERIVATION_INPUT_INFO, info, info_len);
+		s = psa_key_derivation_input_bytes(&op, PSA_KEY_DERIVATION_INPUT_INFO, info,
+						   info_len);
 	}
 	if (s == PSA_SUCCESS) {
 		s = psa_key_derivation_output_bytes(&op, out, out_len);
@@ -184,39 +171,33 @@ osk_result_t osk_crypto_hkdf(const uint8_t *ikm, size_t ikm_len,
 
 /* ---- Argon2id --------------------------------------------------------- */
 
-osk_result_t osk_crypto_argon2id(const osk_argon2_params_t *p,
-				 const char *passphrase, size_t pass_len,
-				 const uint8_t salt[OSK_SALT_LEN], uint8_t *out,
+osk_result_t osk_crypto_argon2id(const osk_argon2_params_t *p, const char *passphrase,
+				 size_t pass_len, const uint8_t salt[OSK_SALT_LEN], uint8_t *out,
 				 size_t out_len)
 {
 #if defined(PSA_ALG_ARGON2ID)
 	psa_key_derivation_operation_t op = PSA_KEY_DERIVATION_OPERATION_INIT;
 	psa_status_t s;
 
-	if (p == NULL || passphrase == NULL || salt == NULL || out == NULL ||
-	    out_len == 0u) {
+	if (p == NULL || passphrase == NULL || salt == NULL || out == NULL || out_len == 0u) {
 		return OSK_ERR_ARG;
 	}
 	s = psa_key_derivation_setup(&op, PSA_ALG_ARGON2ID);
 	if (s == PSA_SUCCESS) {
-		s = psa_key_derivation_input_integer(
-			&op, PSA_KEY_DERIVATION_INPUT_COST, p->t_cost);
+		s = psa_key_derivation_input_integer(&op, PSA_KEY_DERIVATION_INPUT_COST, p->t_cost);
 	}
 	if (s == PSA_SUCCESS) {
 		/* PSA zaehlt den Speicher in Byte, die Datei in KiB. */
-		s = psa_key_derivation_input_integer(
-			&op, PSA_KEY_DERIVATION_INPUT_MEMORY_COST,
-			(uint64_t)p->m_cost_kib * 1024u);
+		s = psa_key_derivation_input_integer(&op, PSA_KEY_DERIVATION_INPUT_MEMORY_COST,
+						     (uint64_t)p->m_cost_kib * 1024u);
 	}
 	if (s == PSA_SUCCESS) {
-		s = psa_key_derivation_input_bytes(
-			&op, PSA_KEY_DERIVATION_INPUT_SALT, salt,
-			OSK_SALT_LEN);
+		s = psa_key_derivation_input_bytes(&op, PSA_KEY_DERIVATION_INPUT_SALT, salt,
+						   OSK_SALT_LEN);
 	}
 	if (s == PSA_SUCCESS) {
-		s = psa_key_derivation_input_bytes(
-			&op, PSA_KEY_DERIVATION_INPUT_PASSWORD,
-			(const uint8_t *)passphrase, pass_len);
+		s = psa_key_derivation_input_bytes(&op, PSA_KEY_DERIVATION_INPUT_PASSWORD,
+						   (const uint8_t *)passphrase, pass_len);
 	}
 	if (s == PSA_SUCCESS) {
 		s = psa_key_derivation_output_bytes(&op, out, out_len);
