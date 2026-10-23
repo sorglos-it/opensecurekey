@@ -12,21 +12,20 @@ Grundlage ist die belegte Teileauswahl in [parts.md](parts.md).
 
 ## Kurzfassung
 
-> **Der Sicherheitschip ist zurückgestellt.** Ob die Variante SE051C2 das
-> Merkmal `CONFIG_HMAC` trägt — ohne das lassen sich keine HMACKey-Objekte
-> anlegen, und das Grundgeheimnis des Geräts muss eines sein — ist noch nicht
-> belegt. Der SE050-Treiber-Strang prüft das in AN12973.
-> **Bis dahin die MIKROE-5392 nicht bestellen.** Eigener Abschnitt weiter unten,
-> mit allen Platinen, die es stattdessen gäbe.
+> **Der Sicherheitschip ist wieder freigegeben.** `CONFIG_HMAC` ist bestätigt
+> (AN12973 Rev. 2.0, Tabelle 3): der SE051C2 kann HMAC und HKDF, das
+> Grundgeheimnis lässt sich als HMACKey anlegen. Die MIKROE-5392 ist damit
+> wieder in der Bestellung.
+> **Offen bleibt die Speicherausführung** — 46 kB oder 104 kB. Das ist keine
+> Bestellentscheidung, weil es nur **eine** SE051C2-Bestellnummer gibt; es ist
+> eine Frage an den Hersteller. Eigener Abschnitt weiter unten.
 
 | | |
 | --- | --- |
-| Jetzt bestellbar (Mouser, am Lager) | **60,34 €** brutto + Versand `ungeprüft` |
+| Mouser (DK, Dongle, SE051-Click) | **85,93 €** brutto + Versand `ungeprüft` |
 | Kleinteile (Amazon) | **22,98 €** brutto |
 | Kleinteile (BerryBase) | **15,95 €** brutto inkl. Versand |
-| **Jetzt zusammen** | **ca. 99 €** brutto, zzgl. Mouser-Versand |
-| Sicherheitschip später (MIKROE-5392) | 25,59 € brutto — **zurückgestellt** |
-| **Mit Sicherheitschip** | **ca. 125 €** |
+| **Zusammen** | **ca. 125 €** brutto, zzgl. Mouser-Versand |
 
 Drei Bestellungen bei drei Händlern. Warum nicht eine: kein Händler führt alles.
 Die Begründung steht unten bei jedem Posten.
@@ -35,8 +34,6 @@ Die Begründung steht unten bei jedem Posten.
 Woche ab **Montag, 27.10.2026** — BerryBase 1–3 Werktage, Amazon zum 27.10.
 zugesagt, Mouser versendet taggleich aus Texas (Laufzeit 2–4 Werktage,
 `ungeprüft`). Spätestens Anfang November.
-**Der Sicherheitschip kommt später** und braucht dann eine zweite
-Mouser-Bestellung mit eigenem Versand — das ist der Preis des Zurückstellens.
 
 ## Drei Berichtigungen gegenüber der bisherigen Kaufliste
 
@@ -57,20 +54,19 @@ Mouser-Bestellung mit eigenem Versand — das ist der Preis des Zurückstellens.
 
 ---
 
-## Mouser Deutschland — die Rechenkerne
+## Mouser Deutschland — die Kernteile
 
-Preise netto (so weist Mouser aus).
+Mouser ist am 23.10.2026 der **einzige** Händler, der alle drei Kernteile am
+Lager hat. Preise netto (so weist Mouser aus).
 
 | Teil | Mouser-Nr. | Menge | Einzel netto | Lager | Link |
 | --- | --- | --- | --- | --- | --- |
 | nRF52840-DK (PCA10056) | 949-NRF52840-DK | 1 | 41,37 € | **443** sofort lieferbar | [mouser.de](https://www.mouser.de/ProductDetail/949-NRF52840-DK) |
+| SE051 Plug&Trust Click | 932-MIKROE-5392 | 1 | 21,50 € | **92** sofort lieferbar | [mouser.de](https://www.mouser.de/ProductDetail/932-MIKROE-5392) |
 | nRF52840-Dongle (PCA10059) | 949-NRF52840-DONGLE | 1 | 9,34 € | **1.114** sofort lieferbar | [mouser.de](https://www.mouser.de/ProductDetail/949-NRF52840-DONGLE) |
-| | | | **50,71 € netto** | | |
-| 19 % MwSt. | | | 9,63 € | | |
-| | | | **60,34 € brutto** | | |
-
-**Nicht in dieser Bestellung:** der SE051 Plug&Trust Click (932-MIKROE-5392,
-21,50 € netto, 92 am Lager). Er ist zurückgestellt — siehe nächster Abschnitt.
+| | | | **72,21 € netto** | | |
+| 19 % MwSt. | | | 13,72 € | | |
+| | | | **85,93 € brutto** | | |
 
 - **Mindestbestellwert: keiner.** Belegt auf der Mouser-Hilfeseite
   „Bestellungen und Versand": „Es gibt keine Mindestbestellmenge."
@@ -89,19 +85,15 @@ Preise netto (so weist Mouser aus).
 
 ---
 
-## Sicherheitschip — zurückgestellt, Variante wird noch bestätigt
+## Sicherheitschip — freigegeben, aber die Speicherausführung ist offen
 
-Er ist der Kern des Teststands: ohne ihn ist keine Messung möglich. Trotzdem
-geht er **nicht** mit in die erste Bestellung.
+Er ist der Kern des Teststands: ohne ihn ist keine Messung möglich.
 
-**Warum:** Das Grundgeheimnis des Geräts muss ein **HMACKey**-Objekt sein, und
-HMACKey-Objekte lassen sich nur anlegen, wenn das Applet das Merkmal
-`CONFIG_HMAC` (0x0010) trägt. Ob die Variante **SE051C2** das hat, ist noch
-nicht belegt; der SE050-Treiber-Strang sieht in AN12973 nach. Fällt die Antwort
-negativ aus, ändert sich, welche Platine gekauft wird — und eine bereits
-unterwegs befindliche MIKROE-5392 wäre Geld für nichts.
-
-**Vorgemerkt, sobald grünes Licht kommt:**
+**Geklärt:** `CONFIG_HMAC` ist bestätigt. AN12973 Rev. 2.0 vom 8. Juli 2024,
+Tabelle 3, Zeilen „MAC – HMAC, CMAC, GMAC" und „Key Derivation (KDF) – HKDF":
+beide mit Haken beim SE051C2. Das Grundgeheimnis lässt sich also als HMACKey
+anlegen. **Der Chip bleibt richtig, die MIKROE-5392 ist wieder in der
+Bestellung.**
 
 | Quelle | Preis | Lager | Taugt? |
 | --- | --- | --- | --- |
@@ -114,7 +106,87 @@ unterwegs befindliche MIKROE-5392 wäre Geld für nichts.
 Mikroe nennt auf der eigenen Produktseite dieselben Bestände: Mouser 92,
 DigiKey 0, Farnell 0. Zwei unabhängige Quellen, gleiches Bild.
 
-### Wenn der SE051C2 es nicht kann: was es überhaupt als Platine gibt
+### 46 kB oder 104 kB? Drei Fragen, drei Antworten
+
+Der Speicher ist eine Spanne, keine Zahl. Das ist nicht egal: jeder Dienst im
+Betriebsmodus „nur dieses Gerät" belegt ein eigenes Schlüsselpaar im Chip, und
+bei der kleinen Ausführung passt ungefähr die Hälfte hinein.
+
+**1. Welche Ausführung trägt die MIKROE-5392? → `ungeprüft`.**
+
+Geprüft wurden alle drei Stellen, an denen es stehen könnte:
+
+| Nachgesehen | Ergebnis |
+| --- | --- |
+| [Schaltplan v100b](https://download.mikroe.com/documents/add-on-boards/click/se051-plugtrust-click/SE051%20Plug%26Trust_click_v100b_Schematic.PDF) (heruntergeladen und gelesen) | U1 ist nur mit **„SE051"** beschriftet — keine Bestellnummer, keine 12NC, keine Speicherangabe |
+| mikroe.com Produktseite | nennt nur „**SE051C2**", ohne Bestellcode |
+| Datenblatt, das Mikroe verlinkt | NXPs allgemeines SE051-Produktdatenblatt, nicht platinenspezifisch |
+
+**Damit ist es eine Frage an MikroElektronika, keine Annahme.** Ein Satz an
+deren Support („Welche NXP-Bestellnummer sitzt als U1 auf der MIKROE-5392?")
+klärt es. Die Alternative: nach der Lieferung am Gerät auslesen — der Chip gibt
+seine freie Speichergröße selbst aus.
+
+**2. Welche Teilenummer als Einzelchip, und welche ist die 104-kB-Fassung?**
+
+Es gibt **genau eine** SE051C2-Bestellnummer im Handel:
+
+| Teil | 12NC | Mouser | DigiKey | Farnell |
+| --- | --- | --- | --- | --- |
+| **SE051C2HQ1/Z01XDZ** | **935414457472** | **5,02 €**, 14.140 am Lager | 5,63 € | führt sie nicht |
+
+Geprüft am 23.10.2026: Mouser kennt unter `SE051C2HQ1` nur diese eine Nummer,
+DigiKey ebenfalls (die Zusätze `…CT`, `…TR`, `…DKR` sind DigiKeys eigene
+Verpackungsformen desselben Teils). Die 12NC stimmt bei beiden Händlern
+überein.
+
+**Die Speichergröße steht nicht im Namen.** Das Datenblatt (Rev. 1.4,
+28.03.2022, Abschnitt 1.3, Tabelle 1) löst `SE05yagddd/Zrrff` so auf:
+
+| Stelle | im Beispiel | Bedeutung |
+| --- | --- | --- |
+| y | **1** | JCOP-Version |
+| a | **C** | Produktkonfiguration (A, C oder P) |
+| g | **2** | Temperaturbereich −40 °C … +105 °C |
+| ddd | **HQ1** | Gehäuse HX2QFN20 |
+| Zrrff | **/Z01XD** | „**NXP internal code to identify individual configurations**" |
+
+Die Unterscheidung 46/104 kB steckt also im internen Code `/Z01XD`, den das
+Datenblatt nicht auflöst. **Es gibt keine zweite Nummer, zwischen der man
+wählen könnte** — man bekommt, was unter `/Z01XD` geliefert wird.
+
+**3. Preisunterschied? → gibt es nicht**, weil es keine zweite Ausführung zu
+kaufen gibt.
+
+### Vorsicht bei der Zahl in der Doku: NXP nennt selbst zwei Spannen
+
+| Quelle | Spanne |
+| --- | --- |
+| SE051 Produktdatenblatt **Rev. 1.4, 28.03.2022**, Abschnitt 2.2 | „Secured user flash memory ranging from **45 kB** full featured up to **101 kB**" |
+| AN12973 **Rev. 2.0, 08.07.2024**, Tabelle 3 | **46 kB** … **104 kB** |
+
+Beides von NXP, beides zum selben Chip, unterschiedliche Dokumentstände. Welche
+Zahl auch immer in die Doku kommt — **mit Dokument und Revision dahinter**,
+sonst steht dort eine Zahl, die ein anderes NXP-Papier bestreitet. Die
+AN12973-Fassung ist die jüngere.
+
+Das Datenblatt sagt an derselben Stelle außerdem: „Dependent on the ordered
+product configuration the feature set can vary." Es geht also nicht nur um
+Speicher.
+
+### Zwei Ausführungen desselben Namens
+
+AN12973 Tabelle 4 unterscheidet beim SE051C2 zwei OEFs: **A8FA** mit Applet 7.2
+(Datumscode ab 2201) und **A564** mit Applet 6.0 (bis 2152). Beide heißen
+SE051C2, und sie haben **verschiedene Werks-SCP03-Schlüssel** (Tabelle 6).
+
+**Für die Bestellung heißt das: nichts auswählbar.** Weder Mouser noch DigiKey
+lassen Datumscode oder OEF wählen; beide führen nur `/Z01XDZ`. Welche Fassung
+kommt, zeigt sich am gelieferten Teil — und die Erstinbetriebnahme muss den
+passenden Schlüsselsatz nehmen. Das gehört in die Inbetriebnahme-Anleitung,
+nicht in die Kaufliste.
+
+### Wenn der SE051C2 doch noch ausfällt: was es als Platine gäbe
 
 Vollständig durchgesehen bei mikroe.com, Mouser DE und DigiKey DE am
 23.10.2026. Das Ergebnis ist unangenehm schmal.
@@ -258,41 +330,37 @@ Einmal zu viel gefragt ist billiger als zweimal bestellt.
 
 ## Gesamtsumme
 
-### Jetzt bestellen
-
 | Händler | Waren brutto | Versand | Zusammen |
 | --- | --- | --- | --- |
-| Mouser (DK + Dongle) | 60,34 € | `ungeprüft` | 60,34 € + Versand |
+| Mouser (DK, Click, Dongle) | 85,93 € | `ungeprüft` | 85,93 € + Versand |
 | Amazon | 22,98 € | 0 € zugesagt, Bedingungen `ungeprüft` | 22,98 € |
 | BerryBase | 11,00 € | 4,95 € | 15,95 € |
-| **Zusammen** | **94,32 €** | | **ca. 99 €** |
-
-### Später, nach dem grünen Licht
-
-| | | |
-| --- | --- | --- |
-| MIKROE-5392 bei Mouser | 21,50 € netto | **25,59 € brutto** |
-
-Zusammen also **ca. 125 €** wie bisher gerechnet — nur in zwei Schritten, und
-der zweite Schritt zahlt den Mouser-Versand ein zweites Mal.
+| **Zusammen** | **119,91 €** | | **ca. 125 €** |
 
 Gegenüber der alten Schätzung von „ca. 135 €" sind es rund 10 € weniger, mit
 geprüften Zahlen statt Momentaufnahmen — obwohl zwei Kabel und eine Stiftleiste
 dazugekommen sind. Der Dongle allein spart 15 €.
 
-**Zwei Dinge bleiben unsicher, eins davon teuer:**
+**Eine Zahl bleibt offen:** ob Mouser Zoll und Einfuhrumsatzsteuer schon im
+Preis trägt. Schlägt beides obendrauf, liegt die Bestellung bei rund 140 € statt
+125 €. Thomas sieht die Zahl an der Kasse, bevor er bestellt.
 
-1. **Welche Chip-Variante.** Siehe Abschnitt Sicherheitschip. Das entscheidet
-   AN12973, nicht der Preis.
-2. **Ob Mouser Zoll und Einfuhrumsatzsteuer schon im Preis trägt.** Schlägt
-   beides obendrauf, liegt die erste Bestellung bei rund 72 € statt 60 €.
-   Thomas sieht die Zahl an der Kasse, bevor er bestellt.
+**Und eine Frage bleibt offen, die nichts kostet, aber in die Doku gehört:**
+welche Speicherausführung geliefert wird. Siehe Abschnitt Sicherheitschip —
+sie ist nicht bestellbar, nur erfragbar.
 
 ## Quellen
 
 Alle am **23.10.2026** abgerufen.
 
-- Mouser DE: [949-NRF52840-DK](https://www.mouser.de/ProductDetail/949-NRF52840-DK) ·
+- SE051 Produktdatenblatt, Rev. 1.4, 28.03.2022 (577314) — Abschnitt 1.3
+  Tabelle 1 (Namensschema), Abschnitt 2.2 (45–101 kB).
+  Über mikroe.com geladen: https://download.mikroe.com/documents/datasheets/SE051_datasheet.pdf
+- AN12973 „SE051 configurations", Rev. 2.0, 08.07.2024 — Tabellen 3, 4 und 6.
+  Gelesen vom SE050-Treiber-Strang, nicht hier; nxp.com lieferte 404.
+- MIKROE-5392 Schaltplan v100b — https://download.mikroe.com/documents/add-on-boards/click/se051-plugtrust-click/SE051%20Plug%26Trust_click_v100b_Schematic.PDF
+- Mouser DE: [SE051C2HQ1/Z01XDZ](https://www.mouser.de/ProductDetail/771-SE051C2HQ1Z01XDZ) ·
+  [949-NRF52840-DK](https://www.mouser.de/ProductDetail/949-NRF52840-DK) ·
   [932-MIKROE-5392](https://www.mouser.de/ProductDetail/932-MIKROE-5392) ·
   [949-NRF52840-DONGLE](https://www.mouser.de/ProductDetail/949-NRF52840-DONGLE) ·
   [Bestellungen und Versand](https://www.mouser.de/de/help/orders-shipping/)
