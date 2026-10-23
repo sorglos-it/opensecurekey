@@ -17,8 +17,9 @@ Grundlage ist die belegte Teileauswahl in [parts.md](parts.md).
 > Grundgeheimnis lässt sich als HMACKey anlegen. Die MIKROE-5392 ist damit
 > wieder in der Bestellung.
 > **Offen bleibt die Speicherausführung** — 46 kB oder 104 kB. Das ist keine
-> Bestellentscheidung, weil es nur **eine** SE051C2-Bestellnummer gibt; es ist
-> eine Frage an den Hersteller. Eigener Abschnitt weiter unten.
+> Bestellentscheidung: es gibt nur **eine** SE051C2-Bestellnummer, und für den
+> Teststand reichen 46 kB. Die Zahl wird später am Gerät gemessen, nicht beim
+> Hersteller erfragt. Eigener Abschnitt weiter unten.
 
 | | |
 | --- | --- |
@@ -106,11 +107,33 @@ Bestellung.**
 Mikroe nennt auf der eigenen Produktseite dieselben Bestände: Mouser 92,
 DigiKey 0, Farnell 0. Zwei unabhängige Quellen, gleiches Bild.
 
-### 46 kB oder 104 kB? Drei Fragen, drei Antworten
+### 46 kB oder 104 kB? Offen — und für den Teststand ohne Bedeutung
 
-Der Speicher ist eine Spanne, keine Zahl. Das ist nicht egal: jeder Dienst im
-Betriebsmodus „nur dieses Gerät" belegt ein eigenes Schlüsselpaar im Chip, und
-bei der kleinen Ausführung passt ungefähr die Hälfte hinein.
+Der Speicher ist eine Spanne, keine Zahl: jeder Dienst im Betriebsmodus „nur
+dieses Gerät" belegt ein eigenes Schlüsselpaar im Chip, bei der kleinen
+Ausführung passt ungefähr die Hälfte hinein.
+
+**Trotzdem wird hier nichts nachgefragt, und das ist kein Zögern.** Die
+Entscheidung, mit Begründung:
+
+- **Der Teststand braucht die große Ausführung nicht.** Er soll beweisen, dass
+  die Technik trägt: SE051 antwortet, SCP03 steht, FIDO2 läuft über USB, NFC
+  und Smartcard. Dafür braucht es eine Handvoll Schlüssel, nicht hunderte.
+  **46 kB reichen für jede dieser Messungen.**
+- **Die Größe entscheidet erst bei der eigenen Platine** — und dort wird der
+  Chip einzeln gekauft. Dann steht die Ausführung in der Bestellnummer, und die
+  Frage löst sich von selbst.
+- **Gemessen schlägt erfragt.** Sobald die Platine auf dem Tisch liegt, liest
+  der Treiber beim Anmelden `GetFreeMemory` aus. Dann steht die Zahl fest, und
+  zwar verlässlicher als eine Auskunft per E-Mail.
+- **Eine Herstelleranfrage wäre eine Nachricht nach außen in Thomas' Namen.**
+  Das entscheidet er, nicht wir — und für eine Zahl, die in zwei Wochen ohnehin
+  gemessen wird, lohnt es nicht.
+
+Die offene Stelle ist also keine Lücke, sondern eine bewusst offen gelassene
+Zahl mit bekanntem Termin.
+
+Was trotzdem nachgesehen wurde, damit die Zahl nicht geraten wird:
 
 **1. Welche Ausführung trägt die MIKROE-5392? → `ungeprüft`.**
 
@@ -122,10 +145,8 @@ Geprüft wurden alle drei Stellen, an denen es stehen könnte:
 | mikroe.com Produktseite | nennt nur „**SE051C2**", ohne Bestellcode |
 | Datenblatt, das Mikroe verlinkt | NXPs allgemeines SE051-Produktdatenblatt, nicht platinenspezifisch |
 
-**Damit ist es eine Frage an MikroElektronika, keine Annahme.** Ein Satz an
-deren Support („Welche NXP-Bestellnummer sitzt als U1 auf der MIKROE-5392?")
-klärt es. Die Alternative: nach der Lieferung am Gerät auslesen — der Chip gibt
-seine freie Speichergröße selbst aus.
+**Es steht also nirgends — und wird nach den Gründen oben auch nicht erfragt.**
+Die Zahl kommt, wenn die Platine da ist, aus `GetFreeMemory`.
 
 **2. Welche Teilenummer als Einzelchip, und welche ist die 104-kB-Fassung?**
 
@@ -345,9 +366,9 @@ dazugekommen sind. Der Dongle allein spart 15 €.
 Preis trägt. Schlägt beides obendrauf, liegt die Bestellung bei rund 140 € statt
 125 €. Thomas sieht die Zahl an der Kasse, bevor er bestellt.
 
-**Und eine Frage bleibt offen, die nichts kostet, aber in die Doku gehört:**
-welche Speicherausführung geliefert wird. Siehe Abschnitt Sicherheitschip —
-sie ist nicht bestellbar, nur erfragbar.
+**Eine Zahl bleibt bewusst offen:** welche Speicherausführung geliefert wird.
+Sie ist nicht bestellbar, für den Teststand ohne Bedeutung, und wird gemessen,
+sobald die Platine da ist. Siehe Abschnitt Sicherheitschip.
 
 ## Quellen
 
