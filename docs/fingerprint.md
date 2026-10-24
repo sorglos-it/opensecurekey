@@ -26,6 +26,51 @@ Die vier Bedingungen, unverändert:
 3. Beschreibung ohne Geheimhaltungsvertrag.
 4. Klein genug für einen Schlüsselanhänger.
 
+## Zwei Fragen von Thomas, am Datenblatt nachgesehen
+
+**„Der FPC2534AM ist doch nur der Sensor am Flachband — fehlt da nicht die
+Ansteuerung, die beim SparkFun-Board drauf ist?"**
+
+Nein. Der Sensor spricht selbst, SPC27317-8 Abschnitt 6.5:
+
+| Pin | SPI-Modus | UART-Modus |
+| --- | --- | --- |
+| `SPI_MOSI` / `MISO` / `SCK` / `CS_N` | vollständiges SPI, bis 10 MHz | GPIO |
+| `UART_TX` / `RX` | GPIO | TX / RX, ab 2,4 kBaud |
+| `IRQ` | Interrupt zum Wirt | Host-Weckruf |
+| `IF_CFG_1` / `2` | wählt die Schnittstelle, per Pegel | dito |
+
+Dazu Abschnitt 1: „several different host interfaces, **pre-loaded software and
+is ready to use on delivery**", und 2.2: „On board authentication software",
+„Encrypted template storage". **Vergleich und Vorlagen sind im Sensor.** Er kann
+direkt an den nRF52840, ohne Zwischencontroller.
+
+Das SparkFun-Board ist damit eine reine Trägerplatine: ZIF-Buchse für den Flex,
+Spannungsversorgung, Qwiic-Stecker. Die 30 USD Aufpreis kaufen, dass am
+Teststand nichts gelötet werden muss — nicht Elektronik, die dem Chip fehlt.
+
+**„Wie macht es Yubico beim YubiKey Bio? Die haben doch auch keinen richtigen
+Sensor drauf."**
+
+Yubico baut es anders, mit **drei** Chips: Sensor, ein **eigenes Secure Element
+für die Biometrie**, und der Hauptchip. Der Vergleich läuft im zweiten Chip,
+nicht im Sensor; die Verbindung dazwischen ist verschlüsselt, und das
+biometrische Teilsystem läuft unabhängig vom Rest (Yubico-Pressemitteilung zum
+Marktstart der Bio-Reihe, `ungeprueft` — ein Teardown, der die Teile benennt,
+war nicht zu finden).
+
+Für uns heißt das: **Unser Weg kommt mit einem Chip weniger aus**, weil der
+AllKey das kann, wofür Yubico ein zweites Secure Element verbaut. Die
+Fingerabdruckdaten liegen im Sensor und erreichen unseren SE051 nie.
+
+**Die ehrliche Grenze dabei**, SPC27317-8 Abschnitt 3.4: Der AllKey kennt einen
+Aufnahmemodus, in dem sich ein Bild auslesen lässt (`0x0053 Image Data`). Das
+Datenblatt sagt dazu ausdrücklich „the image cannot be used for biometric
+operations; this state is intended for debugging purposes". Ein Bild kommt also
+heraus, taugt aber nicht zum Vergleich — besser als beim Grow R503, wo das Bild
+das echte ist, aber **kein** Riegel gegen eine veränderte Firmware. Das gehört
+ins Bedrohungsmodell, wenn der Sensor kommt.
+
 ## Übersicht
 
 | Teil | 1. rechnet selbst | 2. Kleinmenge | 3. ohne NDA | 4. Baugröße | Urteil |
