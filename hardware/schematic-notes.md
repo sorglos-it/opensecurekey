@@ -31,7 +31,7 @@ Bauteil weg gedreht. Nichts klebt direkt am Pin.
 | D2 | Nexperia PESD5V0X1BCL,315 | C552589 |
 | Q1–Q5 | Diodes DMG2305UX, SOT-23 | C2940629 |
 | X1 | Epson Q13FC13500004, 32,768 kHz | C32346 |
-| L1 | TDK MLZ1608N100LT000, 10 µH 0603 | C194437 |
+| L1 | Murata LQH2MCN100M52L, 10 µH, 2,0 × 1,6 mm | C703109 |
 | C1, C2, C3, C5 | 4,7 µF 0603 X5R 16 V | C19666 |
 | C4, C10, C11, C12, C14 | 100 nF 0402 X7R | C1525 |
 | C8, C9 | 15 pF 0402 C0G | C307341 |
@@ -79,6 +79,39 @@ damit die übrigen Kennungen zur Vorlage passen. `ungeprueft`: am gerenderten
 Raytac-PDF bestätigen, bevor bestellt wird — wenn das Modul die Pins doch
 herausführt, fehlen zwei Kondensatoren.
 
+### 1a. L1 ist die REG0-Spule, nicht die Funkspule
+
+Das Datenblatt sagt es in einem Satz: *„32MHz crystal and RF (VDD) DC/DC
+inductor (Reg1) are already inside the module."* **L1 an `DCCH` ist die Spule
+der REG0-Stufe** — die Funkspule für REG1 steckt im Modul. Wer das verwechselt,
+sucht an der falschen Stelle, wenn der Wirkungsgrad nicht stimmt.
+
+**Gewählt: Murata LQH2MCN100M52L**, 10 µH ±20 %, drahtgewickelt,
+2,0 × 1,6 mm, **Nennstrom 200 mA**, Gleichstromwiderstand 2,96 Ω (C703109).
+
+Begründung, und sie ist eine Korrektur meiner ersten Wahl: Beim Schaltregler
+muss der **Sättigungsstrom** über dem **Spitzenstrom** liegen, nicht über dem
+Dauerstrom. Mein erstes Teil (TDK MLZ1608N100LT000, 0603) hat 300 mA
+Dauerstrom, geht aber schon bei **60 mA in die Sättigung** — dann bricht die
+Induktivität ein, die Welligkeit steigt und der Wirkungsgrad fällt, und zwar
+genau bei den Funkspitzen, wo es darauf ankommt. Die 300 mA helfen dort nichts.
+
+Murata bemisst den Nennstrom als den kleineren von zwei Werten:
+Temperaturanstieg **und** Induktivitätsabfall (|ΔL| ≤ 30 %). Die 200 mA decken
+damit die Sättigung mit ab und liegen deutlich über der Vorgabe von ≥ 150 mA.
+
+> **`ungeprueft`:** Ein eigener Zahlenwert für `Isat` steht beim Teil nicht
+> dabei; belegt ist der Nennstrom von 200 mA. Wer mehr Reserve und weniger
+> Widerstand will, nimmt **TDK NLCV25T-100K-EFRD** (C295388): 1008-Gehäuse
+> (2,5 × 2,0 mm), **360 mA** Nennstrom, nur 1,1 Ω, AEC-Q200 — kostet
+> 0,5 × 0,4 mm mehr Fläche.
+
+**Abweichung von der Vorgabe:** Gewünscht war 0805 (2,0 × 1,25 mm). Kein
+0805-Teil der Bibliothek weist einen Sättigungs- oder Nennstrom ≥ 150 mA aus;
+das beste ist MLZ2012N100LT000 mit 110 mA. Das gewählte Teil ist **0,35 mm
+breiter** als 0805. Fürs Layout zu beachten, aber die 150-mA-Vorgabe wiegt
+schwerer als 0,35 mm.
+
 ### 2. XL1/XL2 liegen anders als in `pinout.md`
 
 Die Modulpinnummern stammen aus dem Bibliothekssymbol. **Zehn von zwölf
@@ -86,11 +119,16 @@ Nummern, die `pinout.md` als „einzeln nachgelesen und sicher" nennt, stimmen
 genau** (40 = P0.18/nRESET, 41 = P0.17, 42 = P0.19, 43 = P0.21, 44 = P0.20,
 45 = P0.23, 46 = P0.22, 47 = P1.00, 52 = P0.09/NFC1, 54 = P0.10/NFC2).
 
-**Zwei stimmen nicht:** `pinout.md` nennt (20) XL1 und (23) XL2, das
+**Zwei stimmen nicht:** `pinout.md` nannte (20) XL1 und (23) XL2, das
 Bibliothekssymbol hat **17 = P0.00/XL1 und 18 = P0.01/XL2**. Gezeichnet ist nach
-dem Symbol, denn das Symbol bestimmt, was später gebaut wird. **Das ist am
-Raytac-PDF zu prüfen, bevor das Layout beginnt** — liegt der Quarz an den
-falschen Pins, läuft die Uhr nicht und TOTP ist tot.
+dem Symbol.
+
+**Am 24.10.2026 am Datenblatt entschieden: das Symbol hat recht.** Approval
+Sheet Abschn. 2.5, gerenderte Seite 17, in den Fassungen K und H wortgleich:
+(17) P0.00/XL1 und (18) P0.01/XL2, beide „Connection for 32.768 kHz crystal".
+(20) ist `P0.04/AIN2`, (23) ist `P0.07/TRACECLK`. Hätte ich der Vorlage
+geglaubt, läge der Quarz an zwei beliebigen GPIOs — Uhr tot, TOTP tot.
+`pinout.md` ist berichtigt.
 
 Die übrigen Modulpinnummern, die `pinout.md` offenließ, stehen jetzt fest:
 3 = P1.10, 4 = P1.11, 5 = P1.12, 6 = P1.13, 7 = P1.14, 8 = P1.15, 16 = P0.27,
@@ -180,19 +218,18 @@ Für den nächsten Durchgang festgehalten:
 
 In der Reihenfolge, in der sie das Layout behindern:
 
-1. **L1 ist zu schwach.** Die Vorlage verlangt ≥ 80 mA, das gewählte
-   MLZ1608N100LT000 hat **60 mA Sättigungsstrom** (300 mA Dauerstrom). Es ist
-   das beste 10-µH-Teil in 0603, das die Bibliothek hergibt. Entweder auf 0805
-   gehen (mehr Platz) oder die 80-mA-Vorgabe gegen das Raytac-Datenblatt prüfen.
-   **Vor der Bestellung zu klären.**
-2. **Der eine DRC-Fehler** (siehe oben) — am offenen DRC-Bereich ablesen.
-3. **Raytac-PDF:** XL1/XL2 (17/18 oder 20/23) und die Frage, ob DEC4/DECUSB
-   wirklich nicht herausgeführt sind.
-4. **Pad-Maße aus dem Gerber prüfen**, nicht aus der Bibliothek — Hausregel, und
+1. **Der eine DRC-Fehler** (siehe oben) — am offenen DRC-Bereich ablesen.
+2. **L1 braucht 0,35 mm mehr Breite als 0805** (2,0 × 1,6 mm statt 2,0 × 1,25).
+   Alternative mit mehr Reserve: NLCV25T-100K-EFRD im 1008-Gehäuse.
+3. **Pad-Maße aus dem Gerber prüfen**, nicht aus der Bibliothek — Hausregel, und
    in einem anderen Projekt lag die Bibliothek um bis zu 4,5 mm daneben.
-5. **J3 und J6** auf richtige Teile bringen (1,27 mm bzw. Testpunkte).
-6. **C15/C16 am Netzwerkanalysator abstimmen**, beide Zweige immer gleich.
-7. **Die LED-Vorwiderstände am Muster nachstellen** (R10 1 kΩ, R11/R12 470 Ω
+4. **J3 und J6** auf richtige Teile bringen (1,27 mm bzw. Testpunkte).
+5. **C15/C16 am Netzwerkanalysator abstimmen**, beide Zweige immer gleich.
+6. **Die LED-Vorwiderstände am Muster nachstellen** (R10 1 kΩ, R11/R12 470 Ω
    sind vorläufig).
-8. **Der Akku darf nicht hinter der NFC-Antenne liegen**, dazu Ferritfolie
+7. **Der Akku darf nicht hinter der NFC-Antenne liegen**, dazu Ferritfolie
    zwischen Akku und Antenne (`layout-notes.md`).
+
+**Erledigt am 24.10.2026:** Die Raytac-Pinzuordnung ist am Datenblatt geprüft
+(XL1/XL2 = 17/18, `pinout.md` berichtigt), dass DEC4/DECUSB nicht herausgeführt
+sind, ist über die Pinzählung 48 + 5 + 8 = 61 bestätigt, und L1 ist entschieden.
