@@ -23,8 +23,15 @@ import common
 
 
 def write_version(part, text, root=common.ROOT):
+    """Schreibt die Nummer in der Schreibweise, die die Datei schon hatte.
+
+    Die Firmware fuehrt sie in Zephyrs Schreibweise, weil Zephyr diese Datei
+    selbst liest - common.parse_version_file() erklaert, warum.
+    """
+    inhalt = common.format_version_file(common.parse_version(text),
+                                        common.is_zephyr_version(part, root))
     with io.open(common.version_file(part, root), 'w', encoding='utf-8', newline='\n') as handle:
-        handle.write(text + '\n')
+        handle.write(inhalt)
 
 
 def check(root=common.ROOT):

@@ -44,6 +44,46 @@ class Bump(unittest.TestCase):
                 common.parse_version(bad)
 
 
+ZEPHYR = ('VERSION_MAJOR = 1\nVERSION_MINOR = 2\n'
+          'PATCHLEVEL = 3\nVERSION_TWEAK = 4\n')
+
+
+class ZephyrSchreibweise(unittest.TestCase):
+    """Die Firmware fuehrt ihre Nummer in Zephyrs Schreibweise, weil Zephyr
+    apps/firmware/VERSION selbst liest. Es ist dieselbe vierstellige Nummer."""
+
+    def test_reads_zephyr_form(self):
+        self.assertEqual(common.parse_version_file(ZEPHYR), (1, 2, 3, 4))
+
+    def test_reads_house_form(self):
+        self.assertEqual(common.parse_version_file('1.2.3.4\n'), (1, 2, 3, 4))
+
+    def test_incomplete_zephyr_form_is_an_error(self):
+        # Gegenprobe: eine fehlende Zeile darf nicht stillschweigend 0 ergeben.
+        with self.assertRaises(ValueError):
+            common.parse_version_file('VERSION_MAJOR = 1\nVERSION_MINOR = 2\n')
+
+    def test_bump_keeps_the_zephyr_form(self):
+        root = make_repo({'firmware': ZEPHYR.strip(), 'desktop': '0.0.0.0',
+                          'web': '0.0.0.0'})
+        self.assertEqual(set_version.main(['firmware', '--build'], root), 0)
+        with io.open(common.version_file('firmware', root), encoding='utf-8') as handle:
+            text = handle.read()
+        self.assertIn('VERSION_TWEAK = 5', text)
+        self.assertEqual(common.read_version('firmware', root), '1.2.3.5')
+
+    def test_bump_keeps_the_house_form(self):
+        root = zeros()
+        self.assertEqual(set_version.main(['desktop', '--build'], root), 0)
+        with io.open(common.version_file('desktop', root), encoding='utf-8') as handle:
+            self.assertEqual(handle.read(), '0.0.0.1\n')
+
+    def test_the_real_firmware_file_is_zephyr_form(self):
+        # Sonst bricht der ARM-Bau, und zwar erst spaet.
+        self.assertTrue(common.is_zephyr_version('firmware'))
+        self.assertEqual(common.read_version('firmware'), '0.0.1.0')
+
+
 class Cli(unittest.TestCase):
     def test_build_writes_only_the_version_file(self):
         root = zeros()

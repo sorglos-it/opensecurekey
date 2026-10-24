@@ -385,13 +385,11 @@ have stopped measuring that worry, so the test now checks the property itself �
 **every** signature costs exactly one access. If the agent kept the key, the
 second signature would be free.
 
-**Still open: PKCS#11 does the same thing.** `Pkcs11Token.loadObjects` still
-reveals every key, because it needs the public parameters (curve point, modulus,
-exponent) and currently reads them out of the private key. Using `pub` there
-needs a parser for the SSH public-key format — an addition, not a rewrite, and
-not something to hurry through in a crypto parser. The agent was the larger win:
-`ssh` lists identities on every connection, while PKCS#11 loads its objects once
-per session.
+**Closed on 24.10.2026: PKCS#11 does it the same way now.** It used to reveal
+every key just to compute the public parameters out of the private one. It now
+reads them from `pub`, through a parser for the SSH public-key format written
+against the same `ssh-keygen` vectors the agent uses. Listing objects costs
+**zero** approvals, measured with the counter-check — see `docs/desktop.md`.
 
 ## Loose ends
 

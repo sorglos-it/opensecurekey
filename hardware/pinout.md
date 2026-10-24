@@ -27,15 +27,27 @@ ist — dazu unten eine Entscheidung.
   (16). Das Datenblatt nennt die Zahl nicht; sie ergibt sich aus Tabelle 142.
 - **Raytac MDBT50Q-1MV2: 61 Modulpins**, nach der Pin-Tabelle sind **alle 48
   GPIOs herausgeführt**, dazu GND, VDD, VDDH, DCCH, VBUS, D+, D−, SWDIO,
-  SWDCLK, XL1, XL2.
+  SWDCLK. Die Rechnung geht genau auf: 48 GPIOs + 5 × GND (1, 2, 15, 33, 55)
+  + VDD + VDDH + DCCH + VBUS + D+ + D− + SWDIO + SWDCLK = 61.
 
-> **`ungeprueft`:** Die Aussage „alle 48 von 48" stammt aus der maschinell
-> ausgelesenen, spaltenverschobenen Textschicht des PDF. **Vor dem Zeichnen des
-> Bauteils muss die Zuordnung Modulpin → Chippin am gerenderten PDF (Seiten
-> 16–18) nachgeprüft werden.** Einzeln nachgelesen und sicher sind:
-> (20) XL1, (23) XL2, (40) P0.18/nRESET, (41) P0.17, (42) P0.19, (44) P0.20,
-> (43) P0.21, (46) P0.22, (45) P0.23, (47) P1.00, (52) P0.09/NFC1,
-> (54) P0.10/NFC2, sowie D+, D−, VBUS, VDDH, DCCH.
+  **`XL1` und `XL2` sind keine eigenen Modulpins**, sondern die Zweitfunktion
+  von `P0.00` und `P0.01` — zwei der 48 GPIOs, keine zusätzlichen.
+
+> **Geprüft am 24.10.2026** (Approval Sheet Abschn. 2.5, gerenderte Seite 17,
+> Fassungen K und H, wortgleich): (17) P0.00/XL1, (18) P0.01/XL2, (30) VDDH,
+> (31) DCCH, (32) VBUS, (34) D−, (35) D+, (40) P0.18/nRESET, (41) P0.17,
+> (42) P0.19, (43) P0.21, (44) P0.20, (45) P0.23, (46) P0.22, (47) P1.00,
+> (52) P0.09/NFC1, (54) P0.10/NFC2.
+>
+> **Berichtigung:** Die vorige Fassung dieser Datei nannte **(20) XL1 und
+> (23) XL2** und bezeichnete das als sicher. Das war falsch — (20) ist
+> `P0.04/AIN2`, (23) ist `P0.07/TRACECLK`. Wer danach zeichnet, legt den
+> Uhrenquarz an zwei beliebige GPIOs: **die Uhr läuft nicht und TOTP ist tot.**
+> Gefunden beim Zeichnen des Schaltplans, weil das Bibliothekssymbol 17/18
+> zeigte; danach am Datenblatt bestätigt. Die übrigen zehn Nummern der alten
+> Liste waren richtig.
+>
+> Die vollständige Zuordnung Modulpin → Signal steht in `schematic-notes.md`.
 
 ## Welche Pins nicht frei verwendbar sind
 
@@ -46,7 +58,7 @@ ist — dazu unten eine Entscheidung.
 | `D+` / `D−` | eigene Pins (Balls AD6 / AD4) | **fest, nicht verlegbar** |
 | `XC1` / `XC2` | eigene Pins | 32-MHz-Quarz — **im Raytac-Modul schon drin** |
 | `SWDIO` / `SWDCLK` | eigene Pins | Debug |
-| VBUS, VDDH, DCC, DCCH, DECUSB, DEC1–DEC6 | Versorgung | — |
+| VBUS, VDDH, DCC, DCCH, DECUSB, DEC1–DEC6 | Versorgung | **Nur der nackte Chip.** Das Raytac-Modul führt von diesen nur VBUS, VDDH und DCCH heraus — **kein DECUSB, kein DEC1–DEC6**: die Entkopplung sitzt im Modul. Die Kondensatoren C6 (DEC4) und C7 (DECUSB) aus `schematic.md` entfallen darum. |
 
 ### Pins mit Vorbelegung
 
@@ -166,8 +178,8 @@ Abschn. 6.14.3 und der GPIO-Elektrik (S. 157):
 | nRF52840 | Raytac-Pin | Signal | Ziel | Art |
 | --- | --- | --- | --- | --- |
 | **Takt und Reset** | | | | |
-| `P0.00` | (20) XL1 | XL1 | 32,768-kHz-Quarz | Quarz |
-| `P0.01` | (23) XL2 | XL2 | 32,768-kHz-Quarz | Quarz |
+| `P0.00` | **(17)** | XL1 | 32,768-kHz-Quarz | Quarz |
+| `P0.01` | **(18)** | XL2 | 32,768-kHz-Quarz | Quarz |
 | `P0.18` | (40) | **nRESET** | Reset-Taster / Programmierstecker | langsam |
 | **Flash, QSPI** | | | | |
 | `P0.17` | (41) | QSPI_CSN | Flash /CS | **schnell** |
@@ -246,10 +258,10 @@ Dazu die eingebauten Pull-Widerstände: `R_PU` = `R_PD` = **11/13/16 kΩ**
 
 ## Offene Punkte
 
-1. **Die Raytac-Pinzuordnung muss am gerenderten PDF geprüft werden**, bevor
-   das Bauteil gezeichnet wird. Die Spalten der Textschicht sind verschoben.
-   Für die Pins in der Tabelle oben ohne Raytac-Nummer ist die Modulpinnummer
-   noch zu ergänzen.
+1. **Erledigt am 24.10.2026.** Die Raytac-Pinzuordnung ist am gerenderten PDF
+   geprüft (Abschn. 2.5, Seite 17, Fassungen K und H). Dabei fiel der Fehler
+   bei XL1/XL2 auf (oben berichtigt). Alle Modulpinnummern, die hier fehlten,
+   stehen jetzt in `schematic-notes.md` und sind so gezeichnet.
 2. **`P1.00` als QSPI-Datenleitung**: Nordic empfiehlt es, Raytac verbietet
    schnelle Signale auf Port 1. Wir folgen Raytac. Ob Nordics Empfehlung
    dennoch gilt, ist `ungeprueft`.

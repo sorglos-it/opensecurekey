@@ -481,8 +481,8 @@ einschalten. **Zu entscheiden.**
 | A4, A9, B4, B9 | VBUS | `VBUS` |
 | **A5** | **CC1** | **R15 = 5,1 kΩ nach `GND`** |
 | **B5** | **CC2** | **R16 = 5,1 kΩ nach `GND`** |
-| A6 | D+ | U5 Pin 1 → U1 D+ |
-| A7 | D− | U5 Pin 3 → U1 D− |
+| A6 | D+ | U5 Pin 1, von dort U5 Pin 6 → U1 D+ |
+| A7 | D− | U5 Pin 3, von dort U5 Pin 4 → U1 D− |
 | B6 | D+ | mit A6 verbinden |
 | B7 | D− | mit A7 verbinden |
 | A8, B8 | SBU1, SBU2 | offen |
@@ -518,12 +518,22 @@ Rechenkerns selbst.
 
 | von | nach | Bauteil |
 | --- | --- | --- |
-| U5 Pin 1 | D+ (Steckerseite) | USBLC6-2SC6 |
-| U5 Pin 3 | D− (Steckerseite) | — |
+| U5 Pin 1 | D+ (Steckerseite, J1 A6/B6) | USBLC6-2SC6 |
+| U5 Pin 6 | D+ (Geräteseite, U1 D+) | dieselbe Leitung, Durchgang |
+| U5 Pin 3 | D− (Steckerseite, J1 A7/B7) | — |
+| U5 Pin 4 | D− (Geräteseite, U1 D−) | dieselbe Leitung, Durchgang |
 | U5 Pin 2 | `GND` | — |
-| U5 Pin 5 | `GND` | — |
-| U5 Pin 6 | `VBUS` | — |
+| U5 Pin 5 | `VBUS` | — |
 | `VBUS` | `GND` | D2 = PESD5V0X1BCL |
+
+> **Berichtigung 24.10.2026 (Strang „Schaltplan zeichnen").** Die vorige Fassung
+> dieser Tabelle legte **Pin 5 auf `GND`** und `VBUS` auf Pin 6, und sie führte
+> D+ und D− auf je nur einen Pin. Beides war falsch: Pin 5 des USBLC6-2SC6 ist
+> **die VBUS-Klemme**, und das Teil ist ein **Durchgangsteil** — je Datenleitung
+> ein Pin zur Steckerseite und einer zur Geräteseite (I/O1 = Pin 1 und 6,
+> I/O2 = Pin 3 und 4, GND = Pin 2, VBUS = Pin 5). So gebaut hätte die Platine
+> beim ersten Einstecken **`VBUS` gegen Masse kurzgeschlossen**. Gefunden beim
+> Durchrechnen der Netzliste vor dem Zeichnen; Zuordnung nach ST-Datenblatt.
 
 U5 schützt beide Datenleitungen und klemmt `VBUS` mit (3,5 pF Kapazität je
 Leitung, 150 nA Leckstrom, IEC 61000-4-2 Stufe 4: ±15 kV Luft, ±8 kV Kontakt).
@@ -672,3 +682,23 @@ In der Reihenfolge, in der es das Zeichnen behindert:
 die Kondensatoren sitzen auf dem Modul, auf unserer Platine ist nichts nötig.
 Die Sendeleistung ist auf höchstens 4 dBm entschieden, ein zweiter
 Spannungswandler entfällt.
+
+## Festlegungen vom 24.10.2026 (vor dem Zeichnen)
+
+Die Punkte 1 bis 3 der Liste „Was offen bleibt" sind entschieden, Punkt 5
+ebenfalls. Damit ist der Schaltplan zeichenbar.
+
+| Punkt | Festlegung | Begründung |
+| --- | --- | --- |
+| Q1–Q5 | **Diodes DMG2305UX**, SOT-23, P-Kanal, −20 V, −3,8 A, Schwelle ab −0,9 V | logiktauglich an 3,0 V Gate-Source, gut lieferbar, billig |
+| R10 (rot) | **1 kΩ** `vorlaeufig` | am Muster feinabstimmen; LED leuchtet am Schlüsselbund, nicht im Serverschrank |
+| R11 (grün), R12 (blau) | **je 470 Ω** `vorlaeufig` | dto.; alle drei Farben werden gezeichnet, die 19-337C hat sie ohnehin im Gehäuse |
+| R13, R14 | **je 2,2 MΩ**, dazu **C17 = 10 nF** von `VBAT_SENSE` nach `GND` | 0,95 µA Dauerstrom statt 2,1 µA bei 2 × 1 MΩ; C17 lädt den Abtast-Kondensator des Wandlers trotz hoher Quellimpedanz |
+| Lastschalter für den Teiler | **entfällt** | spart die letzte µA, kostet aber Bauteil, Leitung und Fehlerquelle an einer Stelle, die nur Komfort liefert |
+| Q2/Q3-Kreuzsteuerung | Q2-Gate über R4 an `VBAT`, Q3-Gate über R5 an `VBUS` | übliche Lastumschaltung; in der vorigen Fassung nur „Kreuzsteuerung" genannt, nicht gezeichnet |
+| FP_IRQ (`P1.03`) | **Testpunkt**, nicht an J5 | J5 hat 6 Pins, alle belegt |
+| CC1/CC2 | **kein eigener ESD-Schutz** | der USBLC6 deckt die Datenleitungen ab; CC führt keine schnellen Signale |
+| Schirm von J1 | direkt an `GND` | RC-Anbindung bleibt eine Layout-Frage |
+| C8/C9, C15/C16 | als `TBD` gezeichnet | Quarz nicht ausgewählt, NFC-Abstimmung ist eine Messung |
+
+Nachtrag zur Bauteilliste: **C17 = 10 nF** kommt hinzu (Akkumessung).

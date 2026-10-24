@@ -170,6 +170,113 @@ be agreed with the firmware.
 - The settings file is read with a size limit; a broken file never stops the
   program, it falls back to the defaults and says why.
 
+## Setup: the one question that cannot be taken back
+
+A device in factory state is led through four steps, in this order and with no
+way around them: **mode, PIN, backup, emergency sheet**. While the device
+reports itself as fresh, every other page answers `303` to `/setup` — a
+bookmark on the overview does not help, and that is the point. The question
+has to be answered before a secret exists.
+
+The first step is the one that matters, so the interface is built not to
+soften it:
+
+- **No default.** Neither way is preselected, and `Next` stays disabled until
+  one is chosen **and** the "I understand this cannot be changed" box is
+  ticked. The server asks for that confirmation a second time (`confirm` in
+  `/api/setup`), so a hand-written request cannot slip past it either.
+- **Both ways name their price** next to their promise — the mirrored one that
+  the root secret is created outside the secure chip once, the other one that
+  there is no spare, ever.
+- **The recommendation stands beside them with its reason**, not in place of
+  the choice.
+- **The device decides.** A device that is already set up answers
+  `OSK_ERR_DENIED`; the program refuses beforehand as well, but the device has
+  the last word. Nothing in the program can change the mode afterwards —
+  `Client.Setup` is the only place that sets it and it is only reachable here.
+
+After the PIN is set, the program opens the vault with that same PIN right
+away. The next step is the backup, and the backup needs an open vault; asking
+the user for the PIN they chose two seconds ago is exactly the kind of
+question people learn to click away. If that opening fails, the answer says so
+(`unlocked: false` plus the reason) — the setup itself has happened and is
+final, and that is not something to swallow quietly.
+
+The simulator grew a `-werkszustand` switch for this: without it, it behaves
+exactly as before (a profile, the example entries, PIN 123456); with it, it
+holds nothing, knows no mode and takes only `setup`. That the plain simulator
+is unchanged is itself a test (`TestEingerichteteAttrappeBleibtWieSieWar`) —
+otherwise "we only added" would be a claim, not a measurement.
+
+The **emergency sheet** (`/sheet`, printable, reachable afterwards as well)
+holds what is needed when both devices are gone: the serial number, the chosen
+mode, the date, where the backup file is, the passphrase, and who holds which
+Shamir envelope and how many are needed (`shared/vault-format.md`). The last
+three are **lines to fill in by hand** — the program prints no secret, and the
+PIN is deliberately not on the sheet at all. In "this device only" the sheet
+says plainly that the backup does not bring back what is in the secure chip.
+
+**On the wire** (`shared/protocol.md`, command 19): `hello` reports `factory`
+(true while nothing is set up) and `modes`, one entry per profile; `setup`
+takes `mode` — **1 = mirrored, 2 = this device only** — and the first PIN. The
+mode is a number, not a name: the device computes with it, and a name beside
+it would be a second truth that can drift. `ModeKey` turns the number into a
+text key for the interface, so no visible text lives in the code.
+
+**Why the numbering starts at 1.** CBOR reads a missing field as zero. If
+either mode were zero, a request that simply forgot the field would silently
+have picked one — the very default this design forbids, arrived at by an
+omission instead of a decision. So zero, absent and null are all errors, on
+the wire and in `/api/setup`, where `mode` is a pointer for exactly that
+reason. Three lines of `TestAssistentWeistHalbeAngabenAb` hold that down, and
+putting a mode back on zero turns one of them red.
+
+A device that says nothing about `factory` counts as set up — better no wizard
+than the irreversible question at a device that already holds accounts. A
+second `setup` is answered `OSK_ERR_EXISTS` by the device; the program refuses
+beforehand as well, and a program that sends one at all has a bug.
+
+**Not built in the firmware yet.** The simulator answers command 19 and the
+two fields (`tests/simulator -werkszustand`), the device does not.
+
+## Measured: what listing costs over PKCS#11
+
+The public part of a key is not a secret, and the device sends it with `list`
+(field `pub`). `Pkcs11Token.loadObjects` used to fetch every key with `reveal`
+to compute modulus, curve and point — one button press per key, protecting
+nothing. Reading the public blob instead needs a parser for the SSH public-key
+format: `classes/agent_pubkey.go`, measured against the keys that the real
+`ssh-keygen` produced (`classes/agent_golden_test.go`).
+
+Measured, not assumed (`tests/freigaben_pkcs11_test.go`, three keys and a
+certificate):
+
+| Operation | Approvals |
+| --- | --- |
+| Listing objects (`C_FindObjects`) | **0** |
+| Signing once | **1** |
+| Signing a second time | **1** |
+
+The third row matters: a token that kept the key would get the second
+signature for free.
+
+The counter-check: with the pub path switched off in `loadObjects`, the same
+test reports "listing cost 4 approvals, expected 0" and 4 reveal fallbacks. So
+the test measures something. `RevealFallbacks()` counts the old path at
+runtime too — it must never fire silently.
+
+That both paths produce the *same* attributes is a separate test
+(`classes/pkcs11_pubweg_test.go`), because counting approvals alone would also
+be green if the objects were wrong. The reveal path now writes the public part
+out of the private key and reads it back through the same parser: one
+calculation, two ways in.
+
+The parser is strict, because these bytes come from outside: the message has
+to be used up completely, the curve point has to lie on the curve
+(`crypto/ecdh` checks that), RSA below 2048 bits is refused, and re-encoding
+has to yield the identical bytes — which rejects any non-shortest encoding
+before it can become a key that a second program reads differently.
+
 ## Open points
 
 - `tools/build.py desktop` (the project's own build script) does not know this
@@ -182,3 +289,8 @@ be agreed with the firmware.
   changes, `classes/items.go` has to change with it.
 - No certificate is created yet: the page lists the certificates on the device
   and runs the `attest` check. Creating one needs the firmware side first.
+- The firmware does not answer command 19 yet. The wizard is played through
+  against `tests/simulator -werkszustand`.
+- `docs/anbindungen.md` still says PKCS#11 reveals every key under "Measured:
+  how many approvals an operation costs". That is no longer true; the
+  paragraph belongs to another part and was left untouched.

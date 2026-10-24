@@ -29,7 +29,48 @@ const (
 	CmdRestore  = 12
 	CmdFirmware = 13
 	CmdAttest   = 14
+	CmdSetup    = 19
 )
+
+// Die zwei Betriebsarten, wie sie auf der Leitung stehen (shared/protocol.md
+// Befehl 19). Es sind Zahlen, keine Namen: das Geraet rechnet damit, und ein
+// Name waere eine zweite Wahrheit, die auseinanderlaufen kann.
+//
+// Sie fangen bei 1 an, und das ist der Kern der Sache: CBOR liest ein
+// fehlendes Feld als null. Waere eine der beiden Arten die Null, haette eine
+// Anfrage, die das Feld vergisst, still eine Betriebsart gewaehlt - genau
+// die stille Vorgabe, die dieser Entwurf verbietet, nur durch ein
+// Versaeumnis statt durch eine Entscheidung. Darum ist die Null ein Fehler.
+const (
+	ModeMirrored uint64 = 1 // Ersatz moeglich
+	ModeOnly     uint64 = 2 // nur dieses Geraet
+)
+
+// ModeNoneSet ist die Betriebsart eines Profils, das noch keine hat. Das
+// Protokoll nennt in `modes` nur eingerichtete Profile, also steht diese
+// Zahl nie auf der Leitung - sie ist das "noch nichts gewaehlt" dieses
+// Programms und absichtlich keine der beiden Arten.
+const ModeNoneSet uint64 = 0xffff
+
+// ValidMode sagt, ob die Zahl eine der zwei Betriebsarten ist. Eine dritte
+// gibt es nicht; die Null und eine fehlende Angabe sind keine stille
+// Vorgabe, sondern ein Fehler.
+func ValidMode(mode uint64) bool {
+	return mode == ModeMirrored || mode == ModeOnly
+}
+
+// ModeKey ist der Textschluessel, unter dem die Betriebsart in den
+// Sprachdateien steht. Die Zahl bleibt die Wahrheit; dies ist nur ihr Name
+// fuer das Auge.
+func ModeKey(mode uint64) string {
+	switch mode {
+	case ModeMirrored:
+		return "setup.mirrored.title"
+	case ModeOnly:
+		return "setup.only.title"
+	}
+	return ""
+}
 
 // Ergebniswerte des Geraets, gleiche Reihenfolge wie osk_result_t in
 // apps/firmware/include/osk_result.h.
@@ -166,6 +207,23 @@ type DeviceInfo struct {
 	Transports []string `json:"transports"`
 	Unlocked   bool     `json:"unlocked"`
 	Profiles   uint64   `json:"profiles"`
+	// Modes ist die Betriebsart je Profil, wie hello sie nennt. Ein Profil,
+	// das noch nichts haelt, steht nicht darin.
+	Modes []uint64 `json:"modes"`
+	// Factory heisst: es ist noch nichts eingerichtet, und nur in diesem
+	// Zustand nimmt das Geraet `setup` an. Ein Geraet, das dazu nichts
+	// sagt, gilt als eingerichtet - lieber keinen Assistenten zeigen als
+	// die unumkehrbare Frage an einem Geraet, das schon Zugaenge haelt.
+	Factory bool `json:"factory"`
+}
+
+// ModeOf nennt die Betriebsart eines Profils, oder ModeNoneSet, wenn das
+// Geraet fuer dieses Profil keine nennt.
+func (d DeviceInfo) ModeOf(profile uint8) uint64 {
+	if int(profile) >= len(d.Modes) {
+		return ModeNoneSet
+	}
+	return d.Modes[profile]
 }
 
 // Hello fragt Fassung, Seriennummer und eingeschaltete Zugaenge ab.
@@ -182,6 +240,21 @@ func (c *Client) Hello() (DeviceInfo, error) {
 	if unlocked, ok := data["unlocked"].(bool); ok {
 		info.Unlocked = unlocked
 	}
+	if factory, ok := data["factory"].(bool); ok {
+		info.Factory = factory
+	}
+	if list, ok := CborList(data, "modes"); ok {
+		for _, entry := range list {
+			mode, isNumber := entry.(uint64)
+			if !isNumber || !ValidMode(mode) {
+				// Eine Zahl, die keine der zwei Arten ist, wird nicht
+				// geraten. Das Profil gilt dann als nicht eingerichtet.
+				info.Modes = append(info.Modes, ModeNoneSet)
+				continue
+			}
+			info.Modes = append(info.Modes, mode)
+		}
+	}
 	if list, ok := CborList(data, "tr"); ok {
 		for _, entry := range list {
 			if name, isText := entry.(string); isText {
@@ -190,6 +263,32 @@ func (c *Client) Hello() (DeviceInfo, error) {
 		}
 	}
 	return info, nil
+}
+
+// Setup richtet ein Geraet im Werkszustand ein: die Betriebsart und die
+// erste PIN in einem Schritt. Beides gehoert zusammen, weil die Betriebsart
+// entscheidet, wie das Hauptgeheimnis entsteht - und das entsteht beim
+// Setzen der PIN.
+//
+// Die Betriebsart ist danach fest. Dieser Aufruf ist die einzige Stelle im
+// Programm, die sie setzt; es gibt absichtlich keinen zweiten Weg und keine
+// Vorgabe. Ein Geraet, das schon eingerichtet ist, antwortet mit
+// OSK_ERR_DENIED - die Entscheidung liegt beim Geraet, nicht hier.
+//
+// Der Puffer mit der PIN wird ueberschrieben, sobald er geschickt ist.
+func (c *Client) Setup(mode uint64, pin []byte) error {
+	defer Wipe(pin)
+	if !ValidMode(mode) {
+		return Fail("error.setup.mode")
+	}
+	if len(pin) < MinPinLen {
+		return Fail("error.setup.pin.short")
+	}
+	if len(pin) > MaxPinLen {
+		return Fail("error.setup.pin.long")
+	}
+	_, err := c.Call(CmdSetup, CborMap{"mode": mode, "pin": pin}, readTimeout)
+	return err
 }
 
 // Unlock oeffnet den Tresor. Der Puffer mit der PIN wird hier ueberschrieben,

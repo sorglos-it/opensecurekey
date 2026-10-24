@@ -48,6 +48,7 @@ func (s *Server) routeAPI(mux *http.ServeMux) {
 	get("/api/items", s.apiItems)
 	get("/api/log", s.apiLog)
 	post("/api/use", s.apiUse)
+	post("/api/setup", s.apiSetup)
 	post("/api/unlock", s.apiUnlock)
 	post("/api/lock", s.apiLock)
 	post("/api/reveal", s.apiReveal)
@@ -144,6 +145,69 @@ func (s *Server) apiUse(r *http.Request) (any, error) {
 		return nil, err
 	}
 	return map[string]string{"path": body.Path}, nil
+}
+
+// apiSetup richtet ein Geraet im Werkszustand ein. Hier wird die
+// Bestaetigung noch einmal verlangt, nicht nur im Browser: wer die Anfrage
+// von Hand stellt, soll die unumkehrbare Wahl nicht nebenbei treffen
+// koennen.
+func (s *Server) apiSetup(r *http.Request) (any, error) {
+	var body struct {
+		// Mode ist ein Zeiger, damit eine fehlende Angabe nicht still zu
+		// null wird - und null ist "Ersatz moeglich", also genau die
+		// Vorgabe, die es nicht geben darf.
+		Mode    *uint64 `json:"mode"`
+		Pin     string  `json:"pin"`
+		Confirm bool    `json:"confirm"`
+	}
+	if err := readJSON(r, &body, maxBodyBytes); err != nil {
+		return nil, err
+	}
+	pin := []byte(body.Pin)
+	body.Pin = ""
+	if body.Mode == nil || !ValidMode(*body.Mode) {
+		Wipe(pin)
+		return nil, Fail("error.setup.mode")
+	}
+	if !body.Confirm {
+		Wipe(pin)
+		return nil, Fail("error.setup.confirm")
+	}
+	client, err := s.app.Client()
+	if err != nil {
+		Wipe(pin)
+		return nil, err
+	}
+	info, err := client.Hello()
+	if err != nil {
+		Wipe(pin)
+		return nil, err
+	}
+	// Ein Geraet, das schon eingerichtet ist, wird nicht noch einmal
+	// eingerichtet - die Betriebsart ist endgueltig.
+	if !info.Factory || info.ModeOf(0) != ModeNoneSet {
+		Wipe(pin)
+		return nil, Fail("error.setup.notfresh")
+	}
+	// Die PIN wird gleich zweimal gebraucht: einmal zum Einrichten und
+	// einmal, um den gerade eingerichteten Stick zu oeffnen. Setup und
+	// Unlock loeschen ihren Puffer jeweils selbst.
+	fuerUnlock := append([]byte(nil), pin...)
+	if err := client.Setup(*body.Mode, pin); err != nil {
+		Wipe(fuerUnlock)
+		return nil, err
+	}
+	// Direkt danach aufmachen: der Anwender hat die PIN eben selbst
+	// gesetzt, und der naechste Schritt des Assistenten ist die Sicherung -
+	// die braucht einen offenen Tresor. Scheitert das Oeffnen, ist das
+	// Einrichten trotzdem geschehen und endgueltig; darum wird es gemeldet
+	// und nicht verschwiegen.
+	out := map[string]any{"mode": *body.Mode, "unlocked": true}
+	if err := client.Unlock(fuerUnlock); err != nil {
+		out["unlocked"] = false
+		out["warning"] = s.app.Message(err)
+	}
+	return out, nil
 }
 
 func (s *Server) apiUnlock(r *http.Request) (any, error) {

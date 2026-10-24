@@ -129,6 +129,9 @@ type Pkcs11Token struct {
 	objects  []pkcs11Object
 	listed   bool
 	loggedIn bool
+	// revealFallbacks zaehlt, wie oft ein Eintrag doch per `reveal` geholt
+	// werden musste. Erwartet ist null.
+	revealFallbacks int
 }
 
 // pkcs11Session ist eine Sitzung.
@@ -379,11 +382,13 @@ func (t *Pkcs11Token) Logout(handle uint64) error {
 
 // loadObjects holt die Objekte aus dem Tresor. Der Aufrufer haelt die Sperre.
 //
-// Wie beim ssh-Agenten steckt hier die Luecke des Protokolls: `list` nennt
-// den oeffentlichen Teil eines Schluessels nicht. Um Modulus, Kurve und
-// Punkt nennen zu koennen - und ohne die kann Firefox nichts anfangen -
-// muss jeder Schluessel einmal geholt und der private Teil sofort
-// ueberschrieben werden. Das kostet einen Tastendruck je Schluessel.
+// Der oeffentliche Teil kommt mit der Liste - ohne Freigabe, weil er kein
+// Geheimnis ist (Feld `pub`, shared/protocol.md Befehl 4). Frueher holte
+// diese Schleife jeden Schluessel einzeln per `reveal`, nur um Modulus,
+// Kurve und Punkt zu erfahren; das kostete einen Tastendruck je Schluessel,
+// der nichts schuetzte. Wer lernt, Tastendruecke wegzudruecken, drueckt auch
+// den weg, der zaehlt - und das ist der beim Unterschreiben. Der bleibt:
+// signWith holt das Geheimnis dort, und zwar jedes Mal.
 func (t *Pkcs11Token) loadObjects() error {
 	if t.listed {
 		return nil
@@ -402,6 +407,14 @@ func (t *Pkcs11Token) loadObjects() error {
 	var objects []pkcs11Object
 	handle := uint64(1)
 	for _, item := range items {
+		if len(item.Pub) > 0 {
+			objects = append(objects, publicOnlyObjects(item, &handle)...)
+			continue
+		}
+		// Rueckfall fuer ein Geraet mit aelterem Protokoll: der kostet die
+		// Freigabe wie frueher. Gezaehlt, damit er nicht stillschweigend
+		// greift - RevealFallbacks() macht ihn nachpruefbar.
+		t.revealFallbacks++
 		secret, revealErr := access.Reveal(item.ID)
 		if revealErr != nil {
 			// Ein Eintrag, den das Geraet nicht herausgibt, fehlt eben.
@@ -423,13 +436,100 @@ func (t *Pkcs11Token) loadObjects() error {
 	return nil
 }
 
-// keyObjects baut das private und das oeffentliche Objekt eines Schluessels.
+// RevealFallbacks sagt, wie oft ein Eintrag doch noch per `reveal` geholt
+// werden musste, weil das Geraet den oeffentlichen Teil nicht mitschickte.
+// Erwartet ist null; die Zahl ist der Nachweis, nicht die Absicht.
+func (t *Pkcs11Token) RevealFallbacks() int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.revealFallbacks
+}
+
+// publicOnlyObjects baut die Objekte eines Eintrags allein aus dem
+// oeffentlichen Teil, den die Liste mitgebracht hat.
+func publicOnlyObjects(item Item, handle *uint64) []pkcs11Object {
+	switch item.Type {
+	case ItemSSHKey:
+		pub, err := ParseSSHPublicBlob(item.Pub)
+		if err != nil {
+			// Lieber kein Objekt als eines, dessen Merkmale geraten sind.
+			return nil
+		}
+		keyType, public := publicAttrsOf(pub)
+		return keyObjectsFrom(item, keyType, public, handle)
+	case ItemCert:
+		// Ein Zertifikat ist in Gaenze oeffentlich; die Liste schickt es
+		// genau so, wie es im Tresor liegt.
+		return certObjects(item, item.Pub, handle)
+	}
+	return nil
+}
+
+// publicAttrsOf macht aus einem gelesenen oeffentlichen Schluessel die
+// Merkmale, die PKCS#11 nennt: die Art des Schluessels und seine
+// oeffentlichen Groessen. Ein leeres Ergebnis heisst "nicht darstellbar".
+func publicAttrsOf(pub *SSHPublicKey) (uint64, map[uint64]Pkcs11Value) {
+	out := map[uint64]Pkcs11Value{}
+	switch {
+	case pub.Ed25519 != nil:
+		point, err := ecPointDER(pub.Ed25519)
+		if err != nil {
+			return 0, nil
+		}
+		out[CkaECParams] = pkcs11Bytes(curveParamsEd25519())
+		out[CkaECPoint] = pkcs11Bytes(point)
+		return CkkECEdwards, out
+	case pub.Ecdsa != nil:
+		params, paramsErr := curveParamsDER(pub.Ecdsa.Curve)
+		if paramsErr != nil {
+			return 0, nil
+		}
+		raw, rawErr := markPoint(pub.Ecdsa.Curve, pub.Ecdsa.X, pub.Ecdsa.Y)
+		if rawErr != nil {
+			return 0, nil
+		}
+		point, pointErr := ecPointDER(raw)
+		if pointErr != nil {
+			return 0, nil
+		}
+		out[CkaECParams] = pkcs11Bytes(params)
+		out[CkaECPoint] = pkcs11Bytes(point)
+		return CkkEC, out
+	case pub.Rsa != nil:
+		out[CkaModulus] = pkcs11Bytes(pub.Rsa.Modulus.Bytes())
+		out[CkaModulusBits] = pkcs11Ulong(uint64(pub.Rsa.Modulus.BitLen()))
+		out[CkaPublicExponent] = pkcs11Bytes(pub.Rsa.Exponent.Bytes())
+		return CkkRSA, out
+	}
+	return 0, nil
+}
+
+// keyObjects ist der Rueckfallweg: er hat das Geheimnis und schreibt den
+// oeffentlichen Teil daraus. Gelesen wird er dann wie der aus der Liste -
+// zwei Wege, eine Rechnung, sonst liefen sie auseinander.
 func keyObjects(item Item, secret []byte, handle *uint64) []pkcs11Object {
 	key, err := ParseSSHKey(secret)
 	if err != nil {
 		return nil
 	}
 	defer key.Wipe()
+	pub, pubErr := ParseSSHPublicBlob(key.Blob)
+	if pubErr != nil {
+		return nil
+	}
+	keyType, public := publicAttrsOf(pub)
+	return keyObjectsFrom(item, keyType, public, handle)
+}
+
+// keyObjectsFrom baut aus Schluesselart und oeffentlichen Groessen das
+// private und das oeffentliche Objekt. Der private Teil steckt in keinem von
+// beiden - nur die Nummer des Eintrags, aus dem beim Unterschreiben geholt
+// wird.
+func keyObjectsFrom(item Item, keyType uint64, public map[uint64]Pkcs11Value,
+	handle *uint64) []pkcs11Object {
+	if public == nil {
+		return nil
+	}
 	id := itemIDBytes(item.ID)
 	common := map[uint64]Pkcs11Value{
 		CkaToken:       pkcs11Bool(true),
@@ -440,43 +540,6 @@ func keyObjects(item Item, secret []byte, handle *uint64) []pkcs11Object {
 		CkaDestroyable: pkcs11Bool(false),
 		CkaLocal:       pkcs11Bool(true),
 	}
-	var keyType uint64
-	public := map[uint64]Pkcs11Value{}
-	switch {
-	case key.ed25519Key != nil:
-		keyType = CkkECEdwards
-		public[CkaECParams] = pkcs11Bytes(curveParamsEd25519())
-		point, pointErr := ecPointDER(key.ed25519Key.Public().(ed25519.PublicKey))
-		if pointErr != nil {
-			return nil
-		}
-		public[CkaECPoint] = pkcs11Bytes(point)
-	case key.ecdsaKey != nil:
-		keyType = CkkEC
-		params, paramsErr := curveParamsDER(key.ecdsaKey.Curve)
-		if paramsErr != nil {
-			return nil
-		}
-		raw, rawErr := markPoint(key.ecdsaKey.Curve, key.ecdsaKey.X, key.ecdsaKey.Y)
-		if rawErr != nil {
-			return nil
-		}
-		point, pointErr := ecPointDER(raw)
-		if pointErr != nil {
-			return nil
-		}
-		public[CkaECParams] = pkcs11Bytes(params)
-		public[CkaECPoint] = pkcs11Bytes(point)
-	case key.rsaKey != nil:
-		keyType = CkkRSA
-		public[CkaModulus] = pkcs11Bytes(key.rsaKey.N.Bytes())
-		public[CkaModulusBits] = pkcs11Ulong(uint64(key.rsaKey.N.BitLen()))
-		public[CkaPublicExponent] = pkcs11Bytes(
-			big.NewInt(int64(key.rsaKey.E)).Bytes())
-	default:
-		return nil
-	}
-
 	privateAttrs := map[uint64]Pkcs11Value{
 		CkaClass:   pkcs11Ulong(CkoPrivateKey),
 		CkaKeyType: pkcs11Ulong(keyType),

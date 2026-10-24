@@ -25,7 +25,7 @@ the program then says in plain words which function is missing.
 
 | `c` | Name | Needs approval on device |
 | --- | --- | --- |
-| 1 | `hello` — version, serial, which transports are on | no |
+| 1 | `hello` — version, serial, which transports are on; plus `factory` (true while nothing is set up) and `modes`, one entry per profile | no |
 | 2 | `unlock` — PIN or fingerprint session | yes |
 | 3 | `lock` | no |
 | 4 | `list` — item metadata, never secrets; carries `pub` for SSH keys, certificates and PGP keys | after unlock |
@@ -40,6 +40,7 @@ the program then says in plain words which function is missing.
 | 16 | `agree` — `k` label, `pub` peer(32) → `sec`; may answer `OSK_ERR_UNSUPPORTED` on a part without ECDH | yes, or grant |
 | 17 | `session` — `on`, `k` labels, `ttl`, or `ask` → state (the server grant) | yes, to switch on |
 | 18 | `sign` — `k` label, `h` hash(32) → `sig`; or `pub`+`cv` for the public part | yes, or grant |
+| 19 | `setup` — `mode` (**1** = mirrored, **2** = this device only; 0 and absent are errors), `pin` → ok. **Only while `factory` is true, and only once per profile.** | yes |
 
 **Not built yet: the firmware side of 14–18.** The management program and
 `osk-guard` speak these commands and are tested against the simulator; the
@@ -53,6 +54,31 @@ purpose string in front of each before signing. A firmware that signs whatever
 it is handed breaks that separation no matter how careful the host is.
 
 ## Setup: one question that cannot be taken back
+
+`hello` reports `factory: true` while a profile holds nothing. That is the only
+state in which `setup` is accepted, and `setup` is what makes the choice:
+`mode` **1** for mirrored, **2** for this-device-only, together with the first
+PIN. Zero and an absent field are errors — see below for why the numbering does
+not start at zero.
+
+The device refuses a second `setup` for the same profile — not because the
+program should not send one, but because a secret born inside the chip can
+never be mirrored afterwards, and one created on the host can never be taken
+back in. The choice has to be made before the secret exists, so the device is
+where it is enforced. A program that gets `OSK_ERR_EXISTS` here has a bug; a
+device that allowed it would have a worse one.
+
+**`mode` deliberately does not start at zero.** CBOR reads an absent field as
+zero, so with `0 = mirrored` a request that simply forgot the field would have
+silently chosen the mirrored mode — exactly the quiet default this design
+forbids, arriving through a missing field rather than a decision. So 1 means
+mirrored, 2 means this-device-only, and both 0 and an absent field are errors
+the device rejects. Found by the program side before either side was built; the
+firmware must reject them the same way.
+
+After setup, `hello` reports the mode per profile, so the interface can show
+what a profile is without asking the device to reveal anything.
+
 
 Before a device holds any secret, the wizard asks which mode the profile uses —
 "mirrored" (a spare device is possible) or "this device only" (nothing ever

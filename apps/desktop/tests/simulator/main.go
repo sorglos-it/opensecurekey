@@ -15,6 +15,7 @@
 //	go run ./tests/simulator            lauscht auf 127.0.0.1:8201
 //	go run ./tests/simulator -port 8202
 //	go run ./tests/simulator -no-ecdh   stellt ein Stueck ohne ECDH nach
+//	go run ./tests/simulator -werkszustand   ein Geraet, das noch nichts haelt
 package main
 
 import (
@@ -45,6 +46,18 @@ type vault struct {
 	// guard rechnet alles Kryptografische: Unterschriften, Ableitung,
 	// Schluesselaustausch. Dieselbe Rechnung wie in den Pruefungen.
 	guard *classes.GuardFakeDevice
+
+	// factory ist der Werkszustand: das Geraet haelt nichts, kennt keine
+	// Betriebsart und nimmt nur `setup` an (shared/protocol.md Befehl 19).
+	// Ohne -werkszustand ist er aus, und die Attrappe verhaelt sich wie
+	// bisher - mit Profil, Beispieleintraegen und PIN 123456.
+	factory bool
+	// modes ist die Betriebsart je Profil. Leer, solange nichts
+	// eingerichtet ist.
+	modes []uint64
+	// setupPin ist die PIN, die beim Einrichten gesetzt wurde. Leer heisst:
+	// es gilt die eingebaute demoPin wie bisher.
+	setupPin string
 }
 
 type record struct {
@@ -65,7 +78,7 @@ const demoSeed = "osk-simulator-1"
 // demoIssuerSeed ist der Hersteller der Beispiel-Lizenz.
 const demoIssuerSeed = "osk-simulator-hersteller-1"
 
-func newVault(noECDH bool) *vault {
+func newVault(noECDH, factory bool) *vault {
 	guard, err := classes.NewGuardFakeDevice(classes.GuardFakeOptions{
 		Seed:   []byte(demoSeed),
 		NoECDH: noECDH,
@@ -75,6 +88,15 @@ func newVault(noECDH bool) *vault {
 		os.Exit(1)
 	}
 	v := &vault{nextID: 1, items: map[uint32]record{}, guard: guard}
+	if factory {
+		// Ein Geraet im Werkszustand: keine Eintraege, keine Betriebsart,
+		// keine PIN. Es gibt nichts zu zeigen, bis `setup` kam.
+		v.factory = true
+		return v
+	}
+	// Ein eingerichtetes Geraet hat ein Profil, und das hat eine
+	// Betriebsart. Bisher nannte hello sie nicht; jetzt tut es das.
+	v.modes = []uint64{classes.ModeMirrored}
 	v.put(classes.Item{Type: classes.ItemLogin, Name: "Beispiel-Zugang",
 		Site: "example.org"}, []byte("geheim-1"))
 	v.put(classes.Item{Type: classes.ItemCert, Name: "Beispiel-Zertifikat",
@@ -132,6 +154,9 @@ func (v *vault) note(event, askedBy string, id uint32) {
 
 func main() {
 	port := flag.Int("port", 8201, "Port auf 127.0.0.1")
+	factory := flag.Bool("werkszustand", false,
+		"ein Geraet, das noch nichts haelt: keine Eintraege, keine "+
+			"Betriebsart, keine PIN - fuer den Einrichtungsassistenten")
 	noECDH := flag.Bool("no-ecdh", false,
 		"ein Stueck, das im Werk auf FIPS gestellt wurde und darum keinen "+
 			"Schluesselaustausch macht")
@@ -142,8 +167,13 @@ func main() {
 		log.Println("Port belegt:", err)
 		os.Exit(1)
 	}
-	store := newVault(*noECDH)
-	fmt.Printf("Attrappe laeuft auf 127.0.0.1:%d (PIN %s)\n", *port, demoPin)
+	store := newVault(*noECDH, *factory)
+	if *factory {
+		fmt.Printf("Attrappe laeuft auf 127.0.0.1:%d (Werkszustand: noch "+
+			"keine Betriebsart, noch keine PIN)\n", *port)
+	} else {
+		fmt.Printf("Attrappe laeuft auf 127.0.0.1:%d (PIN %s)\n", *port, demoPin)
+	}
 	// Die Schluessel werden genannt, damit ein geschuetztes Programm sie
 	// eintragen kann. Beim echten Geraet liest man sie mit `osk guard-key`.
 	fmt.Printf("Geraeteschluessel %s\n", hex.EncodeToString(store.guard.PublicKey()))
@@ -240,17 +270,51 @@ func handle(payload []byte, store *vault) classes.CborMap {
 
 	switch cmd {
 	case classes.CmdHello:
+		modes := make([]any, 0, len(store.modes))
+		for _, mode := range store.modes {
+			modes = append(modes, mode)
+		}
 		return reply(seq, 0, classes.CborMap{
 			"fw":       "0.0.0.0-attrappe",
 			"serial":   "SIM-0001",
 			"proto":    uint64(classes.ProtocolVersion),
-			"profiles": uint64(1),
+			"profiles": uint64(len(store.modes)),
 			"unlocked": store.unlocked,
+			"factory":  store.factory,
+			"modes":    modes,
 			"tr":       []any{"usb-hid", "sim"},
 		})
+	case classes.CmdSetup:
+		// Nur im Werkszustand, und nur einmal je Profil. Das GERAET setzt
+		// das durch, nicht das Programm: ein im Chip geborenes Geheimnis
+		// laesst sich nie spiegeln, ein auf dem Wirt erzeugtes nie
+		// zurueckholen. Darum ist ein zweites setup kein Sonderfall,
+		// sondern ein Fehler des Fragenden.
+		// Fehlt `mode`, ist das ein Fehler und keine Vorgabe: CBOR liest
+		// ein fehlendes Feld als null, und die Null ist darum absichtlich
+		// keine der beiden Betriebsarten.
+		mode, hasMode := classes.CborUint(data, "mode")
+		pin, _ := classes.CborBytes(data, "pin")
+		if !hasMode || !classes.ValidMode(mode) || len(pin) < classes.MinPinLen {
+			return reply(seq, 1, nil) // OSK_ERR_ARG
+		}
+		if !store.factory || len(store.modes) > 0 {
+			store.note("setup-denied", askedBy, 0)
+			return reply(seq, 7, nil) // OSK_ERR_EXISTS
+		}
+		store.factory = false
+		store.modes = []uint64{mode}
+		store.setupPin = string(pin)
+		store.note("setup", askedBy, 0)
+		return reply(seq, 0, classes.CborMap{})
 	case classes.CmdUnlock:
 		pin, _ := classes.CborBytes(data, "pin")
-		if string(pin) != demoPin {
+		erwartet := demoPin
+		if store.setupPin != "" {
+			// Nach dem Einrichten gilt die PIN, die dabei gesetzt wurde.
+			erwartet = store.setupPin
+		}
+		if string(pin) != erwartet {
 			store.note("unlock-denied", askedBy, 0)
 			return reply(seq, 4, nil) // OSK_ERR_DENIED
 		}
