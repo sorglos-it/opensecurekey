@@ -2042,3 +2042,74 @@ Gießfehler.
    das — „Import Changes" samt „Apply Changes" steht noch aus und braucht einen
    Klick. **Nachgesehen habe ich es nicht**, also steht es hier als Vermutung
    mit ihrem Grund, nicht als Befund.
+
+# Die Schlitzfälle gelöst — und das Ausweichen war eine Verbesserung
+
+Stand 24.10.2026, Abschluss. **PCB-DRC: 0 Abstandsfehler.**
+
+## C3 und C5 konnten ausweichen, und zwar nach innen
+
+Erst nachgesehen, **was sie sind**: `schematic.md` Zeile 165/166 —
+**C3 = 4,7 µF an `VSYS`, C5 = 4,7 µF an U1s VDD** (Nordic C_VDD, Abschn.
+5.3.8.1). Das sind die **Vorratskondensatoren**, nicht die kurzen 100 nF; die
+lokalen sind C4 (VSYS) und C12 (nahe U3 Pin 8), und die kollidierten nicht.
+
+Dann der Fund, der die ganze Abwägung erledigt hat: **die Unterseite unter U1
+ist leer.** U1 sitzt oben; sein Körper versperrt unten nichts. Im Streifen
+`x` 10 … 23, `y` 12,5 … 20,5 liegt auf der Unterseite **kein einziges Bauteil**
+— und die Freihaltezone beginnt erst bei `x` 23,1484, also dahinter.
+
+| | vorher | nachher | gemessen Pad zu Pad |
+| --- | --- | --- | --- |
+| **C5** (U1 VDD) | 1,4989 / 23,9 | **13,5 / 15,70** | zu Pad 28: **0,75 mm** statt 13,36 |
+| **C3** (VSYS) | 3,9497 / 23,9 | **13,5 / 13,85** | zu Pad 30: **1,29 mm** statt 12,11 |
+
+> **Das Ausweichen ist kein Zugeständnis.** Die beiden Kondensatoren standen
+> rund 13 mm von ihrem Pin entfernt und stehen jetzt **unter einem Millimeter**
+> davon. Die Frage war, ob sie sich von ihrem Baustein entfernen müssen — sie
+> kommen ihm **zwölf Millimeter näher.**
+
+Luft zwischen beiden 0,951 mm, zu U3 2,451 mm. SW1 ist nicht bewegt worden,
+X1 und L1 stehen unverändert.
+
+## Was dabei von außen hereinkam
+
+**Der J4-Import ist erfolgt** — offenbar hat Thomas „Apply Changes" geklickt,
+während ich arbeitete. Belegt, nicht vermutet: Die Platine trägt jetzt
+`J4` = **FH12-12S-0.5SH(55), C88360, 14 Pads**, mit **neuer** primitiveId
+(`399480cb1723d3d8` statt `42c7d91f37824fa2`), und **der Netzlistenfehler ist
+verschwunden**. Damit ist auch meine Vermutung von vorhin bestätigt: der eine
+Netzlistenfehler war der ausstehende Import.
+
+Das neue J4 landete bei `y` −10,3, also **unter** der Platine. Es steht jetzt
+bei 34,5 / 36,0, neben J2, J5 und J6 — alle vier Platzhalter beieinander.
+`J5` ist dabei um 2,5 mm nach oben gerückt, weil sein Schlitzbereich auf
+`J2_2` lag.
+
+## Zwei Dinge, die ich beim Messen über das Messen gelernt habe
+
+**Nach dem Verschieben ist die Füllung veraltet.** Als C3 und C5 unter U1
+standen, meldete die DRC `Copper Region(Filled) to SMD Pad, distance is 0mm` —
+das Kupfer stammte noch von vorher. Erst ein erneuter Aufbau räumte es weg.
+**„Gefüllt" ist kein Zustand, der hält; er gilt für eine Anordnung.**
+
+**Mein eigenes Prüfskript schlug falschen Alarm.** Es meldete 14 Pads zu nah am
+Rand — alles Pads von `J4`. Grund: die Liste der geparkten Teile im Skript
+kannte nur J2, J5 und J6; **J4 kam neu dazu und galt dem Skript als auf der
+Platine.** EasyEDAs DRC sagt 0. Die Zahl war richtig gerechnet und auf die
+falsche Menge angewendet.
+
+## Stand
+
+| | |
+| --- | --- |
+| Abstandsfehler (EasyEDA-DRC) | **0** |
+| Paare unter 0,152 mm (eigene Messung) | **0** |
+| kleinster Abstand | 0,2006 mm (`C2.1` ↔ `U4.3`, **gleiches Netz**) |
+| fremde Pads in der Freihaltezone | **0** |
+| Masseflächen | 4 Lagen, Zone ausgespart |
+
+**178 Verbindungsfehler bleiben — das sind die unverlegten Netze.** Es ist noch
+keine einzige Leitung gezogen; das ist der nächste Arbeitsgang, nicht ein
+Fehler. Darin enthalten sind die vier Massepads an U2 und C17, die
+Durchkontaktierungen brauchen, und die Pins der vier geparkten Steckverbinder.
