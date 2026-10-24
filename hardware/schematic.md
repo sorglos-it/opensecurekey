@@ -702,3 +702,53 @@ ebenfalls. Damit ist der Schaltplan zeichenbar.
 | C8/C9, C15/C16 | als `TBD` gezeichnet | Quarz nicht ausgewählt, NFC-Abstimmung ist eine Messung |
 
 Nachtrag zur Bauteilliste: **C17 = 10 nF** kommt hinzu (Akkumessung).
+
+## Offene Punkte an den Steckverbindern (24.10.2026)
+
+### J4 getauscht: echtes Teil, gleiche Pins
+
+`J4` war ein Bibliotheks-Platzhalter (`C9900036520`, Name
+`FPC-05mm-12P-14241555_2`). **Jetzt eingebaut: Hirose
+`FH12-12S-0.5SH(55)`, LCSC `C88360`** — mit Datenblatt, 0,5 mm Raster,
+**2 mm Bauhöhe**, Deckelverschluss, Unterkontakt, Folie 0,3 mm, Goldkontakte.
+
+**An der Netzliste ändert sich nichts.** Beide Teile haben **14 Pins**: die
+zwölf Kontakte und zwei Haltelaschen. Die Pinbelegung dieses Abschnitts bleibt
+also gültig, `J4.13` und `J4.14` liegen weiter an `GND`.
+
+> **Berichtigung 24.10.2026:** Ich hatte gemeldet, das echte Teil habe „12
+> Pole statt 14", und daraus geschlossen, die beiden Laschen fielen weg. **Das
+> war falsch.** Verglichen hatte ich die **Kontaktzahl** des echten Teils
+> („Number of Contacts: 12P") mit der **Pinzahl** des Platzhalters. Das sind
+> zwei verschiedene Größen, und EasyEDAs Ausgabedatei führt beide in derselben
+> Zeile: `Number of Contacts: 12P` neben 14 Pins.
+>
+> **Es ist genau der Fehler, den ich einen Absatz vorher bei J2 aufgedeckt
+> hatte** — dort waren 7,9 und 8,6 mm nicht zwei widersprüchliche Angaben,
+> sondern Länge und Tiefe. Zwei Zahlen zu vergleichen, die dasselbe Ding
+> verschieden messen, ist dieselbe Art Fehler wie zwei Zeitangaben ohne ihre
+> Zeitzone nebeneinanderzulegen.
+
+Gegengeprüft nach dem Tausch, aus EasyEDAs eigener Ausgabe gezählt:
+**54 Bauteile, 59 Netze, 219 Verbindungen** — dieselben Zahlen wie vorher.
+DRC: **0 Fehler**, eine Warnung (`FP_IRQ` mit einem Pin, der gewollte
+Testpunkt).
+
+### J5 passt nicht zum vorgesehenen Sensor — ungelöst
+
+`J5` ist in diesem Dokument ein **Stiftfeld 1 × 6 im Raster 1,27 mm**. Das
+passt zum FPC **BM-Lite**. Der Sensor, auf den `../docs/fingerprint.md`
+hinausläuft, ist aber der **FPC2534AM als Flex-Modul mit einem 12-poligen
+ZIF-Anschluss** (dort Abschnitt 7.1 und der Punkt 7 der Schlussliste:
+„J5 passt nicht zum AllKey").
+
+> **Das ist eine Schaltplanfrage, keine Layoutfrage.** Ein 1 × 6 Stiftfeld
+> und ein 12-poliger Flex sind nicht dasselbe Bauteil und nicht dieselbe
+> Netzliste. Welcher Sensor es wird, steht nicht fest, und **solange das offen
+> ist, ist jede Festlegung an J5 geraten.**
+
+**Nicht geändert.** J5 bleibt als 1 × 6 im Plan und in Stufe 1 unbestückt.
+Entschieden werden muss zuerst der Sensor; danach ist J5 entweder richtig
+(BM-Lite) oder er wird gegen einen 12-poligen FPC-Steckverbinder getauscht,
+samt der Netzliste dazu. **Was dann an Signalen über die zwölf Pole läuft,
+ist aus dem Datenblatt zu holen und nicht aus der Zahl 12 zu erraten.**

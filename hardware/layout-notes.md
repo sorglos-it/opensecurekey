@@ -1457,3 +1457,659 @@ gilt der Footprint, am Ende das Gerber.**
 > („tauschbar bauen oder als Verbrauchsteil ansagen"); sie gehört Thomas.
 
 **J2 bleibt unplatziert.**
+
+# Platziert: 54 Bauteile, `overlapCount` 0 — und die Pinprüfung von J1 ist durchgefallen
+
+Stand 24.10.2026, 19:57. Der Import war durch (54 Bauteile, alle neben der
+Platine), die Teile sind jetzt gesetzt. **Gemessen, nicht geschätzt:**
+
+| Beleg | Ergebnis |
+| --- | --- |
+| Bauteile auf der Platine | **54** |
+| `pcb_layout_boxes`, Rand 0,25 mm | **`overlapCount` 0** |
+| Freihaltestreifen `x` 25,5 … 27 bei `y` 12,0 … 22,6 | **leer** — kein Bauteil liegt dort |
+| Bauteile im Modulschatten (`x` 10,0 … 25,5, `y` 12,05 … 22,55, Unterseite) | **keines** |
+
+## Der Fund: die Haltestifte von J1 ragen über die Platinenkante
+
+**Die Prüfung, die ich als „erst am gesetzten Footprint möglich" angekündigt
+hatte, ist gelaufen — und sie fällt durch.** `pcb_pads_list` auf J1:
+
+Die vier Haltestifte sind ovale Pads. Die **vorderen zwei** sitzen bei
+`y` = 0,505 mit 1,699 mm Padlänge und 1,4 mm Lochlänge. Bei der bündigen Lage
+(J1-Mitte 2,685, `d` = 1,90) ergibt das:
+
+| | von | bis | |
+| --- | --- | --- | --- |
+| Pad | **−0,344** | +1,355 | **0,344 mm über die Kante hinaus** |
+| Loch | **−0,195** | +1,205 | **0,195 mm über die Kante hinaus** |
+
+**Ein Loch auf der Platinenkante ist kein Schönheitsfehler, das ist ein
+Fertigungsfehler.** Die Stiftmitte liegt 2,180 mm hinter der J1-Mitte; damit
+das vordere Pad 0,2 mm Rand behält, muss die J1-Mitte **≥ 3,23 mm** liegen.
+
+### Damit widersprechen sich zwei Auflagen um rund einen halben Millimeter
+
+- **Bündige Vorderkante** (± 0,3 mm) verlangt J1-Mitte **2,685**.
+- **Die Platinenkante** verlangt J1-Mitte **≥ 3,23**.
+
+**Die vorbereitete Mulde ist damit keine Möglichkeit mehr, sondern nötig.**
+Mit der Mulde (0,8 mm tief, `d` = 1,10) ist die J1-Mitte **3,485**, und dann
+gilt:
+
+| | Wert |
+| --- | --- |
+| vorderes Pad beginnt bei | **+0,456 mm** |
+| vorderes Loch beginnt bei | **+0,605 mm** |
+| Abstand zur Forderung „≥ 0,2" | **0,256 mm Luft** |
+
+> **J1 steht jetzt auf `y` = 3,485**, also auf der Mulden-Lage. Das ist die
+> einzige Lage, die **beide** Auflagen erfüllt. **Ohne die Mulde ist die
+> bündige Vorderkante nicht herstellbar** — dann müsste die Frontwand dünner
+> werden oder die Toleranz ± 0,3 fallen. **Der Gehäuse-Strang muss die Mulde
+> bauen.**
+
+## Wie die Plätze zustande kamen: drei Runden, jede gemessen
+
+Meine Gehäusemaße waren **kleiner als die echten Footprints** — vor allem beim
+SOT-23 (Pads machen aus 1,3 mm Körperbreite rund 2,6 mm Belegung) und beim
+Flash, dessen 8 × 6 mm **quer zu meiner Annahme** liegen (6 mm in `x`, 8 in
+`y`).
+
+| Runde | `overlapCount` | was behoben wurde |
+| --- | --- | --- |
+| 1 | **15** | Erstplatzierung nach Gehäusemaßen |
+| 2 | **2** | Entkopplung von U2/U3 gelöst, Transistorreihen entzerrt, Modulband in **eine** Reihe gelegt |
+| 3 | **0** | L1 gegen X1, Q3 gegen U5 — und Q1/Q2/Q3 aus dem Modulschatten gezogen |
+
+**Die Überlappungsmeldung gibt die Beträge an**, und damit ließ sich gezielt
+nachrücken statt zu raten. Das ist der Grund, warum drei Runden genügten.
+
+**U2 musste dabei den linken Streifen verlassen:** U3 belegt dort `y` 11,5 …
+19,5, und zwischen U3 und dem Modulrand bleiben nur 3,05 mm für ein 3,5 mm
+breites Teil. U2 sitzt jetzt mit C10, C11, R6, R7 in der **rechten Tasche**
+(`x` 18,2 … 25,6, `y` 1 … 11,9). **Die I2C-Leitung wird dadurch rund 8 bis
+10 mm lang** statt der 12, die ich mit der außermittigen Zelle gerechnet
+hatte — weiterhin ein Bruchteil der 25 mm aus Z3, und sie läuft auf einer
+Innenlage.
+
+## Drei Bauteile stehen bewusst neben der Platine
+
+| Teil | geparkt bei | Grund |
+| --- | --- | --- |
+| **J2** Akkustecker | `x` 33, `y` 10 | Bauhöhe unbekannt (Platzhalterteil, kein Datenblatt), Grenze 4,45 mm |
+| **J5** Sensoranschluss | `x` 33, `y` 20 | falsches Bauteil — 1 × 6 Stiftfeld für einen 12-poligen ZIF |
+| **J6** SWD | `x` 33, `y` 30 | 2,54-mm-Durchsteckfeld und NFC-Schleife schließen sich aus; wird zu Testpunkten |
+
+**Das ist Absicht und kein Versehen** — sie liegen sichtbar beieinander
+rechts neben dem Brett, nicht verstreut.
+
+## Was als nächstes gemessen werden muss
+
+1. **Die Ausdehnung von U1** aus seinen 61 Pads: liegt die Antennenkante
+   wirklich bei `x` 25,5, und bleibt das Modul innerhalb der Platine?
+   `ungeprueft` — bisher aus dem Gehäusemaß gerechnet.
+2. **Die Kupferlagen des Freihaltestreifens**: kein Bauteil liegt darin, aber
+   die Masseflächen sind noch nicht gegossen. Beim Gießen muss der Streifen in
+   **allen vier** Lagen ausgespart bleiben.
+3. **J2, J5, J6** brauchen Entscheidungen, nicht Plätze.
+
+# Stückliste durchgezählt: genau zwei Platzhalter — und für beide gibt es echte Teile
+
+Stand 24.10.2026. Grundlage ist die **Bauteilliste der Platine selbst**
+(`pcb_components_list`, alle 54 Einträge mit LCSC-Nummer), nicht meine
+Erinnerung.
+
+## Das Loch ist genau zwei Teile groß
+
+| Kennung | Nummer | Art |
+| --- | --- | --- |
+| **J2** | `C9900141337` | **Platzhalter** |
+| **J4** | `C9900036520` | **Platzhalter** |
+
+**Alle anderen 52 Bauteile tragen echte Lagernummern** mit Hersteller: die
+fünf Halbleiter (C5118826, C5202100, C7389628, C38066, C323793), die fünf
+MOSFETs (C2940629), Quarz (C32346), Spule (C295388), LED (C3019536), TVS
+(C552589), USB-C (C7095263), die drei Stiftfelder (C492401, C41434767,
+C2691448), die Taster (C388883) und sämtliche Passiven.
+
+**Es sind also beide Steckverbinder, die keine Teile sind — und kein
+Halbleiter.** Der Satz „die Steckverbinder sind die schwächste Stelle dieses
+Entwurfs" ist damit gezählt, nicht gefühlt.
+
+## J4 — echtes Teil gefunden, **und es hat dieselben 14 Pins**
+
+| | |
+| --- | --- |
+| Teil | **Hirose FH12-12S-0.5SH(55)** |
+| Nummer | **C88360**, Hersteller HRS, **mit Datenblatt** |
+| Kontakte | **12** (dazu zwei Haltelaschen, zusammen **14 Pins**) |
+| Raster | 0,5 mm |
+| Bauhöhe über der Platine | **2 mm** |
+| Bauart | Deckelverschluss, **Unterkontakt**, Folie 0,3 mm, Goldkontakte |
+
+> **Das ist die Schaltplanfrage, nicht eine Layoutfrage:** Der Platzhalter hat
+> **14** Pads, das echte Teil **12**. Die beiden zusätzlichen Pole, auf die ich
+> die „Haltelaschen" an `GND` gelegt habe, **gibt es an diesem Teil nicht.**
+> Beim Tausch fallen `J4.13` und `J4.14` aus der Netzliste — das sind zwei
+> Verbindungen weniger, nicht zwei andere.
+>
+> **Das passt zur Anzeige:** Das Crystalfontz-Glas hat 12 Pole, und genau die
+> zwölf stehen in `schematic.md`. **Die 14 waren die Erfindung des
+> Platzhalters, nicht eine Eigenschaft der Anzeige.**
+
+> **BERICHTIGUNG 24.10.2026, noch am selben Abend — der Kasten darüber ist
+> falsch, und zwar sein ganzer Schluss.** Ich hatte die **Kontaktzahl** des
+> echten Teils („Number of Contacts: 12P“) mit der **Pinzahl** des
+> Platzhalters verglichen. Das sind zwei verschiedene Größen.
+>
+> **Gemessen, nicht vermutet:** Das Hirose-Teil als Wegwerfteil gesetzt und
+> seine Pins ausgelesen. Es hat **14 Pins** — 1 bis 12 die Kontakte, 13 und
+> 14 die Haltelaschen. Genau wie der Platzhalter, dessen Name selbst „12P“
+> lautet. **An der Netzliste ändert sich nichts;** `J4.13` und `J4.14` liegen
+> weiter an `GND`. Nach dem Tausch gezählt: 54 Bauteile, 59 Netze, 219
+> Verbindungen, DRC 0 Fehler.
+>
+> **Es ist derselbe Fehler, den ich zwei Absätze weiter unten bei J2
+> aufgedeckt hatte** — dort waren 7,9 und 8,6 mm nicht zwei widersprechende
+> Angaben, sondern Länge und Tiefe. Zwei Zahlen zu vergleichen, die dasselbe
+> Ding verschieden messen, fällt nicht auf, solange beide plausibel sind.
+> Dass ich die Falle beim Nachbarteil erkannt und beim eigenen Befund
+> übersehen habe, ist der Grund, warum eine Pinzahl nachgesehen wird und
+> nicht erschlossen.
+
+## J2 — zwei echte Teile, und eines löst das Höhenproblem
+
+| | **JST S2B-PH-SM4-TB** | **JST SM02B-SRSS-TB** |
+| --- | --- | --- |
+| Nummer | C295747 | **C160402** |
+| Reihe | PH, 2,00 mm Raster | **SH, 1,00 mm Raster** |
+| **Bauhöhe** | **5,5 mm** | **2,9 mm** |
+| Grundfläche | 7,9 × 8,6 mm | **4,0 × 4,32 mm** |
+| Strom | 2 A | 1 A |
+
+**Die Grenze ist 4,45 mm.** Der PH liegt **1,05 mm darüber**, der SH **1,55 mm
+darunter** — und braucht nur ein Viertel der Fläche. 1 A gegen 100 mA
+Ladestrom ist reichlich.
+
+> **Nebenbei löst sich der Widerspruch, der die Quellenlage so dünn aussehen
+> ließ:** Die Händler nannten 7,6 und 8,6 mm für „die Tiefe". Die
+> Bibliotheksangabe zeigt, dass es **zwei verschiedene Maße** sind — Länge 7,9
+> und Tiefe 8,6. **Sie haben sich nicht widersprochen, sondern verschiedene
+> Kanten gemessen.**
+
+**Was der SH kostet, und das ist die Entscheidung:** Die Adafruit 1317 wird
+**mit PH-Stecker am Kabel** geliefert. Mit einem SH auf der Platine passt das
+Kabel der Zelle nicht — entweder wird es **umgecrimpt**, oder es braucht eine
+Zelle mit SH-Stecker, oder ein kurzes Zwischenkabel.
+
+> **Damit sind es nicht mehr drei unbestimmte Wege, sondern zwei klare:**
+> **(a) SH-Stecker (2,9 mm, passt) und das Zellkabel anpassen**, oder
+> **(b) PH behalten (5,5 mm) und das Gerät 1,05 mm dicker machen.**
+> Der dritte Weg — Kabel direkt anlöten — bleibt möglich, macht den Akku aber
+> unaustauschbar. **Thomas entscheidet; ich habe keinen der Wege eingebaut.**
+
+**J2 und J4 bleiben bis dahin neben der Platine geparkt.** Ein Tausch ändert
+Footprint und bei J4 die Netzliste; das gehört in einen eigenen Durchgang,
+nicht zwischen zwei Platzierungsrunden.
+
+# U1 gemessen — und die Antenne zeigt in die falsche Richtung
+
+Stand 24.10.2026. Anlass: die Antennenkante bei `x` 25,5 war **gerechnet, nicht
+gemessen**, und auf ihr steht die Freihaltezone — die einzige Stelle, an der
+uns Raytac eine Vorschrift macht.
+
+## Was gemessen ist
+
+Alle **61 Pads** über `pcb_pads_list`, Hülle aus `extent_mm` (dem Maß **nach**
+der Drehung), nicht aus `width/height`:
+
+| | gemessen |
+| --- | --- |
+| Padhülle `x` | **12,0992 … 23,4999** = 11,4007 mm |
+| Padhülle `y` | **12,2998 … 22,3000** = 10,0002 mm |
+| Bauteilmitte | 17,75 / 17,30, Drehung **90°** |
+
+**Die Mitte des Bauteils ist die Mitte der Padhülle, nicht die Mitte des
+Körpers.** Genau daraus entstand die alte Zahl: 17,75 + 15,5/2 = **25,50**.
+Diese Rechnung setzt voraus, dass der Ursprung in der Körpermitte liegt. **Er
+liegt dort nicht** — bei einem Modul mit Antenne an einem Ende sitzen die Pads
+nicht symmetrisch im Körper.
+
+## Wie der Körper daraus folgt
+
+Körpermaß **15,5 × 10,5 mm** aus dem Datenblatt (nicht gemessen, das ist der
+eine eingesetzte Fremdwert). Alles andere ist Rechnung auf gemessenen Zahlen:
+
+- Quer: (10,50 − 10,0002) / 2 = **0,2499 mm** Pad-Einzug an den Längsseiten.
+- Längs: 15,50 − 11,4007 − 0,2499 = **3,8494 mm** Leerstreifen am pad-armen Ende.
+
+Damit:
+
+| | daraus | Datenblatt |
+| --- | --- | --- |
+| Körper `x` | 8,2498 … 23,7498 = **15,5000** | 15,5 |
+| Körper `y` | 12,0499 … 22,5499 = **10,5000** | 10,5 |
+
+**Beide Maße treffen auf vier Stellen.** Der Pad-Einzug von 0,25 mm ist aus dem
+Querschnitt gewonnen und am Längsschnitt bestätigt — das ist die Gegenprobe,
+nicht bloß eine Umstellung derselben Gleichung.
+
+**Und die unabhängige Bestätigung:** Raytacs Freihaltezone ist mit
+**10,5 × 3,8 mm** angegeben. Der Leerstreifen misst **10,50 breit** (die ganze
+Modulbreite) und **3,85 tief**. Die 10,5 waren in der Rechnung nie enthalten,
+die 3,8 nur zufällig nah. **Die Zone ist dieser Streifen.**
+
+## Welches Ende die Antenne ist — und warum das sicher ist
+
+| Ende | Pads |
+| --- | --- |
+| `x` ≈ 23,2 (hoch) | **19** (Pads 15–33, darunter XL1/XL2, VBUS, DCCH) |
+| `x` ≈ 12,1 (tief) | **2** (Pads 1 und 55, beide `GND`) |
+
+Ein 10,5 mm breites Ende mit zwei Massepads, dahinter 3,85 mm Körper ohne
+jedes Pad — **das ist die Antenne.** Am Ende mit 19 Signalpads kann keine
+„No Ground-Pad Area" liegen. Dass die beiden Eckpads Masse sind, passt zu
+Raytacs Regel von den Durchkontaktierungen „especially at the four corners".
+
+> **Die Freihaltezone liegt bei `x` 8,25 … 12,10, `y` 12,05 … 22,55 —
+> nicht bei `x` 25,5 … 27.** Sie liegt damit **mitten auf der Platine**, und
+> die Antenne zeigt **nach innen**, nicht an eine Kante.
+
+## Was daraus folgt, und was ich nicht getan habe
+
+Raytac verlangt das Modul **zur Platinenkante hin**. Die Antennenkante liegt
+jetzt **8,25 mm von `x` = 0** und das andere Ende **3,25 mm von `x` = 27**.
+Die Antenne steht also am weitest möglichen Punkt von jeder Kante entfernt,
+und in ihrer Zone liegt Platz, der für Kupfer und Bauteile verplant ist.
+
+**Die alte Zahl war nicht nur falsch, sie war in der Richtung falsch.** Eine
+Freihaltezone, die ich bei 25,5 … 27 freigehalten hätte, hätte am
+Antennenende nichts bewirkt und am Anschlussende Platz verschenkt.
+
+**Ich habe nichts verschoben.** U1 ist das größte Bauteil; es zu drehen oder zu
+versetzen heißt, die Plätze neu zu rechnen — und wohin die Antenne zeigen soll,
+ist eine Frage an den Entwurf, nicht an das Werkzeug. Die Masseflächen warten
+ebenfalls: ihre Aussparung hängt an dieser Zone, und solange die Zone wandert,
+wäre jedes Kupfer eine Wegwerfarbeit.
+
+**Lehre, und sie ist dieselbe wie bei J1:** Die 25,50 sah nach einer Messung
+aus, weil sie vier Stellen hatte. Sie war eine Annahme über den Ursprung des
+Footprints — und Annahmen über Ursprünge fallen erst auf, wenn man das Bauteil
+aus seinen Pads nachbaut und prüft, ob das Datenblattmaß herauskommt.
+
+# U1 gedreht — und dabei fiel auf, dass mein Platzierungsbeweis nichts bewies
+
+Stand 24.10.2026, nach der Entscheidung „Antenne an die Längskante `x` = 27".
+
+## Die Drehung: gesetzt und nachgemessen
+
+**Der Schub ist −0,2502 mm, nicht +3,25.** Meine eigene Zahl im Vorschlag war
+falsch: die 3,25 waren der Abstand des **jetzigen hohen Endes** zur Kante. Nach
+der Drehung steht dort das **Antennenende**, und das reicht 3,85 mm weiter
+hinaus. Gerechnet: nach 180° liegt die Körperkante bei 27,2502 — also
+**0,2502 mm über** der Platine, nicht 3,25 mm darunter.
+
+U1 steht jetzt auf **17,4998 / 17,300001, Drehung 270°**. Danach aus den 61
+Pads neu gemessen, nicht aus der Rechnung übernommen:
+
+| | gemessen |
+| --- | --- |
+| Padhülle | `x` 11,7503 … 23,1484 · `y` 12,2998 … 22,3000 |
+| Körper daraus | `x` 11,5004 … **27,0004** · `y` 12,0499 … 22,5499 |
+| Länge × Breite | **15,5000 × 10,5000** |
+
+> **Freihaltezone neu: `x` 23,1484 … 27,0004, `y` 12,0499 … 22,5499 —
+> 10,5000 breit, 3,8520 tief.** Sie liegt jetzt an der Längskante, wo der
+> Entwurf sie immer haben wollte.
+
+Die 0,0004 mm über 27 sind keine Lage, sondern die **Mil-Rasterung** des
+Werkzeugs: EasyEDA rechnet die Platine intern in mil (0,0254 mm), ein
+Millimeterwert ist dort nicht beliebig fein einstellbar. Die Richtung der
+19 Signalpads hat mitgedreht: sie stehen jetzt bei `x` 12,05, die zwei
+Massepads des Antennenendes bei 22,95.
+
+## Der Befund, der schwerer wiegt als die Drehung
+
+`pcb_layout_boxes` meldete nach der Drehung **`overlapCount` 0**. Weil U1s
+Kasten (11,8 … 23,199) nicht zu meiner gemessenen Hülle (11,7503 … 23,1484)
+passte, habe ich nachgesehen, was das Werkzeug eigentlich misst.
+
+| | |
+| --- | --- |
+| Pad-**Mitten** + 0,25 | 11,7998 … 23,1989 |
+| **Kupfer**hülle + 0,25 | 11,5003 … 23,3984 |
+| was der Kasten sagt | **11,8000 … 23,1990** |
+
+**Der Kasten ist die Hülle der Pad-Mitten plus Rand. Das Kupfer der Pads
+selbst ist nicht darin.** Gegenprobe an C1: zwei Pads auf gleicher Höhe, also
+Mittenhülle 0 hoch; der Kasten ist **genau 0,500** hoch = 2 × 0,25. Wäre das
+Kupfer enthalten, müsste er um die Padhöhe höher sein.
+
+> **Damit bedeutet `overlapCount` 0 bei `margin_mm` 0,25 nicht 0,25 mm
+> Kupferabstand, sondern 0,25 mm zwischen Mittenhüllen.** Bei einem Pad von
+> 0,6 mm Höhe reicht das Kupfer 0,3 mm über die Mitte hinaus — es frisst den
+> ganzen Rand und mehr.
+
+**Mein Satz „54 Bauteile, `overlapCount` 0 bei 0,25 mm Rand" war deshalb kein
+Beweis.** Er stimmte als Aussage über das Werkzeug und sagte nichts über die
+Platine.
+
+## Selbst gemessen: 251 Pads, Pad gegen Pad
+
+Aus `pcb_pads_list` die echten Kupferrechtecke (`extent_mm`, also **nach** der
+Drehung) und jedes Paar verschiedener Bauteile derselben Lage verglichen:
+
+| Paar | Netze | Abstand |
+| --- | --- | --- |
+| `L1.1` ↔ `X1.2` | DCCH ↔ XL2 | **−0,5362** |
+| `SW2.2'` ↔ `U1.1` | GND ↔ GND | −0,2502 |
+| `C9.2` ↔ `X1.1` | GND ↔ XL1 | **−0,2222** |
+| `C2.1` ↔ `U4.2` | VBAT_RAW ↔ GND | **−0,1016** |
+| `C2.1` ↔ `U4.3` | VBAT_RAW ↔ VBAT_RAW | −0,1016 |
+| `R1.1` ↔ `U4.1` | PROG ↔ CHG_STAT | **−0,0151** |
+
+**Vier davon liegen zwischen verschiedenen Netzen. Das sind Kurzschlüsse**,
+keine Enge: die Spule des Abwärtswandlers steht auf dem Quarz, der Akku auf der
+Masse. Zwei weitere überlappen im gleichen Netz — elektrisch harmlos, als
+Kupfer trotzdem falsch.
+
+Von Hand gegengerechnet, damit es nicht am Skript hängt:
+`L1.1` Kupfer `x` 12,7151 … 14,3511 gegen `X1.2` `x` 12,2503 … 13,2513 →
+Überdeckung 12,7151 … 13,2513 = **0,5362 mm**, in `y` über die volle Padhöhe.
+
+Dazu **15 weitere Paare unter 0,25 mm**, davon sieben unter 0,10 mm
+(`C3.2`↔`C4.1` 0,0307, `R3.2`↔`R4.1` 0,0665, `R6.2`↔`R7.1` 0,0665,
+`R4.2`↔`R5.1` 0,0690, `R5.2`↔`R13.1` 0,0690, `R1.2`↔`R2.1` 0,0690,
+`C3.1`↔`C5.2` 0,0992) — alle zwischen **verschiedenen** Netzen und damit unter
+jeder Fertigungsgrenze, die JLCPCB anbietet.
+
+## Was das heißt und was nicht
+
+**Die Drehung hat das nicht verursacht.** Fünf der sechs Überlappungen liegen
+auf der Unterseite und haben mit U1 nichts zu tun; nur `SW2`↔`U1.1` entstand
+daraus, dass Pad 1 mitgedreht ist. **Die Platzierung war vorher schon falsch,
+und die Entwarnung kam von einem Maß, das die Padgröße nicht kennt.**
+
+**Kein Kupfer.** Masseflächen über einer Platzierung mit vier Kurzschlüssen
+wären Wegwerfarbeit, und zwar eine, die die Fehler verdeckt.
+
+**Nächster Schritt:** die Plätze neu rechnen, diesmal gegen die
+**Kupferrechtecke aus `pcb_pads_list`** statt gegen `pcb_layout_boxes`, mit
+einer Mindestluft, die aus dem Regelsatz kommt und nicht aus meinem Gefühl.
+
+**Lehre, und sie ist dieselbe wie dreimal heute:** Ein Werkzeug, das eine Zahl
+nennt, sagt nicht, was es gemessen hat. „overlapCount 0" klang nach einer
+Aussage über Bauteile und war eine über Mittelpunkte — genau wie 25,50 nach
+einer Messung klang und eine Annahme über einen Ursprung war, und wie „12 Pole"
+nach einer Pinzahl klang und eine Kontaktzahl war. **Dreimal dieselbe Falle:
+zwei Größen, die gleich heißen und Verschiedenes messen.**
+
+# Die Paare auseinandergezogen: 0 Regelverstöße, und ein Fall, der keiner Rechnung weicht
+
+Stand 24.10.2026. Maß ist jetzt das **Kupferrechteck** aus `pcb_pads_list`
+(`extent_mm`, also nach der Drehung), Grenze die Vorschrift aus dem Regelsatz:
+**SMD-Pad ↔ SMD-Pad = 0,15200122 mm**, Pad ↔ Platinenrand = 0,29999940 mm.
+
+## Erst noch ein Verstoß, den mein eigener Vergleich verdeckt hatte
+
+`J1` hat **MULTI**-Pads — Durchsteiger, die auf **beiden** Kupferlagen liegen.
+Mein Vergleich hatte nach Lage gruppiert und MULTI als dritte Lage behandelt,
+also **nie gegen TOP oder BOTTOM geprüft**. Mit MULTI auf beiden Lagen kommt
+ein Paar hinzu:
+
+> `J1.S1` (Schirm, GND) ↔ `R3.1` (Q1_G): **0,0092 mm.**
+
+Damit waren es **13** Verstöße zwischen verschiedenen Netzen, nicht 12.
+Dieselbe Falle wie immer: „Lage" heißt bei einem Durchsteiger etwas anderes als
+bei einem SMD-Pad.
+
+## Der Änderungssatz, vorher durchgerechnet
+
+17 Bauteile, in einem Zug gesetzt, Zielabstand 0,25 mm statt der erlaubten
+0,152 — damit die Mil-Rasterung des Werkzeugs (0,0254 mm) nichts kippen kann.
+
+| Reihe | Teile | was geschah |
+| --- | --- | --- |
+| `y` ≈ 2,0 | R3, R4, R5, R13, R14 | nach rechts gestaffelt, R3 hinter `J1` |
+| `y` ≈ 7,0 | C11, R6, R7 | nach rechts gestaffelt, C10 blieb |
+| `y` ≈ 10–12 | C2 (+0,30 `x`), R1 (+0,85 `y`) | von `U4` weg; R1 nach oben statt zur Seite, weil rechts `Q2` steht |
+| `y` ≈ 23,9 | C5, C3, C4, C8, C9, X1, L1 | ganze Reihe neu aufgeteilt, 0,25 mm Luft |
+
+R2 blieb, wo es war: durch R1s Weg nach oben ist der Konflikt in `y` gelöst,
+und nach rechts hätte R2 in `Q2` gelaufen.
+
+## Gemessen, nachdem es gesetzt war
+
+| | vorher | nachher |
+| --- | --- | --- |
+| Verstöße, verschiedene Netze | **13** | **0** |
+| davon Überlappungen | 4 | **0** |
+| kleinster Abstand verschiedener Netze | −0,5362 | **+0,2006** |
+| Pads unter 0,300 mm am Rand | 0 | **0** |
+
+Der engste Punkt ist jetzt `C2.1` (VBAT_RAW) gegen `U4.2` (GND) mit
+**0,2006 mm** — ein Drittel über der Vorschrift.
+
+## Stichprobe von Hand, damit es nicht am Skript hängt
+
+| Paar | Rechnung aus den Mitten | vorher |
+| --- | --- | --- |
+| `L1.1` ↔ `X1.2` | 13,82256 − 13,57388 = **0,24868** | −0,5362 |
+| `C9.2` ↔ `X1.1` | 10,07098 − 9,82072 = **0,25026** | −0,2222 |
+| `C2.1` ↔ `U4.2` | 4,90098 − 4,70036 = **0,20062** | −0,1016 |
+| `J1.S1` ↔ `R3.1` | 18,52570 − 18,27522 = **0,25048** | +0,0092 |
+| `R1.1` ↔ `U4.1` | in `y`: 11,87832 − 11,64822 = **0,23010** | −0,0151 |
+| `R6.2` ↔ `R7.1` | 23,69460 − 23,44272 = **0,25188** | +0,0665 |
+
+`R1` gegen `U4` ist der lehrreiche: in `x` überlappen die beiden weiter um
+0,0151 mm, der Abstand kommt allein aus `y`. **Wer nur eine Achse ansieht,
+hält das für ungelöst.**
+
+## Was es gekostet hat
+
+`L1.1` (DCCH) steht jetzt bei `x` 14,64056, U1s DCCH-Pad bei 12,04976 — **2,59
+mm in `x`, 1,1075 mm mehr als vorher.** Das ist die Schleife des
+Abwärtswandlers, und länger ist dort schlechter. Der Grund ist zwingend: X1
+musste zwischen L1 und C9 Platz bekommen, und X1 gehört an die Pads 17/18, die
+ebenfalls am tiefen `x`-Ende liegen. **Spule und Quarz streiten um dieselbe
+Ecke.** Wenn die 1,1 mm wehtun, ist die Antwort nicht eine andere Verteilung in
+dieser Reihe, sondern den Quarz in eine andere Reihe zu nehmen.
+
+## Der Fall, der keiner Rechnung weicht: SW2
+
+`SW2` bleibt stehen, und zwar nicht aus Nachlässigkeit. Zwei Befunde:
+
+1. `SW2.2'` (GND) überlappt `U1.1` (GND) um **0,2502 mm**. Gleiches Netz, also
+   kein Kurzschluss — als Kupfer trotzdem falsch.
+2. **Beide unteren Taster-Pads liegen in der Freihaltezone**: `SW2.1'` bei
+   `x` 23,6994 … 24,7994 und `SW2.2'` bei 22,2008 … 23,3008, jeweils
+   `y` 22,0 … 23,4, und die Zone endet oben bei `y` 22,5499.
+
+**Und der Taster passt dort nicht, mit keinem `y`:**
+
+| | |
+| --- | --- |
+| Padspanne des Tasters, gemessen | **4,9992 mm** |
+| Band zwischen U1-Körper (22,5499) und Glas (27,0) | **4,4501 mm** |
+| fehlen | **0,5491 mm** |
+
+Mit der Vorschrift von 0,152 gegen den Modulkörper müsste das tiefste Pad bei
+22,7019 beginnen und das höchste läge bei 27,7011 — **0,7011 mm im
+Anzeigefenster.** Selbst wenn man nur gegen U1s Pads rechnet (22,3000) und den
+2,2 mm hohen Modulkörper ignoriert, sind es noch 0,4512 mm.
+
+> **Der Taster war nie dort unterzubringen, auch vor der Drehung nicht.** Das
+> alte Pad 33 lag bei `y` 21,901 … 22,300 und `x` 22,901 … 23,500 und
+> überlappte `SW2.2'` ebenso. Die Drehung hat den Fall nur sichtbar gemacht.
+
+**`SW1` ist nicht betroffen:** es steht bei `x` 2,2008 … 4,7994, also links von
+U1s Körper (ab 11,5004) und weit von der Zone (ab 23,1484).
+
+**Ein Ausweichband gibt es, und zwar unter U1:** auf der Oberseite ist zwischen
+`J1` (bis `y` 5,9892) und U1s Körper (ab 12,0499) nichts. Mit der Vorschrift
+bleibt `y` 6,1412 … 22,3979, also **16,2567 mm für 4,9992 mm Taster — es
+passt.** Das heißt aber: der Reset-Taster sitzt dann am USB-Ende, nicht
+zwischen Modul und Anzeige, und SW1 und SW2 stehen nicht mehr symmetrisch.
+
+**Das ist eine Gehäusefrage und keine Rechnung.** Drei Wege, alle mit Folgen:
+`SW2` ans USB-Ende (Symmetrie weg), **beide** Taster dorthin (Symmetrie bleibt,
+zwei Öffnungen wandern), oder das Anzeigefenster beginnt später als `y` 27.
+**Ich habe keinen eingebaut.**
+
+# SW2 versetzt, Masseflächen gegossen — und eine Art Kollision, die ich nie geprüft hatte
+
+Stand 24.10.2026, später Abend.
+
+## SW2 steht am USB-Ende
+
+`SW2` (Reset) auf **23,500001 / 8,6412, Drehung 270°**. Pads jetzt
+`x` 22,2008 … 24,7994, `y` **6,1402 … 11,1419**.
+
+Nicht ganz an den unteren Rand, obwohl dort noch Platz wäre: am USB-Ende
+liegen die **Mulde und der Steckerüberstand** des Gehäuses. Der Taster sitzt
+deshalb oberhalb von J1s Streifen. Abstand nach oben zu U1s Körper (12,0499):
+**0,9080 mm**.
+
+`SW1` bleibt, wo es ist — neben der Anzeige, wo der Bestätigen-Knopf hingehört.
+
+## Der Befund: Schlitzbereiche
+
+Die PCB-DRC meldete **„SMD Pad to Slot Region, distance is 0mm"**. Die Taster
+haben **Schlitzbereiche** — Durchbrüche durch die Platine für den Betätiger.
+
+> **Ein Schlitz ist kein Pad.** Mein Vergleich hat Pad gegen Pad gerechnet und
+> konnte diese Art Kollision **grundsätzlich nicht finden**, egal wie genau er
+> war. Und weil ein Schlitz durch die ganze Platine geht, trifft er auch
+> Bauteile auf der **anderen** Lage: `SW1` liegt oben, `C5` und `C3` unten.
+
+| Paar | Lage | Zustand |
+| --- | --- | --- |
+| `C5_2` ↔ SW1-Schlitz | unten/oben | **0 mm — bestand schon vorher** |
+| `C3_1` ↔ SW1-Schlitz | unten/oben | **0 mm — bestand schon vorher** |
+| `C3_2` ↔ SW1-Schlitz | unten/oben | **0 mm — bestand schon vorher** |
+| `C1_2` ↔ SW2-Schlitz | unten/oben | **0 mm — von mir verursacht, behoben** |
+
+Nachgerechnet, wer was verursacht hat: `C5` und `C3` lagen **vor und nach**
+meiner Verschiebung in SW1s `x`-Bereich (2,2008 … 4,7994). Die drei sind alt.
+Die vierte entstand, als ich SW2 nach unten setzte — **C1 lag dort schon.**
+`C1` ist um **1,1992 mm** nach links gerückt, auf `x` 20,8008; Luft zu `R16`
+**0,9852 mm**. Danach: Clearance-Fehler von 5 auf 4.
+
+**Die drei alten bleiben offen, und sie sind keine Rechenfrage:** `SW1` steht
+bei `x` 2,2 … 4,8 und spannt `y` 22,0 … 27,0; die Bauteilreihe liegt bei
+`y` 23,9 und läuft genau darunter hindurch. Wer die Reihe rechts an SW1
+vorbeischiebt, beginnt bei `x` 5,10 — dann stünde `X1` bei 14,77 statt 11,82
+und `L1` bei 18,52, also **6,5 mm von DCCH** statt 2,59. **Das verschlimmert
+genau das, was heute schon teuer war.**
+
+## Masseflächen: vier Lagen, Zone frei
+
+| | |
+| --- | --- |
+| Lagen | TOP, INNER_1, INNER_2, BOTTOM, Netz `GND`, SOLID |
+| Umriss | 0,254 … 26,746 × 0,254 … 69,746 (Regel Kupferfläche ↔ Rand = 0,254) |
+| Aussparung | `x` ab **23,148**, `y` **12,05 … 22,55** — die Freihaltezone |
+
+**„rebuilt" heißt nicht „gefüllt".** Der erste Durchgang meldete alle vier
+Flächen als neu gebaut, und das Bild zeigte **kein Kupfer**. Erst nach
+`doc_reload` und einem zweiten Aufbau war die Platine gefüllt. Hätte ich der
+Rückmeldung geglaubt, hätte ich leere Flächen als fertig gemeldet.
+
+**Nebenbei: der Platinenrand ist da.** Das Bild zeigt das Rechteck (0|0) …
+(27|70). `pcb_lines_list` meldet für die Umrisslage weiterhin **0** — genau
+der Fall, vor dem ich mich selbst gewarnt hatte. **Gut, dass ich ihn als
+unbekannt behandelt und nicht als fehlend gemeldet habe.**
+
+**Vier Massepads hängen noch:** `U2_1`, `U2_17`, `U2_19` und `C17_2`, alle
+unten. Nicht 57, sondern vier — **die Fläche verbindet also.** Zwischen die
+Pads eines QFN mit 0,4 mm Raster kommt kein Gießkupfer; diese vier brauchen
+beim Verlegen je eine Durchkontaktierung. Das ist Verlegearbeit, kein
+Gießfehler.
+
+## Offene Punkte, die jemand anderen betreffen
+
+1. **Gehäuse: die Öffnung für SW2 wandert.** Geplant war die Seitenwand bei
+   `y` 22,75 … 26,25. SW2 liegt jetzt bei `y` 6,14 … 11,14, also am USB-Ende.
+   **Der Gehäuse-Strang ist archiviert**; das muss in einen neuen Durchgang
+   oder von Hand nachgezogen werden. SW1s Öffnung bleibt, wo sie war.
+2. **Quarz und Spule: nicht nachjustieren.** Die Wandlerschleife ist 1,1075 mm
+   länger geworden, weil X1 an die Pads 17/18 muss. **Wenn das zu viel ist,
+   gehört der Quarz in eine andere Reihe** — dieselbe Reihe anders zu
+   verteilen, macht es nur anders schlecht.
+3. **J4 ist im Schaltplan getauscht, auf der Platine noch nicht.** Die DRC
+   meldet **1 Netzlistenfehler**; das ist mit großer Wahrscheinlichkeit genau
+   das — „Import Changes" samt „Apply Changes" steht noch aus und braucht einen
+   Klick. **Nachgesehen habe ich es nicht**, also steht es hier als Vermutung
+   mit ihrem Grund, nicht als Befund.
+
+# Die Schlitzfälle gelöst — und das Ausweichen war eine Verbesserung
+
+Stand 24.10.2026, Abschluss. **PCB-DRC: 0 Abstandsfehler.**
+
+## C3 und C5 konnten ausweichen, und zwar nach innen
+
+Erst nachgesehen, **was sie sind**: `schematic.md` Zeile 165/166 —
+**C3 = 4,7 µF an `VSYS`, C5 = 4,7 µF an U1s VDD** (Nordic C_VDD, Abschn.
+5.3.8.1). Das sind die **Vorratskondensatoren**, nicht die kurzen 100 nF; die
+lokalen sind C4 (VSYS) und C12 (nahe U3 Pin 8), und die kollidierten nicht.
+
+Dann der Fund, der die ganze Abwägung erledigt hat: **die Unterseite unter U1
+ist leer.** U1 sitzt oben; sein Körper versperrt unten nichts. Im Streifen
+`x` 10 … 23, `y` 12,5 … 20,5 liegt auf der Unterseite **kein einziges Bauteil**
+— und die Freihaltezone beginnt erst bei `x` 23,1484, also dahinter.
+
+| | vorher | nachher | gemessen Pad zu Pad |
+| --- | --- | --- | --- |
+| **C5** (U1 VDD) | 1,4989 / 23,9 | **13,5 / 15,70** | zu Pad 28: **0,75 mm** statt 13,36 |
+| **C3** (VSYS) | 3,9497 / 23,9 | **13,5 / 13,85** | zu Pad 30: **1,29 mm** statt 12,11 |
+
+> **Das Ausweichen ist kein Zugeständnis.** Die beiden Kondensatoren standen
+> rund 13 mm von ihrem Pin entfernt und stehen jetzt **unter einem Millimeter**
+> davon. Die Frage war, ob sie sich von ihrem Baustein entfernen müssen — sie
+> kommen ihm **zwölf Millimeter näher.**
+
+Luft zwischen beiden 0,951 mm, zu U3 2,451 mm. SW1 ist nicht bewegt worden,
+X1 und L1 stehen unverändert.
+
+## Was dabei von außen hereinkam
+
+**Der J4-Import ist erfolgt** — offenbar hat Thomas „Apply Changes" geklickt,
+während ich arbeitete. Belegt, nicht vermutet: Die Platine trägt jetzt
+`J4` = **FH12-12S-0.5SH(55), C88360, 14 Pads**, mit **neuer** primitiveId
+(`399480cb1723d3d8` statt `42c7d91f37824fa2`), und **der Netzlistenfehler ist
+verschwunden**. Damit ist auch meine Vermutung von vorhin bestätigt: der eine
+Netzlistenfehler war der ausstehende Import.
+
+Das neue J4 landete bei `y` −10,3, also **unter** der Platine. Es steht jetzt
+bei 34,5 / 36,0, neben J2, J5 und J6 — alle vier Platzhalter beieinander.
+`J5` ist dabei um 2,5 mm nach oben gerückt, weil sein Schlitzbereich auf
+`J2_2` lag.
+
+## Zwei Dinge, die ich beim Messen über das Messen gelernt habe
+
+**Nach dem Verschieben ist die Füllung veraltet.** Als C3 und C5 unter U1
+standen, meldete die DRC `Copper Region(Filled) to SMD Pad, distance is 0mm` —
+das Kupfer stammte noch von vorher. Erst ein erneuter Aufbau räumte es weg.
+**„Gefüllt" ist kein Zustand, der hält; er gilt für eine Anordnung.**
+
+**Mein eigenes Prüfskript schlug falschen Alarm.** Es meldete 14 Pads zu nah am
+Rand — alles Pads von `J4`. Grund: die Liste der geparkten Teile im Skript
+kannte nur J2, J5 und J6; **J4 kam neu dazu und galt dem Skript als auf der
+Platine.** EasyEDAs DRC sagt 0. Die Zahl war richtig gerechnet und auf die
+falsche Menge angewendet.
+
+## Stand
+
+| | |
+| --- | --- |
+| Abstandsfehler (EasyEDA-DRC) | **0** |
+| Paare unter 0,152 mm (eigene Messung) | **0** |
+| kleinster Abstand | 0,2006 mm (`C2.1` ↔ `U4.3`, **gleiches Netz**) |
+| fremde Pads in der Freihaltezone | **0** |
+| Masseflächen | 4 Lagen, Zone ausgespart |
+
+**178 Verbindungsfehler bleiben — das sind die unverlegten Netze.** Es ist noch
+keine einzige Leitung gezogen; das ist der nächste Arbeitsgang, nicht ein
+Fehler. Darin enthalten sind die vier Massepads an U2 und C17, die
+Durchkontaktierungen brauchen, und die Pins der vier geparkten Steckverbinder.
