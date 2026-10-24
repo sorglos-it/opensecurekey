@@ -50,6 +50,16 @@ Gut zu wissen:
 - Manche Firmenseiten verlangen ein Beglaubigungszertifikat. Das hat der Stick nicht.
 - Über NFC braucht jede Freigabe ebenfalls den Knopf.
 
+## Mit dem Telefon antippen (NFC)
+
+**Stand:** Nie mit einem echten Telefon ausprobiert. Die Reichweite ist nicht gemessen.
+
+- Halte den Stick **näher ans Lesegerät als eine Karte.**
+- Das liegt an der Bauform, nicht an einem Fehler. Im kleinen Gehäuse ist die Antenne kleiner als bei einer Karte.
+- Wie nah genau, wissen wir erst nach einer Messung am fertigen Gerät. Darum steht hier keine Zahl.
+- Geht es nicht gleich: Verschiebe den Stick langsam ein Stück, statt fester zu drücken.
+- Auch über NFC braucht jede Freigabe den Knopf am Stick.
+
 ## Ein Passwort holen
 
 **Stand:** gegen die Test-Attrappe geprüft, nie gegen einen echten Stick.

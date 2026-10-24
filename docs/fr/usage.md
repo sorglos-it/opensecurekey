@@ -50,6 +50,16 @@ Bon à savoir :
 - Certains sites d’entreprise exigent un certificat d’attestation. La clé n’en a pas.
 - Par NFC, chaque autorisation demande aussi le bouton.
 
+## Approcher du téléphone (NFC)
+
+**État :** jamais essayé avec un vrai téléphone. La portée n'a pas été mesurée.
+
+- Tiens la clé **plus près du lecteur qu'une carte.**
+- Cela vient de la forme de l'appareil. Ce n'est pas une panne. Dans le petit boîtier, l'antenne est plus petite que celle d'une carte.
+- La distance exacte ne sera connue qu'après une mesure sur l'appareil terminé. C'est pourquoi il n'y a pas de chiffre ici.
+- Si cela ne marche pas tout de suite : déplace la clé un peu, lentement. N'appuie pas plus fort.
+- Même par NFC, chaque autorisation demande le bouton sur la clé.
+
 ## Récupérer un mot de passe
 
 **État :** vérifié contre l’appareil de test, jamais contre une vraie clé.
