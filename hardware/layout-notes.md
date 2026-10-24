@@ -1255,3 +1255,100 @@ aber nur, wenn `d` = 0 ist.**
 > 4,585 − `d` und nicht auf einen Schätzwert. Bei einer Durchsteckbuchse kann
 > der Körper über die Platinenkante hinausragen, die Pins aber nicht — wenn
 > `d` groß wird, ist das eine eigene Prüfung.
+
+# Sensor gehört nicht auf die Platine — was dadurch wieder möglich wird
+
+Gerechnet 24.10.2026, nachdem der Gehäuse-Strang gemessen hat, dass zwischen
+Platinenunterseite und Finger **4,82 mm** liegen und der Hohlraum nicht flacher
+geht (0,2 Luft + 0,4 Folie + 4,05 Zelle = 4,65 mm). Ein kapazitiver Sensor
+liest durch Bruchteile eines Millimeters, nicht durch fünf.
+
+**Unsere eigene Doku sagt es ebenfalls:** `docs/fingerprint.md` führt den
+FPC2534AM als **Flex-Modul**, „Sensor auf Flex, **12-poliger ZIF-Anschluss**",
+und schreibt an anderer Stelle: „Der Flex-Anschluss (12-polig, ZIF) braucht
+einen Steckverbinder". Er ist zum Einkleben gedacht, nicht zum Löten.
+
+**Die Platine braucht davon: einen ZIF-Steckverbinder und einen Weg fürs
+Flachband. Kein 11-mm-Feld.**
+
+## 1. Ja, die große Zelle kann zurück — und das Antennenfeld gewinnt deutlich
+
+| | Zelle | Z3 endet | **Antennenfeld Z4** | Schleifenfläche |
+| --- | --- | --- | --- | --- |
+| jetzt | LP-401230-J, 30,5 lang, 4,05 dick | 55,50 | **14,50 mm** | 357 mm² |
+| **mit Adafruit 1317** | 26,02 lang, **3,80 dick** | 51,02 | **18,98 mm** | **467 mm²** |
+
+**+4,48 mm Antennenfeld und +31 % Schleifenfläche** — und das Gerät wird
+**0,25 mm dünner**, weil die Adafruit die flachere Zelle ist.
+
+> **Damit war das Opfer tatsächlich unnötig.** Thomas hat 4,5 mm Antennenfeld
+> und 0,25 mm Bauhöhe für ein Sensorfeld gegeben, das der Sensor nie gebraucht
+> hätte. **Das ist die Zahl, auf die es ankam.**
+
+## 2. Ja, die Zelle darf wieder mittig
+
+Ohne Sensorfeld zwingt nichts sie an die Kante. Quer bleibt dann je Seite:
+
+| Platinenbreite | nutzbar | je Seite neben der Adafruit |
+| --- | --- | --- |
+| 24 mm | 21,60 | 0,925 mm |
+| 26 mm | 23,60 | 1,925 mm |
+| **27 mm** | 24,60 | **2,425 mm** |
+
+**Und die Ferritfolie bekommt ihre Toleranz zurück:** 19,75 mm breit mit rund
+2,4 mm Luft je Seite statt „12,0 mm, nicht breiter".
+
+> **Darum jetzt keine Folienzahl ans Handbuch.** Die 12,0 mm wären die dritte
+> Zahl in einem Tag. **Erst wenn die Zelle entschieden ist**, geht eine Zahl
+> raus — dann 19,75 mm mit Toleranz, oder 12,0 mm ohne.
+
+## 3. Braucht die Platine die 27 mm noch? Für Bauteile nein
+
+**Ehrliche Antwort: die gewonnene Breite braucht kein Bauteil.** U2 und U3
+liegen beide in Z2 (siehe unten), J2 passt in keinen Seitenstreifen, und der
+Streifen neben der Zelle bleibt leer.
+
+**Luft ist sie aber nicht:** Sie ist **Toleranz für zwei von Hand eingelegte
+Teile** — die LiPo-Zelle (Breitentoleranz nennt niemand) und die zugeschnittene
+Ferritfolie. Bei 24 mm sind es 0,925 mm je Seite; bei einem handgebauten Gerät
+ist das knapp.
+
+> **Mein Rat, Thomas entscheidet:** **27 mm behalten.** Der Umriss ist mit
+> 27,0000 × 70,0000 gezeichnet und geprüft; ihn zu ändern kostet einen weiteren
+> Handgriff und bringt 3 mm Gehäusebreite. Der Gegenwert — 2,4 mm Toleranz je
+> Seite statt 0,9 — ist mehr wert als 3 mm Gehäuse. **26 mm wäre das vernünftige
+> Minimum, 24 mm möglich aber knapp.**
+
+## 4. U2 kommt ebenfalls unter dem Modul heraus — nach meiner eigenen Regel
+
+Im Entwurf stand U2 bei `x` 23 / `y` 17, also **unter dem Modulschatten**. Mit
+0,25-mm-Ring wären das **12,25 mm² = 7,5 %** der Massefläche, die der
+Hersteller als durchgehend verlangt. Weniger als U3s 33,6 %, **aber derselbe
+unbelegte Vier-Lagen-Fall** — und wer bei 33,6 % die sicherere Variante nimmt,
+kann bei 7,5 % nicht anders entscheiden, nur weil es weniger weh tut.
+
+**U2 geht in den linken Streifen** (`x` 1,20 … 10,0), wo U3 schon liegt: U3
+belegt 6,5 der 15,5 mm Länge, es bleiben **9,0 mm** — U2 braucht mit Ring 3,5.
+Beide passen, die Massefläche bleibt ganz.
+
+**Vorläufig: U3 bei `x` 5,45 / `y` 18,0, U2 bei `x` 5,45 / `y` 11,5.** Die
+I2C-Leitung wird dadurch länger als unter dem Modul; sie läuft weiterhin auf
+einer Innenlage.
+
+## 5. Zwei Dinge, die dieser Befund neu aufmacht
+
+**a) J5 ist im Schaltplan das falsche Bauteil.** Dort steht ein **Stiftfeld
+1 × 6** mit VDD, GND, SCK, MOSI, MISO, CS. Der FPC2534AM hat einen
+**12-poligen ZIF-Anschluss**. **Das ist keine Layoutfrage, das ist der
+Schaltplan:** es braucht einen 12-poligen FPC-Steckverbinder mit der
+**richtigen Pinbelegung des Sensors** — und die hat bisher niemand
+nachgelesen. Solange steht `ungeprueft` darüber.
+
+**b) Die Bauhöhe von J2 fehlt im Repo.** Der Zellenraum ist randvoll: jedes
+Bauteil neben der Zelle, das **höher als 4,45 mm** baut, macht das Gerät
+dicker. Beim liegenden JST-PH ist das nicht ausgeschlossen. **J2 bleibt
+unplatziert**, bis die Zahl da ist.
+
+**Nichts davon ist zurückgebaut.** Der Entwurf steht weiter auf 27 mm und der
+schmalen Zelle, bis entschieden ist — Umriss und Regelsatz sind geprüft, und
+beides noch einmal anzufassen muss sich lohnen.
