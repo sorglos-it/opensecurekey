@@ -94,6 +94,12 @@ def derive(p):
     d["z_cav_front"] = p["usb_body_h"] + p["usb_gap_top"]
     d["z_roof_front"] = d["z_cav_front"] + p["skin_t"]
     d["nose_x1"] = p["usb_nose_x"]
+    # Mulde um die Frontoeffnung. Sie ist keine Formgebung: ohne sie muesste
+    # die Buchse 1,90 mm ueber die Platinenkante ragen, und dann liegen die
+    # Bohrloecher ihrer Haltestifte auf der Platinenkante. Siehe masse.md 15.
+    d["rec_x1"] = d["ot_x0"] + p["usb_recess_d"]
+    d["rec_z1"] = d["usb_z1"] + p["usb_recess_z1"]
+    d["d_front"] = -d["ot_x0"] - p["usb_recess_d"]
     d["front_th"] = d["z_roof_front"] - d["z_floor"]
 
     # Lage der Schnappwuelste in Laengsrichtung
@@ -171,6 +177,11 @@ def shell_top(p, d, preview=True):
     ops.append(("-", (d["ot_x0"], d["cv_x0"],
                       p["usb_cy"] - p["usb_open_y"] / 2.0, p["usb_cy"] + p["usb_open_y"] / 2.0,
                       z0, d["usb_z1"])))
+    # Mulde um die Oeffnung, damit die Buchse weniger weit vorstehen muss
+    ops.append(("-", (d["ot_x0"], d["rec_x1"],
+                      p["usb_cy"] - p["usb_recess_w"] / 2.0,
+                      p["usb_cy"] + p["usb_recess_w"] / 2.0,
+                      z0, d["rec_z1"])))
     # Loch der Oese - rund, in der Vorschau quadratisch
     if preview:
         ops.append(("-", _sq(d["eye_cx"], d["eye_cy"], p["eye_hole_d"], z0, z1)))
@@ -217,6 +228,12 @@ def shell_bottom(p, d, preview=True):
                       p["usb_cy"] - p["usb_open_y"] / 2.0, p["usb_cy"] + p["usb_open_y"] / 2.0,
                       max(z0, d["usb_z0"]), min(lip_z, max(z1, d["usb_z1"])))))
     # SW1: der Teil des Schlitzes unter der Trennebene und durch die Stufe
+    # Mulde um die Frontoeffnung, der Teil unter der Trennebene und durch die
+    # Schnappstufe - sonst steht der Falz im Muldengrund
+    ops.append(("-", (d["ot_x0"], d["rec_x1"],
+                      p["usb_cy"] - p["usb_recess_w"] / 2.0,
+                      p["usb_cy"] + p["usb_recess_w"] / 2.0,
+                      p["usb_recess_z0"], lip_z)))
     bx0 = p["btn_cx"] - p["btn_slot_x"] / 2.0
     bx1 = p["btn_cx"] + p["btn_slot_x"] / 2.0
     btn_lo = p["btn_z"] - p["btn_slot_z"] / 2.0

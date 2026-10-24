@@ -33,9 +33,13 @@ Die Schätzung in `../hardware/layout-notes.md` war eine Addition ohne Gehäuse.
 Mit Wandstärken, Luftspalten und Ferritfolie sind es **9,80 mm** hinten,
 realistisch 9,8–10,3 mm. Vorn kommt die Nase dazu: **11,01 mm**.
 
-**Die schmale Zelle ist nicht dünner, sondern dicker** (4,05 statt 3,80 mm) –
-sie hilft nur gegen Breite und Länge. Weil Stufe 2 sie braucht, ist der
-Hohlraum auf 4,65 mm ausgelegt; **damit trägt das Gehäuse beide Zellen.**
+Gewählt ist die **Adafruit 1317** mit 3,80 mm. Damit käme die Rechnung auf
+9,55 mm – der Hohlraum ist trotzdem 4,65 mm tief, also auf die 4,05 mm dicke
+Rückfallzelle ausgelegt. **Die 0,25 mm sind Absicht:** das Gehäuse trägt damit
+beide Zellen, und die Zelle hat Platz zum Quellen. Die Zelle hat heute dreimal
+gewechselt; ein Gehäuse, das nur zu einer passt, wird beim nächsten Wechsel neu
+gedruckt. Wer die 9,55 mm will, ändert eine Zeile – [masse.md](masse.md),
+Abschnitt 3.
 
 ### 2. Der Fingerabdrucksensor hat die Platinenbreite bestimmt
 
@@ -67,6 +71,7 @@ dem Stecker angehoben:
 | Nase reicht von der Front bis | 10,20 mm |
 | Stufe gegenüber dem hinteren Dach | **1,21 mm** |
 | Wand über der Frontöffnung | 0,80 mm |
+| **Mulde um die Öffnung** | **0,80 mm tief, 14,00 mm breit** – erzwungen, nicht Form |
 
 Volle Breite, senkrechte Stufe, keine Fase – das druckt ohne Stütze und sieht
 gewollt aus.
@@ -254,10 +259,11 @@ Vollständig in [masse.md](masse.md), Abschnitt 13. Das Wichtigste:
    **und 4,45 mm unten**, Ferritfolie mitgerechnet.
 5. **Aufteilung quer: Zelle 1,20…13,20, Sensorfeld 13,70…24,70 mm.** Der Sensor
    bleibt neben der Zelle, nie über ihr.
-6. **Vorderkante der USB-Buchse bündig mit der Gehäusefront** (± 0,3 mm). Die
-   Front steht **1,90 mm** vor der Platinenkante, die Buchsenmitte liegt damit
-   auf längs **2,685 mm**, der Körper ragt 1,90 mm über die Kante. Dass die
-   **Pins** dabei auf der Platine bleiben, ist am Footprint zu prüfen –
+6. **Vorderkante der USB-Buchse bündig mit dem Muldengrund** (± 0,3 mm). Der
+   Muldengrund steht **1,10 mm** vor der Platinenkante, die Buchsenmitte liegt
+   damit auf längs **3,485 mm**. **Die Mulde ist keine Formgebung** – ohne sie
+   lägen die Bohrlöcher der Haltestifte der Buchse 0,195 mm über der
+   Platinenkante, und das ist ein Fertigungsfehler. Einzelheiten in
    [masse.md](masse.md), Abschnitt 15.
 7. **Bauteile im Hohlraum beginnen bei quer 1,40 mm**, nicht bei 1,20: dort
    steht die Hohlraumwand, und gedruckte Flächen haben Toleranz.
@@ -268,19 +274,22 @@ Vollständig in [masse.md](masse.md), Abschnitt 13. Das Wichtigste:
 
 1. **Ob der Stecker 3,16 oder 3,46 mm über der Platine steht** – gerechnet ist
    mit der größeren Zahl, also der sicheren. Betrifft nur die Höhe der Nase.
-2. **Breitentoleranz der Zelle** – steht in `../docs/parts.md` nicht. Sie ist
-   das, was die 1,10 mm Reserve der Stufe 2 auffangen muss.
+2. **Wie stark die Zelle über die Lebensdauer quillt** – steht in
+   `../docs/parts.md` nicht. Dafür sind die 0,25 mm Reserve im Zellenraum da.
 3. **Körperlänge des EVQP7C01P** – Panasonic sagt 3,5 mm, DigiKey 4,70 mm. Die
    Freistellung ist mit 5,6 mm so gewählt, dass **beide Lesarten passen**.
    Sollte am Footprint auffallen, welche stimmt: Bescheid sagen.
 4. **Länge und Abgang des Flachbands am FPC2534AM** – steht in
    `../docs/fingerprint.md` nicht. Davon hängt ab, wo der Sitz im Boden liegen
    darf. Bis dahin steht er auf längs 36,0 / quer 19,20 mm. **Wird gebraucht.**
-5. **Bauhöhe des Akkusteckers J2 über der Platine** – `JST-PH 2.0, 2-polig,
-   liegend` steht im Schaltplan, ein Maß nirgends. Der Zellenraum ist
-   **randvoll** (4,65 mm Tiefe, 4,65 mm belegt): **jedes Bauteil neben der
-   Zelle, das höher als 4,45 mm baut, macht das Gerät dicker.** **Wird
-   gebraucht.**
+5. **Bauhöhe des Akkusteckers J2 über der Platine.** Ich hatte das als
+   *fehlende Angabe* gemeldet – **es ist ein fehlendes Teil.** Der
+   Platinen-Strang hat am 24.10.2026 gemessen, dass J2 kein bestellbarer
+   Artikel ist, sondern ein **Bibliotheksplatzhalter ohne Datenblatt**. Wer
+   hier sucht, sucht nach einem Datenblatt, das es nie gab: **es ist zuerst ein
+   Teil auszuwählen.** Die Auflage ans Layout bleibt davon unberührt – der
+   Zellenraum ist 4,65 mm tief und mit der Adafruit 1317 zu 4,40 mm belegt;
+   **alles neben der Zelle über 4,45 mm macht das Gerät dicker.**
 6. **Ferritfolie**: Dicke 0,3–0,5 mm angenommen, Material offen. ±0,2 mm
    Gesamtdicke. Breite 12 mm, der schmalen Zelle folgend.
 7. **Platz für die umgelegte FPC-Fahne der Anzeige** – der Hohlraum ist 2,35 mm
@@ -291,10 +300,12 @@ Vollständig in [masse.md](masse.md), Abschnitt 13. Das Wichtigste:
 10. **Schlüsselring aus Stahl neben der NFC-Antenne** – nur messbar, nicht
     rechenbar.
 
-**Geschlossen am 24.10.2026:** *Liegt die Zelle außermittig?* **Nein, sie
-bleibt mittig.** Der Versatz war die Antwort darauf, dass neben der 19,75 mm
-breiten Zelle nichts mehr Platz hatte; mit der 12 mm schmalen Zelle gibt es
-diesen Engpass nicht mehr. Hohlraum und Ferritfolie bleiben symmetrisch.
+**Geschlossen am 24.10.2026:** *Liegt die Zelle außermittig?* **Nein, mittig.**
+Der Versatz war zweimal die Antwort auf ein Platzproblem neben der Zelle –
+erst der Sicherheitschip, dann das Sensorfeld. Seit der Sensor im Boden sitzt,
+zwingt nichts mehr an die Kante. Mit der Adafruit 1317 liegt sie quer
+3,62…23,38 mm, also 2,42 mm von der Hohlraumwand. Hohlraum und Ferritfolie
+sind symmetrisch, die Folie wieder 19,75 mm breit.
 
 **Geschlossen am 24.10.2026:** *Auf welcher Seite liegt das Sensorfeld?*
 **Unten**, auf der Akkuseite – oben überlappte es das Anzeigeglas. Die

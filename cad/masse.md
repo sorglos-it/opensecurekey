@@ -26,8 +26,8 @@ Luftspalte, die Wandstärken und der USB-Stecker.
 | Platine | **27 × 70 × 0,8 mm** | Breite von Thomas entschieden, siehe Abschnitt 4 |
 | U1 Modul MDBT50Q-1MV2 | **2,05 mm** hoch | `parts.md` |
 | DS1 OLED 0,71" | 13,90 × 22,00 × **1,26 mm**, aktiv 10,54 × 14,70 | `parts.md` |
-| Akku **LP-401230-J** (schmal) | **4,05** × 12,0 × 30,5 mm | `parts.md`, Zeile 444 |
-| Akku Adafruit 1317 (breit) | 3,80 × 19,75 × 26,02 mm | `parts.md`, Zeile 443 |
+| Akku **Adafruit 1317** – gewählt | **3,80** × 19,75 × 26,02 mm | `parts.md`, Zeile 443 |
+| Akku LP-401230-J (schmal) – Rückfallzelle | 4,05 × 12,0 × 30,5 mm | `parts.md`, Zeile 444 |
 | SW1/SW2 Panasonic EVQP7C01P | 3,5 × 3,55 × **1,35 mm**, seitlich, Hub 0,2 | Übergabe Platinen-Strang |
 | J1 USB-C GCT USB4085 | Körper 8,95 × 9,17 mm, **Bauhöhe 3,46 mm**, Öffnung 8,35 × 2,56 | GCT-Zeichnung, Abschnitt 6 |
 | U2 SE051C2 | 3 × 3 × 0,32 mm | `layout-notes.md` |
@@ -40,7 +40,7 @@ Luftspalte, die Wandstärken und der USB-Stecker.
 | Seite | Teile | Höchstes |
 | --- | --- | --- |
 | **Oben** (Nutzerseite) | U1 2,05 · DS1 1,26 · SW1/SW2 1,35 (seitlich) · D1 0,5 · **J1 3,46** | J1, aber nur vorn |
-| **Unten** | Ferritfolie 0,4 + Zelle 4,05 · U2 0,32 · U3 Flash · Sensor 0,83 (Stufe 2) | **4,45 mm** |
+| **Unten** | Ferritfolie 0,4 + Zellenreserve 4,05 · U2 0,32 · U3 Flash | **4,45 mm** |
 
 Drei Dinge folgen daraus:
 
@@ -65,7 +65,7 @@ Druckerwerte: 0,4 mm Düse, 0,2 mm Schichthöhe (Abschnitt 7).
 | **Platine** | 0,80 | 0,80 | wegen des Platinenrand-Steckers festgelegt |
 | Luft unter der Platine | 0,20 | 0,20 | Lötseite, Durchsteckpins |
 | Ferritfolie | 0,40 | 0,40 | Mittelwert des Zielbereichs 0,3–0,5 |
-| Zelle LP-401230-J | 4,05 | 4,05 | dickstes Teil überhaupt |
+| Zellenreserve | 4,05 | 4,05 | dickstes Teil; gewählt ist die 3,80 mm dicke Zelle, siehe unten |
 | Boden | 1,00 | 1,00 | wie Dach |
 | **Summe** | **9,80** | **11,01** | |
 
@@ -73,16 +73,21 @@ Druckerwerte: 0,4 mm Düse, 0,2 mm Schichthöhe (Abschnitt 7).
 (üblich ±0,1–0,2 mm je Maß), Aufquellen der Zelle über die Lebensdauer. Jedes
 davon macht es dicker, keines dünner. Realistisch **9,8–10,3 mm** hinten.
 
-### Warum 9,80 und nicht 9,55
+### Warum 9,80 und nicht 9,55 – die 0,25 mm sind Absicht
 
-Bis zur Entscheidung über den Sensor war die **Adafruit 1317** (3,80 mm) die
-Zelle, und damit kam die Rechnung auf 9,55 mm. Stufe 2 braucht aber die schmale
-**LP-401230-J**, und die ist **4,05 mm dick** – 0,25 mm mehr. Sie ist schmaler,
-aber nicht dünner.
+Gewählt ist die **Adafruit 1317** mit 3,80 mm. Damit käme die Rechnung auf
+**9,55 mm**. Der Hohlraum ist trotzdem **4,65 mm** tief, also auf die 4,05 mm
+dicke Rückfallzelle ausgelegt. Zwei Gründe:
 
-**Der Hohlraum ist auf 4,65 mm ausgelegt, also auf die dickere Zelle.** Mit der
-Adafruit 1317 blieben dort 0,25 mm Luft. **Das Gehäuse trägt damit beide Zellen
-und beide Stufen** – genau das war der Zweck.
+- **Das Gehäuse trägt dann beide Zellen.** Die Zelle hat heute dreimal
+  gewechselt. Ein Gehäuse, das nur zu einer passt, wird beim nächsten Wechsel
+  neu gedruckt.
+- **LiPo-Zellen quellen über die Lebensdauer.** Um wie viel, steht in
+  `../docs/parts.md` nicht. 0,25 mm sind das Einzige, was dafür da ist.
+
+**Wer die 9,55 mm will, ändert eine Zeile** (`h_bot_part` von 4,45 auf 4,20)
+und baut neu. Dann ist die Rückfallzelle ausgeschlossen und die Zelle hat
+keinen Platz zum Quellen. **Ich empfehle, die 0,25 mm zu behalten.**
 
 ### Wo noch etwas zu holen wäre
 
@@ -334,8 +339,14 @@ dreimal so lang wie breit ist und am Ring hängt, halte ich das für nicht
 spürbar. **Das ist eine Einschätzung, keine Messung** – die Masse der Zelle und
 des fertigen Geräts stehen in keiner Unterlage.
 
-**Mit der schmalen Zelle (12 statt 19,75 mm) ist die Lage eine andere**, und der
-Platinen-Strang rechnet sie neu. Bis dahin ist der Hohlraum nicht festgelegt.
+**Entschieden am 24.10.2026: die Zelle liegt mittig.** Der Versatz war die
+Antwort auf ein Platzproblem neben der Zelle – erst der Sicherheitschip, dann
+das Sensorfeld. Seit der Sensor im Boden sitzt (Abschnitt 14), zwingt nichts
+mehr an die Kante.
+
+Mit der Adafruit 1317 (19,75 mm breit) mittig: **Zelle quer 3,62…23,38 mm**,
+also 2,42 mm Luft zur Hohlraumwand auf jeder Seite – deutlich mehr als die
+0,20 mm, die ich verlange. Die Ferritfolie ist wieder 19,75 mm breit.
 
 Eines gehört zum Layout: **die Ferritfolie wandert mit der Zelle.** Ob sie dort
 noch die Zellfläche überdeckt und Richtung Antenne übersteht, wie
@@ -453,27 +464,50 @@ schätzen.
 | Innenseite der Frontwand (Spiel 0,30) | −0,30 mm |
 | **Außenseite der Frontwand** (Wand 1,60) | **−1,90 mm** |
 
-**d = 1,90 mm.** Daraus folgt für die Buchse, deren Vorderkante bündig mit der
-Gehäusefront sitzen soll:
+**Ohne Mulde wäre d = 1,90 mm** und die Buchsenmitte 2,685 mm. **Die Prüfung am
+Footprint ist durchgefallen** – siehe unten. Darum hat die Frontfläche jetzt
+eine Mulde, und es gilt:
 
 | | Wert |
 | --- | --- |
-| Buchsenmitte = 9,17/2 − d | **2,685 mm** |
-| Überstand des Körpers über die Platinenkante | **1,90 mm** |
+| Muldentiefe | 0,80 mm |
+| **d im Muldengrund** | **1,10 mm** |
+| **Buchsenmitte = 9,17/2 − d** | **3,485 mm** |
+| Überstand des Körpers über die Platinenkante | 1,10 mm |
+| Restwand an der Öffnung | **0,80 mm** = zwei Druckbahnen |
 
-**Der Entwurf des Platinen-Strangs steht auf 4,60 mm** – das entspräche d = 0,
-also einem Gehäuse ohne Frontwand. **1,91 mm nach hinten**, dann stimmt es.
+### Warum die Mulde da ist – nicht aus Formgründen
 
-**Was dabei zu prüfen ist, und zwar am Footprint:** bei einer Durchsteckbuchse
-darf der **Körper** über die Platinenkante ragen, die **Pins nicht.** 1,90 mm
-von 9,17 mm Körpertiefe ist üblich, aber ob die Pinreihen weit genug hinten
-liegen, sagt nur die Zeichnung an der Stelle, an der das Footprint entsteht.
+**Das ist der Vermerk für den, der sie später wegmachen will.** Bei einer
+Durchsteckbuchse darf der **Körper** über die Platinenkante ragen, die **Pins
+nicht.** Der Platinen-Strang hat am gesetzten Footprint gemessen:
 
-**Falls die Prüfung durchfällt, habe ich einen Ausweg vorbereitet, aber nicht
-eingebaut:** eine flache Mulde um die Öffnung, 0,8 mm tief, 14 mm breit. Dann
-bleiben 0,8 mm Wand stehen, **d wird 1,10 mm** und die Buchsenmitte 3,485 mm –
-der Überstand sinkt auf 1,10 mm. Kostet einen Lauf und sieht aus wie bei
-Geräten, die man kennt. **Ein Wort genügt.**
+| bei d = 1,90 (bündig, ohne Mulde) | reicht bis | über die Kante |
+| --- | --- | --- |
+| Pad eines Haltestifts | −0,344 | **0,344 mm** |
+| **Bohrloch** | −0,195 | **0,195 mm** |
+
+**Ein Bohrloch auf der Platinenkante ist kein Schönheitsfehler, sondern ein
+Fertigungsfehler.** Für 0,2 mm Pad-Rand muss die Buchsenmitte bei ≥ 3,23 mm
+liegen; die bündige Vorderkante verlangte 2,685 mm. **Die beiden Auflagen
+widersprachen sich um gut einen halben Millimeter.**
+
+Mit der Mulde liegt die Mitte auf 3,485 mm: das vordere Pad beginnt bei +0,456,
+das Loch bei +0,605 – **0,256 mm Luft** über der Forderung. Der Platinen-Strang
+hat J1 bereits dort gesetzt.
+
+**Wer die Mulde entfernt, holt sich das Bohrloch auf der Platinenkante zurück.**
+Die Alternativen wären eine dünnere Frontwand als 0,8 mm oder die ± 0,3 mm
+aufzugeben – beides schlechter.
+
+| Maß der Mulde | Wert |
+| --- | --- |
+| tief | 0,80 mm (von 1,60 mm Wand) |
+| breit | 14,00 mm (Öffnung 10,5 + 1,75 je Seite) |
+| hoch | −0,60 … 4,16 mm um die Trennebene |
+
+**Die Dicke ändert sie nicht:** die Mulde liegt in der Frontfläche, nicht im
+Dach. Vorn bleiben **11,01 mm**.
 
 ### Bauteile beginnen bei quer 1,40, nicht bei 1,20
 
