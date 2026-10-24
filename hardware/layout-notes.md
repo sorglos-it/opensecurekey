@@ -1457,3 +1457,99 @@ gilt der Footprint, am Ende das Gerber.**
 > („tauschbar bauen oder als Verbrauchsteil ansagen"); sie gehört Thomas.
 
 **J2 bleibt unplatziert.**
+
+# Platziert: 54 Bauteile, `overlapCount` 0 — und die Pinprüfung von J1 ist durchgefallen
+
+Stand 24.10.2026, 19:57. Der Import war durch (54 Bauteile, alle neben der
+Platine), die Teile sind jetzt gesetzt. **Gemessen, nicht geschätzt:**
+
+| Beleg | Ergebnis |
+| --- | --- |
+| Bauteile auf der Platine | **54** |
+| `pcb_layout_boxes`, Rand 0,25 mm | **`overlapCount` 0** |
+| Freihaltestreifen `x` 25,5 … 27 bei `y` 12,0 … 22,6 | **leer** — kein Bauteil liegt dort |
+| Bauteile im Modulschatten (`x` 10,0 … 25,5, `y` 12,05 … 22,55, Unterseite) | **keines** |
+
+## Der Fund: die Haltestifte von J1 ragen über die Platinenkante
+
+**Die Prüfung, die ich als „erst am gesetzten Footprint möglich" angekündigt
+hatte, ist gelaufen — und sie fällt durch.** `pcb_pads_list` auf J1:
+
+Die vier Haltestifte sind ovale Pads. Die **vorderen zwei** sitzen bei
+`y` = 0,505 mit 1,699 mm Padlänge und 1,4 mm Lochlänge. Bei der bündigen Lage
+(J1-Mitte 2,685, `d` = 1,90) ergibt das:
+
+| | von | bis | |
+| --- | --- | --- | --- |
+| Pad | **−0,344** | +1,355 | **0,344 mm über die Kante hinaus** |
+| Loch | **−0,195** | +1,205 | **0,195 mm über die Kante hinaus** |
+
+**Ein Loch auf der Platinenkante ist kein Schönheitsfehler, das ist ein
+Fertigungsfehler.** Die Stiftmitte liegt 2,180 mm hinter der J1-Mitte; damit
+das vordere Pad 0,2 mm Rand behält, muss die J1-Mitte **≥ 3,23 mm** liegen.
+
+### Damit widersprechen sich zwei Auflagen um rund einen halben Millimeter
+
+- **Bündige Vorderkante** (± 0,3 mm) verlangt J1-Mitte **2,685**.
+- **Die Platinenkante** verlangt J1-Mitte **≥ 3,23**.
+
+**Die vorbereitete Mulde ist damit keine Möglichkeit mehr, sondern nötig.**
+Mit der Mulde (0,8 mm tief, `d` = 1,10) ist die J1-Mitte **3,485**, und dann
+gilt:
+
+| | Wert |
+| --- | --- |
+| vorderes Pad beginnt bei | **+0,456 mm** |
+| vorderes Loch beginnt bei | **+0,605 mm** |
+| Abstand zur Forderung „≥ 0,2" | **0,256 mm Luft** |
+
+> **J1 steht jetzt auf `y` = 3,485**, also auf der Mulden-Lage. Das ist die
+> einzige Lage, die **beide** Auflagen erfüllt. **Ohne die Mulde ist die
+> bündige Vorderkante nicht herstellbar** — dann müsste die Frontwand dünner
+> werden oder die Toleranz ± 0,3 fallen. **Der Gehäuse-Strang muss die Mulde
+> bauen.**
+
+## Wie die Plätze zustande kamen: drei Runden, jede gemessen
+
+Meine Gehäusemaße waren **kleiner als die echten Footprints** — vor allem beim
+SOT-23 (Pads machen aus 1,3 mm Körperbreite rund 2,6 mm Belegung) und beim
+Flash, dessen 8 × 6 mm **quer zu meiner Annahme** liegen (6 mm in `x`, 8 in
+`y`).
+
+| Runde | `overlapCount` | was behoben wurde |
+| --- | --- | --- |
+| 1 | **15** | Erstplatzierung nach Gehäusemaßen |
+| 2 | **2** | Entkopplung von U2/U3 gelöst, Transistorreihen entzerrt, Modulband in **eine** Reihe gelegt |
+| 3 | **0** | L1 gegen X1, Q3 gegen U5 — und Q1/Q2/Q3 aus dem Modulschatten gezogen |
+
+**Die Überlappungsmeldung gibt die Beträge an**, und damit ließ sich gezielt
+nachrücken statt zu raten. Das ist der Grund, warum drei Runden genügten.
+
+**U2 musste dabei den linken Streifen verlassen:** U3 belegt dort `y` 11,5 …
+19,5, und zwischen U3 und dem Modulrand bleiben nur 3,05 mm für ein 3,5 mm
+breites Teil. U2 sitzt jetzt mit C10, C11, R6, R7 in der **rechten Tasche**
+(`x` 18,2 … 25,6, `y` 1 … 11,9). **Die I2C-Leitung wird dadurch rund 8 bis
+10 mm lang** statt der 12, die ich mit der außermittigen Zelle gerechnet
+hatte — weiterhin ein Bruchteil der 25 mm aus Z3, und sie läuft auf einer
+Innenlage.
+
+## Drei Bauteile stehen bewusst neben der Platine
+
+| Teil | geparkt bei | Grund |
+| --- | --- | --- |
+| **J2** Akkustecker | `x` 33, `y` 10 | Bauhöhe unbekannt (Platzhalterteil, kein Datenblatt), Grenze 4,45 mm |
+| **J5** Sensoranschluss | `x` 33, `y` 20 | falsches Bauteil — 1 × 6 Stiftfeld für einen 12-poligen ZIF |
+| **J6** SWD | `x` 33, `y` 30 | 2,54-mm-Durchsteckfeld und NFC-Schleife schließen sich aus; wird zu Testpunkten |
+
+**Das ist Absicht und kein Versehen** — sie liegen sichtbar beieinander
+rechts neben dem Brett, nicht verstreut.
+
+## Was als nächstes gemessen werden muss
+
+1. **Die Ausdehnung von U1** aus seinen 61 Pads: liegt die Antennenkante
+   wirklich bei `x` 25,5, und bleibt das Modul innerhalb der Platine?
+   `ungeprueft` — bisher aus dem Gehäusemaß gerechnet.
+2. **Die Kupferlagen des Freihaltestreifens**: kein Bauteil liegt darin, aber
+   die Masseflächen sind noch nicht gegossen. Beim Gießen muss der Streifen in
+   **allen vier** Lagen ausgespart bleiben.
+3. **J2, J5, J6** brauchen Entscheidungen, nicht Plätze.
