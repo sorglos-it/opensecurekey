@@ -366,5 +366,35 @@ Was mit den vier Dateien oben allein möglich ist: der Schaltplan ist
 Netze), und die Teile sind über ihre Bestellnummern **eindeutig bestimmt**.
 Ein Neuaufbau wäre damit deterministisch — aber von Hand.
 
-**Für die Zukunft:** nach jedem Zeichenabschnitt exportieren und einchecken,
-nicht erst am Ende.
+### Die lokale Projektdatei hinkt dem Editor hinterher — gemessen
+
+**Das ist der wichtigste Satz dieses Abschnitts für jeden, der später sichert:
+Wer `opensecurekey.eprj2` oder das Sicherungsarchiv kopiert, sichert
+Vergangenheit.**
+
+Am 24.10.2026 nachgemessen (nicht vermutet): das Sicherungsarchiv `.epro2`
+wurde entpackt und der Projektinhalt nach vier Teilenummern durchsucht.
+
+| Datei | Stand | EVQP7A01P (alt) | EVQP7C01P (neu) | LQH2MC (alt) | NLCV25T (neu) |
+| --- | --- | --- | --- | --- | --- |
+| `opensecurekey.eprj2` | 17:15 | — (SQLite, noch älter) | — | — | — |
+| Sicherungsarchiv `.epro2` | 17:51 | **drin** | nicht drin | **drin** | nicht drin |
+| `schematic-source-P1.txt` (hier im Repo) | 17:01 | nicht drin | **drin** | nicht drin | **drin** |
+
+Das Archiv trägt also den Stand **vor** dem Taster- und dem Spulentausch —
+Stunden nachdem beide passiert waren. Die Projektdatei selbst ist noch älter.
+
+**Darum liegen die Binärdateien nicht im Repo, und das ist Absicht** (Grund in
+der `.gitignore` vermerkt): **Eine Sicherung, die stillschweigend einen
+älteren Stand enthält, ist schlimmer als keine** — sie wird erst geprüft, wenn
+man sie braucht.
+
+**Verlässlich ist allein der Export über die Brücke** (`doc_export_source`,
+`sch_netlist_export`, `sch_export`), weil er den Stand nimmt, den der Editor in
+diesem Augenblick hat. Ein vollständiges Projektarchiv aus EasyEDA heraus
+bleibt wünschenswert — aber es ist kein Notfall: mit PDF, Netzliste, Quelltext
+und den LCSC-Nummern ist der Schaltplan belegt und wiederherstellbar.
+
+**Für die Zukunft:** nach jedem Zeichenabschnitt **über die Brücke**
+exportieren und einchecken, nicht erst am Ende — und nie die lokale
+Projektdatei für den aktuellen Stand halten.
