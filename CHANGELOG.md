@@ -3,6 +3,21 @@
 ## [Unreleased]
 
 ### Added
+- Five integration routes, each proven by one real operation against the device
+  simulator: **ssh-agent** (`git push` through it on Windows and Linux; the
+  public part computed from the private key matches `ssh-keygen` character for
+  character), **command line** (`osk run` hands the secret only to the child
+  process — measured, the shell next to it sees nothing), **PKCS#11** as .dll
+  and .so with 29 functions (`openssl` reports "Verified OK", a flipped byte is
+  rejected, and `ssh -I ./osk-pkcs11.so` signed a `git push` with no agent and
+  no key file), **browser extension** (a login field filled in a real Chromium;
+  an entry for another address was refused — that refusal is the phishing
+  protection, not a convenience), and a **local socket** where a refused request
+  never reaches the device.
+  42 mutation checks across three sets. Four of the strand's own tests were
+  hollow at first measurement — they failed at an earlier wall and would never
+  have tested the latch — and were sharpened until the mutants died.
+  **No real device was involved. macOS is cross-compiled but untested.**
 - Crypto wallet: BIP39 (12 or 24 words, optional passphrase), BIP32/BIP44 and
   SLIP-0010 derivation in the device, PSBT signing per BIP174 (the open route
   Electrum, Sparrow and Bitcoin Core all speak), Ethereum transactions

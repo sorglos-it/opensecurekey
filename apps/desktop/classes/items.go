@@ -82,10 +82,17 @@ type Item struct {
 	PairedHostOnly bool     `json:"pairedHostOnly"`
 }
 
-// Obergrenzen fuer Eingaben. Sie gelten in Oberflaeche und Kommandozeile.
+// Obergrenzen fuer Eingaben. Sie gelten in Oberflaeche und Kommandozeile und
+// muessen mit dem Geraet uebereinstimmen: OSK_NAME_MAX und OSK_SITE_MAX in
+// apps/firmware/src/classes/store/osk_vault_format.h, dort 64 und 128.
+//
+// Sie standen frueher auf 128/256. Damit nahm das Programm Eintraege an, die
+// das Geraet abgelehnt haette - der Fehler waere erst beim Speichern
+// aufgefallen, nach dem Tippen und nach der Freigabe. Das Geraet entscheidet,
+// weil der Indexsatz im Flash die Laenge vorgibt.
 const (
-	MaxNameLen   = 128
-	MaxSiteLen   = 256
+	MaxNameLen   = 64
+	MaxSiteLen   = 128
 	MaxSecretLen = 2048
 )
 
