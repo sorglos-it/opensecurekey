@@ -192,7 +192,8 @@ func (s *Server) setupPending() bool {
 	if err != nil {
 		return false
 	}
-	return info.Fresh && info.Mode == ""
+	// Profil 0 ist das, mit dem die Oberflaeche arbeitet.
+	return info.Factory && info.ModeOf(0) == ModeNoneSet
 }
 
 // pageData ist das, was eine Seite zu sehen bekommt.
@@ -215,6 +216,9 @@ type pageData struct {
 	// Dann bringt die Sicherung nicht zurueck, was im Sicherheitschip
 	// liegt, und der Zettel muss das sagen.
 	ModeOnly bool
+	// ModeName ist der Textschluessel der Betriebsart, leer bei einem
+	// Profil ohne. So steht auch hier kein Text im Code.
+	ModeName string
 	// Today ist der Tag, der auf dem Zettel steht.
 	Today string
 }
@@ -235,8 +239,10 @@ func (s *Server) renderPage(w http.ResponseWriter, p page) {
 	}
 	if client, err := s.app.Client(); err == nil {
 		if info, infoErr := client.Hello(); infoErr == nil {
+			mode := info.ModeOf(0)
 			data.Info = info
-			data.ModeOnly = info.Mode == ModeOnly
+			data.ModeOnly = mode == ModeOnly
+			data.ModeName = ModeKey(mode)
 		}
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

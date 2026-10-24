@@ -380,7 +380,7 @@ function setupWizard() {
 	// Die Wahl steht nur hier, nicht in der Adresse und nicht in einer
 	// Ablage des Browsers: eine unumkehrbare Wahl soll kein Lesezeichen
 	// mitbringen koennen.
-	let chosenMode = "";
+	let chosenMode = null;
 
 	function show(name) {
 		for (const step of order) {
@@ -406,19 +406,21 @@ function setupWizard() {
 	const modeForm = document.getElementById("mode-form");
 	const confirm = document.getElementById("mode-confirm");
 	const modeNext = document.getElementById("mode-next");
+	// Die Betriebsart ist eine Zahl, und "noch nichts gewaehlt" ist
+	// deshalb null - nicht 0, denn 0 ist eine der beiden Arten.
 	function readMode() {
 		const picked = modeForm.querySelector("input[name=mode]:checked");
-		return picked ? picked.value : "";
+		return picked ? Number(picked.value) : null;
 	}
 	function checkMode() {
-		modeNext.disabled = !(readMode() && confirm.checked);
+		modeNext.disabled = !(readMode() !== null && confirm.checked);
 	}
 	modeForm.addEventListener("change", checkMode);
 	checkMode();
 	modeForm.addEventListener("submit", (event) => {
 		event.preventDefault();
 		const mode = readMode();
-		if (!mode) {
+		if (mode === null) {
 			showProblem(t("error.setup.mode"));
 			return;
 		}
@@ -430,7 +432,7 @@ function setupWizard() {
 		chosenMode = mode;
 		const label = document.getElementById("pin-mode");
 		label.textContent = t("setup.mode.chosen") + ": " +
-			t(mode === "only" ? "setup.only.title" : "setup.mirrored.title");
+			t(mode === 1 ? "setup.only.title" : "setup.mirrored.title");
 		show("pin");
 	});
 

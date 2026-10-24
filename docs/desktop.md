@@ -202,6 +202,12 @@ question people learn to click away. If that opening fails, the answer says so
 (`unlocked: false` plus the reason) — the setup itself has happened and is
 final, and that is not something to swallow quietly.
 
+The simulator grew a `-werkszustand` switch for this: without it, it behaves
+exactly as before (a profile, the example entries, PIN 123456); with it, it
+holds nothing, knows no mode and takes only `setup`. That the plain simulator
+is unchanged is itself a test (`TestEingerichteteAttrappeBleibtWieSieWar`) —
+otherwise "we only added" would be a claim, not a measurement.
+
 The **emergency sheet** (`/sheet`, printable, reachable afterwards as well)
 holds what is needed when both devices are gone: the serial number, the chosen
 mode, the date, where the backup file is, the passphrase, and who holds which
@@ -210,13 +216,20 @@ three are **lines to fill in by hand** — the program prints no secret, and the
 PIN is deliberately not on the sheet at all. In "this device only" the sheet
 says plainly that the backup does not bring back what is in the secure chip.
 
-**Not built on the device side.** `shared/protocol.md` has no command for
-this and no field in `hello` for the mode; the table ends at 18. The program
-speaks command 19 `setup` (`mode`, `pin`) and reads `fresh` and `mode` from
-`hello`. A device that says nothing about either counts as set up — better no
-wizard than the irreversible question at a device that already holds accounts.
-Both additions have to go into `shared/protocol.md`, which is not this part's
-file.
+**On the wire** (`shared/protocol.md`, command 19): `hello` reports `factory`
+(true while nothing is set up) and `modes`, one entry per profile; `setup`
+takes `mode` — **0 = mirrored, 1 = this device only** — and the first PIN. The
+mode is a number, not a name: the device computes with it, and a name beside
+it would be a second truth that can drift. `ModeKey` turns the number into a
+text key for the interface, so no visible text lives in the code.
+
+A device that says nothing about `factory` counts as set up — better no wizard
+than the irreversible question at a device that already holds accounts. A
+second `setup` is answered `OSK_ERR_EXISTS` by the device; the program refuses
+beforehand as well, and a program that sends one at all has a bug.
+
+**Not built in the firmware yet.** The simulator answers command 19 and the
+two fields (`tests/simulator -werkszustand`), the device does not.
 
 ## Measured: what listing costs over PKCS#11
 
@@ -268,11 +281,8 @@ before it can become a key that a second program reads differently.
   changes, `classes/items.go` has to change with it.
 - No certificate is created yet: the page lists the certificates on the device
   and runs the `attest` check. Creating one needs the firmware side first.
-- `shared/protocol.md` needs command 19 `setup` and the `fresh` / `mode`
-  fields in `hello`; the simulator in `tests/simulator` needs a factory state
-  to answer them. Neither file belongs to this part. Until then the wizard is
-  played through against the small factory-state device in
-  `tests/werkszustand_test.go`, which answers only what the wizard needs.
+- The firmware does not answer command 19 yet. The wizard is played through
+  against `tests/simulator -werkszustand`.
 - `docs/anbindungen.md` still says PKCS#11 reveals every key under "Measured:
   how many approvals an operation costs". That is no longer true; the
   paragraph belongs to another part and was left untouched.
