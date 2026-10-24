@@ -314,17 +314,33 @@ Vom Schaltplan unabhängig und darum vorgezogen:
 
 - **Vier Kupferlagen sind gesetzt** (gemessen: vorher 2, nachher 4). Die Lagen
   heißen `TOP`, `INNER_1`, `INNER_2`, `BOTTOM`.
-- **Der Platinenumriss ist nicht gezeichnet.** EasyEDAs Schnittstelle lehnt
-  Linien auf dem Umriss-Layer ab (*„無法創建直線圖元"*), und zwar unabhängig von
-  Koordinaten, Breite und Netz — auf `TOP` gelingt dieselbe Linie sofort. Der
-  Umriss-Layer steht in EasyEDAs Typliste für Linien offenbar nicht drin; er
-  bräuchte eine Polylinie, die die Brücke nicht anbietet. **24 × 70 mm sind
-  darum im Editor von Hand zu zeichnen** (oder über eine Vorlage), bevor
-  platziert wird.
+- **Der Platinenumriss ist nicht gezeichnet.** EasyEDA lehnt das Anlegen von
+  Linien auf dem Umriss-Layer ab: *„错误：无法创建直线图元"*. **Beide Wege
+  geprüft, drei Versuche:**
+
+  | Versuch | Werkzeug | Ergebnis |
+  | --- | --- | --- |
+  | 1 | `pcb_apply`, `lines[]` mit `layer: BOARD_OUTLINE`, 0,15 mm | abgelehnt, 4 von 4, auch im Wiederholungsschritt der Brücke |
+  | 2 | `pcb_line_create` einzeln, mit und ohne `net`, bei 0/0 und bei 100/100 | abgelehnt |
+  | 3 | `pcb_apply` erneut, 0,254 mm, vorher `dry_run` (Plan sauber: 4 Linien) | abgelehnt, 4 von 4 |
+
+  **Gegenprobe:** dieselbe Linie auf `TOP` mit Netz `GND` gelingt auf Anhieb —
+  Testspur danach gelöscht. Es liegt also nicht am Werkzeug, an der Breite, an
+  den Koordinaten oder am fehlenden Netz, sondern daran, dass der Umriss-Layer
+  in EasyEDAs Typliste für Linien (`TPCB_LayersOfLine`) nicht vorkommt. Ein
+  Umriss bräuchte eine **Polylinie**, und die bietet die Brücke nicht an.
+  Nachgezählt: `pcb_lines_list` auf dem Umriss-Layer liefert **0 Segmente**.
+
+  **24 × 70 mm sind darum im Editor von Hand zu zeichnen**, bevor platziert
+  wird. Die Ecken müssen exakt aufeinandertreffen, sonst ist der Rand offen.
 - **Die Entwurfsregeln heißen noch „JLCPCB Capability(Two Layers Board)".**
-  Der Regelsatz für vier Lagen ist im Editor zu wählen; über die Schnittstelle
-  ließe sich nur der ganze Regelbaum überschreiben, und das wäre geraten statt
-  belegt. **Vor dem Verlegen umstellen.**
+  Auch hier beides geprüft: EasyEDAs Schnittstelle hat Leseoperationen für
+  gespeicherte Regelsätze (`getAllRuleConfigurations`, `getRuleConfiguration`,
+  `getCurrentRuleConfigurationName`), **aber keine, die einen davon auswählt** —
+  und die Brücke bietet keine davon an (`UNKNOWN_OP`), Rohzugriff ist
+  ausgeschaltet. `pcb_rules_set` kann nur den ganzen Regelbaum überschreiben;
+  die Werte dafür wären geraten. **Den Vier-Lagen-Satz im Editor wählen, vor
+  dem Verlegen.**
 
 Erst danach lohnt `pcb_import_changes` — sonst landen 54 Bauteile auf einer
 Platine ohne Umriss und mit den Regeln für zwei Lagen.

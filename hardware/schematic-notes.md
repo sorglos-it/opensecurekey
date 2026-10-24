@@ -32,7 +32,7 @@ Bauteil weg gedreht. Nichts klebt direkt am Pin.
 | D2 | Nexperia PESD5V0X1BCL,315 | C552589 |
 | Q1–Q5 | Diodes DMG2305UX, SOT-23 | C2940629 |
 | X1 | Epson Q13FC13500004, 32,768 kHz | C32346 |
-| L1 | TDK NLCV25T-100K-EFRD, 10 µH, 1008 (2,5 × 2,0 mm) | C295388 |
+| L1 | TDK NLCV25T-100K-EFRD, 10 µH, 1008 (2,5 × 2,0 mm), 360 mA, 1,32 Ω max | C295388 |
 | C1, C2, C3, C5 | 4,7 µF 0603 X5R 16 V | C19666 |
 | C4, C10, C11, C12, C14 | 100 nF 0402 X7R | C1525 |
 | C8, C9 | 15 pF 0402 C0G | C307341 |
@@ -88,8 +88,14 @@ der REG0-Stufe** — die Funkspule für REG1 steckt im Modul. Wer das verwechsel
 sucht an der falschen Stelle, wenn der Wirkungsgrad nicht stimmt.
 
 **Gewählt: TDK NLCV25T-100K-EFRD**, 10 µH ±10 %, Gehäuse 1008
-(2,5 × 2,0 mm), **Nennstrom 360 mA**, Gleichstromwiderstand **1,1 Ω**,
+(2,5 × 2,0 mm), **Nennstrom 360 mA**, Gleichstromwiderstand **1,32 Ω max**,
 AEC-Q200 (C295388).
+
+> **Für die Stückliste gilt der Höchstwert, nicht der typische.** Die früher
+> hier genannten 1,1 Ω sind der **typische** Wert der Schwesterausführung
+> **EFR**; DigiKey nennt für die **EFRD** 1,32 Ω max. Am Vergleich ändert das
+> nichts: 1,32 Ω sind immer noch weniger als die Hälfte der 2,96 Ω des
+> Murata-Teils.
 
 Begründung, und sie ist eine Korrektur meiner ersten Wahl: Beim Schaltregler
 muss der **Sättigungsstrom** über dem **Spitzenstrom** liegen, nicht über dem
@@ -99,23 +105,33 @@ Induktivität ein, die Welligkeit steigt und der Wirkungsgrad fällt, und zwar
 genau bei den Funkspitzen, wo es darauf ankommt. Die 300 mA helfen dort nichts.
 
 Mit 360 mA liegt der Nennstrom mehr als doppelt über der Vorgabe von ≥ 150 mA,
-und die **1,1 Ω sind ein Drittel** dessen, was die anderen Kandidaten haben
-(Murata LQH2MCN100M52L: 2,96 Ω; TDK MLZ2012N100: 300 mΩ bei nur 110 mA
-Sättigung). Bei einem Akkugerät zahlt der Kupferwiderstand jede Sekunde mit.
-AEC-Q200 bringt die bessere Temperaturdokumentation.
+und **1,32 Ω sind weniger als die Hälfte** von dem, was der nächstbeste
+Kandidat hat (Murata LQH2MCN100M52L: 2,96 Ω; TDK MLZ2012N100 hätte 300 mΩ,
+geht aber schon bei 110 mA in die Sättigung). Bei einem Akkugerät zahlt der
+Kupferwiderstand jede Sekunde mit. AEC-Q200 bringt die bessere
+Temperaturdokumentation.
 
-> **`ungeprueft` — und das bleibt offen:** **Ein Sättigungsstrom ist für dieses
-> Teil nicht zu bekommen.** Die Händlerangabe führt `Isat` ausdrücklich als „-",
-> und die Produktseite von TDK antwortet auf Abruf mit **HTTP 403**. Belegt ist
-> allein der **Nennstrom 360 mA**. Womit TDK diesen Nennstrom bemisst
+> **`ungeprueft` — und das bleibt offen:** **Ein Sättigungsstrom aus
+> TDK-Unterlagen ist für dieses Teil nicht zu bekommen.** LCSC führt `Isat`
+> ausdrücklich als „-", und TDKs eigene Produktseite antwortet auf Abruf mit
+> **HTTP 403** — aus zwei Sitzungen heraus. Womit TDK den Nennstrom bemisst
 > (Temperaturanstieg, Induktivitätsabfall oder der kleinere der beiden), steht
-> an keiner erreichbaren Stelle — jede Aussage dazu wäre erfunden.
+> an keiner erreichbaren Stelle; jede Aussage dazu wäre erfunden.
 >
-> Das gilt offenbar für diesen Bauteiltyp allgemein: beim Murata-Teil war es
-> dasselbe Bild. Wer es genau wissen will, braucht das TDK-PDF von Hand.
-> **Für die Entscheidung reicht es:** 360 mA Nennstrom gegen einen Spitzenstrom
-> in der Größenordnung einiger zehn Milliampere ist Reserve, egal nach welcher
-> der beiden Regeln gemessen wird.
+> **Was es doch gibt, und mit welchem Gewicht:** **Arrow** nennt für die EFRD
+> „Maximum Saturation Current **0,36 A**" — dieselbe Zahl wie der Nennstrom.
+> Das ist eine **Händlerangabe, die sehr wahrscheinlich nur den Nennstrom
+> wiederholt**, und damit kein unabhängiger Beleg. Sie steht hier, weil „eine
+> Händlerzahl, die passt" mehr ist als „nichts auffindbar" — aber sie ersetzt
+> das Datenblatt nicht.
+>
+> **Für die Entscheidung reicht es:** 360 mA gegen einen Spitzenstrom in der
+> Größenordnung einiger zehn Milliampere ist Reserve, egal nach welcher der
+> beiden Regeln gemessen wird.
+>
+> Quellen: [DigiKey](https://digikey.com/en/products/detail/NLCV25T-100K-EFRD/445-181381-1-ND/9740690)
+> (DCR 1,32 Ω max), [Arrow](https://www.arrow.com/en/products/nlcv25t-100k-efrd/tdk?region=nac)
+> (Saturation Current 0,36 A), LCSC C295388 (Nennstrom 360 mA, `Isat` leer).
 
 **Abweichung von der Vorgabe:** Gewünscht war 0805 (2,0 × 1,25 mm). **Kein
 0805-Teil der Bibliothek weist einen Sättigungs- oder Nennstrom ≥ 150 mA aus**
