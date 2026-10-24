@@ -76,13 +76,15 @@ type cliCommand func(app *App, args []string, in io.Reader, out, errOut io.Write
 // extraCommands ist die Tabelle, in die cli.go nachschlaegt. Jeder Weg
 // traegt sich hier ein; cli.go selbst bleibt unveraendert.
 var extraCommands = map[string]cliCommand{
-	"keys":  cliKeys,
-	"env":   cliEnv,
-	"run":   cliRun,
-	"put":   cliPut,
-	"log":   cliLog,
-	"codes": cliCodes,
-	"agent": cliAgent,
+	"keys":   cliKeys,
+	"env":    cliEnv,
+	"run":    cliRun,
+	"put":    cliPut,
+	"log":    cliLog,
+	"native": cliNativeCommand,
+	"socket": cliSocket,
+	"codes":  cliCodes,
+	"agent":  cliAgent,
 }
 
 // ExtraCommandNames nennt die zusaetzlichen Befehle in fester Reihenfolge -

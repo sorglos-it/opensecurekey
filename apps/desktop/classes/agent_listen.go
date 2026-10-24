@@ -8,7 +8,9 @@
 package classes
 
 import (
+	"errors"
 	"net"
+	"strings"
 	"sync"
 )
 
@@ -47,6 +49,26 @@ func RunAgent(agent *Agent, listener AgentListener) error {
 // AgentEnvName ist die Umgebungsvariable, mit der ein Platz von Hand
 // vorgegeben werden kann.
 const AgentEnvName = "OSK_AGENT"
+
+// listenerClosed sagt, ob ein Fehler des Lauschers das GEWOLLTE Ende ist.
+//
+// Der Unterschied ist wichtiger, als er aussieht: wer ihn nicht macht,
+// beendet das Programm bei jedem Fehler mit Ausstiegscode 0 - und ein
+// Programm, das die Startzeile ausgibt und dann wortlos endet, sieht aus,
+// als laufe es. Gemessen am 24.10.2026 an einem falsch geschriebenen
+// Pipe-Namen.
+func listenerClosed(err error) bool {
+	if err == nil {
+		return true
+	}
+	if errors.Is(err, net.ErrClosed) {
+		return true
+	}
+	if problem, ok := err.(*Problem); ok {
+		return problem.Key == "error.agent.closed"
+	}
+	return strings.Contains(err.Error(), "use of closed")
+}
 
 // peerName macht aus dem Pfad eines Programms den Namen, der ins
 // Geraeteprotokoll kommt: nur der Dateiname, nie der ganze Pfad. Ein Pfad

@@ -68,10 +68,8 @@ func cliAgent(app *App, args []string, in io.Reader, out, errOut io.Writer) int 
 
 	if err := RunAgent(agent, listener); err != nil {
 		// Ein geschlossener Lauscher ist das gewollte Ende, kein Fehler.
-		if problem, ok := err.(*Problem); ok && problem.Key == "error.agent.closed" {
-			return ExitOK
-		}
-		if strings.Contains(err.Error(), "use of closed") {
+		// Alles andere wird gesagt: siehe listenerClosed.
+		if listenerClosed(err) {
 			return ExitOK
 		}
 		fmt.Fprintln(errOut, app.Message(Fail("error.agent.listen", address)))
