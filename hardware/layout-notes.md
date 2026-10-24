@@ -2189,3 +2189,22 @@ versetzen, aus der toten Ecke heraus in das Feld, in dem die Fläche
 nachweislich trägt — dann braucht es weder Bahn noch Durchkontaktierung. Das
 ist eine Platzierungsänderung und gehört an den Anfang einer Runde, nicht ans
 Ende einer Nacht.
+
+## Reihenfolge für die nächste Runde (festgelegt 24.10.2026, nachts)
+
+**In einem Zug, vor dem Verlegen:**
+
+1. **Jeden Kondensator gegen seinen Pin messen**, mit Zahl. Wohin welcher
+   gehört, steht in `schematic.md`. Nachgemessen sind bisher nur C10/C11 an U2,
+   C12 an U3, C13/C14 an Q4 sowie C3/C5 an U1 — **alle übrigen nicht.**
+   Bekannt zu weit: **C4 mit 10,86 mm.**
+2. **C17 dabei mitnehmen.** Es steht in einer toten Kupferecke und soll nicht
+   angebunden, sondern **versetzt** werden. Wenn ohnehin alle Kondensatoren
+   geprüft werden, fällt sein Platz in derselben Runde ab.
+
+Der Streifen unter U1 (`x` 10 … 23, `y` 12,5 … 20,5, Unterseite) ist frei und
+hat sich bei C3 und C5 bereits als der richtige Platz erwiesen.
+
+**Erst danach verlegen**, mit den vier Auflagen: J2/J4/J5/J6 auslassen, I2C auf
+eine Innenlage zwischen die Masseflächen, Wandlerschleife L1 → DCCH kurz und
+breit, und nach jedem Schritt messen.
