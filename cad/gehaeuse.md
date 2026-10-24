@@ -60,19 +60,38 @@ ausgegeben.
 Aufteilung quer, als Vorgabe ans Layout: **Zelle y = 0…12 mm, Sensorfeld
 y = 12,5…23,5 mm.** Die Sensoröffnung des Gehäuses liegt auf Mitte y = 18,0 mm.
 
-### 3. Die Bauhöhe des USB-Steckers fehlt in den Unterlagen
+### 3. Der USB-Stecker passt nicht in den Hohlraum
 
-`../docs/parts.md` nennt vom GCT USB4085 den Körper (8,94 × 9,17 mm) und die
-Öffnung (3,16 mm hoch), **aber nicht, wie hoch er über der Platine steht.**
+**Die Befürchtung hat sich bestätigt.** GCTs Zeichnung (Rev. A1, 09.04.2018)
+nennt das Teil im Schriftfeld „USB 2.0 Type C Receptacle, Dip Type, **PCB Top
+Mount**" – der Körper sitzt vollständig **auf** der Platine.
 
-Gezeichnet ist die Frontöffnung mit **4,0 mm hoch, mittig zur Platinenmitte** –
-also unter der Annahme, dass der Steckerkörper etwa gleich weit über und unter
-die Platine reicht. **Das ist `ungeprueft`.**
+| Bauhöhe laut Zeichnung | Hohlraum | fehlt |
+| --- | --- | --- |
+| 3,16 mm (Blechgehäuse außen) | 2,35 mm | **0,81 mm** |
+| 3,46 mm (0,30 mm tiefer gemessen) | 2,35 mm | **1,11 mm** |
 
-Steht der Körper stattdessen vollständig **über** der Platine, passt er nicht in
-den 2,35 mm hohen Hohlraum der Anzeigenseite, und das Gerät wird vorn etwa
-1,3 mm dicker oder braucht einen anderen Stecker. **Diese Zahl ist zu besorgen,
-bevor gedruckt wird.**
+Welche der beiden über der Platinenoberseite liegt, ist aus der Zeichnung nicht
+sicher abzulesen (`ungeprueft`) – **es ändert an der Entscheidung nichts, beide
+passen nicht.** Nebenbei berichtigt: die „Öffnung 3,16 mm" aus
+`../hardware/layout-notes.md` ist nicht die Öffnung. Die Öffnung ist
+**8,35 × 2,56 mm**, 3,16 mm ist das Blechgehäuse außen. Rechnung und Quellen in
+[masse.md](masse.md), Abschnitt 9.
+
+**Zwei Wege, und das Gehäuse hat dazu keine Meinung – es nennt nur den Preis:**
+
+| Weg | Dicke | Gehäuseänderung |
+| --- | --- | --- |
+| **A: vorn dicker** | **10,66 mm** vorn, 9,55 mm sonst | Nase über 8,95 × 7,26 mm |
+| **B: Mid-Mount-Stecker** | **9,55 mm, unverändert** | **keine** |
+
+Bei Weg B stünde der Stecker nur noch etwa 2,13 mm über der Platine und passte
+in den vorhandenen Hohlraum. Preis: ein anderes Teil und ein Ausschnitt in der
+Platine.
+
+**Solange das nicht entschieden ist, bleibt die Frontöffnung so, wie sie ist**
+(4,0 mm hoch, mittig zur Platinenmitte) – sie passt zu Weg B und ist bei Weg A
+in einem Zug nachzuziehen.
 
 ### 4. Der Schnappfalz stand vor zwei Öffnungen – behoben
 
@@ -262,14 +281,18 @@ Wichtigste:
 
 ## Offene Punkte
 
-1. **Bauhöhe des USB4085** – Befund 3. Ohne sie ist die Frontöffnung geraten.
+1. **Welcher USB-Weg** – Befund 3. Entscheidung A oder B liegt bei Thomas. Rein
+   aus Sicht des Gehäuses ist B besser: es ändert nichts und bleibt bei 9,55 mm.
+   Offen bleibt dabei nur, ob 3,16 oder 3,46 mm über der Platine stehen – das
+   braucht erst Weg A, für die Entscheidung reicht es nicht.
 2. **Zellenwahl für Stufe 2** – die Platinenbreite ist entschieden (26 mm,
    Befund 2), die Zelle nicht: der Sensor erzwingt die schmale mit 100 mAh.
    Welche Laufzeit es sein soll, ist nicht meine Entscheidung.
-3. **Länge des Stößels am EVQP7C01P** – wie weit er über den 3,55 mm Körper
-   hinausragt, steht in keiner erreichbaren Unterlage. Das Gehäuse gibt ihm
-   1,10 mm ab Platinenrand; ist er länger, muss die Blindtasche tiefer und die
-   Wand dünner werden. **Wird gebraucht.**
+3. **Körperlänge des EVQP7C01P** – Panasonic sagt 3,5 mm, DigiKey 4,70 mm. Die
+   Freistellung ist mit 5,6 mm so gewählt, dass **beide Lesarten passen**
+   (1,05 bzw. 0,45 mm Luft je Seite). Sollte am Footprint auffallen, welche
+   stimmt: Bescheid sagen, dann kann die Freistellung wieder schrumpfen.
+   Der Stößel ist geklärt – 0,65 mm plus 0,2 mm Hub, Reserve 0,25 mm.
 4. **Lage der LED** ist vorläufig auf längs 24,5 mm gesetzt, quer mittig –
    zwischen Modulende (21,5) und Glasanfang (27). Vom Layout nicht genannt.
    **Wird gebraucht**, weil das Lichtfenster im Dach danach sitzt.

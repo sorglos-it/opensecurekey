@@ -139,15 +139,19 @@ def shell_top(p, d, preview=True):
     # im Klemmkragen - der wird dort auf 1.65 mm Hoehe freigestellt.
     bx0 = p["btn_cx"] - p["btn_slot_x"] / 2.0
     bx1 = p["btn_cx"] + p["btn_slot_x"] / 2.0
-    ops.append(("-", (bx0, bx1, d["pk_y0"], d["cv_y0"], z0, p["btn_relief_z"])))
-    ops.append(("-", (bx0, bx1, d["cv_y1"], d["pk_y1"], z0, p["btn_relief_z"])))
+    # Die Freistellung ist laenger als der Schlitz: der Koerper des Tasters
+    # wird je nach Quelle 3,5 oder 4,7 mm lang angegeben, beides muss hinein
+    rx0 = p["btn_cx"] - p["btn_relief_x"] / 2.0
+    rx1 = p["btn_cx"] + p["btn_relief_x"] / 2.0
+    ops.append(("-", (rx0, rx1, d["pk_y0"], d["cv_y0"], z0, p["btn_relief_z"])))
+    ops.append(("-", (rx0, rx1, d["cv_y1"], d["pk_y1"], z0, p["btn_relief_z"])))
     # SW1 (Bestaetigen): Schlitz durch die Seitenwand, von aussen zu druecken
     ops.append(("-", (bx0, bx1, d["ot_y0"], d["pk_y0"],
                       max(z0, p["btn_z"] - p["btn_slot_z"] / 2.0),
                       p["btn_z"] + p["btn_slot_z"] / 2.0)))
     # SW2 (Reset): nur eine Blindtasche, die Wand bleibt zu - er darf von
     # aussen nicht erreichbar sein (Vorgabe aus hardware/layout-notes.md)
-    ops.append(("-", (bx0, bx1, d["pk_y1"], d["pk_y1"] + p["sw2_pocket_d"],
+    ops.append(("-", (rx0, rx1, d["pk_y1"], d["pk_y1"] + p["sw2_pocket_d"],
                       z0, p["btn_relief_z"])))
     # Frontoeffnung fuer USB-C
     ops.append(("-", (d["ot_x0"], d["cv_x0"],
