@@ -1035,7 +1035,7 @@ beliebig.
 | U1 | oben | 17,75 | 17,3 | fest; Körper `x` 10,0 … 25,5, Antennenkante **25,5** |
 | U3 Flash | unten | 18 | 19,5 | **vorläufig** — kurze QSPI-Wege bleiben das Ziel |
 | U2 | unten | 23 | 17 | **vorläufig** — unter dem Modul, kurze I2C |
-| J1 | oben | **13,5** | **4,6 `vorlaeufig`** | quer mittig. **Der Längswert hängt an `d`** (Abstand Gehäusefront vor Platinenkante): gültig ist `y` = 4,585 − `d`. Die 4,6 gelten nur für `d` = 0 und sind **nicht gemessen** — Auflage ± 0,3 mm |
+| J1 | oben | **13,5** | **2,685** | quer mittig. Längs aus `d` = 1,90 gerechnet: `y` = 4,585 − 1,90. **Der Körper ragt damit 1,90 mm über die Platinenkante** — Pinreihen prüfen (siehe unten). Auflage ± 0,3 mm |
 | J4, DS1 (Glas) | oben | **13,5** | 27 / 38 | mittig |
 | D1 LED | oben | **13,5** | 66 | am Kopfende; **liegt jetzt in Z4** |
 | SW1 / SW2 | oben | 3,5 / **23,5** | 24,5 | an den Längskanten |
@@ -1352,3 +1352,108 @@ unplatziert**, bis die Zahl da ist.
 **Nichts davon ist zurückgebaut.** Der Entwurf steht weiter auf 27 mm und der
 schmalen Zelle, bis entschieden ist — Umriss und Regelsatz sind geprüft, und
 beides noch einmal anzufassen muss sich lohnen.
+
+## Zwei Zahlen vom Gehäuse nachgezogen, 24.10.2026
+
+### `d` = 1,90 mm: die Buchse wandert 1,91 mm nach hinten
+
+Mit Herkunft, nicht als nackte Zahl:
+
+| Bezug | längs |
+| --- | --- |
+| Platinenkante | 0,00 |
+| Innenseite der Frontwand (Spiel 0,30) | −0,30 |
+| Außenseite der Frontwand (Wand 1,60) | **−1,90** |
+
+**`d` = 1,90** → **J1-Mitte `y` = 9,17/2 − 1,90 = 2,685**. Mein Entwurf stand
+auf 4,60, das entsprach `d` = 0 — **einem Gehäuse ohne Frontwand.** Nachgezogen
+ist nur diese eine Zeile; weil sie als `vorlaeufig` mit der Formel dastand, hat
+niemand mit der 4,60 weitergerechnet.
+
+**Daraus eine echte Prüfung, keine Vorsorge: der Körper ragt 1,90 mm über die
+Platinenkante.** Die Pinreihen müssen weiter hinten liegen als 1,90 mm, sonst
+sitzen Lötpads im Nichts. 1,90 von 9,17 mm Körpertiefe ist für eine randnahe
+Buchse üblich — **„üblich" ist kein Beleg.** `ungeprueft`, **und mit den
+Lesewerkzeugen der Brücke nicht zu klären**: Footprints geben nur Kopfdaten
+her. **Die Prüfung geht erst nach `pcb_import_changes` am gesetzten Footprint**
+(`pcb_pads_list`), und sie gehört zu den ersten Dingen danach.
+
+> **Vorbereiteter Ausweg, falls sie durchfällt:** eine flache Mulde um die
+> Öffnung, 0,8 mm tief → `d` = 1,10 und J1-Mitte **3,485**. Der Gehäuse-Strang
+> hat sie **nicht** eingebaut, damit hier kein wandernder Wert steht; ein Wort
+> genügt. **Nicht einrechnen, bis sie bestellt ist.**
+
+### Bauteile beginnen quer bei 1,40, nicht bei 1,20
+
+Die Hohlraumwand steht bei 1,20; gedruckte Flächen haben 0,1 … 0,2 mm
+Toleranz, eine Zelle genau an 1,20 berührt sie.
+
+**Angegeben wurde nur die eine Seite.** Ich rechne **symmetrisch** weiter, das
+ist die sicherere Lesart:
+
+| | Band | nutzbar |
+| --- | --- | --- |
+| bisher | 1,20 … 25,80 | 24,60 |
+| **jetzt** | **1,40 … 25,60** | **24,20** |
+
+> **Zu bestätigen:** Gilt die 0,20 auch am anderen Rand (dann 25,60) oder nur
+> vorn? Der Unterschied sind 0,20 mm.
+
+**Es kostet nichts, beide Fälle tragen:**
+
+| Fall | belegt | nutzbar 24,20 | Rest |
+| --- | --- | --- | --- |
+| Stufe 2 quer (Zelle 12,0 + 0,5 + Sensorfeld 11,0) | 23,50 | ja | **0,70 mm** |
+| Adafruit mittig (19,75) | 19,75 | ja | **4,45 mm**, je Seite 2,225 |
+
+**Das Band ist symmetrisch um die Plattenmitte** — (1,40 + 25,60)/2 = **13,50**.
+Eine mittige Zelle sitzt also auf `x` 13,50 und spannt 3,625 … 23,375.
+
+## J2: gemessen, und das Ergebnis ist ein anderes Problem als erwartet
+
+**Unser Teil hat keine Bauhöhe, weil es kein Teil ist.** Gemessen am
+24.10.2026 auf drei Wegen, alle erfolglos:
+
+| Weg | Ergebnis |
+| --- | --- |
+| `lib_device_by_lcsc` auf **C9900141337** | **kein Hersteller, keine Herstellernummer, kein Datenblatt.** Als „Manufacturer Part" steht die Beschreibung selbst: „JST Right-Angle Connector - SMD 2-Pin (Black)" |
+| LCSC-Produktseite zu C9900141337 | **„Part not found"** — die Seite existiert nicht |
+| `lib_3dmodel_get` auf das 3D-Modell | nur Name und Klassifikation, **keine Maße** |
+
+**Die `C9900…`-Nummern sind Platzhalter der Bibliothek, keine bestellbaren
+Lagernummern.** Damit ist die Frage „baut J2 höher als 4,45 mm?" nicht
+beantwortbar — **es gibt kein Datenblatt, aus dem eine Höhe käme.**
+
+**Dasselbe gilt für ein zweites Teil, und das ist das wichtigere:**
+
+| Kennung | gewähltes Teil | Nummer | Art |
+| --- | --- | --- | --- |
+| J2 | „JST Right-Angle Connector - SMD 2-Pin" | **C9900141337** | **Platzhalter** |
+| **J4** | FPC-05mm-12P-14241555_2 (Anzeigeanschluss) | **C9900036520** | **Platzhalter** |
+
+**J4 ist der Steckverbinder der Anzeige** — und seine 14 Pole, mit denen ich
+die zwei Haltelaschen an `GND` gelegt habe, stammen aus genau diesem
+Platzhaltersymbol. Die übrigen Steckverbinder sind echte Teile (J1 C7095263,
+J3 C492401, J5 C41434767, J6 C2691448).
+
+> **Was daraus folgt, und es ist mehr als eine Höhenfrage:** **J2 und J4
+> müssen durch bestellbare Teile ersetzt werden**, bevor irgendeine Höhe,
+> Padgröße oder Polzahl belegt ist. Beim Ersetzen kann sich die Polzahl von J4
+> ändern — dann ändert sich der Schaltplan.
+
+**Zur Höhe, was belegt ist und was nicht:** Für die flache seitliche
+SMD-Ausführung der PH-Reihe, **S2B-PH-SM4-TB (C295747)**, nennen DigiKey,
+Arrow und Octopart **≈ 5,5 mm** über der Platine (0,217") — **über der Grenze
+von 4,45 mm.** Das ist ein **verwandtes Teil, nicht unseres**; die PH-Reihe
+gibt es senkrecht und seitlich mit erheblich verschiedenen Maßen. Dieselben
+Händler nennen für die Tiefe **7,6 und 8,6 mm** — ein ganzer Millimeter
+Unterschied bei einem Maß, das über das Platzieren entscheidet. **Beim Setzen
+gilt der Footprint, am Ende das Gerber.**
+
+> **Nicht gelöst, gemeldet.** Wenn ein PH-Stecker über 4,45 mm baut, sind es
+> drei Wege: **flacherer Stecker**, **anderer Platz** (dann nicht neben der
+> Zelle), oder **Akkukabel direkt anlöten** — das macht das Gerät dünner und
+> den Akku **nicht mehr tauschbar.** Der Plan hat diese Frage schon gestellt
+> („tauschbar bauen oder als Verbrauchsteil ansagen"); sie gehört Thomas.
+
+**J2 bleibt unplatziert.**
