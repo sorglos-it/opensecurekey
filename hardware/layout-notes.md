@@ -1632,3 +1632,88 @@ Zelle mit SH-Stecker, oder ein kurzes Zwischenkabel.
 **J2 und J4 bleiben bis dahin neben der Platine geparkt.** Ein Tausch ändert
 Footprint und bei J4 die Netzliste; das gehört in einen eigenen Durchgang,
 nicht zwischen zwei Platzierungsrunden.
+
+# U1 gemessen — und die Antenne zeigt in die falsche Richtung
+
+Stand 24.10.2026. Anlass: die Antennenkante bei `x` 25,5 war **gerechnet, nicht
+gemessen**, und auf ihr steht die Freihaltezone — die einzige Stelle, an der
+uns Raytac eine Vorschrift macht.
+
+## Was gemessen ist
+
+Alle **61 Pads** über `pcb_pads_list`, Hülle aus `extent_mm` (dem Maß **nach**
+der Drehung), nicht aus `width/height`:
+
+| | gemessen |
+| --- | --- |
+| Padhülle `x` | **12,0992 … 23,4999** = 11,4007 mm |
+| Padhülle `y` | **12,2998 … 22,3000** = 10,0002 mm |
+| Bauteilmitte | 17,75 / 17,30, Drehung **90°** |
+
+**Die Mitte des Bauteils ist die Mitte der Padhülle, nicht die Mitte des
+Körpers.** Genau daraus entstand die alte Zahl: 17,75 + 15,5/2 = **25,50**.
+Diese Rechnung setzt voraus, dass der Ursprung in der Körpermitte liegt. **Er
+liegt dort nicht** — bei einem Modul mit Antenne an einem Ende sitzen die Pads
+nicht symmetrisch im Körper.
+
+## Wie der Körper daraus folgt
+
+Körpermaß **15,5 × 10,5 mm** aus dem Datenblatt (nicht gemessen, das ist der
+eine eingesetzte Fremdwert). Alles andere ist Rechnung auf gemessenen Zahlen:
+
+- Quer: (10,50 − 10,0002) / 2 = **0,2499 mm** Pad-Einzug an den Längsseiten.
+- Längs: 15,50 − 11,4007 − 0,2499 = **3,8494 mm** Leerstreifen am pad-armen Ende.
+
+Damit:
+
+| | daraus | Datenblatt |
+| --- | --- | --- |
+| Körper `x` | 8,2498 … 23,7498 = **15,5000** | 15,5 |
+| Körper `y` | 12,0499 … 22,5499 = **10,5000** | 10,5 |
+
+**Beide Maße treffen auf vier Stellen.** Der Pad-Einzug von 0,25 mm ist aus dem
+Querschnitt gewonnen und am Längsschnitt bestätigt — das ist die Gegenprobe,
+nicht bloß eine Umstellung derselben Gleichung.
+
+**Und die unabhängige Bestätigung:** Raytacs Freihaltezone ist mit
+**10,5 × 3,8 mm** angegeben. Der Leerstreifen misst **10,50 breit** (die ganze
+Modulbreite) und **3,85 tief**. Die 10,5 waren in der Rechnung nie enthalten,
+die 3,8 nur zufällig nah. **Die Zone ist dieser Streifen.**
+
+## Welches Ende die Antenne ist — und warum das sicher ist
+
+| Ende | Pads |
+| --- | --- |
+| `x` ≈ 23,2 (hoch) | **19** (Pads 15–33, darunter XL1/XL2, VBUS, DCCH) |
+| `x` ≈ 12,1 (tief) | **2** (Pads 1 und 55, beide `GND`) |
+
+Ein 10,5 mm breites Ende mit zwei Massepads, dahinter 3,85 mm Körper ohne
+jedes Pad — **das ist die Antenne.** Am Ende mit 19 Signalpads kann keine
+„No Ground-Pad Area" liegen. Dass die beiden Eckpads Masse sind, passt zu
+Raytacs Regel von den Durchkontaktierungen „especially at the four corners".
+
+> **Die Freihaltezone liegt bei `x` 8,25 … 12,10, `y` 12,05 … 22,55 —
+> nicht bei `x` 25,5 … 27.** Sie liegt damit **mitten auf der Platine**, und
+> die Antenne zeigt **nach innen**, nicht an eine Kante.
+
+## Was daraus folgt, und was ich nicht getan habe
+
+Raytac verlangt das Modul **zur Platinenkante hin**. Die Antennenkante liegt
+jetzt **8,25 mm von `x` = 0** und das andere Ende **3,25 mm von `x` = 27**.
+Die Antenne steht also am weitest möglichen Punkt von jeder Kante entfernt,
+und in ihrer Zone liegt Platz, der für Kupfer und Bauteile verplant ist.
+
+**Die alte Zahl war nicht nur falsch, sie war in der Richtung falsch.** Eine
+Freihaltezone, die ich bei 25,5 … 27 freigehalten hätte, hätte am
+Antennenende nichts bewirkt und am Anschlussende Platz verschenkt.
+
+**Ich habe nichts verschoben.** U1 ist das größte Bauteil; es zu drehen oder zu
+versetzen heißt, die Plätze neu zu rechnen — und wohin die Antenne zeigen soll,
+ist eine Frage an den Entwurf, nicht an das Werkzeug. Die Masseflächen warten
+ebenfalls: ihre Aussparung hängt an dieser Zone, und solange die Zone wandert,
+wäre jedes Kupfer eine Wegwerfarbeit.
+
+**Lehre, und sie ist dieselbe wie bei J1:** Die 25,50 sah nach einer Messung
+aus, weil sie vier Stellen hatte. Sie war eine Annahme über den Ursprung des
+Footprints — und Annahmen über Ursprünge fallen erst auf, wenn man das Bauteil
+aus seinen Pads nachbaut und prüft, ob das Datenblattmaß herauskommt.
