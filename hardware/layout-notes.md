@@ -22,9 +22,20 @@ Die Teilemaße stammen aus `../docs/parts.md`, die Netze aus `schematic.md`.
 **Das dickste Teil ist der Akku mit 3,8 mm, das längste mit 26 mm.** Beides
 bestimmt die Bauform.
 
-## Bauform: 24 × 70 mm
+## Bauform: 26 × 70 mm
 
-**Platine 24 × 70 mm, 0,8 mm dick, vier Lagen, beidseitig bestückt.**
+**Platine 26 × 70 mm, 0,8 mm dick, vier Lagen, beidseitig bestückt.**
+
+> **Berichtigung 24.10.2026: die Breite ist 26 mm, nicht 24.** Thomas hat das
+> um 15:22 entschieden, der Gehäuse-Strang hat es in `cad/masse.md` eingetragen
+> (Commit 41f4ec6). Diese Datei trug die 24 mm noch als Tatsache und hat damit
+> den ersten Platzierungsentwurf auf die falsche Breite gestellt.
+>
+> **Grund für die 26 mm:** Der Fingerabdrucksensor der Stufe 2 passt bei 24 mm
+> nicht neben die Zelle — es fehlten 1,40 mm. Bei 26 mm sind quer **23,60 mm**
+> nutzbar statt 21,60, es bleiben 0,60 mm Reserve.
+>
+> **Die Längsaufteilung ist davon nicht betroffen**, nur die `x`-Werte.
 
 Die 70 mm statt 62 mm sind die räumliche Trennung von Akku und NFC-Antenne —
 siehe den nächsten Abschnitt. Die 8 mm sind bewusst ausgegeben.
@@ -83,7 +94,7 @@ Modul hin, das Antennendrittel wird größer.
 - Die Antennenschleife liegt im letzten Drittel, mit ausgenommener
   Massefläche darunter.
 
-70 × 24 mm ist noch Schlüsselanhängerformat — etwa so groß wie ein
+70 × 26 mm ist noch Schlüsselanhängerformat — etwa so groß wie ein
 Autoschlüssel.
 
 **Die Bauhöhe richtet sich jetzt nach dem Akku (3,8 mm), nicht mehr nach dem
@@ -340,7 +351,7 @@ Vom Schaltplan unabhängig und darum vorgezogen:
   > 100/100, einzeln und im Änderungssatz). **Die Ursache ist damit unbekannt,
   > nicht erklärt.** Der Befund bleibt: über die Brücke geht es nicht.
 
-  **24 × 70 mm sind darum im Editor von Hand zu zeichnen**, bevor platziert
+  **26 × 70 mm sind darum im Editor von Hand zu zeichnen**, bevor platziert
   wird. Die Ecken müssen exakt aufeinandertreffen, sonst ist der Rand offen.
 - **Die Entwurfsregeln heißen noch „JLCPCB Capability(Two Layers Board)".**
   Auch hier beides geprüft: EasyEDAs Schnittstelle hat Leseoperationen für
@@ -361,7 +372,7 @@ eingetragen.** Wenn der Umriss steht, wird das hier abgearbeitet.
 
 ### Koordinatensystem
 
-Nullpunkt **untere linke Ecke**, `x` quer über die Platine (0 … 24 mm), `y` in
+Nullpunkt **untere linke Ecke**, `x` quer über die Platine (0 … 26 mm), `y` in
 der Länge (0 … 70 mm), **`y` = 0 an der USB-Kante**. Alle Angaben sind
 Bauteilmitten in Millimetern. „oben" = Bestückungsseite mit dem Modul,
 „unten" = Rückseite mit dem Akku.
@@ -382,7 +393,8 @@ Bauteilmitten in Millimetern. „oben" = Bestückungsseite mit dem Modul,
 > Der Abschnitt „Die Aufteilung" oben sagt, der Akku ende bei 44 mm und das
 > Antennenfeld sei **26 mm** breit. **Das geht mit dieser Zelle nicht.** Die
 > Adafruit 1317 ist **19,75 × 26,02 mm**: Damit der Akku bei 44 endete, müsste
-> seine 26-mm-Seite **quer** liegen — quer sind aber nur **24 mm** Platine da.
+> seine 26-mm-Seite **quer** liegen — quer sind aber nur 26 mm Platine da, und
+> mit Randabstand bleibt das zu knapp.
 > Die Zelle muss also längs liegen, 25 … 51 mm, und **das Antennenfeld wird
 > 19 mm statt 26 mm.**
 >
@@ -390,31 +402,31 @@ Bauteilmitten in Millimetern. „oben" = Bestückungsseite mit dem Modul,
 > damit bliebe das Antennenfeld sogar nur 14,5 mm — sie gewinnt Breite
 > (12 statt 19,75 mm), nicht Länge. **Zu entscheiden** (Vorschlag: 19 mm
 > behalten und die Schleife am ganzen Rand von Z4 umlaufen lassen, Fläche
-> 19 × 24 mm; das ist mehr Fläche als eine Schleife im 26-mm-Feld bei halber
+> 19 × 26 mm = 494 mm²; das ist mehr Fläche als eine Schleife im 26-mm-Feld bei halber
 > Breite hätte).
 
 ### Z1 — USB-C, `y` 0 … 9,5
 
 | Teil | Seite | x | y | Dreh. | Warum |
 | --- | --- | --- | --- | --- | --- |
-| J1 | oben | 12,0 | 4,6 | 0° | mittig an der kurzen Kante, Kabel geht gerade ab; die vier Haltestifte nehmen die Zugkraft auf |
-| R15 | unten | 8,0 | 7,5 | 0° | dicht an J1 A5 |
-| R16 | unten | 16,0 | 7,5 | 0° | dicht an J1 B5, symmetrisch zu R15 |
-| U5 | unten | 12,0 | 10,5 | 90° | **das erste Bauteil nach dem Stecker** — Sinn eines ESD-Teils; D+/D− gehen von hier als Paar gleicher Länge zum Modul |
+| J1 | oben | 13,0 | 4,6 | 0° | mittig an der kurzen Kante, Kabel geht gerade ab; die vier Haltestifte nehmen die Zugkraft auf |
+| R15 | unten | 9,0 | 7,5 | 0° | dicht an J1 A5 |
+| R16 | unten | 17,0 | 7,5 | 0° | dicht an J1 B5, symmetrisch zu R15 |
+| U5 | unten | 13,0 | 10,5 | 90° | **das erste Bauteil nach dem Stecker** — Sinn eines ESD-Teils; D+/D− gehen von hier als Paar gleicher Länge zum Modul |
 | D2 | unten | 4,0 | 11,0 | 0° | an `VBUS`, nahe am Stecker |
-| C1 | unten | 19,0 | 11,0 | 0° | `VBUS`-Puffer am Ladereglereingang |
+| C1 | unten | 21,0 | 11,0 | 0° | `VBUS`-Puffer am Ladereglereingang |
 
 ### Z2 — Funkteil, `y` 9,5 … 25
 
 | Teil | Seite | x | y | Dreh. | Warum |
 | --- | --- | --- | --- | --- | --- |
-| U1 | oben | 14,75 | 17,3 | 90° | Längsachse quer, **Chipantenne zum Rand `x` = 24** (etwa 1,5 mm Abstand); die Pinreihe mit VDD/VDDH/DCCH liegt damit auf der antennenabgewandten Seite |
+| U1 | oben | 16,75 | 17,3 | 90° | Längsachse quer, **Chipantenne zum Rand `x` = 26** (etwa 1,5 mm Abstand, Antennenkante bei `x` 24,5); die Pinreihe mit VDD/VDDH/DCCH liegt damit auf der antennenabgewandten Seite |
 | C5 | unten | 7,0 | 20,0 | 0° | unmittelbar an Modulpin 28 (`VDD`) |
 | C3, C4 | unten | 7,0 / 7,0 | 22,5 / 14,0 | 0° | `VSYS` an Modulpin 30 |
-| L1 | unten | 4,0 | 17,3 | 90° | an `DCCH` (Pin 31), **kurze dicke Bahn**; gleichzeitig am weitesten weg von der Chipantenne (`x` 22,5) und von Z4 — das löst die Streufeld-Auflage |
+| L1 | unten | 4,0 | 17,3 | 90° | an `DCCH` (Pin 31), **kurze dicke Bahn**; gleichzeitig am weitesten weg von der Chipantenne (`x` 24,5) und von Z4 — das löst die Streufeld-Auflage |
 | X1 | unten | 11,0 | 13,0 | 0° | an `P0.00/P0.01` (Pin 17/18), kurze symmetrische Bahnen |
 | C8, C9 | unten | 11,0 | 10,5 | 0° | je an einem Quarzbein, gleich lang |
-| Q2, Q3, R4, R5 | unten | 17 … 22 | 10 … 14 | – | Lastumschaltung, nahe `VBUS`/`VSYS`, aber außerhalb der Antennen-Freihaltezone |
+| Q2, Q3, R4, R5 | unten | 19 … 24 | 10 … 14 | – | Lastumschaltung, nahe `VBUS`/`VSYS`, aber außerhalb der Antennen-Freihaltezone |
 
 ### Freihaltezone der Modulantenne — belegt, 24.10.2026
 
@@ -432,11 +444,11 @@ hatte hier 7 × 17 mm geschätzt; das war in beide Richtungen falsch.
   the edge of PCB to have better performance than placing it on the center."*
 
 **Was das für dieses Brett heißt:** Die Antennenkante des Moduls liegt bei
-`x` = 22,5, der Platinenrand bei 24. Von den 3,8 mm Tiefe liegen also nur
+`x` = 24,5, der Platinenrand bei 26. Von den 3,8 mm Tiefe liegen also nur
 **1,5 mm auf der Platine**, der Rest fällt über die Kante hinaus. Kupferfrei zu
 halten ist damit nur der Streifen
 
-> **`x` 22,5 … 24, `y` 11 … 21,5 — in allen vier Lagen.**
+> **`x` 24,5 … 26, `y` 11 … 21,5 — in allen vier Lagen.**
 
 Das sind 1,5 × 10,5 mm, rund 16 mm². Die Zone kostet also fast nichts — weil
 das Modul am Rand sitzt. Hätte es in der Mitte gesessen, wären es 40 mm² in
@@ -454,33 +466,62 @@ Raytac bietet an, ein Layout als PDF gegenzulesen (`service@raytac.com`).
 
 | Teil | Seite | x | y | Dreh. | Warum |
 | --- | --- | --- | --- | --- | --- |
-| Akku (kein Bauteil) | unten | 12,0 | 38,0 | 0° | 19,75 × 26,02 mm, liegt auf Ferritfolie; **Fläche darunter frei von Bauteilen halten**, damit die Zelle plan liegt |
-| J2 | unten | 12,0 | 49,5 | 180° | am akkufernen Ende von Z3, Kabel läuft zur Zelle zurück; weg vom Funkteil |
-| J4 | oben | 12,0 | 27,0 | 0° | FPC-Fahne der Anzeige zeigt nach `y` = 0, die Fahne wird unter das Glas gelegt |
-| DS1 (Glas) | oben | 12,0 | 38,0 | 0° | 13,90 × 22,00 mm, Fenster im Gehäuse; aktive Fläche 10,54 × 14,70 mm |
+| Akku (kein Bauteil) | unten | 13,0 | 38,0 | 0° | 19,75 × 26,02 mm, liegt auf Ferritfolie; **Fläche darunter frei von Bauteilen halten**, damit die Zelle plan liegt |
+| J2 | unten | 13,0 | 49,5 | 180° | am akkufernen Ende von Z3, Kabel läuft zur Zelle zurück; weg vom Funkteil |
+| J4 | oben | 13,0 | 27,0 | 0° | FPC-Fahne der Anzeige zeigt nach `y` = 0, die Fahne wird unter das Glas gelegt |
+| DS1 (Glas) | oben | 13,0 | 38,0 | 0° | 13,90 × 22,00 mm, Fenster im Gehäuse; aktive Fläche 10,54 × 14,70 mm |
 | Q4, R9, C13, C14 | oben | 3 … 6 | 28 … 36 | – | Lastschalter der Anzeige, neben dem Glas, kurze Bahn zu J4 Pin 10/11 |
 | U2 + C10, C11 | unten | 6,0 | 47,5 | 0° | Sicherheitschip, **am akkufernen Ende** (siehe Entscheidung unten); `SE_VOUT` von Pin 15 nach Pin 18 **so kurz wie möglich** |
-| U3 + C12, R8 | unten | 17,0 | 47,5 | 0° | Flash gegenüber von U2, gleiches Band |
+| U3 + C12, R8 | unten | 19,0 | 47,5 | 0° | Flash gegenüber von U2, gleiches Band |
 | R6, R7 | unten | 6,0 | 50,0 | 0° | I2C-Abschluss, dicht an U2 |
-| C1, U4, C2, R1, R2 | unten | 4 … 20 | 6 … 12 | – | Ladepfad gebündelt **nach Z1 verlegt**, zu C1 an `VBUS` — weg vom Funkteil und weg von der Zelle |
-| Q5, R17 | unten | 20,0 | 40,0 | 0° | Lastschalter Sensor; Stufe 2 |
+| C1, U4, C2, R1, R2 | unten | 4 … 22 | 6 … 12 | – | Ladepfad gebündelt **nach Z1 verlegt**, zu C1 an `VBUS` — weg vom Funkteil und weg von der Zelle |
+| Q5, R17 | unten | 22,0 | 40,0 | 0° | Lastschalter Sensor; Stufe 2 |
 
-**Der Streifen neben der Zelle ist eng:** 24 − 19,75 = **4,25 mm**, aufgeteilt
-auf beide Seiten ergibt zweimal rund 2 mm. U2 (3 × 3 mm) und U3 (8 × 6 mm)
-passen dort **nicht** daneben, sondern nur **unter** die Zelle oder in die
-Bänder Z2/Z4. **Das ist der nächste zu lösende Widerspruch** — Vorschlag: U2
-und U3 wandern in den akkufernen Teil von Z3 (`y` 44 … 51, dort ist die Zelle
-zu Ende) und der Ladepfad nach Z1 zu C1. Dann steht in Z3 unten nur die Zelle.
+**Der Streifen neben der Zelle, mit 26 mm neu gerechnet:** 26 − 19,75 =
+**6,25 mm**. Mittig gelegt ergibt das **zweimal 3,13 mm** (vorher zweimal
+2,13 mm).
+
+**Reicht nicht, und zwar nachgerechnet:**
+
+| Teil | Körper | mit 0,25 mm Abstand je Seite | passt in 3,13 mm? |
+| --- | --- | --- | --- |
+| U2 SE051 | 3,0 × 3,0 mm | **3,5 mm** | **nein**, 0,37 mm zu breit |
+| U3 Flash | 8,0 × 6,0 mm (gedreht 6,0 breit) | **6,5 mm** | **nein**, um mehr als das Doppelte |
+
+Die zwei Millimeter entschärfen die Engstelle also **nicht**. **U2 und U3
+bleiben bei `y` 44 … 51**, der Ladepfad bleibt in Z1, und unter Z3 liegt nur
+die Zelle — sie liegt dann plan auf der Ferritfolie.
+
+### Eine Möglichkeit, die durch die 26 mm erst entsteht — zu entscheiden
+
+Wenn die Zelle **nicht mittig**, sondern an die Kante `x` = 0 gerückt wird
+(Zelle `x` 0,75 … 20,5), bleibt auf der anderen Seite ein Streifen von
+**5,5 mm**, nutzbar **5,0 mm**:
+
+- **U2 passt dort** (3,5 mm nötig, 1,5 mm Luft übrig).
+- U3 passt weiterhin nicht (6,5 mm nötig).
+
+**Was das bringt:** U2 käme von `y` 47,5 auf etwa `y` 33 — die I2C-Leitung
+zwischen Modul und Sicherheitschip wird damit **rund 12 mm statt 25 mm**. Das
+ist die Leitung, die ohnehin auf einer Innenlage zwischen den Masseflächen
+laufen soll; sie zu halbieren ist ein echter Gewinn, nicht Kosmetik.
+
+**Was es kostet:** Die Zelle liegt nicht mehr mittig, also auch die Ferritfolie
+nicht. Das berührt die Gehäusegestaltung und das Gewicht in der Hand.
+
+> **Nicht von mir entschieden.** Die Lage der Zelle gehört mit dem
+> Gehäuse-Strang abgestimmt. Bis dahin gilt die mittige Zelle und U2 bei
+> `y` 47,5.
 
 ### Z4 — NFC, `y` 51 … 70
 
 | Teil | Seite | x | y | Dreh. | Warum |
 | --- | --- | --- | --- | --- | --- |
-| NFC-Schleife | oben + unten | – | 51 … 70 | – | Schleife am Rand umlaufend, Fläche etwa 19 × 24 mm; **innen keine geschlossene Massefläche** |
-| C15, C16 | unten | 9,0 / 15,0 | 52,0 | 0° | symmetrisch zur Mitte, **gleiche Bahnlängen zu `P0.09`/`P0.10`** |
-| D1 | oben | 12,0 | 66,0 | 0° | RGB-LED am Kopfende, von außen sichtbar; R10 … R12 daneben |
-| J5 | unten | 12,0 | 56,0 | 0° | Stiftfeld Fingerabdruck, Stufe 2, **verlegt aber nicht bestückt** |
-| J6 | unten | 12,0 | 67,0 | 0° | SWD am Kopfende, beim Entwickeln erreichbar |
+| NFC-Schleife | oben + unten | – | 51 … 70 | – | Schleife am Rand umlaufend, Fläche etwa 19 × 26 mm; **innen keine geschlossene Massefläche** |
+| C15, C16 | unten | 10,0 / 16,0 | 52,0 | 0° | symmetrisch zur Mitte, **gleiche Bahnlängen zu `P0.09`/`P0.10`** |
+| D1 | oben | 13,0 | 66,0 | 0° | RGB-LED am Kopfende, von außen sichtbar; R10 … R12 daneben |
+| J5 | unten | 13,0 | 56,0 | 0° | Stiftfeld Fingerabdruck, Stufe 2, **verlegt aber nicht bestückt** |
+| J6 | unten | 13,0 | 67,0 | 0° | SWD am Kopfende, beim Entwickeln erreichbar |
 
 **In Z4 steht jetzt kein Metall mehr** außer der LED am Kopfende und dem
 unbestückten Stiftfeld J5 — die Taster sind herausgezogen, siehe unten.
@@ -490,7 +531,7 @@ unbestückten Stiftfeld J5 — die Taster sind herausgezogen, siehe unten.
 | Teil | Seite | x | y | Dreh. | Warum |
 | --- | --- | --- | --- | --- | --- |
 | SW1 | oben | 3,5 | 24,5 | 90° | seitlich betätigt zur Kante `x` = 0; liegt **zwischen Modul (endet 21,5) und Anzeigeglas (beginnt 27)** — dem natürlichen Daumenplatz, wenn der Schlüssel in der Hand liegt |
-| SW2 | oben | 20,5 | 24,5 | 270° | Reset, gegenüberliegende Kante, damit er nicht versehentlich gedrückt wird |
+| SW2 | oben | 22,5 | 24,5 | 270° | Reset, gegenüberliegende Kante, damit er nicht versehentlich gedrückt wird |
 
 Das löst den Einwand von vorhin: **beide Taster sind aus der Antennenfläche
 heraus**, ohne die Bedienbarkeit zu verschlechtern — sie sitzen jetzt neben
@@ -500,7 +541,7 @@ der Anzeige, die man ohnehin ansieht, statt am Kopfende.
   Glas beginnt bei 27. **Bleibt 1,25 mm Luft zum Modul und 0,75 mm zum Glas.**
   Eng, aber es passt; beim Zeichnen nachmessen.
 - SW2 liegt bei `x` 20,5 und damit **außerhalb** des Freihaltestreifens
-  (`x` 22,5 … 24, `y` 11 … 21,5).
+  (`x` 24,5 … 26, `y` 11 … 21,5).
 
 ### Bedingungen für die NFC-Abstimmung — gehören ins Messprotokoll
 
@@ -544,3 +585,58 @@ liegen nicht mehr in der Schleifenfläche.
   nicht außen. Die Verbindung ist mit SCP03 verschlüsselt, aber eine lange, von
   außen anstechbare Leitung ist trotzdem die bequemste Angriffsstelle auf der
   ganzen Platine — und sie zu vergraben kostet nichts.
+
+## Stufe 2 mit Sensor: verträglich quer, nicht in der Länge
+
+Der Gehäuse-Strang gibt für Stufe 2 die schmale Zelle **LP-401230-J** vor und
+die Aufteilung **Zelle 0 … 12 mm, Sensorfeld 12,5 … 23,5 mm**. Hier
+nachgerechnet, ohne es in den Entwurf einzuarbeiten:
+
+### Zuerst: die Achse ist zu klären
+
+Die Vorgabe nennt diese Werte als `y`. **In meinem Bezugssystem kann das nicht
+sein:** `y` 0 … 12 ist bei mir das USB-Band, dort sitzt der Stecker. Zwei
+Anzeichen, dass die Werte **quer** gemeint sind, also meinem `x` entsprechen:
+
+1. **12 mm ist die Breite der LP-401230**, nicht ihre Länge (12 × 30,5 mm).
+2. **12 + 0,5 + 11 = 23,5 mm** — und quer sind bei 26 mm Platine **23,60 mm**
+   nutzbar. Das ist genau die Rechnung, mit der die 26 mm begründet wurden.
+
+> **Zu bestätigen:** Ist die Vorgabe quer gemeint (mein `x`)? Dann passt sie,
+> siehe unten. Falls sie wirklich längs gemeint ist, stimmt etwas anderes
+> nicht, und wir müssen die Nullpunkte vergleichen, bevor jemand zeichnet.
+> **Zwei Zahlen aus verschiedenen Bezugssystemen nebeneinanderzulegen hat
+> heute schon einmal eine falsche Geschichte ergeben** — siehe die
+> Zeitstempel in `schematic-notes.md`.
+
+### Quer: verträglich, mit 0,10 mm Luft
+
+Zelle 12 mm + 0,5 mm Abstand + Sensorfeld 11 mm = **23,5 mm** bei **23,60 mm**
+nutzbarer Breite. Es passt, aber **die Reserve ist 0,10 mm, nicht 0,60 mm** —
+die 0,60 mm gelten für den Sensor allein, nicht für die Summe mit dem
+Trennabstand. Zu prüfen, wer von beiden recht hat, bevor es knapp wird.
+
+### In der Länge: das wirft meine Bandaufteilung um
+
+**Die LP-401230 ist 30,5 mm lang.** In Z3 stehen 26 mm zur Verfügung (`y`
+25 … 51), weil die Adafruit-Zelle 26,02 mm lang ist.
+
+| | Länge der Zelle | Z3 wird | Antennenfeld Z4 wird |
+| --- | --- | --- | --- |
+| Stufe 1, Adafruit 1317 | 26,02 mm | 25 … 51 | **19 mm** |
+| Stufe 2, LP-401230-J | **30,5 mm** | 25 … 55,5 | **14,5 mm** |
+
+**Stufe 2 kostet also 4,5 mm Antennenfeld**, nicht nichts. Das ist derselbe
+Zusammenhang wie bei der ersten Entscheidung: die schmale Zelle gewinnt Breite
+und verliert Länge.
+
+**Mein Entwurf für Stufe 1 bleibt davon unberührt** — er ist auf die Adafruit
+1317 gerechnet. Aber **wer Stufe 2 will, muss das Antennenfeld noch einmal
+ansehen**, und zwar bevor die Platine gefertigt wird, denn die Schleife wird
+als Leiterbahn gezeichnet und ist später nicht verschiebbar.
+
+> **Offen, für den Gehäuse-Strang und den Master:** Soll die Platine schon in
+> Stufe 1 so aufgeteilt werden, dass Stufe 2 ohne Neuzeichnen passt (dann
+> Antennenfeld gleich 14,5 mm und die kleinere Schleife von Anfang an) — oder
+> bleibt Stufe 1 auf 19 mm und Stufe 2 bekommt ein eigenes Layout? **Das ist
+> eine Entscheidung über Reichweite gegen Aufwand, keine Rechenfrage.**
