@@ -86,10 +86,15 @@ def derive(p):
     d["eye_cy"] = p["pcb_wid"] / 2.0
     d["overall_len"] = d["eye_x1"] - d["ot_x0"]
 
-    # USB-Oeffnung: mittig zur Platinenmitte, siehe masse.md Abschnitt 6 Nr. 1
-    d["usb_z_mid"] = d["z_pcb_bot"] / 2.0
-    d["usb_z0"] = d["usb_z_mid"] - p["usb_open_z"] / 2.0
-    d["usb_z1"] = d["usb_z_mid"] + p["usb_open_z"] / 2.0
+    # Der USB4085 ist "PCB Top Mount": sein Koerper sitzt vollstaendig auf der
+    # Platine. Er ist hoeher als der Hohlraum, darum wird das Dach vorn zu
+    # einer Nase angehoben. Siehe masse.md Abschnitt 9.
+    d["usb_z0"] = d["z_pcb_top"]
+    d["usb_z1"] = d["z_pcb_top"] + p["usb_open_z"]
+    d["z_cav_front"] = p["usb_body_h"] + p["usb_gap_top"]
+    d["z_roof_front"] = d["z_cav_front"] + p["skin_t"]
+    d["nose_x1"] = p["usb_nose_x"]
+    d["front_th"] = d["z_roof_front"] - d["z_floor"]
 
     # Lage der Schnappwuelste in Laengsrichtung
     d["snap_cx"] = [15.0, 45.0]
@@ -108,6 +113,11 @@ def shell_top(p, d, preview=True):
     z0, z1 = d["z_pcb_top"], d["z_roof"]
     ops.append(("+", (d["ot_x0"], d["ot_x1"], d["ot_y0"], d["ot_y1"], z0, z1)))
     ops.append(("+", (d["eye_x0"], d["eye_x1"], d["eye_y0"], d["eye_y1"], z0, z1)))
+    # Nase vorn: der USB4085 traegt 3,46 mm auf, der Hohlraum hat nur 2,35.
+    # Das Dach steigt ueber dem Stecker auf volle Breite an, mit senkrechter
+    # Stufe - die druckt ohne Stuetze und braucht keine Fase.
+    ops.append(("+", (d["ot_x0"], d["nose_x1"], d["ot_y0"], d["ot_y1"],
+                      z1, d["z_roof_front"])))
     # Aufnahme fuer die Schnappstufe der unteren Schale - vor dem Hohlraum,
     # sonst fuellt das Zurueckgeben des Innenteils den Hohlraum wieder auf
     lip_top = p["lip_h"] + 0.1
@@ -116,6 +126,9 @@ def shell_top(p, d, preview=True):
                       d["ot_y0"] + p["lip_t"], d["ot_y1"] - p["lip_t"], z0, lip_top)))
     # Hohlraum fuer die Bauteile der Anzeigenseite
     ops.append(("-", (d["cv_x0"], d["cv_x1"], d["cv_y0"], d["cv_y1"], z0, d["z_cav_top"])))
+    # und unter der Nase tiefer, damit der Stecker hineinpasst
+    ops.append(("-", (d["cv_x0"], d["nose_x1"], d["cv_y0"], d["cv_y1"],
+                      z0, d["z_cav_front"])))
     # Taschen fuer die Schnappwuelste, in der Innenwand der Stufe
     for cx in d["snap_cx"]:
         for side in (0, 1):
@@ -153,10 +166,11 @@ def shell_top(p, d, preview=True):
     # aussen nicht erreichbar sein (Vorgabe aus hardware/layout-notes.md)
     ops.append(("-", (rx0, rx1, d["pk_y1"], d["pk_y1"] + p["sw2_pocket_d"],
                       z0, p["btn_relief_z"])))
-    # Frontoeffnung fuer USB-C
+    # Frontoeffnung fuer USB-C - sie reicht in die Nase hinein, darum nicht
+    # auf z_roof begrenzen
     ops.append(("-", (d["ot_x0"], d["cv_x0"],
                       p["usb_cy"] - p["usb_open_y"] / 2.0, p["usb_cy"] + p["usb_open_y"] / 2.0,
-                      z0, min(z1, d["usb_z1"]))))
+                      z0, d["usb_z1"])))
     # Loch der Oese - rund, in der Vorschau quadratisch
     if preview:
         ops.append(("-", _sq(d["eye_cx"], d["eye_cy"], p["eye_hole_d"], z0, z1)))
