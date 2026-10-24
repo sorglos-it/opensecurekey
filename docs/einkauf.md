@@ -10,6 +10,25 @@ bestellt selbst.
 
 Grundlage ist die belegte Teileauswahl in [parts.md](parts.md).
 
+## Nachtrag 24.10.2026: Fingerabdrucksensor kommt mit
+
+Der zweite Suchdurchgang hat einen Sensor gefunden, der alle Bedingungen
+erfüllt — Einzelheiten in [fingerprint.md](fingerprint.md). Thomas hat
+entschieden: **Testboard mitbestellen.**
+
+| Teil | Bestellnummer | Woher | ca. |
+| --- | --- | --- | --- |
+| SparkFun Fingerprint Sensor FPC2534 (Qwiic) | `SEN-29854` | SparkFun, RobotShop | 59,95 USD |
+| *Alternative in Europa* | dasselbe Board | Antratek | 72,54 EUR |
+
+Warum das Board und nicht der Chip: Es ist lagernd, steckbar über Qwiic und
+kostet keine Platinenänderung. Damit lässt sich am echten Sensor messen, bevor
+die Zielplatine gezeichnet wird. Taugt er, kommt er bei Stufe 1 mit drauf —
+dann als Chip `FPC2534AM` (ca. 30 USD bei Mouser).
+
+Preise `ungeprueft`, Abrufdatum 24.10.2026. Damit liegt die Bestellung bei rund
+**180–195 €** statt 125 €.
+
 ## Kurzfassung
 
 > **Der Sicherheitschip ist wieder freigegeben.** `CONFIG_HMAC` ist bestätigt

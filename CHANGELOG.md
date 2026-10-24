@@ -3,6 +3,23 @@
 ## [Unreleased]
 
 ### Added
+- Dongle and server use: software that only runs while the stick is plugged in,
+  and servers that sign and encrypt through the stick instead of a key file on
+  disk. **Two stages, and the documentation says what each is worth**: stage one
+  is challenge/response bound to the program's own checksum — it can be cut out
+  of a program by anyone with a disassembler, and claiming otherwise would be
+  selling something. Stage two is a key that never leaves the stick, without
+  which parts of the program or its data are not readable at all. Licences in
+  the vault, server mode with the node key in the chip and a grant that is off
+  by default, expires by itself and is logged. `osk-guard` as a small embedding
+  library for C, Go, PHP, .NET and Python, with a running example each.
+  14 mutation checks, 10 of 10 example runs, nothing skipped.
+  **While rebuilding the shared simulator to sign for real, a forgery became
+  visible**: the old attest call would have produced a valid dongle answer from
+  a 64-byte challenge. Separate purpose strings now prevent it, held in place by
+  two cases and a mutant — and the firmware must make the same separation.
+  **No real device, no outside review**, and the firmware side of commands 14–18
+  does not exist yet.
 - Five integration routes, each proven by one real operation against the device
   simulator: **ssh-agent** (`git push` through it on Windows and Linux; the
   public part computed from the private key matches `ssh-keygen` character for

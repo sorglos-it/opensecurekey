@@ -41,6 +41,13 @@ the program then says in plain words which function is missing.
 | 17 | `session` — `on`, `k` labels, `ttl`, or `ask` → state (the server grant) | yes, to switch on |
 | 18 | `sign` — `k` label, `h` hash(32) → `sig`; or `pub`+`cv` for the public part | yes, or grant |
 
+**Not built yet: the firmware side of 14–18.** The management program and
+`osk-guard` speak these commands and are tested against the simulator; the
+device does not answer them. Whoever builds that side must keep the purpose
+strings apart — a forgery was found while the simulator was being made to sign
+for real: the old attest call would have produced a valid dongle answer from a
+64-byte challenge.
+
 `attest` and `sign` are deliberately separate, and the device puts a distinct
 purpose string in front of each before signing. A firmware that signs whatever
 it is handed breaks that separation no matter how careful the host is.
