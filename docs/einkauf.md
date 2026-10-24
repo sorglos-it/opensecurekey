@@ -26,6 +26,19 @@ kostet keine Platinenänderung. Damit lässt sich am echten Sensor messen, bevor
 die Zielplatine gezeichnet wird. Taugt er, kommt er bei Stufe 1 mit drauf —
 dann als Chip `FPC2534AM` (ca. 30 USD bei Mouser).
 
+**Was dabei nicht mitkommt:** Das Board hat zwar 0,1-Zoll-Lötpads zum
+Verdrahten, aber **die Stiftleisten liegen nicht bei** („Does not include:
+headers"). Die Stiftleiste 1×40 aus der BerryBase-Bestellung (0,60 €) deckt
+das ab — sie war bisher als Reserve geführt und ist jetzt fest eingeplant.
+Sie muss aufgelötet werden.
+
+**Und:** Für den Betrieb über I²C müssen zusätzlich **IRQ und RST** an GPIO-Pins
+des Entwicklungsboards — es reicht nicht, nur SDA und SCL zu verbinden. Das
+Board arbeitet mit 3,3 V, genau wie das DK.
+
+Ein Qwiic-Kabel braucht es damit **nicht**: Über die Lötpads geht es mit den
+ohnehin bestellten Dupont-Kabeln.
+
 Preise `ungeprueft`, Abrufdatum 24.10.2026. Damit liegt die Bestellung bei rund
 **180–195 €** statt 125 €.
 
