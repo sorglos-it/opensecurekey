@@ -366,5 +366,49 @@ Was mit den vier Dateien oben allein möglich ist: der Schaltplan ist
 Netze), und die Teile sind über ihre Bestellnummern **eindeutig bestimmt**.
 Ein Neuaufbau wäre damit deterministisch — aber von Hand.
 
-**Für die Zukunft:** nach jedem Zeichenabschnitt exportieren und einchecken,
-nicht erst am Ende.
+### Ein Sicherungsarchiv ist erst gut, wenn man hineingesehen hat
+
+Am 24.10.2026 wurden die lokale Projektdatei und das Sicherungsarchiv
+aufgemacht und der Inhalt nach vier Teilenummern durchsucht. Ergebnis: **beide
+trugen die alten Teile** (EVQP7A01P, LQH2MC), nicht die getauschten
+(EVQP7C01P, NLCV25T).
+
+**Der Grund ist harmlos, und er ist erst beim zweiten Hinsehen klar geworden.**
+In der Zeitrechnung alles auf Ortszeit (MESZ = UTC+2):
+
+| Vorgang | Ortszeit |
+| --- | --- |
+| `opensecurekey.eprj2` geschrieben | 17:15 |
+| Sicherungsarchiv `.epro2` geschrieben | 17:51 |
+| **L1 getauscht** (Commit 0955030) | **18:02** |
+| **Taster getauscht** (Commit 2c9c08f) | **18:26** |
+| `schematic-source-P1.txt` exportiert (`updateTime 17:01:53Z`) | **19:01** |
+
+**Die Binärdateien wurden geschrieben, bevor getauscht wurde.** Dass sie die
+alten Teile enthalten, ist also zwingend und kein Rätsel. Der Export ist nicht
+älter als sie, sondern anderthalb Stunden jünger.
+
+> **Falle, in die hier zwei Stränge gleichzeitig getappt sind:** Der
+> Zeitstempel im Dateikopf steht in **UTC** (das `Z` am Ende sagt es), die
+> Dateizeiten des Dateisystems in **Ortszeit**. Nebeneinandergelegt ergeben sie
+> eine Geschichte, die es nicht gibt — hier zunächst die Folgerung, die Dateien
+> seien „später mit älterem Inhalt" geschrieben worden. **Das war falsch.**
+> Dieselbe Art Fehler wie die verschobenen Pinnummern aus der Textschicht des
+> PDF: die Zahlen stimmen beide, nur nicht im selben Bezugssystem.
+
+**Was daraus bleibt — die praktische Regel, und die gilt unverändert:**
+
+> **Nach dem Ziehen eines Projektarchivs hineinsehen und prüfen, ob die zuletzt
+> geänderten Teile wirklich drinstehen.** Nicht auf die Uhrzeit verlassen.
+
+Die lokale Projektdatei wird **beim Speichern im Editor** nachgezogen, nicht
+durch die Arbeit über die Brücke. Eine **frisch erzeugte und geprüfte** Fassung
+ist deshalb sehr wohl brauchbar — und wäre die bessere Sicherung als die vier
+Textdateien hier, weil sie die Symbole mitbringt. Die beiden alten Fassungen
+sind nur darum ausgeschlossen (`.gitignore`), weil sie den Stand vor dem Tausch
+tragen; eine Sicherung, von der man nicht weiß, was drinsteht, ist schlimmer
+als keine.
+
+**Für die Zukunft:** nach jedem Zeichenabschnitt **über die Brücke**
+exportieren und einchecken, nicht erst am Ende — und ein Projektarchiv nur
+einchecken, nachdem hineingesehen wurde.
