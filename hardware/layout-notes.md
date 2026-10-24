@@ -2135,3 +2135,57 @@ einen Millimeter entfernt. **Die anderen hat niemand nachgemessen.**
 
 **Der Platz ist da:** die Unterseite unter U1 ist in `x` 10 … 23,
 `y` 12,5 … 20,5 weiterhin fast leer.
+
+# Massepads angebunden — drei von vier, und warum der vierte wartet
+
+Stand 24.10.2026, nachts. **0 Abstandsfehler. Verbindungsfehler 178 → 175.**
+Verlegt ist noch nichts; das hier ist nur die Masseanbindung.
+
+## U2: über die Kühlfläche, ohne Durchkontaktierung an den Pins
+
+`U2_1`, `U2_17` und `U2_19` liegen an einem QFN mit **0,4 mm Raster** — dort
+kommt kein Gießkupfer zwischen die Pads. Statt drei Durchkontaktierungen in
+eine Lücke zu quetschen, die es nicht gibt:
+
+- **eine Durchkontaktierung in die Kühlfläche** (Pad 21, selbst `GND`,
+  1,9 × 1,9 mm) bei 21,99894 / 4,50088, 0,61 / 0,305 mm;
+- **drei kurze Bahnen** von den drei Pins auf die Kühlfläche, 0,2 mm breit,
+  auf der Unterseite.
+
+Die Lücke zwischen Padkranz und Kühlfläche ist **0,267 mm**; eine Bahn von
+0,2 mm hält darin zu den Nachbarpads **0,199 bzw. 0,200 mm** — über der
+Vorschrift von 0,152. Vorher gerechnet, danach gemessen: **alle drei sind aus
+der Fehlerliste verschwunden.**
+
+Dazwischen lag ein `doc_reload`: EasyEDA verbindet neue Durchkontaktierungen
+auf einer Vier-Lagen-Platine erst nach erneutem Öffnen. Danach die Flächen neu
+aufgebaut, weil neue Bahnen die Füllung veralten lassen.
+
+## C17_2: drei Versuche, drei messbare Gründe, nichts eingebaut
+
+| Versuch | Ergebnis |
+| --- | --- |
+| Durchkontaktierung bei 25,3 / 9,4996 + kurze Bahn | Pad verbunden, **aber die Durchkontaktierung selbst gilt als unverbunden** |
+| daraus gefolgert: das Kupfer rechts von C17 ist eine **abgetrennte Insel** | EasyEDA entfernt eingeschlossene Inseln beim Füllen |
+| stattdessen L-Bahn zu `C1_2`, einem nachweislich verbundenen Massepad | Pad verbunden, **aber die Bahn läuft durch SW2s Schlitzbereiche** |
+
+**Der dritte Versuch ist derselbe Fehler, den ich eine Stunde vorher selbst
+beschrieben hatte.** SW2 steht seit heute Abend genau dort, und seine Schlitze
+liegen bei rund `x` 22,6 und 24,42 auf `y` 8,6 — mitten im einzigen Weg, den
+ich gesucht hatte.
+
+**Alles zurückgebaut.** `C17_2` hängt wieder, wie vorher — das ist der ehrliche
+Zustand, nicht ein verlegter Umweg, den morgen niemand versteht.
+
+> **Was mir dafür fehlt, und das ist der eigentliche Befund:** Ich kann die
+> **Geometrie der Schlitzbereiche nicht auslesen** — kein Werkzeug der Brücke
+> gibt sie her; ich erfahre sie nur, wenn die DRC sie als Fehler meldet. Und
+> ich kann **nicht sehen, welche Teile einer Gießfläche zusammenhängen**. Beides
+> sind Dinge, die man beim Verlegen ständig braucht. Solange ich sie nur über
+> Fehlermeldungen erfahre, ist jedes Verlegen in dieser Ecke Versuch und Irrtum.
+
+**Weg für morgen, der ohne beides auskommt:** `C17` ein Stück nach links
+versetzen, aus der toten Ecke heraus in das Feld, in dem die Fläche
+nachweislich trägt — dann braucht es weder Bahn noch Durchkontaktierung. Das
+ist eine Platzierungsänderung und gehört an den Anfang einer Runde, nicht ans
+Ende einer Nacht.
