@@ -640,3 +640,92 @@ als Leiterbahn gezeichnet und ist später nicht verschiebbar.
 > Antennenfeld gleich 14,5 mm und die kleinere Schleife von Anfang an) — oder
 > bleibt Stufe 1 auf 19 mm und Stufe 2 bekommt ein eigenes Layout? **Das ist
 > eine Entscheidung über Reichweite gegen Aufwand, keine Rechenfrage.**
+
+## Antworten an den Gehäuse-Strang, 24.10.2026
+
+### 1. Die LED: längs 66 mm, quer 13 mm, Oberseite
+
+**Das Lichtfenster gehört an das Kopfende, nicht in die Mitte.** D1 sitzt nach
+dem Platzierungsentwurf bei
+
+> **`x` = 13,0 mm (Plattenmitte), `y` = 66,0 mm, Oberseite.**
+
+Das ist **4 mm vom Ende** der Platine entfernt, am vom USB-Stecker
+abgewandten Ende. Die LED ist **1,6 × 1,6 mm groß und 0,5 mm hoch**
+(Everlight 19-337C), sie strahlt nach oben.
+
+Die vorläufigen 24,5 mm längs gehen nicht: **dort sitzen die beiden Taster**
+(`y` 22,75 … 26,25). Und die 47 mm aus dem ersten Versuch liegen mitten im
+Anzeigeglas (`y` 27 … 49). Das Kopfende ist die einzige Stelle, die beides
+nicht berührt — und sie ist auch die bessere: die LED zeigt an, ohne das
+Anzeigefenster zu teilen.
+
+### 2. Die Taster bleiben, wo sie sind
+
+Die Freigabe ist angekommen: **3,90 mm Luft zum Anzeigefenster**, nicht 0,75 —
+das Fenster ist ein glatter Durchbruch ohne heruntergezogenen Rand und beginnt
+erst bei längs 30,15. **Kein Verschieben.**
+
+Dazu ein Punkt, der aus dem Gehäuse kam und hier festgehalten gehört: Der
+**Klemmkragen** des Gehäuses läuft 1,2 mm breit um den Platinenrand, genau
+dort, wo ein seitlich betätigter Taster sitzt. Er ist an beiden Längskanten
+freigestellt worden. **Beim Layout nicht zubauen.**
+
+> **Prüfpunkt fürs Layout, aus Panasonics Datenblatt gegen den Händler:**
+> Panasonic gibt den EVQP7C01P mit **3,5 × 3,55 mm** an, DigiKey mit
+> **4,70 × 2,90 mm**. Hat die Bibliothek das Händlermaß genommen, steht der
+> Taster **1,2 mm woanders**, als das Gehäuse erwartet. **Am Footprint
+> gegenprüfen**, und zwar aus dem Gerber, nicht aus der Bibliothek. Der Stößel
+> ragt 0,65 mm über den Körper, der Hub ist 0,2 mm; „side-push" ist bestätigt.
+
+### 3. Der USB-Stecker: drei Wege, nicht zwei
+
+Der Befund stimmt: Der **USB4085 ist „PCB Top Mount"** — der Körper sitzt
+vollständig auf der Platine, 3,46 mm Profilhöhe gegen 2,35 mm Hohlraum, **rund
+1,1 mm zu hoch.**
+
+**Was die Bibliothek an Mid-Mount-Buchsen hergibt** (in diesen Katalogen heißt
+Mid-Mount **沉板**, „Sinkplatte"):
+
+| Teil | LCSC | Angabe |
+| --- | --- | --- |
+| `USB-TYPE_C16P沉` | C9900001620 | Footprint „TYPE_C **沉板1.6**" — für **1,6 mm** Platine |
+| U22410-02 | C9900262527 | „16pin **沉板1.6** 露舌" — für **1,6 mm** Platine |
+| U22409-01 | C9900262530 | „16pin 防水沉板" (wasserdicht), Dicke nicht genannt |
+| HYC-1160-003 | C9900062937 | „沉板TYPE-C", Dicke nicht genannt |
+| GCT USB4110-GF-A | C5143397 | gleiche Reihe wie unser Teil, 16-polig, USB 2.0 — **aber nirgends als Mid-Mount belegt** |
+
+**Hier ist der Haken, und er ist größer als die Teilefrage:** **Unsere Platine
+ist 0,8 mm dick.** Die beiden Teile, die ihre Dicke nennen, sind für **1,6 mm**
+gemacht. Ein Mid-Mount sitzt in einem Ausschnitt und stützt sich auf der
+Plattendicke ab — auf 0,8 mm sitzt ein 1,6-mm-Teil nicht richtig. Bei den
+anderen zwei ist die Dicke nicht genannt, also `ungeprueft`.
+
+**Eine Ausschnittgröße kann ich nicht nennen.** Die Footprints sind über die
+Brücke nicht auslesbar (`lib_footprint_get` gibt nur Kopfdaten), und ich würde
+sonst eine Zahl erfinden. **Dafür braucht es das Datenblatt des gewählten
+Teils.**
+
+**Und darum sind es drei Wege, nicht zwei:**
+
+1. **Gerät vorn dicker machen.** Schaltplan und Teile bleiben, wie sie sind.
+   Kostet Bauhöhe, löst alles andere nicht aus.
+2. **Mid-Mount-Buchse.** Teiletausch **plus Ausschnitt im Umriss** — und
+   **vorher ist zu klären, ob es sie für 0,8 mm gibt.** Sonst müsste die
+   Platine auf 1,6 mm, und das widerspricht dem, warum 0,8 mm gewählt wurden.
+3. **Der Weg, für den die 0,8 mm überhaupt da sind:** Dieser Abschnitt sagt
+   oben selbst, *„0,8 mm statt 1,6 mm ist keine freie Wahl, wenn der
+   USB-C-Stecker später direkt am Platinenrand sitzen soll — alle gefundenen
+   Platinenrand-Stecker passen nur auf 0,8 mm."* Das Gerät ist als
+   **Schlüsselanhänger mit USB-C-Stecker** geplant, nicht mit Buchse; die
+   Buchse ist die Stufe-1-Lösung. **Ein Stecker am Platinenrand baut über der
+   Platte fast nichts auf** — genau der Fall, für den die Dicke festgelegt
+   wurde. Dann löst sich der Hohlraum-Konflikt von selbst, und die 2,35 mm
+   reichen.
+
+> **Mein Vorschlag, aber Thomas' Entscheidung:** Weg 3 prüfen, bevor Weg 2
+> gerechnet wird. Weg 2 kostet Teiletausch, Umrissausschnitt und
+> möglicherweise die Plattendicke — Weg 3 kostet einen Teiletausch, der
+> sowieso vorgesehen war. Was Weg 3 verlangt: **ENIG** (steht schon fest) und
+> **Gold auf den Kontaktflächen am Rand**, sowie ein Umriss, der die
+> Steckerzunge formt. Das gehört gerechnet, bevor jemand den Rand zeichnet.
