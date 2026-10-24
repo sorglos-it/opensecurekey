@@ -409,10 +409,39 @@ Bauteilmitten in Millimetern. „oben" = Bestückungsseite mit dem Modul,
 | C8, C9 | unten | 11,0 | 10,5 | 0° | je an einem Quarzbein, gleich lang |
 | Q2, Q3, R4, R5 | unten | 17 … 22 | 10 … 14 | – | Lastumschaltung, nahe `VBUS`/`VSYS`, aber außerhalb der Antennen-Freihaltezone |
 
-**Freihaltezone:** oben und unten **kein Kupfer** in `x` 17 … 24 bei
-`y` 8 … 25 (etwa 7 × 17 mm). Das ist eine Annahme — **die Maße der
-Freihaltezone stehen noch nicht im Repo** (`ungeprueft`, Raytac Approval
-Sheet). Zu prüfen, bevor die Masseflächen gegossen werden.
+### Freihaltezone der Modulantenne — belegt, 24.10.2026
+
+Quelle: **Raytac Approval Sheet, Abschn. 2.3 „RF Layout Suggestion (aka
+Keep-Out Area)", gerenderte Seite 13/14, mit Maßbild.** Mein erster Entwurf
+hatte hier 7 × 17 mm geschätzt; das war in beide Richtungen falsch.
+
+- **„No Ground-Pad Area": 10,5 mm breit × 3,8 mm tief.** Es ist **kein Rahmen
+  um das Modul**, sondern ein **Streifen an der Antennenkante**: 3,8 mm über
+  die Modulkante hinaus, 10,5 mm der Breite nach.
+- **In jeder Lage.** Wörtlich: *„No Ground Pad should be included in the
+  corresponding position of the antenna in EACH LAYER."* Also auch `INNER_1`
+  und `INNER_2` — bei vier Lagen die Stelle, an der man es leicht falsch macht.
+- **Modul an den Platinenrand**, nicht in die Mitte: *„Place the module towards
+  the edge of PCB to have better performance than placing it on the center."*
+
+**Was das für dieses Brett heißt:** Die Antennenkante des Moduls liegt bei
+`x` = 22,5, der Platinenrand bei 24. Von den 3,8 mm Tiefe liegen also nur
+**1,5 mm auf der Platine**, der Rest fällt über die Kante hinaus. Kupferfrei zu
+halten ist damit nur der Streifen
+
+> **`x` 22,5 … 24, `y` 11 … 21,5 — in allen vier Lagen.**
+
+Das sind 1,5 × 10,5 mm, rund 16 mm². Die Zone kostet also fast nichts — weil
+das Modul am Rand sitzt. Hätte es in der Mitte gesessen, wären es 40 mm² in
+jeder Lage gewesen.
+
+**Dazu aus derselben Quelle, vor dem Gießen der Masseflächen zu beachten:**
+*„Please add via holes in GROUND area as many as possible, especially around
+the four corners."* Also Durchkontaktierungen in der Massefläche, besonders an
+den vier Ecken.
+
+Raytac bietet an, ein Layout als PDF gegenzulesen (`service@raytac.com`).
+**Hier nur vermerkt** — Kontakt zu Herstellern nimmt Thomas selbst auf.
 
 ### Z3 — Akku unten, Anzeige oben, `y` 25 … 51
 
@@ -423,10 +452,10 @@ Sheet). Zu prüfen, bevor die Masseflächen gegossen werden.
 | J4 | oben | 12,0 | 27,0 | 0° | FPC-Fahne der Anzeige zeigt nach `y` = 0, die Fahne wird unter das Glas gelegt |
 | DS1 (Glas) | oben | 12,0 | 38,0 | 0° | 13,90 × 22,00 mm, Fenster im Gehäuse; aktive Fläche 10,54 × 14,70 mm |
 | Q4, R9, C13, C14 | oben | 3 … 6 | 28 … 36 | – | Lastschalter der Anzeige, neben dem Glas, kurze Bahn zu J4 Pin 10/11 |
-| U2 + C10, C11 | unten | 4,0 | 29,0 | 0° | Sicherheitschip; `SE_VOUT` von Pin 15 nach Pin 18 **so kurz wie möglich** |
-| U3 + C12, R8 | unten | 19,0 | 29,0 | 0° | Flash gegenüber von U2, beides im akkunahen Streifen neben der Zelle |
-| R6, R7 | unten | 4,0 | 33,0 | 0° | I2C-Abschluss, dicht an U2 |
-| U4, C2, R1, R2 | unten | 20,0 | 44 … 49 | – | Ladepfad gebündelt am akkufernen Ende, **weg vom Funkteil** |
+| U2 + C10, C11 | unten | 6,0 | 47,5 | 0° | Sicherheitschip, **am akkufernen Ende** (siehe Entscheidung unten); `SE_VOUT` von Pin 15 nach Pin 18 **so kurz wie möglich** |
+| U3 + C12, R8 | unten | 17,0 | 47,5 | 0° | Flash gegenüber von U2, gleiches Band |
+| R6, R7 | unten | 6,0 | 50,0 | 0° | I2C-Abschluss, dicht an U2 |
+| C1, U4, C2, R1, R2 | unten | 4 … 20 | 6 … 12 | – | Ladepfad gebündelt **nach Z1 verlegt**, zu C1 an `VBUS` — weg vom Funkteil und weg von der Zelle |
 | Q5, R17 | unten | 20,0 | 40,0 | 0° | Lastschalter Sensor; Stufe 2 |
 
 **Der Streifen neben der Zelle ist eng:** 24 − 19,75 = **4,25 mm**, aufgeteilt
@@ -442,22 +471,62 @@ zu Ende) und der Ladepfad nach Z1 zu C1. Dann steht in Z3 unten nur die Zelle.
 | --- | --- | --- | --- | --- | --- |
 | NFC-Schleife | oben + unten | – | 51 … 70 | – | Schleife am Rand umlaufend, Fläche etwa 19 × 24 mm; **innen keine geschlossene Massefläche** |
 | C15, C16 | unten | 9,0 / 15,0 | 52,0 | 0° | symmetrisch zur Mitte, **gleiche Bahnlängen zu `P0.09`/`P0.10`** |
-| SW1 | oben | 3,5 | 60,0 | 90° | seitlich betätigt, zeigt zur Kante `x` = 0 — mit dem Finger erreichbar |
-| SW2 | oben | 20,5 | 60,0 | 270° | Reset, gegenüberliegende Kante, damit er nicht versehentlich gedrückt wird |
 | D1 | oben | 12,0 | 66,0 | 0° | RGB-LED am Kopfende, von außen sichtbar; R10 … R12 daneben |
 | J5 | unten | 12,0 | 56,0 | 0° | Stiftfeld Fingerabdruck, Stufe 2, **verlegt aber nicht bestückt** |
 | J6 | unten | 12,0 | 67,0 | 0° | SWD am Kopfende, beim Entwickeln erreichbar |
 
-Die Taster in Z4 stehen in der Antennenfläche. **Sie sind aus Metall und
-beeinflussen die Abstimmung** — darum sitzen sie am Rand und werden beim
-Abstimmen mitgemessen, nicht hinterher angelötet.
+**In Z4 steht jetzt kein Metall mehr** außer der LED am Kopfende und dem
+unbestückten Stiftfeld J5 — die Taster sind herausgezogen, siehe unten.
+
+### Die Taster: aus der Schleifenfläche heraus, `y` 24,5
+
+| Teil | Seite | x | y | Dreh. | Warum |
+| --- | --- | --- | --- | --- | --- |
+| SW1 | oben | 3,5 | 24,5 | 90° | seitlich betätigt zur Kante `x` = 0; liegt **zwischen Modul (endet 21,5) und Anzeigeglas (beginnt 27)** — dem natürlichen Daumenplatz, wenn der Schlüssel in der Hand liegt |
+| SW2 | oben | 20,5 | 24,5 | 270° | Reset, gegenüberliegende Kante, damit er nicht versehentlich gedrückt wird |
+
+Das löst den Einwand von vorhin: **beide Taster sind aus der Antennenfläche
+heraus**, ohne die Bedienbarkeit zu verschlechtern — sie sitzen jetzt neben
+der Anzeige, die man ohnehin ansieht, statt am Kopfende.
+
+- Platzrechnung: Taster 3,5 mm lang → `y` 22,75 … 26,25. Modul endet bei 21,5,
+  Glas beginnt bei 27. **Bleibt 1,25 mm Luft zum Modul und 0,75 mm zum Glas.**
+  Eng, aber es passt; beim Zeichnen nachmessen.
+- SW2 liegt bei `x` 20,5 und damit **außerhalb** des Freihaltestreifens
+  (`x` 22,5 … 24, `y` 11 … 21,5).
+
+### Bedingungen für die NFC-Abstimmung — gehören ins Messprotokoll
+
+Nicht nur hierher: **eine Abstimmung, die unter anderen Bedingungen gemessen
+wurde, ist wertlos.** Beim Wobbeln müssen am Brett sein:
+
+1. **Der Akku eingelegt**, mit der Ferritfolie darunter — die Zelle ist
+   leitfähig und dämpft.
+2. **Das Gehäuse geschlossen**, wenn es eines gibt.
+3. **C15 = C16**, immer gleich gehalten.
+
+Dass die Taster bestückt sein müssen, ist mit dem Verschieben erledigt — sie
+liegen nicht mehr in der Schleifenfläche.
 
 ### Was an diesem Entwurf noch offen ist
 
-1. **U2 und U3 passen nicht neben die Zelle** (4,25 mm Streifen) — Vorschlag
-   oben, zu entscheiden.
-2. **Antennenfeld 19 mm statt 26 mm**, siehe Rechenfehler oben.
-3. **Die Freihaltezone des Moduls** ist geschätzt, nicht belegt.
-4. **Die genauen Pinlagen** aller Bauteile ergeben sich erst aus den
+1. **Die genauen Pinlagen** aller Bauteile ergeben sich erst aus den
    Footprints. **Pad-Maße aus dem Gerber prüfen**, nicht aus der Bibliothek.
-5. **Die Taster stehen in der Antennenfläche** — beim Abstimmen bestückt sein.
+2. **1,25 mm / 0,75 mm Luft um die Taster** — beim Zeichnen nachmessen.
+3. **Die Reichweite der kleineren Antennenschleife** ist nicht bekannt und wird
+   geringer sein als mit 26 mm Feld. **Gehört ehrlich ins Handbuch**, nicht in
+   eine Enttäuschung beim Antippen. Ist an den Handbuch-Strang zu übergeben.
+
+**Entschieden am 24.10.2026 (Master):**
+
+- **Antennenfeld 19 mm**, Schleife am ganzen Rand von Z4. Fläche schlägt Länge;
+  die schmale Zelle zu nehmen, um Länge zu verlieren, wäre ein schlechter
+  Tausch. **C15/C16 sind damit endgültig ein Messwert am fertigen Brett**, kein
+  Rechenwert — die 120 pF sind nur der Startpunkt.
+- **U2 und U3 nach `y` 44 … 51.** Das stärkere Argument ist nicht der Platz,
+  sondern dass die Zelle dann **plan auf der Ferritfolie liegt**.
+  **Auflage:** Die I2C-Leitung zwischen Modul und U2 wird dadurch rund 25 mm
+  lang. **Sie läuft auf einer Innenlage zwischen den beiden Masseflächen**,
+  nicht außen. Die Verbindung ist mit SCP03 verschlüsselt, aber eine lange, von
+  außen anstechbare Leitung ist trotzdem die bequemste Angriffsstelle auf der
+  ganzen Platine — und sie zu vergraben kostet nichts.

@@ -319,3 +319,52 @@ In der Reihenfolge, in der sie das Layout behindern:
 **Erledigt am 24.10.2026:** Die Raytac-Pinzuordnung ist am Datenblatt geprüft
 (XL1/XL2 = 17/18, `pinout.md` berichtigt), dass DEC4/DECUSB nicht herausgeführt
 sind, ist über die Pinzählung 48 + 5 + 8 = 61 bestätigt, und L1 ist entschieden.
+
+## Die Dateien im Repo: was gesichert ist und was nicht
+
+**Eine Platine, die nur im Editor existiert, ist nicht gesichert.** Darum liegen
+neben den Beschreibungen jetzt die Ausgaben aus EasyEDA selbst im Repo. Alle am
+**24.10.2026** über die Brücke erzeugt, nicht aus einem Ordner aufgesammelt:
+
+| Datei | Größe | sha256 (Anfang) | Was drin ist |
+| --- | --- | --- | --- |
+| `schematic-source-P1.txt` | 951 132 B | `6afda8097b4edb46` | Quelltext der Schaltplanseite P1, `doc_export_source` |
+| `pcb-source-PCB1.txt` | 27 595 B | `8604aa6593795821` | Quelltext der Leiterplatte (vier Kupferlagen, noch ohne Umriss und Bauteile) |
+| `netlist.enet` | 175 557 B | `02f52680d33e89a4` | Netzliste, `sch_netlist_export`, Format EASYEDA_PRO |
+| `schematic.pdf` | 364 317 B | `6f25a4713d51f0d5` | der Schaltplan zum Ansehen, `sch_export` |
+
+Herkunft der Seitenquelle, aus ihrem eigenen Kopf gelesen:
+`docType: SCH_PAGE`, `uuid: da22d6d3f4f24622`, `updateTime:`
+**2026-10-24T17:01:53Z**, `editVersion:` **3.2.209**. Geöffnet wird sie mit
+EasyEDA Pro ab dieser Fassung.
+
+### Was der Quelltext trägt — und was nicht
+
+**Er trägt die Seite, nicht die Bauteile.** Nachgezählt im Export:
+
+- **157 `COMPONENT`-Einträge** (54 Bauteile + 102 Netzfahnen + 1 Blattrahmen),
+- **219 `WIRE`** und 219 `LINE` — das sind die Stichleitungen,
+- **2507 `ATTR`** — Kennungen, Werte, Netznamen,
+- **keine einzige `PIN`-Zeile und keine Symbolgeometrie.**
+
+Jedes Bauteil steht nur als Verweis da (`partId: "pid…"`). **Damit ist der
+Export kein wiederherstellbares Projekt:** Topologie, Positionen, Netznamen und
+Bauteilverweise sind vollständig, die Symbole und Footprints selbst liegen im
+Projekt und in den Bibliotheken. Wer die Seite ohne das Projekt öffnet, hat
+Verweise auf Teile, die er erst wieder beschaffen muss. Für die hier benutzten
+Teile ist das machbar — es sind alles LCSC-Systembibliotheksteile, jedes mit
+Herstellernummer in der Tabelle oben —, aber es ist **Arbeit, kein Doppelklick**.
+
+**Vollständig wäre allein die Projektdatei `opensecurekey.eprj2`**, die EasyEDA
+beim Speichern selbst schreibt. Die liegt im Arbeitsordner von EasyEDA, nicht
+hier; die Brücke kann sie nicht erzeugen (es gibt keine Projektexport-Operation,
+nur `doc_export_source` je Dokument). **Sie gehört zusätzlich ins Repo** — den
+Griff muss jemand mit Zugang zu diesem Ordner tun.
+
+Was mit den vier Dateien oben allein möglich ist: der Schaltplan ist
+**lesbar** (PDF), die Verdrahtung ist **vollständig belegt** (Netzliste, 59
+Netze), und die Teile sind über ihre Bestellnummern **eindeutig bestimmt**.
+Ein Neuaufbau wäre damit deterministisch — aber von Hand.
+
+**Für die Zukunft:** nach jedem Zeichenabschnitt exportieren und einchecken,
+nicht erst am Ende.
