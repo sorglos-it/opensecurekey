@@ -204,7 +204,10 @@ def shell_bottom(p, d, preview=True):
     ops.append(("-", (d["pk_x0"], d["pk_x1"], d["pk_y0"], d["pk_y1"], d["z_pcb_bot"], z1)))
     # Raum fuer Ferritfolie, Akku und die flachen Bauteile
     ops.append(("-", (d["cv_x0"], d["cv_x1"], d["cv_y0"], d["cv_y1"], d["z_cav_bot"], d["z_pcb_bot"])))
-    # Oeffnung fuer den Fingerabdrucksensor der Stufe 2 - rund
+    # Sitz fuer den Fingerabdrucksensor: ein glattes Loch durch den Boden.
+    # Der Sensor ist ein Flex-Modul und wird von innen eingeklebt, mit seiner
+    # Flaeche buendig nach aussen - auf der Platine waere er 4,82 mm vom
+    # Finger entfernt und damit nutzlos. Siehe masse.md Abschnitt 14.
     if preview:
         ops.append(("-", _sq(p["fp_cx"], p["fp_cy"], p["fp_open_d"], z0, d["z_cav_bot"])))
     # Frontoeffnung fuer USB-C. Sie reicht ueber die Trennebene, also muss
@@ -227,14 +230,19 @@ def shell_bottom(p, d, preview=True):
 
 
 def sensor_plug(p, d, preview=True):
-    """Blindstueck, das die Sensoroeffnung in Stufe 1 schliesst."""
+    """Blindstueck, das den Sensorsitz schliesst, solange kein Sensor da ist.
+
+    Es wird von innen eingesetzt wie der Sensor selbst. Der Bund liegt innen
+    an und haelt es fest - aussen schliesst es buendig mit dem Boden ab.
+    """
     ops = []
     body = p["fp_open_d"] - p["fp_plug_fit"]
     flange = p["fp_open_d"] + 1.5
     z0 = d["z_floor"]
+    z1 = z0 + p["skin_t"]
     if preview:
-        ops.append(("+", _sq(p["fp_cx"], p["fp_cy"], body, z0, z0 + p["fp_plug_th"])))
-        ops.append(("+", _sq(p["fp_cx"], p["fp_cy"], flange, z0 - 0.4, z0)))
+        ops.append(("+", _sq(p["fp_cx"], p["fp_cy"], body, z0, z1)))
+        ops.append(("+", _sq(p["fp_cx"], p["fp_cy"], flange, z1, z1 + 0.4)))
     return ops
 
 

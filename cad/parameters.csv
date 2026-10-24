@@ -36,11 +36,11 @@ usb_body_h;3.46;Bauhoehe des USB4085 ueber der Platine - groessere Lesart der Ze
 usb_gap_top;0.1;Luft ueber dem Steckerkoerper - Blechgehaeuse, darf das Dach fast beruehren
 usb_nose_x;10.2;Laenge der Nase ab Platinenkante - Steckerkoerper 9,17 tief plus 1,0 Rand
 usb_cy;13.5;Frontoeffnung mittig auf der kurzen Kante
-fp_open_d;12.0;Sensoroeffnung - FPC2534 Durchmesser 11 + 0.5 Rand
+fp_open_d;11.3;Sensorsitz im Boden - Sensor D11,0 plus 0,3 Klebefuge; der Sensor sitzt IM Boden, nicht auf der Platine
 fp_cx;36.0;Sensormitte in Laengsrichtung - VORLAEUFIG
 fp_cy;19.2;Sensormitte quer - Zelle 1,20..13,20, Trennabstand 0,5, Sensor 13,70..24,70
 fp_plug_th;1.0;Dicke des Blindstuecks fuer Stufe 1
-fp_plug_fit;0.2;Spiel des Blindstuecks im Loch
+fp_plug_fit;0.2;Spiel des Blindstuecks im Sitz
 eye_len;8.0;Anbau der Oese hinter der Platine
 eye_hole_d;4.0;Loch der Oese
 outer_corner_r;3.0;Aussenradius der Gehaeuseecken
