@@ -1082,3 +1082,81 @@ den 3,8 mm Tiefe liegen wieder nur **1,5 mm auf der Platine**:
 > **`x` 25,5 … 27, `y` 12,0 … 22,6 — kupferfrei in allen vier Lagen.**
 
 **Prüfzahl für den Umriss: 194 mm** in vier Segmenten (2 × 27 + 2 × 70).
+
+## U3 unter dem Modul: nachgerechnet, und ich nehme es zurück
+
+Der Einwand war berechtigt. Raytacs Layout-Abschnitt verlangt unter dem Modul
+eine **durchgehende Massefläche**, in der Zeichnung auf Seite 14 ausdrücklich
+auch auf der Unterseite („Bottom layer: Ground Area"), dazu *„Please add via
+holes in GROUND area as many as possible, especially around the four
+corners."*
+
+**Die Zahlen, nicht das Gefühl.** Modulschatten `x` 10,0 … 25,5 × `y` 12,0 …
+22,6 = **164,30 mm²**. U3 mit 8 × 6 mm an `x` 18 / `y` 19,5, plus 0,25 mm
+Abstandsring zur Fläche:
+
+| | mm² | Anteil |
+| --- | --- | --- |
+| Modulschatten | 164,30 | 100 % |
+| U3 mit Abstandsring (8,5 × 6,5) | **55,25** | **33,6 %** |
+| **Massefläche bleibt** | **109,05** | **66,4 %** |
+
+**Ein Drittel der Fläche wäre weg**, die der Hersteller als durchgehend
+verlangt.
+
+**Und die Eckvias?** Links bleiben 3,75 mm, rechts 3,25 mm, unten 4,25 mm —
+dort passen Durchkontaktierungen. **Oben nicht:** der Abstandsring reicht bis
+`y` 22,75, die Modulkante liegt bei 22,6. **Rechnerisch −0,15 mm, also kein
+Platz, sondern Überstand.** Die Oberkante des Modulschattens wäre nicht nur
+viafrei, U3 ragte dort hinaus.
+
+**Zur eigentlichen Frage — reicht eine durchgehende Fläche auf `INNER_1`,
+wenn `BOTTOM` unterbrochen ist? `ungeprueft`.** Raytacs Zeichnung zeigt eine
+**zweilagige** Platine; eine Aussage für vier Lagen steht dort nicht, und ich
+habe keine gefunden. **Ich lege das nicht zu meinen Gunsten aus.**
+
+> **Damit nehme ich U3 unter dem Modul zurück.** Es gilt die Hausregel: bei
+> zwei Wegen und unbelegter Lage die sicherere Variante. Ein langsamerer Flash
+> ist ein Ärgernis, schlechter Funk macht das halbe Gerät wertlos.
+
+**Neuer Platz: `x` 5,45 / `y` 18,0, Unterseite** — im Streifen **links neben
+dem Modulschatten** (`x` 1,20 … 10,0, 8,80 mm breit × 15,5 lang). U3 mit
+Abstandsring braucht 8,5 mm, es bleiben **0,30 mm** übrig. Eng, aber es passt,
+und die Massefläche unter dem Modul bleibt **ganz**.
+
+**Was das kostet:** Die sechs QSPI-Leitungen werden einige Millimeter länger,
+weil sie am Modulschatten vorbei müssen. **Immer noch ein Bruchteil der 25 mm**,
+die es aus Z3 geworden wären. Die genaue Länge ergibt sich erst, wenn die
+Pad-Lagen des Moduls bekannt sind.
+
+**Verdrängt werden dadurch** L1, C3, C4, C5, X1, C8, C9 aus genau diesem
+Streifen. Alle sieben sind klein (0402/0603 und ein 3,2 × 1,5-Quarz), und in
+Z2 bleiben rund 280 mm² frei — **aber ihre neuen Plätze setze ich erst mit den
+Footprints**, nicht vorher.
+
+## Zwei Befunde vom Umriss, die in die Notizen gehören
+
+**1. Der Umriss ist ein POLY, keine Linie — und meine Prüfzahl war die
+falsche.** Thomas hat gezeichnet, aus dem Quelltext gelesen steht dort
+
+```
+{"type":"POLY","polyType":"BOARD_OUTLINE","layerId":11,
+ "path":["R",0,2755.9055,1062.9921,2755.9055,0,0]}
+```
+
+In mil, umgerechnet **27,0000 × 70,0000 mm**, Umfang **194,0 mm** — genau die
+Prüfzahl, und das `R` heißt Rechteck, also geschlossen.
+
+> **Die Lehre, und sie korrigiert auch meine eigene Beweisführung weiter oben:**
+> `pcb_lines_list` auf `BOARD_OUTLINE` meldet **count 0, obwohl der Umriss da
+> ist** — er ist ein POLY, kein LINE. Ich hatte diese Null oben als Belegstück
+> aufgeführt („nachgezählt: 0 Segmente"). **Als Beweis, dass nichts angelegt
+> wurde, war sie nie tauglich**; der eigentliche Beleg ist die Fehlermeldung
+> der Schnittstelle. **Geprüft wird ein Umriss mit `doc_export_source`, nicht
+> mit `pcb_lines_list`.**
+
+**2. Der Regelsatz steht:** „JLCPCB Capability(**Multiple Layers Board**)",
+ausgelesen, nicht mehr „Two Layers".
+
+**Damit sind die Vorbedingungen für `pcb_import_changes` erfüllt:** Rand da,
+Regelsatz passend, vier Kupferlagen gesetzt.
