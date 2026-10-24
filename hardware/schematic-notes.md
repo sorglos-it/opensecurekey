@@ -3,8 +3,9 @@
 Stand 24.10.2026. Gezeichnet in EasyEDA Pro 3.2.209 über die Sorglos-EDA-Brücke,
 Projekt `opensecurekey`, Board1, Schaltplanseite P1 (A4).
 
-**Stand: gezeichnet, DRC bis auf einen Punkt sauber, Netzliste abgeglichen.
-Nichts gefertigt, nichts gemessen.** Das Layout kommt in einem späteren Durchgang.
+**Stand: gezeichnet, DRC null Fehler, Netzliste abgeglichen. Nichts gefertigt,
+nichts elektrisch gemessen.** Das Layout kommt in einem späteren Durchgang;
+was dort als erstes zu tun ist, steht in `layout-notes.md`.
 
 ## Was auf der Seite steht
 
@@ -26,7 +27,7 @@ Bauteil weg gedreht. Nichts klebt direkt am Pin.
 | J4 | FPC-ZIF 12-polig, 0,5 mm | C9900036520 |
 | J5 | Stiftfeld 1×6, 1,27 mm (Fingerabdruck) | C41434767 |
 | J6 | Stiftfeld 1×4, 2,54 mm (SWD) | C2691448 |
-| SW1, SW2 | Panasonic EVQP7A01P | C79167 |
+| SW1, SW2 | Panasonic **EVQP7C01P** | C388883 |
 | D1 | Everlight 19-337C/RSBHGHC-A88/4T | C3019536 |
 | D2 | Nexperia PESD5V0X1BCL,315 | C552589 |
 | Q1–Q5 | Diodes DMG2305UX, SOT-23 | C2940629 |
@@ -159,7 +160,8 @@ Die übrigen Modulpinnummern, die `pinout.md` offenließ, stehen jetzt fest:
 | FP_IRQ (`P1.03`) | **Netz mit einem Pin**, Testpunkt | J5 hat nur 6 Pole, alle belegt. Steht als DRC-Warnung drin und soll dort stehen bleiben, bis entschieden ist, ob J5 auf 1×7 wächst. |
 | J4 Pin 13/14 | an `GND` | Das gewählte FPC-Teil hat **14 Pole**: 12 Signale plus zwei Haltelaschen. Die Laschen gehören mechanisch auf Masse. Die Vorlage kennt nur 12. |
 | J2 Pin 3/4 | an `GND` | dasselbe beim Akkustecker: zwei Haltelaschen. |
-| SW1/SW2 | beide Kontaktpaare verdrahtet | Das EVQP7A01P-Symbol hat vier Pole (1, 1′, 2, 2′) — zwei parallele Kontakte. Beide Seiten liegen auf demselben Netz, so wie das Teil gebaut ist. |
+| SW1/SW2 | beide Kontaktpaare verdrahtet | Das Symbol hat vier Pole — zwei parallele Kontakte. Beide Seiten liegen auf demselben Netz, so wie das Teil gebaut ist. |
+| SW1/SW2 Typ | **EVQP7C01P statt EVQP7A01P** | Beim A-Typ passen Symbol- und Padnamen nicht zusammen; das war der eine DRC-Fehler. Einzelheiten im DRC-Abschnitt. |
 | U2 Pin 21, U3 Pin 9 | an `GND` | Mittelpad (EP). Bei U2 verlangt das Datenblatt es nicht, empfiehlt es aber thermisch; bei U3 ist es üblich. |
 | J3, J6 | 2,54-mm-Stiftfelder | Für 1,27 mm gibt es in der Bibliothek kein 2- und kein 4-poliges Teil. Fürs Layout zu ersetzen. |
 | Unbenutzte Pins | 29 **No-Connect-Fahnen** | 16 an U1 (ungenutzte GPIOs und Trace-Pins), 10 an U2 (n.c. und ISO7816), J1 A8/B8 (SBU), J4 Pin 2 (D2, nur für I2C-Betrieb). So bleibt „offen" eine Aussage und kein Versehen. |
@@ -190,17 +192,66 @@ Fassung hätte beim ersten Einstecken `VBUS` gegen Masse kurzgeschlossen.
 
 | | |
 | --- | --- |
+| **Fehler** | **0** — `passed: true` |
 | Warnung | `FP_IRQ` ist ein Netz mit einem Pin — gewollt, Testpunkt (siehe oben) |
-| **Fehler** | **1 Fehler, von der Schnittstelle nicht benannt** |
 
-**Der eine Fehler ist offen.** EasyEDA gibt über die Schnittstelle nur Zähler
-heraus, die Texte stehen allein in seinem DRC-Bereich; der ist geöffnet. Die
-eigenen Prüfungen der Brücke (freie Pins, zwei Namen an einem Draht, Fahne gegen
-Netzname, zwei Fahnen an einem Draht, Draht ohne Pin, doppelte Kennungen) finden
-**nichts** — der Fehler kommt also aus einer Regel, die die Brücke nicht
-nachbildet. Ausgeschlossen ist: doppelte oder fehlende Kennungen (54 Bauteile,
-alle eindeutig, alle mit Footprint) und ein Überlauf über den Blattrand
-(Verschieben der rechten Spalte ändert den Zähler nicht).
+### Der Fehler, der eine Runde gekostet hat: der Taster passte nicht zu sich selbst
+
+Zwei Tage lang stand hier „1 Fehler, von der Schnittstelle nicht benannt".
+EasyEDA gibt über die Brücke nur Zähler heraus; den Wortlaut hat Thomas aus dem
+DRC-Bereich vorgelesen:
+
+```
+[Error] The pin of the component EVQP7A01P does not correspond to the pad
+(Pin has no corresponding pad : 1'、2' ; Pad has no corresponding pin: 1'、2')
+: $1I42, $1I43
+```
+
+Das waren SW1 und SW2. **Dieselben zwei Namen stehen auf beiden Seiten** —
+einmal als „Pin ohne Pad", einmal als „Pad ohne Pin". Es fehlt also kein Pad;
+der **Namensvergleich** scheitert.
+
+**Gemessen, soweit die Brücke es hergibt:**
+
+- Die **Symbolseite** des EVQP7A01P führt die vier Pole als `1`, `2`, `1'`,
+  `2'`. Die Brücke gibt die beiden letzten als `1&apos;` und `2&apos;` heraus —
+  `&apos;` ist die HTML-Entität für das **gerade Hochkomma U+0027**.
+- Die **Padseite ist nicht auslesbar.** `lib_footprint_get` liefert nur
+  Kopfdaten (Name, Klassifikation, Beschreibung), keine Padliste; eine Padliste
+  gibt es erst, wenn das Footprint auf einer Platine liegt. **Welches Zeichen
+  die Padnamen tragen, ist mit der Brücke nicht festzustellen** — insoweit
+  bleibt die Ursache `ungeprueft`.
+- **Ein Beleg dafür, dass in dieser Teilefamilie verschiedene Zeichen umlaufen,
+  liegt aber vor:** Der Schwestertyp **EVQP7C01P** benennt seine Pole
+  ``1``, ``2``, ``1` ``, ``2` `` — mit **Backtick U+0060**, nicht mit Hochkomma.
+  Zwei Panasonic-Taster derselben Reihe, zwei verschiedene Zeichen. Dass beim
+  A-Typ Symbol und Footprint auf verschiedene Zeichen fallen, ist damit die
+  naheliegende Erklärung, und sie passt genau zur Meldung.
+
+**Lösung: Tausch auf den EVQP7C01P** (C388883). Gleicher Hersteller, gleiche
+Reihe, **gleiche Maße** 3,5 × 3,55 × 1,35 mm, gleiche Betätigungskraft 2,2 N,
+50 mA, seitlich betätigt, gleiches 3D-Modell — **das Layout muss nicht umgeplant
+werden.** Das Symbol selbst zu berichtigen war kein Weg: die Brücke kann
+Bibliotheksteile nur lesen.
+
+**So ist der Tausch geprüft worden, in dieser Reihenfolge:**
+
+1. Den C-Typ **zuerst als Wegwerfteil SW3** auf die Seite gesetzt und den DRC
+   laufen lassen: Fehlerzahl blieb **1** (also der A-Typ), der C-Typ brachte
+   **keinen** dazu. Damit war belegt, dass er mit seinem Footprint
+   zusammenpasst, *bevor* die alten Taster gelöscht wurden.
+2. SW3 und die alten SW1/SW2 gelöscht, die neuen an **dieselben Koordinaten**
+   gesetzt. Die Pinabstände sind identisch (±7,62 mm und ±2,54 mm), darum
+   greifen die vorhandenen Stichleitungen wieder: der Änderungssatz meldet
+   **8 Stiche übersprungen** statt neu gezogen.
+3. Die acht Pins gegen EasyEDAs Netzliste zurückgelesen: **null Abweichungen**.
+   `BUTTON`, `NRESET` und `GND` stehen wie vorher.
+4. `sch_drc_run`: **`passed: true`, 0 Fehler, 1 Warnung** (FP_IRQ).
+
+Die Haltelaschen `1'`/`2'` liegen beim neuen Teil wie vorher auf demselben Netz
+wie der jeweilige Hauptkontakt — es sind zwei parallele Kontakte, nicht
+Befestigungspunkte. (Bei J2 und J4 war es anders: dort sind die Zusatzpole
+wirklich Laschen und liegen auf `GND`.)
 
 ## Eigenheiten des Werkzeugs, die Zeit gekostet haben
 
@@ -222,25 +273,31 @@ Für den nächsten Durchgang festgehalten:
 4. **Ein Bauteil verschieben reißt seine Stichleitungen ab.** Nach jedem
    Verschieben muss der Verdrahtungssatz mit `clear` neu laufen.
 5. **`VBAT` ist bei EasyEDA ein belegter Netzname** und landet auf GND.
+6. **Ein Bibliotheksteil kann zu sich selbst unverträglich sein.** Beim
+   EVQP7A01P tragen Symbol- und Padnamen verschiedene Hochkomma-Zeichen, und
+   EasyEDA meldet das als Fehler, dessen Text nur im DRC-Bereich steht. Prüfung
+   ohne Handarbeit: **das Teil als Wegwerfbauteil setzen und den DRC laufen
+   lassen** — bringt es keinen Fehler dazu, passt es. So ist es belegt, bevor
+   man etwas Funktionierendes löscht.
 
 ## Offene Punkte für den Layout-Durchgang
 
 In der Reihenfolge, in der sie das Layout behindern:
 
-1. **Der eine DRC-Fehler** (siehe oben) — am offenen DRC-Bereich ablesen.
-2. **L1 braucht 0,35 mm mehr Breite als 0805** (2,0 × 1,6 mm statt 2,0 × 1,25).
-   Alternative mit mehr Reserve: NLCV25T-100K-EFRD im 1008-Gehäuse.
-3. **Pad-Maße aus dem Gerber prüfen**, nicht aus der Bibliothek — Hausregel, und
+1. **L1 ist 1008 statt 0805** (2,5 × 2,0 mm statt 2,0 × 1,25) und hat als
+   drahtgewickelte Spule ein Streufeld — Platzierungsauflage in
+   `layout-notes.md`.
+2. **Pad-Maße aus dem Gerber prüfen**, nicht aus der Bibliothek — Hausregel, und
    in einem anderen Projekt lag die Bibliothek um bis zu 4,5 mm daneben.
-4. **J3 und J6** auf richtige Teile bringen (1,27 mm bzw. Testpunkte).
+3. **J3 und J6** auf richtige Teile bringen (1,27 mm bzw. Testpunkte).
    **Entschieden: nicht jetzt, aber vor dem ersten Gerber.** Der Schaltplan
    trägt die Verbindungen, nicht die Maße — ein Teiletausch jetzt kostet eine
    Runde und bringt nichts. Auf einem Schlüsselanhänger sind 2,54-mm-Stiftfelder
    aber nicht unterzubringen, also muss es weg, bevor gefertigt wird.
-5. **C15/C16 am Netzwerkanalysator abstimmen**, beide Zweige immer gleich.
-6. **Die LED-Vorwiderstände am Muster nachstellen** (R10 1 kΩ, R11/R12 470 Ω
+4. **C15/C16 am Netzwerkanalysator abstimmen**, beide Zweige immer gleich.
+5. **Die LED-Vorwiderstände am Muster nachstellen** (R10 1 kΩ, R11/R12 470 Ω
    sind vorläufig).
-7. **Der Akku darf nicht hinter der NFC-Antenne liegen**, dazu Ferritfolie
+6. **Der Akku darf nicht hinter der NFC-Antenne liegen**, dazu Ferritfolie
    zwischen Akku und Antenne (`layout-notes.md`).
 
 **Erledigt am 24.10.2026:** Die Raytac-Pinzuordnung ist am Datenblatt geprüft
