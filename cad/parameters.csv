@@ -10,7 +10,7 @@ ledge_w;1.2;Auflagebreite fuer die Platine rundum - bauteilfreier Rand
 gap_top;0.3;Luft ueber dem hoechsten Bauteil der Anzeigenseite
 gap_bot;0.2;Luft unter der Platine, Loetseite
 h_top_part;2.05;hoechstes Bauteil oben - U1 Modul MDBT50Q-1MV2
-h_bot_part;4.45;hoechstes Bauteil unten - Ferritfolie 0,4 + schmale Zelle LP-401230-J 4,05
+h_bot_part;4.45;Ferritfolie 0,4 + Zellenreserve 4,05 - gewaehlt ist die Adafruit 1317 mit 3,80; die 0,25 mm sind Reserve fuer beide Zellen und fuers Quellen
 lip_h;1.0;Hoehe der Schnappstufe ueber der Trennebene
 lip_t;0.8;Dicke der Schnappstufe, halbe Seitenwand
 snap_len;6.0;Laenge eines Schnappwulstes

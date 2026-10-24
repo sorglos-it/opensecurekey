@@ -33,9 +33,13 @@ Die Schätzung in `../hardware/layout-notes.md` war eine Addition ohne Gehäuse.
 Mit Wandstärken, Luftspalten und Ferritfolie sind es **9,80 mm** hinten,
 realistisch 9,8–10,3 mm. Vorn kommt die Nase dazu: **11,01 mm**.
 
-**Die schmale Zelle ist nicht dünner, sondern dicker** (4,05 statt 3,80 mm) –
-sie hilft nur gegen Breite und Länge. Weil Stufe 2 sie braucht, ist der
-Hohlraum auf 4,65 mm ausgelegt; **damit trägt das Gehäuse beide Zellen.**
+Gewählt ist die **Adafruit 1317** mit 3,80 mm. Damit käme die Rechnung auf
+9,55 mm – der Hohlraum ist trotzdem 4,65 mm tief, also auf die 4,05 mm dicke
+Rückfallzelle ausgelegt. **Die 0,25 mm sind Absicht:** das Gehäuse trägt damit
+beide Zellen, und die Zelle hat Platz zum Quellen. Die Zelle hat heute dreimal
+gewechselt; ein Gehäuse, das nur zu einer passt, wird beim nächsten Wechsel neu
+gedruckt. Wer die 9,55 mm will, ändert eine Zeile – [masse.md](masse.md),
+Abschnitt 3.
 
 ### 2. Der Fingerabdrucksensor hat die Platinenbreite bestimmt
 
@@ -268,8 +272,8 @@ Vollständig in [masse.md](masse.md), Abschnitt 13. Das Wichtigste:
 
 1. **Ob der Stecker 3,16 oder 3,46 mm über der Platine steht** – gerechnet ist
    mit der größeren Zahl, also der sicheren. Betrifft nur die Höhe der Nase.
-2. **Breitentoleranz der Zelle** – steht in `../docs/parts.md` nicht. Sie ist
-   das, was die 1,10 mm Reserve der Stufe 2 auffangen muss.
+2. **Wie stark die Zelle über die Lebensdauer quillt** – steht in
+   `../docs/parts.md` nicht. Dafür sind die 0,25 mm Reserve im Zellenraum da.
 3. **Körperlänge des EVQP7C01P** – Panasonic sagt 3,5 mm, DigiKey 4,70 mm. Die
    Freistellung ist mit 5,6 mm so gewählt, dass **beide Lesarten passen**.
    Sollte am Footprint auffallen, welche stimmt: Bescheid sagen.
@@ -291,10 +295,12 @@ Vollständig in [masse.md](masse.md), Abschnitt 13. Das Wichtigste:
 10. **Schlüsselring aus Stahl neben der NFC-Antenne** – nur messbar, nicht
     rechenbar.
 
-**Geschlossen am 24.10.2026:** *Liegt die Zelle außermittig?* **Nein, sie
-bleibt mittig.** Der Versatz war die Antwort darauf, dass neben der 19,75 mm
-breiten Zelle nichts mehr Platz hatte; mit der 12 mm schmalen Zelle gibt es
-diesen Engpass nicht mehr. Hohlraum und Ferritfolie bleiben symmetrisch.
+**Geschlossen am 24.10.2026:** *Liegt die Zelle außermittig?* **Nein, mittig.**
+Der Versatz war zweimal die Antwort auf ein Platzproblem neben der Zelle –
+erst der Sicherheitschip, dann das Sensorfeld. Seit der Sensor im Boden sitzt,
+zwingt nichts mehr an die Kante. Mit der Adafruit 1317 liegt sie quer
+3,62…23,38 mm, also 2,42 mm von der Hohlraumwand. Hohlraum und Ferritfolie
+sind symmetrisch, die Folie wieder 19,75 mm breit.
 
 **Geschlossen am 24.10.2026:** *Auf welcher Seite liegt das Sensorfeld?*
 **Unten**, auf der Akkuseite – oben überlappte es das Anzeigeglas. Die
