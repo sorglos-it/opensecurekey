@@ -153,7 +153,25 @@ MIKROE-5392** — es trägt den Zielchip SE051C2 und kostet weniger als die Häl
 Alle Preise und Bestände in diesem Abschnitt sind Momentaufnahmen aus dem
 Suchindex und **ungeprueft**; vor der Bestellung die Händlerseite ansehen.
 
-## Fingerabdrucksensor — kein Kandidat erfüllt alles
+## Fingerabdrucksensor — überholt, siehe fingerprint.md
+
+> **Dieser Abschnitt ist vom zweiten Durchgang überholt.** Er steht hier, weil
+> er zeigt, wie die Entscheidung „Stufe 1 ohne Sensor" zustande kam. Aktueller
+> Stand: [fingerprint.md](fingerprint.md). Mit dem **FPC2534AM (AllKey Pro)**,
+> Ø 11 × 0,83 mm, gibt es einen Sensor, der **alle vier** Bedingungen erfüllt —
+> er rechnet selbst, ist bei DigiKey und Mouser einzeln zu bekommen, seine
+> Beschreibung ist öffentlich (SPC27317 Fassung 8), und mit 0,83 mm ist die
+> Baugröße kein Hindernis mehr.
+>
+> Zwei Aussagen unten sind widerlegt:
+> - Der Host-Befehlssatz des BM-Lite ist **nicht** hinter einer Unterschrift —
+>   er liegt als Quelltext unter Apache-2.0 vor, mit Fingerprint Cards AB als
+>   Urheber, zweifach unabhängig belegt. Es war ein Fundproblem, kein
+>   Lizenzproblem.
+> - Dem Grow R503 wird vorgehalten, er liefere auf Befehl Rohbilder. Das
+>   BM-Lite tut das auch (`CMD_IMAGE`). Kein Unterscheidungsmerkmal.
+
+## Erster Durchgang: kein Kandidat erfüllte alles
 
 Das war der schwerste Punkt. **Entschieden: Stufe 1 ohne Sensor** (Begründung
 am Ende des Abschnitts). Die Recherche steht hier vollständig, weil Stufe 2
