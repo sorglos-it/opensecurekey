@@ -1956,3 +1956,89 @@ zwischen Modul und Anzeige, und SW1 und SW2 stehen nicht mehr symmetrisch.
 `SW2` ans USB-Ende (Symmetrie weg), **beide** Taster dorthin (Symmetrie bleibt,
 zwei Öffnungen wandern), oder das Anzeigefenster beginnt später als `y` 27.
 **Ich habe keinen eingebaut.**
+
+# SW2 versetzt, Masseflächen gegossen — und eine Art Kollision, die ich nie geprüft hatte
+
+Stand 24.10.2026, später Abend.
+
+## SW2 steht am USB-Ende
+
+`SW2` (Reset) auf **23,500001 / 8,6412, Drehung 270°**. Pads jetzt
+`x` 22,2008 … 24,7994, `y` **6,1402 … 11,1419**.
+
+Nicht ganz an den unteren Rand, obwohl dort noch Platz wäre: am USB-Ende
+liegen die **Mulde und der Steckerüberstand** des Gehäuses. Der Taster sitzt
+deshalb oberhalb von J1s Streifen. Abstand nach oben zu U1s Körper (12,0499):
+**0,9080 mm**.
+
+`SW1` bleibt, wo es ist — neben der Anzeige, wo der Bestätigen-Knopf hingehört.
+
+## Der Befund: Schlitzbereiche
+
+Die PCB-DRC meldete **„SMD Pad to Slot Region, distance is 0mm"**. Die Taster
+haben **Schlitzbereiche** — Durchbrüche durch die Platine für den Betätiger.
+
+> **Ein Schlitz ist kein Pad.** Mein Vergleich hat Pad gegen Pad gerechnet und
+> konnte diese Art Kollision **grundsätzlich nicht finden**, egal wie genau er
+> war. Und weil ein Schlitz durch die ganze Platine geht, trifft er auch
+> Bauteile auf der **anderen** Lage: `SW1` liegt oben, `C5` und `C3` unten.
+
+| Paar | Lage | Zustand |
+| --- | --- | --- |
+| `C5_2` ↔ SW1-Schlitz | unten/oben | **0 mm — bestand schon vorher** |
+| `C3_1` ↔ SW1-Schlitz | unten/oben | **0 mm — bestand schon vorher** |
+| `C3_2` ↔ SW1-Schlitz | unten/oben | **0 mm — bestand schon vorher** |
+| `C1_2` ↔ SW2-Schlitz | unten/oben | **0 mm — von mir verursacht, behoben** |
+
+Nachgerechnet, wer was verursacht hat: `C5` und `C3` lagen **vor und nach**
+meiner Verschiebung in SW1s `x`-Bereich (2,2008 … 4,7994). Die drei sind alt.
+Die vierte entstand, als ich SW2 nach unten setzte — **C1 lag dort schon.**
+`C1` ist um **1,1992 mm** nach links gerückt, auf `x` 20,8008; Luft zu `R16`
+**0,9852 mm**. Danach: Clearance-Fehler von 5 auf 4.
+
+**Die drei alten bleiben offen, und sie sind keine Rechenfrage:** `SW1` steht
+bei `x` 2,2 … 4,8 und spannt `y` 22,0 … 27,0; die Bauteilreihe liegt bei
+`y` 23,9 und läuft genau darunter hindurch. Wer die Reihe rechts an SW1
+vorbeischiebt, beginnt bei `x` 5,10 — dann stünde `X1` bei 14,77 statt 11,82
+und `L1` bei 18,52, also **6,5 mm von DCCH** statt 2,59. **Das verschlimmert
+genau das, was heute schon teuer war.**
+
+## Masseflächen: vier Lagen, Zone frei
+
+| | |
+| --- | --- |
+| Lagen | TOP, INNER_1, INNER_2, BOTTOM, Netz `GND`, SOLID |
+| Umriss | 0,254 … 26,746 × 0,254 … 69,746 (Regel Kupferfläche ↔ Rand = 0,254) |
+| Aussparung | `x` ab **23,148**, `y` **12,05 … 22,55** — die Freihaltezone |
+
+**„rebuilt" heißt nicht „gefüllt".** Der erste Durchgang meldete alle vier
+Flächen als neu gebaut, und das Bild zeigte **kein Kupfer**. Erst nach
+`doc_reload` und einem zweiten Aufbau war die Platine gefüllt. Hätte ich der
+Rückmeldung geglaubt, hätte ich leere Flächen als fertig gemeldet.
+
+**Nebenbei: der Platinenrand ist da.** Das Bild zeigt das Rechteck (0|0) …
+(27|70). `pcb_lines_list` meldet für die Umrisslage weiterhin **0** — genau
+der Fall, vor dem ich mich selbst gewarnt hatte. **Gut, dass ich ihn als
+unbekannt behandelt und nicht als fehlend gemeldet habe.**
+
+**Vier Massepads hängen noch:** `U2_1`, `U2_17`, `U2_19` und `C17_2`, alle
+unten. Nicht 57, sondern vier — **die Fläche verbindet also.** Zwischen die
+Pads eines QFN mit 0,4 mm Raster kommt kein Gießkupfer; diese vier brauchen
+beim Verlegen je eine Durchkontaktierung. Das ist Verlegearbeit, kein
+Gießfehler.
+
+## Offene Punkte, die jemand anderen betreffen
+
+1. **Gehäuse: die Öffnung für SW2 wandert.** Geplant war die Seitenwand bei
+   `y` 22,75 … 26,25. SW2 liegt jetzt bei `y` 6,14 … 11,14, also am USB-Ende.
+   **Der Gehäuse-Strang ist archiviert**; das muss in einen neuen Durchgang
+   oder von Hand nachgezogen werden. SW1s Öffnung bleibt, wo sie war.
+2. **Quarz und Spule: nicht nachjustieren.** Die Wandlerschleife ist 1,1075 mm
+   länger geworden, weil X1 an die Pads 17/18 muss. **Wenn das zu viel ist,
+   gehört der Quarz in eine andere Reihe** — dieselbe Reihe anders zu
+   verteilen, macht es nur anders schlecht.
+3. **J4 ist im Schaltplan getauscht, auf der Platine noch nicht.** Die DRC
+   meldet **1 Netzlistenfehler**; das ist mit großer Wahrscheinlichkeit genau
+   das — „Import Changes" samt „Apply Changes" steht noch aus und braucht einen
+   Klick. **Nachgesehen habe ich es nicht**, also steht es hier als Vermutung
+   mit ihrem Grund, nicht als Befund.
