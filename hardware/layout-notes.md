@@ -971,8 +971,15 @@ Breite, nicht Plattenbreite — der Klemmkragen nimmt 1,2 mm je Seite):
 
 **Rund ein Fünftel weniger Fläche.** Meine 494 mm² von vorhin waren mit der
 voll­en Plattenbreite gerechnet — die steht nicht zur Verfügung. Thomas kennt
-den Preis und hat ihn angenommen; **er gehört so ins Handbuch**, wo schon
-steht, dass keine Zahl zur Reichweite genannt wird.
+den Preis und hat ihn angenommen.
+
+> **Diese Zahl bleibt hier und kommt nicht ins Handbuch** (entschieden
+> 24.10.2026). Dem Nutzer sagt eine Flächenangabe nichts; er braucht die
+> Folge, und die steht im Handbuch schon: näher halten als eine Karte, und
+> keine Zahl, bis gemessen wurde. **Eine Quadratmillimeterzahl daneben würde
+> Genauigkeit vortäuschen, wo die Reichweite gar nicht bekannt ist.** Die
+> 357 mm² gehören hierher — und an die Stelle, wo später die gemessene
+> Reichweite eingetragen wird.
 
 ## Quer: Zelle und Sensorfeld nebeneinander
 
