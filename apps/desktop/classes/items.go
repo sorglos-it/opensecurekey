@@ -80,6 +80,13 @@ type Item struct {
 	ChangedUTC     int64    `json:"changed"`
 	Mirrored       bool     `json:"mirrored"`
 	PairedHostOnly bool     `json:"pairedHostOnly"`
+
+	// Der oeffentliche Teil, bei SSH-Schluesseln, Zertifikaten und
+	// PGP-Schluesseln. Er ist KEIN Geheimnis: das Geraet gibt ihn ohne
+	// Freigabe heraus, und wer ihn wie ein Geheimnis behandelt, kostet nur
+	// Tastendruecke. Leer, wenn der Typ keinen hat oder das Geraet ein
+	// aelteres Protokoll spricht.
+	Pub []byte `json:"pub,omitempty"`
 }
 
 // Obergrenzen fuer Eingaben. Sie gelten in Oberflaeche und Kommandozeile und
