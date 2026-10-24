@@ -327,11 +327,18 @@ Vom Schaltplan unabhängig und darum vorgezogen:
   | 3 | `pcb_apply` erneut, 0,254 mm, vorher `dry_run` (Plan sauber: 4 Linien) | abgelehnt, 4 von 4 |
 
   **Gegenprobe:** dieselbe Linie auf `TOP` mit Netz `GND` gelingt auf Anhieb —
-  Testspur danach gelöscht. Es liegt also nicht am Werkzeug, an der Breite, an
-  den Koordinaten oder am fehlenden Netz, sondern daran, dass der Umriss-Layer
-  in EasyEDAs Typliste für Linien (`TPCB_LayersOfLine`) nicht vorkommt. Ein
-  Umriss bräuchte eine **Polylinie**, und die bietet die Brücke nicht an.
-  Nachgezählt: `pcb_lines_list` auf dem Umriss-Layer liefert **0 Segmente**.
+  Testspur danach gelöscht. Es liegt also nicht am Werkzeug, nicht an der
+  Breite, nicht an den Koordinaten und nicht am Netz. Nachgezählt:
+  `pcb_lines_list` auf dem Umriss-Layer liefert **0 Segmente**.
+
+  > **Berichtigung 24.10.2026:** Hier stand, der Umriss-Layer komme in
+  > EasyEDAs Typliste für Linien nicht vor. **Das ist falsch.** Die Liste
+  > `TPCB_LayersOfLine` führt `EPCB_LayerId.BOARD_OUTLINE` ausdrücklich auf —
+  > nachgelesen in der API-Referenz. Erlaubt ist der Layer also; die
+  > Umsetzung lehnt ihn trotzdem ab, in fünf Spielarten (mit und ohne Netz,
+  > mit vorhandenem Netz `GND`, mit und ohne Breitenangabe, bei 0/0 und bei
+  > 100/100, einzeln und im Änderungssatz). **Die Ursache ist damit unbekannt,
+  > nicht erklärt.** Der Befund bleibt: über die Brücke geht es nicht.
 
   **24 × 70 mm sind darum im Editor von Hand zu zeichnen**, bevor platziert
   wird. Die Ecken müssen exakt aufeinandertreffen, sonst ist der Rand offen.
