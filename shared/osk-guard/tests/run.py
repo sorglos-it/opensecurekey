@@ -23,6 +23,7 @@ import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -67,14 +68,137 @@ def php_command():
                   'extension=sodium in der php.ini')
 
 
+# Werkzeuge, die hier nicht im PATH stehen, aber da sind. Die Liste ist der
+# Beleg: dass etwas nicht im PATH ist, heisst nicht, dass es fehlt - und wer
+# eine Abwesenheit meldet, nennt die Orte, an denen er gesucht hat.
+EXTRA_TOOL_DIRS = (
+    os.path.join('C:', os.sep, 'esp', 'tools', 'llvm-mingw', 'bin'),
+)
+
+
+def find_tool(names):
+    """Sucht ein Werkzeug im PATH und danach an den bekannten Orten.
+    Gibt (Pfad, durchsuchte Orte) zurueck."""
+    looked = ['PATH']
+    for name in names:
+        found = shutil.which(name)
+        if found:
+            return found, looked
+    for folder in EXTRA_TOOL_DIRS:
+        looked.append(folder)
+        for name in names:
+            for suffix in ('', '.exe'):
+                candidate = os.path.join(folder, name + suffix)
+                if os.path.isfile(candidate):
+                    return candidate, looked
+    return None, looked
+
+
+def stale_objects(folder):
+    """Erzeugtes im C-Ordner, das vor einem Bau weg muss."""
+    out = []
+    if not os.path.isdir(folder):
+        return out
+    for name in sorted(os.listdir(folder)):
+        if name.endswith('.o') or name in ('example', 'example.exe'):
+            out.append(name)
+    return out
+
+
 def dotnet_ready():
+    """Erst nach dem SDK sehen, dann nach dem Uebersetzer allein. Ohne SDK
+    laesst sich eine Baugruppe trotzdem bauen: der Roslyn-Uebersetzer aus den
+    Build-Tools reicht, wenn man die Verweise selbst angibt. Das ist kein
+    Notbehelf, sondern der Unterschied zwischen 'gemessen' und
+    'uebersprungen'."""
     if shutil.which('dotnet') is None:
-        return None, 'dotnet ist nicht installiert'
+        return None, None, 'dotnet ist nicht installiert'
     done = subprocess.run(['dotnet', '--list-sdks'], capture_output=True,
                           text=True, errors='replace')
-    if done.returncode != 0 or not (done.stdout or '').strip():
-        return None, 'dotnet ist da, aber kein SDK (dotnet --list-sdks ist leer)'
-    return True, None
+    if done.returncode == 0 and (done.stdout or '').strip():
+        return 'sdk', None, None
+    csc, looked = find_tool_in(['csc'], CSC_DIRS)
+    runtime = newest_runtime()
+    if csc is None:
+        return None, None, ('kein SDK und kein csc; gesucht in '
+                            + ', '.join(looked))
+    if runtime is None:
+        return None, None, 'kein SDK und keine Laufzeit Microsoft.NETCore.App'
+    return 'csc', (csc, runtime), None
+
+
+# Wo der Roslyn-Uebersetzer liegt, wenn kein SDK da ist.
+CSC_DIRS = (
+    os.path.join('C:', os.sep, 'Program Files (x86)', 'Microsoft Visual Studio',
+                 '2022', 'BuildTools', 'MSBuild', 'Current', 'Bin', 'Roslyn'),
+    os.path.join('C:', os.sep, 'Program Files', 'Microsoft Visual Studio',
+                 '2022', 'BuildTools', 'MSBuild', 'Current', 'Bin', 'Roslyn'),
+)
+
+# Unverwaltete Dateien in der Laufzeit: der Uebersetzer meldet bei ihnen
+# "kein verwalteter Code" und bricht ab, also bleiben sie draussen.
+UNMANAGED = ('System.IO.Compression.Native', 'mscorrc', 'clrgc', 'clretwrc',
+             'clrjit', 'coreclr', 'hostfxr', 'hostpolicy', 'msquic',
+             'Microsoft.DiaSymReader.Native', 'mscordaccore', 'mscordbi',
+             'System.Globalization.Native', 'api-ms', 'ucrtbase', 'createdump')
+
+
+def find_tool_in(names, folders):
+    """Wie find_tool, aber nur an den angegebenen Orten."""
+    looked = []
+    for folder in folders:
+        looked.append(folder)
+        for name in names:
+            for suffix in ('', '.exe'):
+                candidate = os.path.join(folder, name + suffix)
+                if os.path.isfile(candidate):
+                    return candidate, looked
+    return None, looked
+
+
+def newest_runtime():
+    """Der juengste Ordner Microsoft.NETCore.App 8.x - gegen den wird gebaut."""
+    base = os.path.join('C:', os.sep, 'Program Files', 'dotnet', 'shared',
+                        'Microsoft.NETCore.App')
+    if not os.path.isdir(base):
+        return None
+    found = sorted(name for name in os.listdir(base)
+                   if name.startswith('8.'))
+    if not found:
+        return None
+    return os.path.join(base, found[-1])
+
+
+def csc_build(csc, runtime, work, name, sources, cwd):
+    """Baut eine ausfuehrbare Baugruppe und gibt ihren Pfad zurueck, oder
+    (None, Grund)."""
+    refs = []
+    for entry in sorted(os.listdir(runtime)):
+        if not entry.endswith('.dll'):
+            continue
+        if entry.startswith(UNMANAGED):
+            continue
+        refs.append(os.path.join(runtime, entry))
+    if not refs:
+        return None, 'in der Laufzeit stehen keine Verweise'
+    out_dll = os.path.join(work, name + '.dll')
+    lines = ['-nologo', '-nostdlib+', '-warnaserror+', '-nullable:enable',
+             '-target:exe', '-out:"%s"' % out_dll]
+    lines += ['-r:"%s"' % path for path in refs]
+    lines += ['"%s"' % os.path.join(cwd, source) for source in sources]
+    rsp = os.path.join(work, name + '.rsp')
+    with io.open(rsp, 'w', encoding='utf-8', newline='\n') as handle:
+        handle.write('\n'.join(lines) + '\n')
+    done = subprocess.run([csc, '@' + rsp], capture_output=True, text=True,
+                          errors='replace')
+    if done.returncode != 0:
+        return None, ((done.stdout or '') + (done.stderr or ''))[-1500:]
+    # Ohne diese Datei findet die Laufzeit ihr Rahmenwerk nicht.
+    with io.open(os.path.join(work, name + '.runtimeconfig.json'), 'w',
+                 encoding='utf-8', newline='\n') as handle:
+        json.dump({'runtimeOptions': {'tfm': 'net8.0', 'framework': {
+            'name': 'Microsoft.NETCore.App', 'version': '8.0.0'}}}, handle)
+    return out_dll, None
 
 
 def languages():
@@ -112,28 +236,55 @@ def languages():
                                'cwd': os.path.join(GUARD, 'python'),
                                'flag': '--stand'}, None))
 
-    # C
+    # C: erst make, sonst der Uebersetzer von Hand. Ein fehlendes make ist
+    # kein Grund, die Sprache zu ueberspringen - gebaut wird auch ohne.
     folder = os.path.join(GUARD, 'c')
-    if not os.path.isfile(os.path.join(folder, 'Makefile')):
-        out.append(('c', None, 'shared/osk-guard/c/Makefile fehlt'))
-    elif shutil.which('make') is None:
-        out.append(('c', None, 'make ist nicht installiert'))
-    elif shutil.which('gcc') is None and shutil.which('cc') is None:
-        out.append(('c', None, 'kein C-Uebersetzer gefunden (gcc, cc)'))
-    else:
+    sources = ['example.c', 'osk_guard.c', 'sha2.c', 'ed25519_verify.c']
+    missing = [f for f in sources if not os.path.isfile(os.path.join(folder, f))]
+    make, make_dirs = find_tool(['make', 'mingw32-make'])
+    compiler, cc_dirs = find_tool(['gcc', 'cc', 'clang'])
+    if missing:
+        out.append(('c', None, 'in shared/osk-guard/c fehlt ' +
+                    ', '.join(missing)))
+    elif make is not None:
         out.append(('c', {'cmd': None, 'cwd': folder, 'flag': '-stand',
-                          'build': ['make'], 'binary': 'example'}, None))
+                          'build': [make], 'binary': 'example',
+                          'clean': stale_objects(folder)}, None))
+    elif compiler is not None:
+        build = [compiler, '-std=c11', '-Wall', '-Wextra', '-Werror', '-O2',
+                 '-o', 'example.exe'] + sources
+        if os.name == 'nt':
+            build += ['-lws2_32', '-lbcrypt']
+        out.append(('c', {'cmd': None, 'cwd': folder, 'flag': '-stand',
+                          'build': build, 'binary': 'example.exe',
+                          'clean': stale_objects(folder)}, None))
+    else:
+        out.append(('c', None, 'kein make und kein C-Uebersetzer gefunden; '
+                    'gesucht in ' + ', '.join(make_dirs + cc_dirs[1:])))
 
     # .NET
-    folder = os.path.join(GUARD, 'dotnet', 'example')
-    ready, why = dotnet_ready()
-    if not os.path.isdir(folder):
+    folder = os.path.join(GUARD, 'dotnet')
+    ready, tools, why = dotnet_ready()
+    if not os.path.isdir(os.path.join(folder, 'example')):
         out.append(('dotnet', None, 'shared/osk-guard/dotnet/example fehlt'))
     elif ready is None:
         out.append(('dotnet', None, why))
-    else:
+    elif ready == 'sdk':
         out.append(('dotnet', {'cmd': ['dotnet', 'run', '--nologo', '--'],
-                               'cwd': folder, 'flag': '--stand'}, None))
+                               'cwd': os.path.join(folder, 'example'),
+                               'flag': '--stand'}, None))
+    else:
+        csc, runtime = tools
+        work = tempfile.mkdtemp(prefix='osk-dotnet-')
+        dll, reason = csc_build(csc, runtime, work, 'Example',
+                                [os.path.join('example', 'Example.cs'),
+                                 'OskGuard.cs', 'Ed25519Verify.cs'], folder)
+        if dll is None:
+            out.append(('dotnet', None, 'ohne SDK mit csc gebaut und '
+                        'gescheitert: ' + reason))
+        else:
+            out.append(('dotnet', {'cmd': ['dotnet', dll], 'cwd': folder,
+                                   'flag': '--stand'}, None))
     return out
 
 
@@ -191,6 +342,18 @@ class Simulator(object):
 def run_example(language, how, stand_path, no_ecdh):
     mode = 'ohne-ecdh' if no_ecdh else 'voll'
     if how.get('build'):
+        # Erzeugtes zuerst weg: ein .o aus einer anderen Werkzeugkette
+        # (etwa aus einem make in WSL) laesst den Bau scheitern oder - noch
+        # schlimmer - ein altes Programm stehen, das dann gemessen wird.
+        for stale in how.get('clean', ()):
+            path = os.path.join(how['cwd'], stale)
+            if os.path.isfile(path):
+                try:
+                    os.remove(path)
+                except OSError as error:
+                    return Result(language, mode, FAILED,
+                                  'Erzeugtes laesst sich nicht entfernen: %s'
+                                  % error)
         built = subprocess.run(how['build'], cwd=how['cwd'],
                                capture_output=True, text=True, errors='replace')
         if built.returncode != 0:

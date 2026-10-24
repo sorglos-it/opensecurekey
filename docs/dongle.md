@@ -241,14 +241,28 @@ Against the simulator in `apps/desktop/classes/guard_device.go` (real
 Ed25519, X25519, HKDF and AES-GCM; only the button press and the chip itself
 are simulated):
 
-- The Go side: every property above has a test, and **six mutation controls**
-  run — five mutants that must die and one that must live. All six behave as
-  required. A seventh mutant, which removed a second binding of the seal
-  label, *survived*: the label was bound in three places and only one of them
-  could be tested. The two redundant ones are gone, which is why the test now
-  measures the binding instead of the wall in front of it.
+- The Go side: every property above has a test.
+- **Twelve mutation controls** (`shared/osk-guard/tests/mutanten.py`), across
+  the Go core and the Go binding's licence reader: eleven mutants must break a
+  test, one must not. All twelve behave as required.
+- Two mutants *survived* on the way there, and both were worth more than the
+  ones that died. One removed a second binding of the seal label — the label
+  was bound in three places, and only one of the three could be tested; the two
+  redundant ones are gone. The other made a broken licence of one product block
+  another product's licence, and the test meant to catch that never reached the
+  code, because it always matched on the item name first. Both tests now
+  measure their target instead of the wall in front of it.
+- Four of the twelve only became measurable once
+  `shared/osk-guard/tests/license-vectors.json` existed: a licence is verified
+  *before* it is parsed, so a wrongly encoded payload needs a **valid**
+  signature to reach the reader at all. That file — 24 signed licences, 3 valid
+  and 21 to be rejected — was asked for by one of the language bindings, which
+  had noticed the gap in its own work.
 - The examples in all five languages run against the simulator, in both
-  variants — a chip that can everything, and a chip that refuses ECDH.
+  variants — a chip that can do everything, and a chip that refuses ECDH.
+  **10 of 10 runs green on 24.10.2026, nothing skipped.**
+- Two independently hand-written CBOR readers (Go and PHP) agree on all 24
+  licence cases, each on its first run. Three more languages carry their own.
 
 Not measured, and not claimed:
 

@@ -1,0 +1,204 @@
+{
+  "cases": [
+    {
+      "name": "gut-vollstaendig",
+      "blob": "4f534b4c49433101005fa7617071626569737069656c2d70726f6772616d6d616876536f72676c6f732054686f6d61732057656972696368626e726a50525545462d3030303161748265626173697368626572696368746561730361691a6553f10061651af2a523806fdb3ed2d8a95c15d73dfe43916cf168d84fb5a89fd5e766c9b7fa1557e858b33cbcb9b3495731fa1dd21fb586a4a4d626270afbed24d193f4ddea3c453f3009",
+      "valid": true,
+      "error": "",
+      "want": {
+        "expires": 4070908800,
+        "holder": "Sorglos Thomas Weirich",
+        "issued": 1700000000,
+        "number": "PRUEF-0001",
+        "product": "beispiel-programm",
+        "seats": 3,
+        "tiers": [
+          "basis",
+          "berichte"
+        ]
+      },
+      "why": "alle Felder, kuerzeste Schreibweise"
+    },
+    {
+      "name": "gut-nur-produkt",
+      "blob": "4f534b4c494331010009a16170656b6c65696e499351d182264b93704ecf22c60138e7961a9574ee54257233b1a57922247bfff5837abbe6f6bd6efb204d637a4f5add98cfeb6c1bba9c91feea2d40d3432606",
+      "valid": true,
+      "error": "",
+      "want": {
+        "expires": 0,
+        "holder": "",
+        "issued": 0,
+        "number": "",
+        "product": "klein",
+        "seats": 0,
+        "tiers": []
+      },
+      "why": "nur das Pflichtfeld; alles andere ist leer, nicht erfunden"
+    },
+    {
+      "name": "gut-ohne-ablauf",
+      "blob": "4f534b4c494331010012a261706b6f686e652d61626c6175666165001aa6e6ab36f285a4057f2228111b39c4c62693e7794f5a3fceed1a07db421a8159ed3b323c5a6c24f84c9c9d526e2d4ccbc9f413edf499a9b8c5782fc3ee6f08",
+      "valid": true,
+      "error": "",
+      "want": {
+        "expires": 0,
+        "holder": "",
+        "issued": 0,
+        "number": "",
+        "product": "ohne-ablauf",
+        "seats": 0,
+        "tiers": []
+      },
+      "why": "e = 0 heisst: laeuft nie ab"
+    },
+    {
+      "name": "zahl-nicht-kuerzest",
+      "blob": "4f534b4c49433101000ca26170646c616e6761731803b9643d809143fc87c12cd9510d1232b27a890f1e0004d35364f32ddce6cde236990376590163351a72d51cb85069cc498c68f4abcb776ee0843c589e2ddda90c",
+      "valid": false,
+      "error": "error.license.format",
+      "why": "die 3 steht in der 1-Byte-Form, obwohl sie in den Kopf passt - zwei Schreibweisen derselben Zahl darf es nicht geben"
+    },
+    {
+      "name": "text-nicht-kuerzest",
+      "blob": "4f534b4c494331010016a1780170716c616e6765722d7363686c75657373656cfcccb8568dc58a3a6fc0901a7d27b659cb687b2d9112845011f990c90909eff6e17f50847027d5741e6ac60ecd2ded58403d288d59c1164056918d9ccc0b6d02",
+      "valid": false,
+      "error": "error.license.format",
+      "why": "die Laenge 1 steht in der 1-Byte-Form"
+    },
+    {
+      "name": "zahl-in-vier-byte-form",
+      "blob": "4f534b4c494331010014a2617069766965722d6279746561731a000000039c16582b6f18eed223d518de242938fa1d1a4ec3778d18ee97d4d0a6a16b78463739ced9c38d4502643487b0d00b3ef6ad02a8db72b376b88a5230aab081280a",
+      "valid": false,
+      "error": "error.license.format",
+      "why": "die 3 steht in der 4-Byte-Form - dieselbe Zahl waere damit auf vier Weisen schreibbar"
+    },
+    {
+      "name": "zahl-in-acht-byte-form",
+      "blob": "4f534b4c494331010018a2617069616368742d6279746561691b000000006553f1003716b2d735fe53d1bad728a2b82650d6e2968aa4bed9fc6cc330d4eee1393e0b6767ef08f7d00b78b4f53bfa5fa5dc9699734503b01cdab400bde9a889d42b00",
+      "valid": false,
+      "error": "error.license.format",
+      "why": "ein Zeitstempel in der 8-Byte-Form, obwohl vier Byte reichen"
+    },
+    {
+      "name": "zahl-in-zwei-byte-form",
+      "blob": "4f534b4c494331010012a26170697a7765692d6279746561731900033e5c0b9ff0f12794d5cbb8b61a88e6d6a8f50f8ef69abd2ad18228d1923680920aba624e17651504c98fe3f0d2e85e5511087d1287d5c53aa9429d2831dc0408",
+      "valid": false,
+      "error": "error.license.format",
+      "why": "die 3 steht in der 2-Byte-Form"
+    },
+    {
+      "name": "zweimal-derselbe-schluessel",
+      "blob": "4f534b4c49433101000fa26170646572737461706464616e6ef4f713ca0190fa35482fca3dda9b7a69865b420b2e22220a303d9e96a60be3a0a3fa6027fd311245bb2d4cebba13db8df9a335e06d43500198eb9700b05ba907",
+      "valid": false,
+      "error": "error.license.format",
+      "why": "dann waere nicht entschieden, welches Produkt gilt"
+    },
+    {
+      "name": "angehaengte-bytes",
+      "blob": "4f534b4c49433101000aa16170656b6c65696e00e771d40358a03a0a140452cedf29be532f00fc1636cfb7cff668f785c82d075ff24a1d10678b696225aeeda0e7757ae3d783b65d46867f157e9e432efe894c0a",
+      "valid": false,
+      "error": "error.license.format",
+      "why": "hinter der Abbildung steht noch ein Byte - das wird nicht uebergangen"
+    },
+    {
+      "name": "negative-zahl",
+      "blob": "4f534b4c49433101000ea26170676e656761746976617325c0d8ff559333ead55e682f6b8acabc5b905aea12a46880a1a6c91cb31d0756049e99129769421ec067f679c77d2fce267884f7204dffb54ac1922f34afc86e05",
+      "valid": false,
+      "error": "error.license.format",
+      "why": "Hauptsorte 1 kommt in einer Lizenz nicht vor - minus drei Plaetze gibt es nicht"
+    },
+    {
+      "name": "laenge-zeigt-ins-leere",
+      "blob": "4f534b4c49433101000ba16170747a75206b75727a9340138d1924f99d59279d99934c598eaf9c6e38f661c7db9768172f64a4f30703be3d8e194773364c05434f249c6af7fb3b32889f279431adcaca9af3459d06",
+      "valid": false,
+      "error": "error.license.format",
+      "why": "die angekuendigte Textlaenge reicht ueber das Ende der Nutzlast"
+    },
+    {
+      "name": "kein-produkt",
+      "blob": "4f534b4c494331010004a1617305c6fc5e45c4e8f3dea8417886bef694fd3df6ad7b798cafd2a3dbc17bd73d3484e3c9756ec28225eb94b1bfeb45eaa410b99e3966b7dad5827d136a8e2148d60c",
+      "valid": false,
+      "error": "error.license.product",
+      "why": "ohne Produktnamen ist eine Lizenz fuer nichts gueltig"
+    },
+    {
+      "name": "leere-ausbaustufe",
+      "blob": "4f534b4c494331010013a261706b6c656572652d737475666561748160268b7be5f91e136dbaf3cde43b662d290867f7ff909162ac5937010abf7a2b0ee569ae7ff1c9a76735803aae91e89e56a8c7ba80caa3a5a350419af1b1a09306",
+      "valid": false,
+      "error": "error.license.tier",
+      "why": "eine Ausbaustufe ohne Namen kann kein Programm pruefen"
+    },
+    {
+      "name": "ausbaustufe-ist-zahl",
+      "blob": "4f534b4c494331010012a261706a73747566652d7a61686c61748107ea8ae05cde9e84460902ef865f08c8251d0fc0b4a3bf80ec5bc4624d55e352afc21ca6ac6e82d5c6aeb92303f92511d818ef6cee465c2b0fa7e9b1ed5eeb290e",
+      "valid": false,
+      "error": "error.license.tier",
+      "why": "eine Ausbaustufe ist ein Name, keine Zahl"
+    },
+    {
+      "name": "nutzlast-ist-keine-abbildung",
+      "blob": "4f534b4c49433101001e781c646173206973742065696e6520416262696c64756e67206e69636874070fb464539d7ab98bd7d3a52c934ee2a6c4422740e84b1a5f93c97adf509aae469cd7fc63dd83fb2aee7e6be12c4d0f15ee6d69a37cabc249aa8993f35a340c",
+      "valid": false,
+      "error": "error.license.format",
+      "why": "die Nutzlast muss eine Abbildung sein"
+    },
+    {
+      "name": "schluessel-ist-zahl",
+      "blob": "4f534b4c494331010007a1016477657274230b68634f50a12a7960adb957ad57f881d111c854bffdaca55ba0ec13c71b4d0e7b170a138030086366fa9d6a82b0785111082087c2c32f90a54e5013fe5600",
+      "valid": false,
+      "error": "error.license.format",
+      "why": "ein Schluessel der Abbildung ist immer ein Text"
+    },
+    {
+      "name": "unterschrift-verbogen",
+      "blob": "4f534b4c49433101005fa7617071626569737069656c2d70726f6772616d6d616876536f72676c6f732054686f6d61732057656972696368626e726a50525545462d3030303161748265626173697368626572696368746561730361691a6553f10061651af2a523806fdb3ed2d8a95c15d73dfe43916cf168d84fb5a89fd5e766c9b7fa1557e858b33cbcb9b3495731fa1dd21fb586a4a4d626270afbed24d193f4ddea3c453f3008",
+      "valid": false,
+      "error": "error.license.signature",
+      "why": "ein Bit der Unterschrift gedreht"
+    },
+    {
+      "name": "nutzlast-verbogen",
+      "blob": "4f534b4c49433101005fa7617071636569737069656c2d70726f6772616d6d616876536f72676c6f732054686f6d61732057656972696368626e726a50525545462d3030303161748265626173697368626572696368746561730361691a6553f10061651af2a523806fdb3ed2d8a95c15d73dfe43916cf168d84fb5a89fd5e766c9b7fa1557e858b33cbcb9b3495731fa1dd21fb586a4a4d626270afbed24d193f4ddea3c453f3009",
+      "valid": false,
+      "error": "error.license.signature",
+      "why": "ein Bit der Nutzlast gedreht - die Unterschrift deckt sie ab"
+    },
+    {
+      "name": "kennung-falsch",
+      "blob": "58534b4c49433101005fa7617071626569737069656c2d70726f6772616d6d616876536f72676c6f732054686f6d61732057656972696368626e726a50525545462d3030303161748265626173697368626572696368746561730361691a6553f10061651af2a523806fdb3ed2d8a95c15d73dfe43916cf168d84fb5a89fd5e766c9b7fa1557e858b33cbcb9b3495731fa1dd21fb586a4a4d626270afbed24d193f4ddea3c453f3009",
+      "valid": false,
+      "error": "error.license.format",
+      "why": "das ist keine Lizenz von uns"
+    },
+    {
+      "name": "fassung-neuer",
+      "blob": "4f534b4c49433102005fa7617071626569737069656c2d70726f6772616d6d616876536f72676c6f732054686f6d61732057656972696368626e726a50525545462d3030303161748265626173697368626572696368746561730361691a6553f10061651af2a523806fdb3ed2d8a95c15d73dfe43916cf168d84fb5a89fd5e766c9b7fa1557e858b33cbcb9b3495731fa1dd21fb586a4a4d626270afbed24d193f4ddea3c453f3009",
+      "valid": false,
+      "error": "error.license.version",
+      "why": "kommt aus einer neueren Fassung - das ist eine andere Aussage als 'kaputt'"
+    },
+    {
+      "name": "laenge-falsch",
+      "blob": "4f534b4c49433101ffffa7617071626569737069656c2d70726f6772616d6d616876536f72676c6f732054686f6d61732057656972696368626e726a50525545462d3030303161748265626173697368626572696368746561730361691a6553f10061651af2a523806fdb3ed2d8a95c15d73dfe43916cf168d84fb5a89fd5e766c9b7fa1557e858b33cbcb9b3495731fa1dd21fb586a4a4d626270afbed24d193f4ddea3c453f3009",
+      "valid": false,
+      "error": "error.license.format",
+      "why": "die angegebene Laenge passt nicht zur Groesse des Blocks"
+    },
+    {
+      "name": "leer",
+      "blob": "",
+      "valid": false,
+      "error": "error.license.format",
+      "why": "nichts ist keine Lizenz"
+    },
+    {
+      "name": "zu-kurz",
+      "blob": "4f534b4c49433101005fa761",
+      "valid": false,
+      "error": "error.license.format",
+      "why": "kuerzer als Rahmen und Unterschrift"
+    }
+  ],
+  "issuerPublicKey": "1f47669ce3c3522a1b63c6491669bf006cb163da0100fe8c8810659d9a4ca5c1",
+  "note": "Fertig unterschriebene Lizenzen, erzeugt mit Go crypto/ed25519. Jede Bibliothek muss alle Faelle genau so beurteilen. Die Faelle mit gueltiger Unterschrift und falsch geschriebener Nutzlast sind der Zweck dieser Datei: ohne sie bleiben die CBOR-Regeln ungemessen."
+}

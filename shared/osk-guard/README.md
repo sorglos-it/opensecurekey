@@ -184,6 +184,30 @@ key. Signing stays in the chip, where it belongs.
 python shared\osk-guard\tests\run.py
 ```
 
-It starts the simulator, runs every example that has its tools installed, and
-says plainly which languages were skipped and why. A skipped language is not
-a pass.
+It starts the simulator and runs every example **twice**: once against a chip
+that can do everything, and once against one that refuses ECDH. The second run
+is what checks that the example *names* the use case that falls away instead of
+dying. A language whose tools are missing is reported as skipped, with the
+reason — and a skipped language is not a pass.
+
+The runner looks for tools in `PATH` and then in the places they are actually
+installed on this machine, because "not in `PATH`" is not the same as "not
+there": it finds `gcc`/`mingw32-make` in an unrelated toolchain, and builds the
+.NET example with the Roslyn compiler from the Visual Studio Build Tools when
+no .NET SDK is present. Whatever it cannot find, it reports together with the
+list of places it looked.
+
+Measured on 24.10.2026: **10 of 10 runs green** (five languages, two chip
+variants each), nothing skipped. No real device was involved.
+
+### Measuring the checks themselves
+
+```powershell
+python shared\osk-guard\tests\mutanten.py
+```
+
+Bends the Go code in twelve defined ways and insists that eleven of the twelve
+break a test while one does not. It does not belong to `tools/check.py` — it
+answers a different question: whether the tests hold anything at all. Two of
+these mutants survived at first, and both found a test that was measuring the
+wall in front of its target rather than the target.

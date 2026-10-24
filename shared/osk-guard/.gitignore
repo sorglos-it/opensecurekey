@@ -1,4 +1,10 @@
-# Erzeugtes und Laufzeitdaten der Pruefungen
+# Erzeugtes und Laufzeitdaten der Pruefungen.
+#
+# Die Programmnamen stehen MIT Ordner da (c/example statt example): ohne ihn
+# trifft das Muster auch einen ORDNER dieses Namens, und dotnet/example waere
+# stillschweigend nicht im Repo gelandet. Gefunden, weil vor dem Vormerken
+# einmal nachgesehen wurde, was wirklich hineinkommt - "git add" sagt es
+# nicht von selbst.
 stand.json
 stand-*.json
 *.o
@@ -6,5 +12,7 @@ stand-*.json
 *.exe
 bin/
 obj/
-example
-test_guard
+c/example
+c/test_guard
+mut/
+__pycache__/
