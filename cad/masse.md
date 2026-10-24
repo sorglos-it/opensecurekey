@@ -184,11 +184,74 @@ Das sind **Vorgaben ans Layout**, keine Wünsche:
    Aufteilung quer: **Zelle bei y = 0…12 mm, Sensor bei y = 12,5…23,5 mm**, die
    Sensoröffnung des Gehäuses liegt auf Mitte y = 18,0 mm. Reserve: 0,60 mm.
    Das geht nur mit der schmalen Zelle – Abschnitt 4a.
-6. **Der Taster SW1 an der langen Kante**, Mitte seiner Betätigungsfläche
-   **0,7 mm über der Platinenoberseite** (halbe Bauteilhöhe 1,35 mm). Weicht das
-   ab, ist der Parameter `btn_z` zu ändern.
+6. **Die beiden Taster bei Länge 22,75…26,25 mm an den langen Kanten**, so wie
+   der Platinen-Strang sie übergeben hat. Mitte der Betätigungsfläche **0,7 mm
+   über der Platinenoberseite** (halbe Bauteilhöhe 1,35 mm). Weicht das ab, sind
+   `btn_cx` und `btn_z` zu ändern. Einzelheiten in Abschnitt 8.
 7. **USB-C mittig an der kurzen Kante** bei Länge 0. Die Frontöffnung ist dort.
 8. **Die NFC-Antenne liegt im letzten Drittel** (44–70 mm). Dort hat das Gehäuse
    **kein Einlegeteil, keine Schraube, kein Metall** – auch die Öse ist aus
    Kunststoff, und das Loch sitzt am **Gehäuseende** hinter der Platine, nicht
    über der Antenne. Siehe `gehaeuse.md`, Abschnitt 6.
+
+## 8. Die beiden Taster: der Rahmen kommt mit 0,75 mm aus
+
+Nachgerechnet am 24.10.2026 auf die Übergabe des Platinen-Strangs. Dessen `y`
+(längs, 0 an der USB-Kante) ist in dieser Datei die Längsrichtung.
+
+| Maß | Wert |
+| --- | --- |
+| Taster belegt längs | 22,75 … 26,25 mm |
+| Anzeigeglas beginnt | 27,00 mm → **0,75 mm Luft** |
+| Funkmodul endet | 21,50 mm → **1,25 mm Luft** |
+
+**Die 0,75 mm sind nicht die Grenze des Rahmens, weil der Rahmen dort nichts
+hat.** Das Anzeigefenster ist ein glatter Durchbruch im 1,0 mm dicken Dach,
+ohne nach unten gezogenen Rand und ohne Rippe. Es beginnt dort, wo die aktive
+Fläche plus 0,5 mm Rand beginnt:
+
+| Maß | Wert |
+| --- | --- |
+| Glas 27,00 … 49,00 mm, aktive Fläche 14,70 mm mittig | 30,65 … 45,35 mm |
+| **Gehäusefenster** = aktive Fläche + 0,5 mm Rand | **30,15 … 45,85 mm** |
+| Fensterrand zum Taster (26,25) | **3,90 mm** |
+| Fensterrand zum Glasrand (27,00) | 3,15 mm |
+
+**3,90 mm, nicht 0,75 mm.** Das Fenster kann den Taster nicht anschneiden, auch
+nicht mit Toleranz. Quer liegt das Glas 6,05 mm vom Platinenrand, der
+Klemmkragen belegt davon 1,20 mm – **4,85 mm Luft**, und das Glas berührt den
+Kragen an keiner Stelle.
+
+### Was der Rahmen stattdessen braucht
+
+**Der Klemmkragen war das Problem, nicht das Fenster.** Er läuft 1,2 mm breit
+am Platinenrand um und drückt die Platine fest – genau dort, wo ein seitlich
+betätigter Taster sitzt. Gelöst im Gehäuse, nicht auf der Platine:
+
+- Der Kragen ist an **beiden** Längskanten über 22,25 … 26,75 mm bis auf
+  **1,65 mm Höhe freigestellt** (Bauhöhe 1,35 + 0,3 Luft).
+- Der Kragen wird dadurch an zwei Stellen auf je 4,5 mm unterbrochen – von
+  rund 192 mm Umfang. Die Klemmung trägt das.
+- Öffnung längs 4,5 mm bei einem 3,5 mm langen Taster: **0,50 mm Luft je
+  Seite.** Zum Glas bleiben von der Freistellung 0,25 mm – quer liegt sie
+  4,85 mm neben dem Glas, sie kann es also nicht berühren.
+
+### SW1 bekommt eine Öffnung, SW2 nicht
+
+`../hardware/layout-notes.md` sagt: der Reset-Taster **darf von außen nicht
+erreichbar sein**. Die Übergabe setzt SW2 aber an die gegenüberliegende Kante,
+auch seitlich betätigt. Beides geht zusammen:
+
+| Taster | Kante | Was das Gehäuse macht |
+| --- | --- | --- |
+| SW1 (Bestätigen) | quer 0 | **Schlitz durch die Seitenwand**, 4,5 × 2,4 mm |
+| SW2 (Reset) | quer 26 | **Blindtasche 0,8 mm tief**, die Wand bleibt 0,8 mm stehen |
+
+Ohne die Blindtasche stünde die geschlossene Wand 0,3 mm vor dem Stößel und
+könnte ihn dauerhaft gedrückt halten. Mit ihr hat der Stößel **1,10 mm ab
+Platinenrand** Platz (0,3 Spiel + 0,8 Tasche).
+
+**Offen:** Wie weit der Stößel des EVQP7C01P über den 3,55 mm Körper
+hinausragt, steht in keiner erreichbaren Unterlage. 1,10 mm ist, was das
+Gehäuse hergibt – ist der Stößel länger, muss die Tasche tiefer und die Wand
+dünner werden. **Diese Zahl wird gebraucht, `ungeprueft`.**

@@ -135,10 +135,20 @@ def shell_top(p, d, preview=True):
     # Lichtfenster der LED - rund, in der Vorschau quadratisch
     if preview:
         ops.append(("-", _sq(p["led_cx"], p["led_cy"], p["led_win_d"], d["z_cav_top"], z1)))
-    # Tasteroeffnung in der langen Kante
-    ops.append(("-", (p["btn_cx"] - p["btn_slot_x"] / 2.0, p["btn_cx"] + p["btn_slot_x"] / 2.0,
-                      d["cv_y1"], d["ot_y1"],
-                      max(z0, p["btn_z"] - p["btn_slot_z"] / 2.0), p["btn_z"] + p["btn_slot_z"] / 2.0)))
+    # Die beiden seitlich betaetigten Taster sitzen am Platinenrand und damit
+    # im Klemmkragen - der wird dort auf 1.65 mm Hoehe freigestellt.
+    bx0 = p["btn_cx"] - p["btn_slot_x"] / 2.0
+    bx1 = p["btn_cx"] + p["btn_slot_x"] / 2.0
+    ops.append(("-", (bx0, bx1, d["pk_y0"], d["cv_y0"], z0, p["btn_relief_z"])))
+    ops.append(("-", (bx0, bx1, d["cv_y1"], d["pk_y1"], z0, p["btn_relief_z"])))
+    # SW1 (Bestaetigen): Schlitz durch die Seitenwand, von aussen zu druecken
+    ops.append(("-", (bx0, bx1, d["ot_y0"], d["pk_y0"],
+                      max(z0, p["btn_z"] - p["btn_slot_z"] / 2.0),
+                      p["btn_z"] + p["btn_slot_z"] / 2.0)))
+    # SW2 (Reset): nur eine Blindtasche, die Wand bleibt zu - er darf von
+    # aussen nicht erreichbar sein (Vorgabe aus hardware/layout-notes.md)
+    ops.append(("-", (bx0, bx1, d["pk_y1"], d["pk_y1"] + p["sw2_pocket_d"],
+                      z0, p["btn_relief_z"])))
     # Frontoeffnung fuer USB-C
     ops.append(("-", (d["ot_x0"], d["cv_x0"],
                       p["usb_cy"] - p["usb_open_y"] / 2.0, p["usb_cy"] + p["usb_open_y"] / 2.0,
@@ -179,15 +189,19 @@ def shell_bottom(p, d, preview=True):
     # Oeffnung fuer den Fingerabdrucksensor der Stufe 2 - rund
     if preview:
         ops.append(("-", _sq(p["fp_cx"], p["fp_cy"], p["fp_open_d"], z0, d["z_cav_bot"])))
-    # Frontoeffnung fuer USB-C
+    # Frontoeffnung fuer USB-C. Sie reicht ueber die Trennebene, also muss
+    # auch die Schnappstufe dort weg - sonst steht der Falz vor der Oeffnung.
+    lip_z = z1 + p["lip_h"]
     ops.append(("-", (d["ot_x0"], d["cv_x0"],
                       p["usb_cy"] - p["usb_open_y"] / 2.0, p["usb_cy"] + p["usb_open_y"] / 2.0,
-                      max(z0, d["usb_z0"]), z1)))
-    # Tasteroeffnung, der Teil unter der Trennebene
+                      max(z0, d["usb_z0"]), min(lip_z, max(z1, d["usb_z1"])))))
+    # SW1: der Teil des Schlitzes unter der Trennebene und durch die Stufe
+    bx0 = p["btn_cx"] - p["btn_slot_x"] / 2.0
+    bx1 = p["btn_cx"] + p["btn_slot_x"] / 2.0
     btn_lo = p["btn_z"] - p["btn_slot_z"] / 2.0
-    if btn_lo < z1:
-        ops.append(("-", (p["btn_cx"] - p["btn_slot_x"] / 2.0, p["btn_cx"] + p["btn_slot_x"] / 2.0,
-                          d["cv_y1"], d["ot_y1"], btn_lo, z1)))
+    btn_hi = min(lip_z, p["btn_z"] + p["btn_slot_z"] / 2.0)
+    if btn_lo < btn_hi:
+        ops.append(("-", (bx0, bx1, d["ot_y0"], d["pk_y0"], btn_lo, btn_hi)))
     # Loch der Oese - rund
     if preview:
         ops.append(("-", _sq(d["eye_cx"], d["eye_cy"], p["eye_hole_d"], z0, z1 + p["lip_h"])))

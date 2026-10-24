@@ -18,14 +18,16 @@ snap_h;0.5;Hoehe des Schnappwulstes
 snap_d;0.4;Vorstand des Schnappwulstes
 oled_win_x;15.7;Fenster in Laengsrichtung - aktiv 14.70 + 2 x 0.5 Rand
 oled_win_y;11.54;Fenster in Querrichtung - aktiv 10.54 + 2 x 0.5 Rand
-oled_cx;34.0;Fenstermitte in Laengsrichtung - VORLAEUFIG
+oled_cx;38.0;Fenstermitte laengs - Glas 27..49 laut Uebergabe des Platinen-Strangs
 oled_cy;13.0;Fenstermitte in Querrichtung - VORLAEUFIG
 led_win_d;2.5;Lichtfenster der RGB-LED
-led_cx;47.0;LED-Mitte in Laengsrichtung - VORLAEUFIG
+led_cx;24.5;LED-Mitte laengs - VORLAEUFIG, Lage noch nicht vom Layout genannt
 led_cy;13.0;LED-Mitte in Querrichtung - VORLAEUFIG
-btn_slot_x;5.0;Tasteroeffnung in Laengsrichtung
+btn_slot_x;4.5;Tasteroeffnung laengs - Taster 3.5 plus 0.5 je Seite
 btn_slot_z;2.4;Tasteroeffnung in Dickenrichtung
-btn_cx;55.0;Tastermitte in Laengsrichtung - VORLAEUFIG
+btn_cx;24.5;Tastermitte laengs - beide Taster, aus der Uebergabe des Platinen-Strangs
+btn_relief_z;1.65;Freistellung des Klemmkragens ueber dem Taster - 1.35 Bauhoehe plus 0.3
+sw2_pocket_d;0.8;Blindtasche fuer SW2 - Reset darf von aussen nicht erreichbar sein
 btn_z;0.7;Tastermitte ueber Platinenoberseite - halbe Bauteilhoehe 1.35
 usb_open_y;10.5;Frontoeffnung breit - Koerper 8.94 + 2 x 0.78 Spiel
 usb_open_z;4.0;Frontoeffnung hoch - UNGEPRUEFT, Bauhoehe des USB4085 fehlt

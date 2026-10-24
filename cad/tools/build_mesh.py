@@ -280,6 +280,43 @@ class StepWriter:
         return len(used)
 
 
+def check_openings(p, d):
+    """Stichproben im Koerper: ist jede Oeffnung wirklich offen?
+
+    Der Anlass steht in cad/gehaeuse.md, Befund 4: der Schnappfalz der unteren
+    Schale stand vor der Tasteroeffnung und vor der USB-Oeffnung. Das zeigt
+    keine Dickenrechnung und kein Dichtheitstest - nur eine Probe an der
+    Stelle, an der etwas frei sein muss.
+    """
+    top = geometry.shell_top(p, d)
+    bot = geometry.shell_bottom(p, d)
+    bx = p["btn_cx"]
+    lip_mid = p["lip_h"] / 2.0          # in der Schnappstufe
+    wall_mid = (d["ot_y0"] + d["pk_y0"] - p["lip_t"]) / 2.0   # aeussere Wandhaelfte
+    front_mid = (d["ot_x0"] + d["pk_x0"] - p["lip_t"]) / 2.0
+    probes = [
+        ("Falz vor dem SW1-Schlitz", bot, (bx, wall_mid, lip_mid), False),
+        ("Falz neben dem SW1-Schlitz", bot, (bx + 15.0, wall_mid, lip_mid), True),
+        ("Falz vor der USB-Oeffnung", bot, (front_mid, p["usb_cy"], lip_mid), False),
+        ("Falz neben der USB-Oeffnung", bot, (front_mid, 3.0, lip_mid), True),
+        ("Kragen ueber SW1", top, (bx, d["pk_y0"] + 0.5, p["btn_relief_z"] - 0.5), False),
+        ("Kragen ueber SW2", top, (bx, d["pk_y1"] - 0.5, p["btn_relief_z"] - 0.5), False),
+        ("Kragen neben den Tastern", top, (bx + 15.0, d["pk_y0"] + 0.5, 0.8), True),
+        ("SW1-Wand ist durchbrochen", top, (bx, wall_mid, p["btn_z"]), False),
+        ("SW2-Wand bleibt stehen", top,
+         (bx, d["ot_y1"] - p["lip_t"] / 2.0, d["z_cav_top"] - 0.2), True),
+        ("Dach ueber dem Hohlraum", top,
+         (bx, p["pcb_wid"] / 2.0 + 5.0, d["z_roof"] - 0.2), True),
+    ]
+    bad = []
+    for name, ops, (x, y, z), want in probes:
+        if _inside(ops, x, y, z) != want:
+            bad.append("%s: erwartet %s" % (name, "voll" if want else "frei"))
+    if bad:
+        raise ValueError("Probe im Koerper fehlgeschlagen - " + "; ".join(bad))
+    return len(probes)
+
+
 def main():
     p = geometry.values()
     d = geometry.derive(p)
@@ -309,7 +346,8 @@ def main():
               "STEP %d Zeilen, %d Verweise geprueft"
               % (name, faces, tris, edges, vol, w.n, refs))
 
-    print("\ncheck: ok")
+    print("\n%d Proben an den Oeffnungen bestanden" % check_openings(p, d))
+    print("check: ok")
 
 
 if __name__ == "__main__":
