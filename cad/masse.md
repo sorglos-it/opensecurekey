@@ -10,7 +10,7 @@ wird, ist das der wichtigste Befund – und er muss vor dem Layout bekannt sein.
 ## Das Ergebnis in einem Satz
 
 **Das Gerät wird mit der empfohlenen Zelle (Adafruit 1317) mindestens 9,55 mm
-dick, außen 27,8 × 81,8 mm (mit Öse).** Die Schätzung in
+dick, außen 29,8 × 81,8 mm (mit Öse).** Die Schätzung in
 `../hardware/layout-notes.md` lautete „etwa 8–9 mm fertig". **Sie ist um
 0,6–1,6 mm zu optimistisch**, weil darin die Ferritfolie, die Luftspalte und die
 Wandstärken fehlen.
@@ -23,7 +23,7 @@ sparen oder eine andere finden – nicht an der schmalen Alternative.
 
 | Teil | Maß | Quelle |
 | --- | --- | --- |
-| Platine | 24 × 70 × **0,8 mm** | `layout-notes.md`, Bauform |
+| Platine | **26** × 70 × **0,8 mm** | `layout-notes.md`, Bauform – Breite 24 → 26, siehe Abschnitt 4a |
 | U1 Modul MDBT50Q-1MV2 | **2,05 mm** hoch | `parts.md` |
 | DS1 OLED 0,71" | 13,90 × 22,00 × **1,26 mm** | `parts.md` |
 | Akku Adafruit 1317 | **3,80** × 19,75 × 26,02 mm | `parts.md`, Zeile 443 |
@@ -99,13 +99,39 @@ Seitenwand 1,6 mm, damit die Schnappverbindung als Stufe darin Platz hat
 
 | Maß | Rechnung | Ergebnis |
 | --- | --- | --- |
-| Breite | 24,0 + 2 × (0,3 + 1,6) | **27,8 mm** |
+| Breite | 26,0 + 2 × (0,3 + 1,6) | **29,8 mm** |
 | Länge ohne Öse | 70,0 + 2 × (0,3 + 1,6) | **73,8 mm** |
 | Öse | 8,0 mm Anbau, Loch Ø 4,0 mm | **+ 8,0 mm** |
 | Länge mit Öse | | **81,8 mm** |
 | Dicke | Abschnitt 3 | **9,55 mm** |
 
-**81,8 × 27,8 × 9,55 mm** – etwa wie ein Autoschlüssel mit Funkfernbedienung.
+**81,8 × 29,8 × 9,55 mm** – etwa wie ein Autoschlüssel mit Funkfernbedienung.
+
+## 4a. Warum die Platine 26 mm breit ist und nicht 24
+
+Entschieden am 24.10.2026. Gerechnet, nicht geschätzt:
+
+| | Maß |
+| --- | --- |
+| nutzbare Breite = Platinenbreite − 2 × 1,2 mm bauteilfreier Rand | |
+| bei 24 mm Platine | 21,60 mm |
+| **bei 26 mm Platine** | **23,60 mm** |
+| gebraucht: schmale Zelle LP-401230 (12,0) + Sensor FPC2534 (11,0) | **23,00 mm** |
+
+Bei 24 mm fehlten **1,40 mm** – der Fingerabdrucksensor der Stufe 2 hätte nicht
+neben die Zelle gepasst. In ein anderes Drittel kann er nicht: vorn liegt die
+Chipantenne des Moduls, hinten die NFC-Antenne, und beide dürfen kein Metall und
+kein Einlegeteil in der Nähe haben.
+
+**Mit 26 mm passt es, mit 0,60 mm Reserve.** Das kostet 2 mm Gehäusebreite
+(29,8 statt 27,8 mm) und ändert die Dicke nicht. Die Länge bleibt 70 mm.
+
+**Das setzt die schmale Zelle voraus** (LP-401230-J, 12,0 mm breit, 100 mAh).
+Mit der empfohlenen Zelle (Adafruit 1317, 19,75 mm breit) wären 19,75 + 11,0 =
+30,75 mm nötig – das geht auch auf 26 mm nicht. Wer den Sensor will, nimmt die
+schmale Zelle und damit etwa 4,6 statt 6,8 Monate Laufzeit
+(`../docs/power-budget.md`). Stufe 1 ohne Sensor kann weiter die große Zelle
+nehmen; **das Gehäuse trägt beide**, weil der Akkuraum 23,6 mm breit ist.
 
 ## 5. Druckerwerte, mit denen gerechnet ist
 
@@ -141,9 +167,10 @@ Unterlagen – `offen`.
 
 Das sind **Vorgaben ans Layout**, keine Wünsche:
 
-1. **Platinenmaß 24 × 70 mm bleibt**, Dicke 0,8 mm. Das Gehäuse ist darauf
-   gezeichnet. Ändert sich das Maß, ist nur der Parameter zu ändern – aber jede
-   Änderung über ± 0,2 mm macht ein neues STL nötig.
+1. **Platinenmaß 26 × 70 mm**, Dicke 0,8 mm – die Breite ist von 24 auf 26 mm
+   erhöht, Begründung in Abschnitt 4a. Das Gehäuse ist darauf gezeichnet. Ändert
+   sich das Maß, ist nur der Parameter zu ändern – aber jede Änderung über
+   ± 0,2 mm macht ein neues STL nötig.
 2. **Rundum 1,2 mm Platinenrand frei von Bauteilen** (oben und unten). Dort
    liegt die Platine auf der Stufe des Gehäuses und wird zwischen den Schalen
    geklemmt – das ersetzt Schrauben und Befestigungslöcher.
@@ -154,6 +181,9 @@ Das sind **Vorgaben ans Layout**, keine Wünsche:
    das Gehäuse dicker.
 5. **Das Sensorfeld der Stufe 2 bleibt neben der Zelle**, nicht über ihr. Sonst
    wären es 3,8 + 0,83 mm auf einer Seite und das Gehäuse müsste neu entstehen.
+   Aufteilung quer: **Zelle bei y = 0…12 mm, Sensor bei y = 12,5…23,5 mm**, die
+   Sensoröffnung des Gehäuses liegt auf Mitte y = 18,0 mm. Reserve: 0,60 mm.
+   Das geht nur mit der schmalen Zelle – Abschnitt 4a.
 6. **Der Taster SW1 an der langen Kante**, Mitte seiner Betätigungsfläche
    **0,7 mm über der Platinenoberseite** (halbe Bauteilhöhe 1,35 mm). Weicht das
    ab, ist der Parameter `btn_z` zu ändern.
