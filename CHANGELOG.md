@@ -3,6 +3,28 @@
 ## [Unreleased]
 
 ### Added
+- Vault for the firmware: the encrypted store behind every secret the device
+  holds. Typed items (login, TOTP/HOTP, SSH key, certificate, PGP key, API key,
+  recovery codes, BIP39 seed, licence, card, identity, Wi-Fi, note, small file),
+  AES-256-GCM per secret with a counter-based nonce that is persisted before it
+  is handed out, atomic writes so a power cut at any point leaves a readable
+  state, an encrypted device log, backup files, Shamir-split master passphrase,
+  and device-to-device transfer. Search runs over a non-secret tag so a passkey
+  login does not have to open a single entry.
+  **3072 items per device** (4 profiles of 768). The first version held 256,
+  limited not by flash but by RAM — a whole index generation sat in memory.
+  Since format version 4 the index is paged into blocks of 64 records and only
+  one block is ever in RAM, so 768 items per profile cost exactly as much RAM
+  as 64 did. 4096 would not fit in the flash budget; the arithmetic is in
+  `shared/vault-format.md`.
+  The price of paging: a search now decrypts every block of the profile —
+  240 KiB for a full one, about 1.3 ms on a PC against the crypto double.
+  **What that costs on the device is unmeasured**, and it happens on every
+  passkey login.
+  83,298 test cases green under gcc with AddressSanitizer and
+  UndefinedBehaviorSanitizer, including an abort at every single write position
+  (97 of them in the new paths alone) and a register that fails on the first
+  repeated nonce. Nothing has run on hardware.
 - FIDO2/CTAP2 core for the firmware (`0.0.1.0`): MakeCredential, GetAssertion,
   GetNextAssertion, GetInfo, ClientPIN (PIN/UV auth protocols 1 and 2), Reset,
   Selection, plus CTAP1/U2F and the USB-HID transport (channels, chaining,

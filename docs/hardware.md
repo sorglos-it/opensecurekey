@@ -249,34 +249,39 @@ Gerechnet am 23.10.2026. Die Programmgrößen sind **gemessen**, nicht geschätz
 | Programm Windows | 9,3 MB |
 | Programm Linux | 9,0 MB |
 | Programm macOS | 9,2 MB |
-| Tresor (Kopf, Index, Protokoll, 1024 Geheimnis-Plätze zu 8 KiB) | 9,1 MB |
 | Zweiter Platz für das Firmware-Update | 1,0 MB |
 | Dateisystem des Laufwerks | ~1,0 MB |
-| **fest belegt** | **38,6 MB** |
+| **fest belegt, ohne Tresor** | **29,5 MB** |
+| **frei für den Tresor** | **34,5 MB** |
 
-| Flash | frei | Einträge heute | Einträge technisch möglich\* |
-| --- | --- | --- | --- |
-| 32 MB | **−6,6 MB** | **passt nicht** | — |
-| **64 MB** | 25,4 MB | 256 | ~4.270 |
-| 128 MB | 89,4 MB | 256 | ~12.400 |
-| 256 MB | 217,4 MB | 256 | ~28.800 |
-
-\* nur wenn der Index ausgelagert wird — siehe unten.
+| Flash | frei für den Tresor | Einträge |
+| --- | --- | --- |
+| 32 MB | **passt nicht** — die Programme allein sind 27,5 MB | — |
+| **64 MB** | 34,5 MB | **3072** (4 Profile zu 768) |
+| 128 MB | 98,5 MB | mehr möglich, aber nicht nötig |
+| 256 MB | 226,5 MB | dito |
 
 **Damit ist 32 MB erledigt**: allein die drei Programme und der Tresor sprengen
 es. Das war vorher eine Vermutung, jetzt ist es gerechnet.
 
-**Und mehr als 64 MB bringt heute nichts**, denn die Grenze liegt gar nicht im
-Flash. Der Tresor hält 64 Einträge je Profil und 4 Profile, also 256 je Gerät —
-nicht aus Platzmangel, sondern weil eine Index-Generation (64 Sätze zu 320 B,
-rund 20 KiB) vollständig im RAM liegt, und der nRF52840 hat 256 KiB davon.
-Siehe `shared/vault-format.md`, Abschnitt „Limits".
+**Und mehr als 64 MB bringt nichts**, weil 3072 Einträge der Bedarf übersteigen
+und der Tresor sie in 28,2 MB unterbringt. Die alte Grenze von 256 Einträgen lag
+nicht am Flash, sondern am RAM: eine ganze Indexfassung lag im Speicher. Seit
+Formatfassung 4 ist der Index in Blöcke zu 64 Sätzen geteilt, von denen immer
+nur einer im RAM liegt — 768 Einträge je Profil kosten damit genauso viel RAM
+wie vorher 64.
 
-**256 Einträge sind für einen Passwortspeicher knapp.** Wer seinen Browser
-ausliest, kommt leicht auf 100 bis 300 Zugänge. Wer mehr will, muss den Index
-auslagern und blockweise lesen, statt ihn ganz im RAM zu halten — dann wären
-mit 64 MB rund 4.000 Einträge drin. Das ist eine Entscheidung über den Tresor,
-nicht über die Hardware, und sie steht noch aus.
+Warum nicht 4096: Die Plätze zu 8 KiB machen daraus 32 MB plus 2,7 MB Index,
+also 34,9 MB — über der Linie, bevor irgendein Spielraum da ist. Kleinere
+Plätze würden das längste Geheimnis kürzen und jeden bestehenden Platz
+verschieben. Für 25 % mehr Einträge lohnt das nicht.
+
+**Was eine Suche kostet** (gemessen am PC gegen die Krypto-Attrappe, nicht am
+Gerät): Seit der Index geteilt ist, muss eine Suche **alle** Blöcke eines
+Profils entschlüsseln — 240 KiB für ein volles Profil. Am PC sind das rund
+1,3 ms, am Gerät ist es offen: die 240 KiB müssen bei **jeder** Passkey-Anmeldung
+vom QSPI-Flash kommen und durch AES-GCM. Das ist die erste Messung, die nach dem
+Merkmalbild ansteht.
 
 ## Warum 64 MB und nicht mehr
 
