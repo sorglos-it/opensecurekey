@@ -35,11 +35,20 @@ Breite und Länge.
 **Entschieden am 24.10.2026 und eingearbeitet.** Der Grund ist der
 Fingerabdrucksensor der Stufe 2:
 
-| | bei 24 mm | **bei 26 mm** |
-| --- | --- | --- |
-| nutzbar quer (Platine − 2 × 1,2 mm bauteilfreier Rand) | 21,60 mm | **23,60 mm** |
-| gebraucht: schmale Zelle 12,0 + Sensor FPC2534 11,0 | 23,00 mm | 23,00 mm |
-| | **1,40 mm zu wenig** | **0,60 mm Reserve** |
+| | bei 24 mm | bei 26 mm | **bei 27 mm** |
+| --- | --- | --- | --- |
+| nutzbar quer (Platine − 2 × 1,2 mm bauteilfreier Rand) | 21,60 | 23,60 | **24,60 mm** |
+| gebraucht: Zelle 12,0 + **Trennabstand 0,5** + Sensor 11,0 | 23,50 | 23,50 | 23,50 mm |
+| | **1,90 zu wenig** | 0,10 Reserve | **1,10 Reserve** |
+
+**Berichtigt am 24.10.2026:** In der ersten Fassung fehlte in dieser Summe der
+Trennabstand von 0,5 mm zwischen Zelle und Sensor, darum stand hier „0,60 mm
+Reserve". **Richtig sind 0,10 mm** – das ist keine Reserve. Die Aufteilung
+selbst war richtig gerechnet, nur die Summe nicht; gefunden hat es der
+Platinen-Strang. **Empfehlung daher: 27 mm, falls Stufe 2 den Sensor bekommt**
+(Begründung und die Zahl, die dafür fehlt, in [masse.md](masse.md),
+Abschnitt 4a). Bei 26 mm bricht meine Sensoröffnung 0,40 mm in die
+Auflagestufe ein.
 
 In ein anderes Drittel kann der Sensor nicht: vorn liegt die Chipantenne des
 Moduls, hinten die NFC-Antenne – beide dürfen kein Metall und kein Einlegeteil
@@ -293,9 +302,9 @@ Wichtigste:
    (1,05 bzw. 0,45 mm Luft je Seite). Sollte am Footprint auffallen, welche
    stimmt: Bescheid sagen, dann kann die Freistellung wieder schrumpfen.
    Der Stößel ist geklärt – 0,65 mm plus 0,2 mm Hub, Reserve 0,25 mm.
-4. **Lage der LED** ist vorläufig auf längs 24,5 mm gesetzt, quer mittig –
-   zwischen Modulende (21,5) und Glasanfang (27). Vom Layout nicht genannt.
-   **Wird gebraucht**, weil das Lichtfenster im Dach danach sitzt.
+4. ~~Lage der LED~~ **beantwortet**: längs 66,0 mm am Kopfende, quer 13,0 mm
+   (Plattenmitte). Eingearbeitet – das Lichtfenster hat 1,55 mm Rand zum
+   Hohlraumende und 18,90 mm Abstand zum Anzeigefenster.
 5. **Lage der Sensoröffnung** ist vorläufig (längs 36, quer 18). Fenster und
    Taster stehen jetzt auf den Werten der Übergabe des Platinen-Strangs.
 6. **Ferritfolie**: Dicke 0,3–0,5 mm angenommen, Material offen (offener Punkt 3
@@ -308,7 +317,10 @@ Wichtigste:
    gewöhnlichen Schmelzdrucker.
 10. **Schlüsselring aus Stahl neben der NFC-Antenne** – nur messbar, nicht
     rechenbar.
-11. **Der Platinen-Strang rechnet noch mit 24 mm Breite.** Thomas hat 26 mm
-    entschieden (Befund 2); die Taster-Übergabe nennt quer 0…24. Die Längsmaße
-    der Taster sind davon nicht betroffen, die Querkante schon: SW2 sitzt dann
-    an quer 26, nicht 24. **Muss beim Layout ankommen.**
+11. **Buchse oder Stecker vorn?** Noch nicht entschieden. Kommt der Stecker
+    statt der Buchse, ragt die Platine vorn als Zunge heraus und das Gehäuse
+    muss dort **enden statt zu umschließen** – die ganze Frontpartie wird dann
+    anders. Der Hohlraumkonflikt aus Befund 3 entfiele dabei. **Bis das
+    entschieden ist, wird die Frontpartie nicht festgezogen.**
+12. **Breitentoleranz der Zelle** – steht in `../docs/parts.md` nicht. Sie ist
+    das, was über 26 oder 27 mm entscheidet, siehe Befund 2.
