@@ -71,6 +71,7 @@ dem Stecker angehoben:
 | Nase reicht von der Front bis | 10,20 mm |
 | Stufe gegenüber dem hinteren Dach | **1,21 mm** |
 | Wand über der Frontöffnung | 0,80 mm |
+| **Mulde um die Öffnung** | **0,80 mm tief, 14,00 mm breit** – erzwungen, nicht Form |
 
 Volle Breite, senkrechte Stufe, keine Fase – das druckt ohne Stütze und sieht
 gewollt aus.
@@ -258,10 +259,11 @@ Vollständig in [masse.md](masse.md), Abschnitt 13. Das Wichtigste:
    **und 4,45 mm unten**, Ferritfolie mitgerechnet.
 5. **Aufteilung quer: Zelle 1,20…13,20, Sensorfeld 13,70…24,70 mm.** Der Sensor
    bleibt neben der Zelle, nie über ihr.
-6. **Vorderkante der USB-Buchse bündig mit der Gehäusefront** (± 0,3 mm). Die
-   Front steht **1,90 mm** vor der Platinenkante, die Buchsenmitte liegt damit
-   auf längs **2,685 mm**, der Körper ragt 1,90 mm über die Kante. Dass die
-   **Pins** dabei auf der Platine bleiben, ist am Footprint zu prüfen –
+6. **Vorderkante der USB-Buchse bündig mit dem Muldengrund** (± 0,3 mm). Der
+   Muldengrund steht **1,10 mm** vor der Platinenkante, die Buchsenmitte liegt
+   damit auf längs **3,485 mm**. **Die Mulde ist keine Formgebung** – ohne sie
+   lägen die Bohrlöcher der Haltestifte der Buchse 0,195 mm über der
+   Platinenkante, und das ist ein Fertigungsfehler. Einzelheiten in
    [masse.md](masse.md), Abschnitt 15.
 7. **Bauteile im Hohlraum beginnen bei quer 1,40 mm**, nicht bei 1,20: dort
    steht die Hohlraumwand, und gedruckte Flächen haben Toleranz.

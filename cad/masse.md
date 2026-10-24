@@ -464,27 +464,50 @@ schätzen.
 | Innenseite der Frontwand (Spiel 0,30) | −0,30 mm |
 | **Außenseite der Frontwand** (Wand 1,60) | **−1,90 mm** |
 
-**d = 1,90 mm.** Daraus folgt für die Buchse, deren Vorderkante bündig mit der
-Gehäusefront sitzen soll:
+**Ohne Mulde wäre d = 1,90 mm** und die Buchsenmitte 2,685 mm. **Die Prüfung am
+Footprint ist durchgefallen** – siehe unten. Darum hat die Frontfläche jetzt
+eine Mulde, und es gilt:
 
 | | Wert |
 | --- | --- |
-| Buchsenmitte = 9,17/2 − d | **2,685 mm** |
-| Überstand des Körpers über die Platinenkante | **1,90 mm** |
+| Muldentiefe | 0,80 mm |
+| **d im Muldengrund** | **1,10 mm** |
+| **Buchsenmitte = 9,17/2 − d** | **3,485 mm** |
+| Überstand des Körpers über die Platinenkante | 1,10 mm |
+| Restwand an der Öffnung | **0,80 mm** = zwei Druckbahnen |
 
-**Der Entwurf des Platinen-Strangs steht auf 4,60 mm** – das entspräche d = 0,
-also einem Gehäuse ohne Frontwand. **1,91 mm nach hinten**, dann stimmt es.
+### Warum die Mulde da ist – nicht aus Formgründen
 
-**Was dabei zu prüfen ist, und zwar am Footprint:** bei einer Durchsteckbuchse
-darf der **Körper** über die Platinenkante ragen, die **Pins nicht.** 1,90 mm
-von 9,17 mm Körpertiefe ist üblich, aber ob die Pinreihen weit genug hinten
-liegen, sagt nur die Zeichnung an der Stelle, an der das Footprint entsteht.
+**Das ist der Vermerk für den, der sie später wegmachen will.** Bei einer
+Durchsteckbuchse darf der **Körper** über die Platinenkante ragen, die **Pins
+nicht.** Der Platinen-Strang hat am gesetzten Footprint gemessen:
 
-**Falls die Prüfung durchfällt, habe ich einen Ausweg vorbereitet, aber nicht
-eingebaut:** eine flache Mulde um die Öffnung, 0,8 mm tief, 14 mm breit. Dann
-bleiben 0,8 mm Wand stehen, **d wird 1,10 mm** und die Buchsenmitte 3,485 mm –
-der Überstand sinkt auf 1,10 mm. Kostet einen Lauf und sieht aus wie bei
-Geräten, die man kennt. **Ein Wort genügt.**
+| bei d = 1,90 (bündig, ohne Mulde) | reicht bis | über die Kante |
+| --- | --- | --- |
+| Pad eines Haltestifts | −0,344 | **0,344 mm** |
+| **Bohrloch** | −0,195 | **0,195 mm** |
+
+**Ein Bohrloch auf der Platinenkante ist kein Schönheitsfehler, sondern ein
+Fertigungsfehler.** Für 0,2 mm Pad-Rand muss die Buchsenmitte bei ≥ 3,23 mm
+liegen; die bündige Vorderkante verlangte 2,685 mm. **Die beiden Auflagen
+widersprachen sich um gut einen halben Millimeter.**
+
+Mit der Mulde liegt die Mitte auf 3,485 mm: das vordere Pad beginnt bei +0,456,
+das Loch bei +0,605 – **0,256 mm Luft** über der Forderung. Der Platinen-Strang
+hat J1 bereits dort gesetzt.
+
+**Wer die Mulde entfernt, holt sich das Bohrloch auf der Platinenkante zurück.**
+Die Alternativen wären eine dünnere Frontwand als 0,8 mm oder die ± 0,3 mm
+aufzugeben – beides schlechter.
+
+| Maß der Mulde | Wert |
+| --- | --- |
+| tief | 0,80 mm (von 1,60 mm Wand) |
+| breit | 14,00 mm (Öffnung 10,5 + 1,75 je Seite) |
+| hoch | −0,60 … 4,16 mm um die Trennebene |
+
+**Die Dicke ändert sie nicht:** die Mulde liegt in der Frontfläche, nicht im
+Dach. Vorn bleiben **11,01 mm**.
 
 ### Bauteile beginnen bei quer 1,40, nicht bei 1,20
 
