@@ -1,0 +1,53 @@
+{
+  "ask": {
+    "by": "Programme",
+    "decrypt": {
+      "label": "Fichier",
+      "title": "Lire"
+    },
+    "detail": "Détail",
+    "login": {
+      "label": "Service",
+      "title": "Connexion"
+    },
+    "next": "Court : suite",
+    "no": "Court : non",
+    "pair": {
+      "label": "Appareil",
+      "title": "Appairer"
+    },
+    "reread": "2x : relire",
+    "secret": {
+      "label": "Entrée",
+      "title": "Montrer"
+    },
+    "sign": {
+      "amount": "Montant",
+      "label": "Destinataire",
+      "title": "Signature"
+    },
+    "twice": "Appuyer long encore",
+    "wipe": {
+      "label": "Profil",
+      "title": "Effacer",
+      "warn": "Tout sera effacé"
+    },
+    "yes": "Long : oui"
+  },
+  "error": {
+    "denied": "Annulé",
+    "timeout": "Temps écoulé"
+  },
+  "status": {
+    "battery": "Batterie faible",
+    "busy": "Travaille",
+    "error": "Erreur",
+    "locked": "Verrouillé",
+    "unlocked": "Ouvert"
+  },
+  "verify": {
+    "hint": "Saisir le PIN sur l'ordinateur",
+    "ok": "Autorisé",
+    "title": "PIN"
+  }
+}

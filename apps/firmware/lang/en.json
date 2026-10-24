@@ -1,0 +1,53 @@
+{
+  "ask": {
+    "by": "Program",
+    "decrypt": {
+      "label": "File",
+      "title": "Read"
+    },
+    "detail": "Detail",
+    "login": {
+      "label": "Service",
+      "title": "Sign in"
+    },
+    "next": "Short: next",
+    "no": "Short: no",
+    "pair": {
+      "label": "Device",
+      "title": "Pair"
+    },
+    "reread": "2x: read again",
+    "secret": {
+      "label": "Entry",
+      "title": "Reveal"
+    },
+    "sign": {
+      "amount": "Amount",
+      "label": "Recipient",
+      "title": "Signature"
+    },
+    "twice": "Press long once more",
+    "wipe": {
+      "label": "Profile",
+      "title": "Erase",
+      "warn": "Everything will be erased"
+    },
+    "yes": "Long: yes"
+  },
+  "error": {
+    "denied": "Cancelled",
+    "timeout": "Time ran out"
+  },
+  "status": {
+    "battery": "Battery low",
+    "busy": "Working",
+    "error": "Error",
+    "locked": "Locked",
+    "unlocked": "Open"
+  },
+  "verify": {
+    "hint": "Enter the PIN on the computer",
+    "ok": "Approved",
+    "title": "PIN"
+  }
+}
