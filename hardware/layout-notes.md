@@ -22,9 +22,20 @@ Die Teilemaße stammen aus `../docs/parts.md`, die Netze aus `schematic.md`.
 **Das dickste Teil ist der Akku mit 3,8 mm, das längste mit 26 mm.** Beides
 bestimmt die Bauform.
 
-## Bauform: 24 × 70 mm
+## Bauform: 26 × 70 mm
 
-**Platine 24 × 70 mm, 0,8 mm dick, vier Lagen, beidseitig bestückt.**
+**Platine 26 × 70 mm, 0,8 mm dick, vier Lagen, beidseitig bestückt.**
+
+> **Berichtigung 24.10.2026: die Breite ist 26 mm, nicht 24.** Thomas hat das
+> um 15:22 entschieden, der Gehäuse-Strang hat es in `cad/masse.md` eingetragen
+> (Commit 41f4ec6). Diese Datei trug die 24 mm noch als Tatsache und hat damit
+> den ersten Platzierungsentwurf auf die falsche Breite gestellt.
+>
+> **Grund für die 26 mm:** Der Fingerabdrucksensor der Stufe 2 passt bei 24 mm
+> nicht neben die Zelle — es fehlten 1,40 mm. Bei 26 mm sind quer **23,60 mm**
+> nutzbar statt 21,60, es bleiben 0,60 mm Reserve.
+>
+> **Die Längsaufteilung ist davon nicht betroffen**, nur die `x`-Werte.
 
 Die 70 mm statt 62 mm sind die räumliche Trennung von Akku und NFC-Antenne —
 siehe den nächsten Abschnitt. Die 8 mm sind bewusst ausgegeben.
@@ -83,7 +94,7 @@ Modul hin, das Antennendrittel wird größer.
 - Die Antennenschleife liegt im letzten Drittel, mit ausgenommener
   Massefläche darunter.
 
-70 × 24 mm ist noch Schlüsselanhängerformat — etwa so groß wie ein
+70 × 26 mm ist noch Schlüsselanhängerformat — etwa so groß wie ein
 Autoschlüssel.
 
 **Die Bauhöhe richtet sich jetzt nach dem Akku (3,8 mm), nicht mehr nach dem
@@ -327,13 +338,20 @@ Vom Schaltplan unabhängig und darum vorgezogen:
   | 3 | `pcb_apply` erneut, 0,254 mm, vorher `dry_run` (Plan sauber: 4 Linien) | abgelehnt, 4 von 4 |
 
   **Gegenprobe:** dieselbe Linie auf `TOP` mit Netz `GND` gelingt auf Anhieb —
-  Testspur danach gelöscht. Es liegt also nicht am Werkzeug, an der Breite, an
-  den Koordinaten oder am fehlenden Netz, sondern daran, dass der Umriss-Layer
-  in EasyEDAs Typliste für Linien (`TPCB_LayersOfLine`) nicht vorkommt. Ein
-  Umriss bräuchte eine **Polylinie**, und die bietet die Brücke nicht an.
-  Nachgezählt: `pcb_lines_list` auf dem Umriss-Layer liefert **0 Segmente**.
+  Testspur danach gelöscht. Es liegt also nicht am Werkzeug, nicht an der
+  Breite, nicht an den Koordinaten und nicht am Netz. Nachgezählt:
+  `pcb_lines_list` auf dem Umriss-Layer liefert **0 Segmente**.
 
-  **24 × 70 mm sind darum im Editor von Hand zu zeichnen**, bevor platziert
+  > **Berichtigung 24.10.2026:** Hier stand, der Umriss-Layer komme in
+  > EasyEDAs Typliste für Linien nicht vor. **Das ist falsch.** Die Liste
+  > `TPCB_LayersOfLine` führt `EPCB_LayerId.BOARD_OUTLINE` ausdrücklich auf —
+  > nachgelesen in der API-Referenz. Erlaubt ist der Layer also; die
+  > Umsetzung lehnt ihn trotzdem ab, in fünf Spielarten (mit und ohne Netz,
+  > mit vorhandenem Netz `GND`, mit und ohne Breitenangabe, bei 0/0 und bei
+  > 100/100, einzeln und im Änderungssatz). **Die Ursache ist damit unbekannt,
+  > nicht erklärt.** Der Befund bleibt: über die Brücke geht es nicht.
+
+  **26 × 70 mm sind darum im Editor von Hand zu zeichnen**, bevor platziert
   wird. Die Ecken müssen exakt aufeinandertreffen, sonst ist der Rand offen.
 - **Die Entwurfsregeln heißen noch „JLCPCB Capability(Two Layers Board)".**
   Auch hier beides geprüft: EasyEDAs Schnittstelle hat Leseoperationen für
@@ -354,7 +372,7 @@ eingetragen.** Wenn der Umriss steht, wird das hier abgearbeitet.
 
 ### Koordinatensystem
 
-Nullpunkt **untere linke Ecke**, `x` quer über die Platine (0 … 24 mm), `y` in
+Nullpunkt **untere linke Ecke**, `x` quer über die Platine (0 … 26 mm), `y` in
 der Länge (0 … 70 mm), **`y` = 0 an der USB-Kante**. Alle Angaben sind
 Bauteilmitten in Millimetern. „oben" = Bestückungsseite mit dem Modul,
 „unten" = Rückseite mit dem Akku.
@@ -375,7 +393,8 @@ Bauteilmitten in Millimetern. „oben" = Bestückungsseite mit dem Modul,
 > Der Abschnitt „Die Aufteilung" oben sagt, der Akku ende bei 44 mm und das
 > Antennenfeld sei **26 mm** breit. **Das geht mit dieser Zelle nicht.** Die
 > Adafruit 1317 ist **19,75 × 26,02 mm**: Damit der Akku bei 44 endete, müsste
-> seine 26-mm-Seite **quer** liegen — quer sind aber nur **24 mm** Platine da.
+> seine 26-mm-Seite **quer** liegen — quer sind aber nur 26 mm Platine da, und
+> mit Randabstand bleibt das zu knapp.
 > Die Zelle muss also längs liegen, 25 … 51 mm, und **das Antennenfeld wird
 > 19 mm statt 26 mm.**
 >
@@ -383,31 +402,31 @@ Bauteilmitten in Millimetern. „oben" = Bestückungsseite mit dem Modul,
 > damit bliebe das Antennenfeld sogar nur 14,5 mm — sie gewinnt Breite
 > (12 statt 19,75 mm), nicht Länge. **Zu entscheiden** (Vorschlag: 19 mm
 > behalten und die Schleife am ganzen Rand von Z4 umlaufen lassen, Fläche
-> 19 × 24 mm; das ist mehr Fläche als eine Schleife im 26-mm-Feld bei halber
+> 19 × 26 mm = 494 mm²; das ist mehr Fläche als eine Schleife im 26-mm-Feld bei halber
 > Breite hätte).
 
 ### Z1 — USB-C, `y` 0 … 9,5
 
 | Teil | Seite | x | y | Dreh. | Warum |
 | --- | --- | --- | --- | --- | --- |
-| J1 | oben | 12,0 | 4,6 | 0° | mittig an der kurzen Kante, Kabel geht gerade ab; die vier Haltestifte nehmen die Zugkraft auf |
-| R15 | unten | 8,0 | 7,5 | 0° | dicht an J1 A5 |
-| R16 | unten | 16,0 | 7,5 | 0° | dicht an J1 B5, symmetrisch zu R15 |
-| U5 | unten | 12,0 | 10,5 | 90° | **das erste Bauteil nach dem Stecker** — Sinn eines ESD-Teils; D+/D− gehen von hier als Paar gleicher Länge zum Modul |
+| J1 | oben | 13,0 | 4,6 | 0° | mittig an der kurzen Kante, Kabel geht gerade ab; die vier Haltestifte nehmen die Zugkraft auf |
+| R15 | unten | 9,0 | 7,5 | 0° | dicht an J1 A5 |
+| R16 | unten | 17,0 | 7,5 | 0° | dicht an J1 B5, symmetrisch zu R15 |
+| U5 | unten | 13,0 | 10,5 | 90° | **das erste Bauteil nach dem Stecker** — Sinn eines ESD-Teils; D+/D− gehen von hier als Paar gleicher Länge zum Modul |
 | D2 | unten | 4,0 | 11,0 | 0° | an `VBUS`, nahe am Stecker |
-| C1 | unten | 19,0 | 11,0 | 0° | `VBUS`-Puffer am Ladereglereingang |
+| C1 | unten | 21,0 | 11,0 | 0° | `VBUS`-Puffer am Ladereglereingang |
 
 ### Z2 — Funkteil, `y` 9,5 … 25
 
 | Teil | Seite | x | y | Dreh. | Warum |
 | --- | --- | --- | --- | --- | --- |
-| U1 | oben | 14,75 | 17,3 | 90° | Längsachse quer, **Chipantenne zum Rand `x` = 24** (etwa 1,5 mm Abstand); die Pinreihe mit VDD/VDDH/DCCH liegt damit auf der antennenabgewandten Seite |
+| U1 | oben | 16,75 | 17,3 | 90° | Längsachse quer, **Chipantenne zum Rand `x` = 26** (etwa 1,5 mm Abstand, Antennenkante bei `x` 24,5); die Pinreihe mit VDD/VDDH/DCCH liegt damit auf der antennenabgewandten Seite |
 | C5 | unten | 7,0 | 20,0 | 0° | unmittelbar an Modulpin 28 (`VDD`) |
 | C3, C4 | unten | 7,0 / 7,0 | 22,5 / 14,0 | 0° | `VSYS` an Modulpin 30 |
-| L1 | unten | 4,0 | 17,3 | 90° | an `DCCH` (Pin 31), **kurze dicke Bahn**; gleichzeitig am weitesten weg von der Chipantenne (`x` 22,5) und von Z4 — das löst die Streufeld-Auflage |
+| L1 | unten | 4,0 | 17,3 | 90° | an `DCCH` (Pin 31), **kurze dicke Bahn**; gleichzeitig am weitesten weg von der Chipantenne (`x` 24,5) und von Z4 — das löst die Streufeld-Auflage |
 | X1 | unten | 11,0 | 13,0 | 0° | an `P0.00/P0.01` (Pin 17/18), kurze symmetrische Bahnen |
 | C8, C9 | unten | 11,0 | 10,5 | 0° | je an einem Quarzbein, gleich lang |
-| Q2, Q3, R4, R5 | unten | 17 … 22 | 10 … 14 | – | Lastumschaltung, nahe `VBUS`/`VSYS`, aber außerhalb der Antennen-Freihaltezone |
+| Q2, Q3, R4, R5 | unten | 19 … 24 | 10 … 14 | – | Lastumschaltung, nahe `VBUS`/`VSYS`, aber außerhalb der Antennen-Freihaltezone |
 
 ### Freihaltezone der Modulantenne — belegt, 24.10.2026
 
@@ -425,11 +444,11 @@ hatte hier 7 × 17 mm geschätzt; das war in beide Richtungen falsch.
   the edge of PCB to have better performance than placing it on the center."*
 
 **Was das für dieses Brett heißt:** Die Antennenkante des Moduls liegt bei
-`x` = 22,5, der Platinenrand bei 24. Von den 3,8 mm Tiefe liegen also nur
+`x` = 24,5, der Platinenrand bei 26. Von den 3,8 mm Tiefe liegen also nur
 **1,5 mm auf der Platine**, der Rest fällt über die Kante hinaus. Kupferfrei zu
 halten ist damit nur der Streifen
 
-> **`x` 22,5 … 24, `y` 11 … 21,5 — in allen vier Lagen.**
+> **`x` 24,5 … 26, `y` 11 … 21,5 — in allen vier Lagen.**
 
 Das sind 1,5 × 10,5 mm, rund 16 mm². Die Zone kostet also fast nichts — weil
 das Modul am Rand sitzt. Hätte es in der Mitte gesessen, wären es 40 mm² in
@@ -447,33 +466,62 @@ Raytac bietet an, ein Layout als PDF gegenzulesen (`service@raytac.com`).
 
 | Teil | Seite | x | y | Dreh. | Warum |
 | --- | --- | --- | --- | --- | --- |
-| Akku (kein Bauteil) | unten | 12,0 | 38,0 | 0° | 19,75 × 26,02 mm, liegt auf Ferritfolie; **Fläche darunter frei von Bauteilen halten**, damit die Zelle plan liegt |
-| J2 | unten | 12,0 | 49,5 | 180° | am akkufernen Ende von Z3, Kabel läuft zur Zelle zurück; weg vom Funkteil |
-| J4 | oben | 12,0 | 27,0 | 0° | FPC-Fahne der Anzeige zeigt nach `y` = 0, die Fahne wird unter das Glas gelegt |
-| DS1 (Glas) | oben | 12,0 | 38,0 | 0° | 13,90 × 22,00 mm, Fenster im Gehäuse; aktive Fläche 10,54 × 14,70 mm |
+| Akku (kein Bauteil) | unten | 13,0 | 38,0 | 0° | 19,75 × 26,02 mm, liegt auf Ferritfolie; **Fläche darunter frei von Bauteilen halten**, damit die Zelle plan liegt |
+| J2 | unten | 13,0 | 49,5 | 180° | am akkufernen Ende von Z3, Kabel läuft zur Zelle zurück; weg vom Funkteil |
+| J4 | oben | 13,0 | 27,0 | 0° | FPC-Fahne der Anzeige zeigt nach `y` = 0, die Fahne wird unter das Glas gelegt |
+| DS1 (Glas) | oben | 13,0 | 38,0 | 0° | 13,90 × 22,00 mm, Fenster im Gehäuse; aktive Fläche 10,54 × 14,70 mm |
 | Q4, R9, C13, C14 | oben | 3 … 6 | 28 … 36 | – | Lastschalter der Anzeige, neben dem Glas, kurze Bahn zu J4 Pin 10/11 |
 | U2 + C10, C11 | unten | 6,0 | 47,5 | 0° | Sicherheitschip, **am akkufernen Ende** (siehe Entscheidung unten); `SE_VOUT` von Pin 15 nach Pin 18 **so kurz wie möglich** |
-| U3 + C12, R8 | unten | 17,0 | 47,5 | 0° | Flash gegenüber von U2, gleiches Band |
+| U3 + C12, R8 | unten | 19,0 | 47,5 | 0° | Flash gegenüber von U2, gleiches Band |
 | R6, R7 | unten | 6,0 | 50,0 | 0° | I2C-Abschluss, dicht an U2 |
-| C1, U4, C2, R1, R2 | unten | 4 … 20 | 6 … 12 | – | Ladepfad gebündelt **nach Z1 verlegt**, zu C1 an `VBUS` — weg vom Funkteil und weg von der Zelle |
-| Q5, R17 | unten | 20,0 | 40,0 | 0° | Lastschalter Sensor; Stufe 2 |
+| C1, U4, C2, R1, R2 | unten | 4 … 22 | 6 … 12 | – | Ladepfad gebündelt **nach Z1 verlegt**, zu C1 an `VBUS` — weg vom Funkteil und weg von der Zelle |
+| Q5, R17 | unten | 22,0 | 40,0 | 0° | Lastschalter Sensor; Stufe 2 |
 
-**Der Streifen neben der Zelle ist eng:** 24 − 19,75 = **4,25 mm**, aufgeteilt
-auf beide Seiten ergibt zweimal rund 2 mm. U2 (3 × 3 mm) und U3 (8 × 6 mm)
-passen dort **nicht** daneben, sondern nur **unter** die Zelle oder in die
-Bänder Z2/Z4. **Das ist der nächste zu lösende Widerspruch** — Vorschlag: U2
-und U3 wandern in den akkufernen Teil von Z3 (`y` 44 … 51, dort ist die Zelle
-zu Ende) und der Ladepfad nach Z1 zu C1. Dann steht in Z3 unten nur die Zelle.
+**Der Streifen neben der Zelle, mit 26 mm neu gerechnet:** 26 − 19,75 =
+**6,25 mm**. Mittig gelegt ergibt das **zweimal 3,13 mm** (vorher zweimal
+2,13 mm).
+
+**Reicht nicht, und zwar nachgerechnet:**
+
+| Teil | Körper | mit 0,25 mm Abstand je Seite | passt in 3,13 mm? |
+| --- | --- | --- | --- |
+| U2 SE051 | 3,0 × 3,0 mm | **3,5 mm** | **nein**, 0,37 mm zu breit |
+| U3 Flash | 8,0 × 6,0 mm (gedreht 6,0 breit) | **6,5 mm** | **nein**, um mehr als das Doppelte |
+
+Die zwei Millimeter entschärfen die Engstelle also **nicht**. **U2 und U3
+bleiben bei `y` 44 … 51**, der Ladepfad bleibt in Z1, und unter Z3 liegt nur
+die Zelle — sie liegt dann plan auf der Ferritfolie.
+
+### Eine Möglichkeit, die durch die 26 mm erst entsteht — zu entscheiden
+
+Wenn die Zelle **nicht mittig**, sondern an die Kante `x` = 0 gerückt wird
+(Zelle `x` 0,75 … 20,5), bleibt auf der anderen Seite ein Streifen von
+**5,5 mm**, nutzbar **5,0 mm**:
+
+- **U2 passt dort** (3,5 mm nötig, 1,5 mm Luft übrig).
+- U3 passt weiterhin nicht (6,5 mm nötig).
+
+**Was das bringt:** U2 käme von `y` 47,5 auf etwa `y` 33 — die I2C-Leitung
+zwischen Modul und Sicherheitschip wird damit **rund 12 mm statt 25 mm**. Das
+ist die Leitung, die ohnehin auf einer Innenlage zwischen den Masseflächen
+laufen soll; sie zu halbieren ist ein echter Gewinn, nicht Kosmetik.
+
+**Was es kostet:** Die Zelle liegt nicht mehr mittig, also auch die Ferritfolie
+nicht. Das berührt die Gehäusegestaltung und das Gewicht in der Hand.
+
+> **Nicht von mir entschieden.** Die Lage der Zelle gehört mit dem
+> Gehäuse-Strang abgestimmt. Bis dahin gilt die mittige Zelle und U2 bei
+> `y` 47,5.
 
 ### Z4 — NFC, `y` 51 … 70
 
 | Teil | Seite | x | y | Dreh. | Warum |
 | --- | --- | --- | --- | --- | --- |
-| NFC-Schleife | oben + unten | – | 51 … 70 | – | Schleife am Rand umlaufend, Fläche etwa 19 × 24 mm; **innen keine geschlossene Massefläche** |
-| C15, C16 | unten | 9,0 / 15,0 | 52,0 | 0° | symmetrisch zur Mitte, **gleiche Bahnlängen zu `P0.09`/`P0.10`** |
-| D1 | oben | 12,0 | 66,0 | 0° | RGB-LED am Kopfende, von außen sichtbar; R10 … R12 daneben |
-| J5 | unten | 12,0 | 56,0 | 0° | Stiftfeld Fingerabdruck, Stufe 2, **verlegt aber nicht bestückt** |
-| J6 | unten | 12,0 | 67,0 | 0° | SWD am Kopfende, beim Entwickeln erreichbar |
+| NFC-Schleife | oben + unten | – | 51 … 70 | – | Schleife am Rand umlaufend, Fläche etwa 19 × 26 mm; **innen keine geschlossene Massefläche** |
+| C15, C16 | unten | 10,0 / 16,0 | 52,0 | 0° | symmetrisch zur Mitte, **gleiche Bahnlängen zu `P0.09`/`P0.10`** |
+| D1 | oben | 13,0 | 66,0 | 0° | RGB-LED am Kopfende, von außen sichtbar; R10 … R12 daneben |
+| J5 | unten | 13,0 | 56,0 | 0° | Stiftfeld Fingerabdruck, Stufe 2, **verlegt aber nicht bestückt** |
+| J6 | unten | 13,0 | 67,0 | 0° | SWD am Kopfende, beim Entwickeln erreichbar |
 
 **In Z4 steht jetzt kein Metall mehr** außer der LED am Kopfende und dem
 unbestückten Stiftfeld J5 — die Taster sind herausgezogen, siehe unten.
@@ -483,7 +531,7 @@ unbestückten Stiftfeld J5 — die Taster sind herausgezogen, siehe unten.
 | Teil | Seite | x | y | Dreh. | Warum |
 | --- | --- | --- | --- | --- | --- |
 | SW1 | oben | 3,5 | 24,5 | 90° | seitlich betätigt zur Kante `x` = 0; liegt **zwischen Modul (endet 21,5) und Anzeigeglas (beginnt 27)** — dem natürlichen Daumenplatz, wenn der Schlüssel in der Hand liegt |
-| SW2 | oben | 20,5 | 24,5 | 270° | Reset, gegenüberliegende Kante, damit er nicht versehentlich gedrückt wird |
+| SW2 | oben | 22,5 | 24,5 | 270° | Reset, gegenüberliegende Kante, damit er nicht versehentlich gedrückt wird |
 
 Das löst den Einwand von vorhin: **beide Taster sind aus der Antennenfläche
 heraus**, ohne die Bedienbarkeit zu verschlechtern — sie sitzen jetzt neben
@@ -493,7 +541,7 @@ der Anzeige, die man ohnehin ansieht, statt am Kopfende.
   Glas beginnt bei 27. **Bleibt 1,25 mm Luft zum Modul und 0,75 mm zum Glas.**
   Eng, aber es passt; beim Zeichnen nachmessen.
 - SW2 liegt bei `x` 20,5 und damit **außerhalb** des Freihaltestreifens
-  (`x` 22,5 … 24, `y` 11 … 21,5).
+  (`x` 24,5 … 26, `y` 11 … 21,5).
 
 ### Bedingungen für die NFC-Abstimmung — gehören ins Messprotokoll
 
@@ -537,3 +585,266 @@ liegen nicht mehr in der Schleifenfläche.
   nicht außen. Die Verbindung ist mit SCP03 verschlüsselt, aber eine lange, von
   außen anstechbare Leitung ist trotzdem die bequemste Angriffsstelle auf der
   ganzen Platine — und sie zu vergraben kostet nichts.
+
+## Stufe 2 mit Sensor: verträglich quer, nicht in der Länge
+
+Der Gehäuse-Strang gibt für Stufe 2 die schmale Zelle **LP-401230-J** vor und
+die Aufteilung **Zelle 0 … 12 mm, Sensorfeld 12,5 … 23,5 mm**. Hier
+nachgerechnet, ohne es in den Entwurf einzuarbeiten:
+
+### Zuerst: die Achse ist zu klären
+
+Die Vorgabe nennt diese Werte als `y`. **In meinem Bezugssystem kann das nicht
+sein:** `y` 0 … 12 ist bei mir das USB-Band, dort sitzt der Stecker. Zwei
+Anzeichen, dass die Werte **quer** gemeint sind, also meinem `x` entsprechen:
+
+1. **12 mm ist die Breite der LP-401230**, nicht ihre Länge (12 × 30,5 mm).
+2. **12 + 0,5 + 11 = 23,5 mm** — und quer sind bei 26 mm Platine **23,60 mm**
+   nutzbar. Das ist genau die Rechnung, mit der die 26 mm begründet wurden.
+
+> **Zu bestätigen:** Ist die Vorgabe quer gemeint (mein `x`)? Dann passt sie,
+> siehe unten. Falls sie wirklich längs gemeint ist, stimmt etwas anderes
+> nicht, und wir müssen die Nullpunkte vergleichen, bevor jemand zeichnet.
+> **Zwei Zahlen aus verschiedenen Bezugssystemen nebeneinanderzulegen hat
+> heute schon einmal eine falsche Geschichte ergeben** — siehe die
+> Zeitstempel in `schematic-notes.md`.
+
+### Quer: verträglich, mit 0,10 mm Luft
+
+Zelle 12 mm + 0,5 mm Abstand + Sensorfeld 11 mm = **23,5 mm** bei **23,60 mm**
+nutzbarer Breite. Es passt, aber **die Reserve ist 0,10 mm, nicht 0,60 mm** —
+die 0,60 mm gelten für den Sensor allein, nicht für die Summe mit dem
+Trennabstand. Zu prüfen, wer von beiden recht hat, bevor es knapp wird.
+
+### In der Länge: das wirft meine Bandaufteilung um
+
+**Die LP-401230 ist 30,5 mm lang.** In Z3 stehen 26 mm zur Verfügung (`y`
+25 … 51), weil die Adafruit-Zelle 26,02 mm lang ist.
+
+| | Länge der Zelle | Z3 wird | Antennenfeld Z4 wird |
+| --- | --- | --- | --- |
+| Stufe 1, Adafruit 1317 | 26,02 mm | 25 … 51 | **19 mm** |
+| Stufe 2, LP-401230-J | **30,5 mm** | 25 … 55,5 | **14,5 mm** |
+
+**Stufe 2 kostet also 4,5 mm Antennenfeld**, nicht nichts. Das ist derselbe
+Zusammenhang wie bei der ersten Entscheidung: die schmale Zelle gewinnt Breite
+und verliert Länge.
+
+**Mein Entwurf für Stufe 1 bleibt davon unberührt** — er ist auf die Adafruit
+1317 gerechnet. Aber **wer Stufe 2 will, muss das Antennenfeld noch einmal
+ansehen**, und zwar bevor die Platine gefertigt wird, denn die Schleife wird
+als Leiterbahn gezeichnet und ist später nicht verschiebbar.
+
+> **Offen, für den Gehäuse-Strang und den Master:** Soll die Platine schon in
+> Stufe 1 so aufgeteilt werden, dass Stufe 2 ohne Neuzeichnen passt (dann
+> Antennenfeld gleich 14,5 mm und die kleinere Schleife von Anfang an) — oder
+> bleibt Stufe 1 auf 19 mm und Stufe 2 bekommt ein eigenes Layout? **Das ist
+> eine Entscheidung über Reichweite gegen Aufwand, keine Rechenfrage.**
+
+## Antworten an den Gehäuse-Strang, 24.10.2026
+
+### 1. Die LED: längs 66 mm, quer 13 mm, Oberseite
+
+**Das Lichtfenster gehört an das Kopfende, nicht in die Mitte.** D1 sitzt nach
+dem Platzierungsentwurf bei
+
+> **`x` = 13,0 mm (Plattenmitte), `y` = 66,0 mm, Oberseite.**
+
+Das ist **4 mm vom Ende** der Platine entfernt, am vom USB-Stecker
+abgewandten Ende. Die LED ist **1,6 × 1,6 mm groß und 0,5 mm hoch**
+(Everlight 19-337C), sie strahlt nach oben.
+
+Die vorläufigen 24,5 mm längs gehen nicht: **dort sitzen die beiden Taster**
+(`y` 22,75 … 26,25). Und die 47 mm aus dem ersten Versuch liegen mitten im
+Anzeigeglas (`y` 27 … 49). Das Kopfende ist die einzige Stelle, die beides
+nicht berührt — und sie ist auch die bessere: die LED zeigt an, ohne das
+Anzeigefenster zu teilen.
+
+### 2. Die Taster bleiben, wo sie sind
+
+Die Freigabe ist angekommen: **3,90 mm Luft zum Anzeigefenster**, nicht 0,75 —
+das Fenster ist ein glatter Durchbruch ohne heruntergezogenen Rand und beginnt
+erst bei längs 30,15. **Kein Verschieben.**
+
+Dazu ein Punkt, der aus dem Gehäuse kam und hier festgehalten gehört: Der
+**Klemmkragen** des Gehäuses läuft 1,2 mm breit um den Platinenrand, genau
+dort, wo ein seitlich betätigter Taster sitzt. Er ist an beiden Längskanten
+freigestellt worden. **Beim Layout nicht zubauen.**
+
+> **Prüfpunkt fürs Layout, aus Panasonics Datenblatt gegen den Händler:**
+> Panasonic gibt den EVQP7C01P mit **3,5 × 3,55 mm** an, DigiKey mit
+> **4,70 × 2,90 mm**. Hat die Bibliothek das Händlermaß genommen, steht der
+> Taster **1,2 mm woanders**, als das Gehäuse erwartet. **Am Footprint
+> gegenprüfen**, und zwar aus dem Gerber, nicht aus der Bibliothek. Der Stößel
+> ragt 0,65 mm über den Körper, der Hub ist 0,2 mm; „side-push" ist bestätigt.
+
+### 3. Der USB-Stecker: drei Wege, nicht zwei
+
+Der Befund stimmt: Der **USB4085 ist „PCB Top Mount"** — der Körper sitzt
+vollständig auf der Platine, 3,46 mm Profilhöhe gegen 2,35 mm Hohlraum, **rund
+1,1 mm zu hoch.**
+
+**Was die Bibliothek an Mid-Mount-Buchsen hergibt** (in diesen Katalogen heißt
+Mid-Mount **沉板**, „Sinkplatte"):
+
+| Teil | LCSC | Angabe |
+| --- | --- | --- |
+| `USB-TYPE_C16P沉` | C9900001620 | Footprint „TYPE_C **沉板1.6**" — für **1,6 mm** Platine |
+| U22410-02 | C9900262527 | „16pin **沉板1.6** 露舌" — für **1,6 mm** Platine |
+| U22409-01 | C9900262530 | „16pin 防水沉板" (wasserdicht), Dicke nicht genannt |
+| HYC-1160-003 | C9900062937 | „沉板TYPE-C", Dicke nicht genannt |
+| GCT USB4110-GF-A | C5143397 | gleiche Reihe wie unser Teil, 16-polig, USB 2.0 — **aber nirgends als Mid-Mount belegt** |
+
+**Hier ist der Haken, und er ist größer als die Teilefrage:** **Unsere Platine
+ist 0,8 mm dick.** Die beiden Teile, die ihre Dicke nennen, sind für **1,6 mm**
+gemacht. Ein Mid-Mount sitzt in einem Ausschnitt und stützt sich auf der
+Plattendicke ab — auf 0,8 mm sitzt ein 1,6-mm-Teil nicht richtig. Bei den
+anderen zwei ist die Dicke nicht genannt, also `ungeprueft`.
+
+**Eine Ausschnittgröße kann ich nicht nennen.** Die Footprints sind über die
+Brücke nicht auslesbar (`lib_footprint_get` gibt nur Kopfdaten), und ich würde
+sonst eine Zahl erfinden. **Dafür braucht es das Datenblatt des gewählten
+Teils.**
+
+**Und darum sind es drei Wege, nicht zwei:**
+
+1. **Gerät vorn dicker machen.** Schaltplan und Teile bleiben, wie sie sind.
+   Kostet Bauhöhe, löst alles andere nicht aus.
+2. **Mid-Mount-Buchse.** Teiletausch **plus Ausschnitt im Umriss** — und
+   **vorher ist zu klären, ob es sie für 0,8 mm gibt.** Sonst müsste die
+   Platine auf 1,6 mm, und das widerspricht dem, warum 0,8 mm gewählt wurden.
+3. **Der Weg, für den die 0,8 mm überhaupt da sind:** Dieser Abschnitt sagt
+   oben selbst, *„0,8 mm statt 1,6 mm ist keine freie Wahl, wenn der
+   USB-C-Stecker später direkt am Platinenrand sitzen soll — alle gefundenen
+   Platinenrand-Stecker passen nur auf 0,8 mm."* Das Gerät ist als
+   **Schlüsselanhänger mit USB-C-Stecker** geplant, nicht mit Buchse; die
+   Buchse ist die Stufe-1-Lösung. **Ein Stecker am Platinenrand baut über der
+   Platte fast nichts auf** — genau der Fall, für den die Dicke festgelegt
+   wurde. Dann löst sich der Hohlraum-Konflikt von selbst, und die 2,35 mm
+   reichen.
+
+> **Mein Vorschlag, aber Thomas' Entscheidung:** Weg 3 prüfen, bevor Weg 2
+> gerechnet wird. Weg 2 kostet Teiletausch, Umrissausschnitt und
+> möglicherweise die Plattendicke — Weg 3 kostet einen Teiletausch, der
+> sowieso vorgesehen war. Was Weg 3 verlangt: **ENIG** (steht schon fest) und
+> **Gold auf den Kontaktflächen am Rand**, sowie ein Umriss, der die
+> Steckerzunge formt. Das gehört gerechnet, bevor jemand den Rand zeichnet.
+
+## Weg 3 geprüft: er zerfällt in zwei, und einer davon ist unbelegt
+
+Geprüft am 24.10.2026 gegen das, was im Repo steht und was von außen abrufbar
+war. **Die Quelle meiner eigenen 0,8-mm-Behauptung ist `docs/parts.md`,
+Abschnitt „Buchse oder Stecker"** — nicht die Erinnerung, aber auch nicht ein
+Datenblatt.
+
+### 3a — Stecker als Bauteil am Platinenrand
+
+**Es gibt ein konkretes Teil, und es steht schon im Repo:**
+
+| Teil | Art | Preis | Bezug |
+| --- | --- | --- | --- |
+| **Molex 1054440001** | **Stecker, Straddle Mount am Platinenrand** | 2,72 € | Digi-Key, **14 Wochen Lieferzeit** |
+
+Das ist ein Bauteil, das den Platinenrand umgreift — kein geätzter Rand. Die
+Platine steckt in ihm, nicht in der Buchse des Rechners.
+
+- **Die 0,8 mm beziehen sich auf genau diese Bauart.** `docs/parts.md` nennt
+  als belegte Randbedingungen „Leiterplattendicke 0,8 mm statt 1,6 mm (alle
+  gefundenen Edge-Mount-Stecker passen nur auf 0,8 mm)" und „ENIG statt HASL
+  (die dickere HASL-Schicht macht das erste Stecken schwer)".
+- **`ungeprueft`:** Die Datei nennt **kein Datenblatt** und außer Molex keine
+  Teilenummern. Die Zahl ist also auf ein Dokument im Repo zurückführbar, nicht
+  auf eine Herstellerangabe. **Bauhöhe über der Platine, Ausschnitt und
+  Lötbild sind nicht bekannt** — das muss aus dem Molex-Datenblatt kommen.
+- **Die 14 Wochen Lieferzeit sind der eigentliche Preis dieses Weges**, nicht
+  die 2,72 €.
+
+### 3b — Zunge direkt in die Platine geätzt, ohne Bauteil
+
+**Das ist der Weg, der nicht belegt ist, und `docs/parts.md` sagt es selbst:**
+
+> *„Für einen direkt in die Platine geätzten Stecker ohne Bauteil wurde keine
+> Quelle zur Konformität mit der Type-C-Steckerspezifikation gefunden —
+> `ungeprueft`."*
+
+Dazu kommt, was gegen ihn spricht und was man ohne Spezifikation sehen kann:
+Ein USB-C-Stecker trägt **24 Kontakte auf beiden Seiten einer Zunge** und
+braucht eine **Metallhülle mit Verriegelung**. Eine nackte Platinenkante
+liefert die Hülle nicht. Bei USB-A geht das, weil dort eine einfache
+rechteckige Hülle genügt; bei USB-C ist die Zunge Teil eines Steckers mit
+eigener Mechanik. **Die Zungendicke der Spezifikation habe ich nicht belegen
+können** — die Type-C-Spezifikation ist nur per Download zu bekommen (steht
+schon in `schematic.md` beim CC-Widerstand).
+
+### Was die Fertigung dazu sagt — auch nicht belegt
+
+Abgerufen wurde JLCPCBs Fähigkeitsseite. **Sie nennt zu Randkontakten
+nichts Verwertbares:**
+
+- **Goldstärke für Randkontakte: nicht angegeben.**
+- **Unterstützte Dicken für Randkontakte: nicht angegeben.**
+- **Fase (Anschrägung der Zunge): nicht angegeben**, kein Winkel genannt.
+- Belegt ist nur: **0,8 mm ist eine Standarddicke** („0.4/0.6/0.8/1.0/1.2/1.6/
+  2.0 mm"), und metallisierte Ränder werden „copper-plated and ENIG treated".
+
+**Das gehört beim Hersteller erfragt** — Kontakt zu Herstellern nimmt Thomas
+selbst auf.
+
+### Die Bilanz, beide Seiten
+
+**Was wegfällt:**
+
+- **Die Abschirmung um die Datenleitungen.** Die Buchse bringt einen Schirm
+  mit, der auf `GND` liegt; am Platinenrand gibt es ihn nicht.
+- **Die mechanische Entlastung.** Die vier Haltestifte des USB4085 nehmen die
+  Zugkräfte auf. Beim Randstecker trägt die **Platine selbst** — 0,8 mm dünn,
+  und sie wird bei jedem Stecken belastet.
+- **20 000 Steckzyklen**, die der USB4085 verbürgt. Für Randkontakte ist keine
+  Zahl bekannt.
+- Die einfache Handlötbarkeit (Durchsteckteil).
+
+**Was dazukommt:**
+
+- **Der Hohlraumkonflikt verschwindet** — kein Körper, der 3,46 mm aufbaut.
+- **Ein Bauteil weniger** auf der Platine.
+- **Die Bauform, die der Plan von Anfang an nennt:** direkt in den Rechner
+  stecken, ohne Kabel.
+- Weniger Bauhöhe am vorderen Ende.
+
+> **Mein Fazit, als Vorlage für Thomas' Entscheidung:** **3b ist nicht
+> entscheidungsreif** — ohne Konformitätsquelle würde man eine Platine
+> fertigen, von der niemand weiß, ob sie in eine USB-C-Buchse passt. **3a ist
+> entscheidungsreif, kostet aber 14 Wochen Lieferzeit** und ist mechanisch ein
+> Rückschritt gegenüber der Buchse (keine Zugentlastung, kein Schirm). Weg 1
+> (Gerät vorn dicker) bleibt der einzige, der **heute** funktioniert und
+> nichts Unbekanntes enthält.
+
+### Was beim Hersteller zu erfragen ist — vergeblich gesucht
+
+Nur nötig, wenn Weg 3a (Randstecker) verfolgt wird. **Herstellerkontakt macht
+Thomas.** Hier steht, wonach er fragen müsste, weil ich es nicht gefunden habe:
+
+**An JLCPCB (oder den gewählten Fertiger):**
+
+1. **Bietet ihr Randkontakte („gold fingers") an, und für welche
+   Plattendicken?** Die Fähigkeitsseite nennt 0,8 mm als Standarddicke, sagt
+   aber nicht, ob Randkontakte darauf möglich sind.
+2. **Welche Goldstärke** haben diese Kontakte (in Mikrozoll), und ist es
+   **Hartgold** oder ENIG? Die Seite nennt zu Randkontakten keine Zahl; zu
+   metallisierten Rändern steht nur „copper-plated and ENIG treated".
+3. **Wird eine Fase (Anschrägung) an der Steckkante angeboten, und mit welchem
+   Winkel?** Nicht erwähnt.
+4. **Gibt es eine Angabe zu Steckzyklen** für solche Kontakte? Zum Vergleich:
+   die Buchse GCT USB4085 verbürgt 20 000.
+
+**An Molex, zum Teil 1054440001:**
+
+5. **Bauhöhe über und unter der Platine** bei 0,8 mm Plattendicke — das ist die
+   Zahl, die über den 2,35-mm-Hohlraum entscheidet.
+6. **Lötbild und nötiger Ausschnitt** am Platinenrand.
+7. **Lieferzeit** — Digi-Key nennt 14 Wochen; gibt es einen kürzeren Weg?
+
+Was ich abgerufen habe und was dabei herauskam, steht im Abschnitt darüber.
+**GCTs eigene Seite und TDKs Produktseite antworten auf Abruf mit HTTP 403** —
+beide Hersteller sind von hier aus nicht lesbar. Das ist kein Hinweis auf die
+Teile, nur auf den Weg dorthin.
