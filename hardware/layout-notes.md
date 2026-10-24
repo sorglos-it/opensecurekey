@@ -1737,3 +1737,110 @@ wäre jedes Kupfer eine Wegwerfarbeit.
 aus, weil sie vier Stellen hatte. Sie war eine Annahme über den Ursprung des
 Footprints — und Annahmen über Ursprünge fallen erst auf, wenn man das Bauteil
 aus seinen Pads nachbaut und prüft, ob das Datenblattmaß herauskommt.
+
+# U1 gedreht — und dabei fiel auf, dass mein Platzierungsbeweis nichts bewies
+
+Stand 24.10.2026, nach der Entscheidung „Antenne an die Längskante `x` = 27".
+
+## Die Drehung: gesetzt und nachgemessen
+
+**Der Schub ist −0,2502 mm, nicht +3,25.** Meine eigene Zahl im Vorschlag war
+falsch: die 3,25 waren der Abstand des **jetzigen hohen Endes** zur Kante. Nach
+der Drehung steht dort das **Antennenende**, und das reicht 3,85 mm weiter
+hinaus. Gerechnet: nach 180° liegt die Körperkante bei 27,2502 — also
+**0,2502 mm über** der Platine, nicht 3,25 mm darunter.
+
+U1 steht jetzt auf **17,4998 / 17,300001, Drehung 270°**. Danach aus den 61
+Pads neu gemessen, nicht aus der Rechnung übernommen:
+
+| | gemessen |
+| --- | --- |
+| Padhülle | `x` 11,7503 … 23,1484 · `y` 12,2998 … 22,3000 |
+| Körper daraus | `x` 11,5004 … **27,0004** · `y` 12,0499 … 22,5499 |
+| Länge × Breite | **15,5000 × 10,5000** |
+
+> **Freihaltezone neu: `x` 23,1484 … 27,0004, `y` 12,0499 … 22,5499 —
+> 10,5000 breit, 3,8520 tief.** Sie liegt jetzt an der Längskante, wo der
+> Entwurf sie immer haben wollte.
+
+Die 0,0004 mm über 27 sind keine Lage, sondern die **Mil-Rasterung** des
+Werkzeugs: EasyEDA rechnet die Platine intern in mil (0,0254 mm), ein
+Millimeterwert ist dort nicht beliebig fein einstellbar. Die Richtung der
+19 Signalpads hat mitgedreht: sie stehen jetzt bei `x` 12,05, die zwei
+Massepads des Antennenendes bei 22,95.
+
+## Der Befund, der schwerer wiegt als die Drehung
+
+`pcb_layout_boxes` meldete nach der Drehung **`overlapCount` 0**. Weil U1s
+Kasten (11,8 … 23,199) nicht zu meiner gemessenen Hülle (11,7503 … 23,1484)
+passte, habe ich nachgesehen, was das Werkzeug eigentlich misst.
+
+| | |
+| --- | --- |
+| Pad-**Mitten** + 0,25 | 11,7998 … 23,1989 |
+| **Kupfer**hülle + 0,25 | 11,5003 … 23,3984 |
+| was der Kasten sagt | **11,8000 … 23,1990** |
+
+**Der Kasten ist die Hülle der Pad-Mitten plus Rand. Das Kupfer der Pads
+selbst ist nicht darin.** Gegenprobe an C1: zwei Pads auf gleicher Höhe, also
+Mittenhülle 0 hoch; der Kasten ist **genau 0,500** hoch = 2 × 0,25. Wäre das
+Kupfer enthalten, müsste er um die Padhöhe höher sein.
+
+> **Damit bedeutet `overlapCount` 0 bei `margin_mm` 0,25 nicht 0,25 mm
+> Kupferabstand, sondern 0,25 mm zwischen Mittenhüllen.** Bei einem Pad von
+> 0,6 mm Höhe reicht das Kupfer 0,3 mm über die Mitte hinaus — es frisst den
+> ganzen Rand und mehr.
+
+**Mein Satz „54 Bauteile, `overlapCount` 0 bei 0,25 mm Rand" war deshalb kein
+Beweis.** Er stimmte als Aussage über das Werkzeug und sagte nichts über die
+Platine.
+
+## Selbst gemessen: 251 Pads, Pad gegen Pad
+
+Aus `pcb_pads_list` die echten Kupferrechtecke (`extent_mm`, also **nach** der
+Drehung) und jedes Paar verschiedener Bauteile derselben Lage verglichen:
+
+| Paar | Netze | Abstand |
+| --- | --- | --- |
+| `L1.1` ↔ `X1.2` | DCCH ↔ XL2 | **−0,5362** |
+| `SW2.2'` ↔ `U1.1` | GND ↔ GND | −0,2502 |
+| `C9.2` ↔ `X1.1` | GND ↔ XL1 | **−0,2222** |
+| `C2.1` ↔ `U4.2` | VBAT_RAW ↔ GND | **−0,1016** |
+| `C2.1` ↔ `U4.3` | VBAT_RAW ↔ VBAT_RAW | −0,1016 |
+| `R1.1` ↔ `U4.1` | PROG ↔ CHG_STAT | **−0,0151** |
+
+**Vier davon liegen zwischen verschiedenen Netzen. Das sind Kurzschlüsse**,
+keine Enge: die Spule des Abwärtswandlers steht auf dem Quarz, der Akku auf der
+Masse. Zwei weitere überlappen im gleichen Netz — elektrisch harmlos, als
+Kupfer trotzdem falsch.
+
+Von Hand gegengerechnet, damit es nicht am Skript hängt:
+`L1.1` Kupfer `x` 12,7151 … 14,3511 gegen `X1.2` `x` 12,2503 … 13,2513 →
+Überdeckung 12,7151 … 13,2513 = **0,5362 mm**, in `y` über die volle Padhöhe.
+
+Dazu **15 weitere Paare unter 0,25 mm**, davon sieben unter 0,10 mm
+(`C3.2`↔`C4.1` 0,0307, `R3.2`↔`R4.1` 0,0665, `R6.2`↔`R7.1` 0,0665,
+`R4.2`↔`R5.1` 0,0690, `R5.2`↔`R13.1` 0,0690, `R1.2`↔`R2.1` 0,0690,
+`C3.1`↔`C5.2` 0,0992) — alle zwischen **verschiedenen** Netzen und damit unter
+jeder Fertigungsgrenze, die JLCPCB anbietet.
+
+## Was das heißt und was nicht
+
+**Die Drehung hat das nicht verursacht.** Fünf der sechs Überlappungen liegen
+auf der Unterseite und haben mit U1 nichts zu tun; nur `SW2`↔`U1.1` entstand
+daraus, dass Pad 1 mitgedreht ist. **Die Platzierung war vorher schon falsch,
+und die Entwarnung kam von einem Maß, das die Padgröße nicht kennt.**
+
+**Kein Kupfer.** Masseflächen über einer Platzierung mit vier Kurzschlüssen
+wären Wegwerfarbeit, und zwar eine, die die Fehler verdeckt.
+
+**Nächster Schritt:** die Plätze neu rechnen, diesmal gegen die
+**Kupferrechtecke aus `pcb_pads_list`** statt gegen `pcb_layout_boxes`, mit
+einer Mindestluft, die aus dem Regelsatz kommt und nicht aus meinem Gefühl.
+
+**Lehre, und sie ist dieselbe wie dreimal heute:** Ein Werkzeug, das eine Zahl
+nennt, sagt nicht, was es gemessen hat. „overlapCount 0" klang nach einer
+Aussage über Bauteile und war eine über Mittelpunkte — genau wie 25,50 nach
+einer Messung klang und eine Annahme über einen Ursprung war, und wie „12 Pole"
+nach einer Pinzahl klang und eine Kontaktzahl war. **Dreimal dieselbe Falle:
+zwei Größen, die gleich heißen und Verschiedenes messen.**
