@@ -2113,3 +2113,25 @@ falsche Menge angewendet.
 keine einzige Leitung gezogen; das ist der nächste Arbeitsgang, nicht ein
 Fehler. Darin enthalten sind die vier Massepads an U2 und C17, die
 Durchkontaktierungen brauchen, und die Pins der vier geparkten Steckverbinder.
+
+## Offener Punkt: C4 hat denselben Fehler, und zwar schärfer
+
+Aus der Berichtigung an C3/C5 folgt eine Frage, die ich **nicht** mehr geprüft
+habe: **`C4` = 100 nF an `VSYS` steht weiter in der alten Reihe**, bei
+5,9689 / 23,9. Zu U1s `VDDH` (Pad 30, 12,04976 / 14,89964) sind das
+
+> √(6,0809² + 9,0004²) = **10,86 mm.**
+
+**Das ist der Abblockkondensator, nicht der Vorrat.** Bei ihm zählt der kurze
+Weg mehr als bei den 4,7 µF, die heute von 13 mm auf unter 1 mm gerückt sind.
+Dass C3 jetzt 1,29 mm von Pad 30 entfernt ist und C4 **10,86 mm**, ist die
+Reihenfolge verkehrt herum.
+
+**Nicht bewegt**, weil der Abend zu Ende war und weil es eine eigene Runde
+verdient: Es gehört geprüft, ob **alle** Abblockkondensatoren bei ihrem Pin
+stehen, nicht nur dieser eine. Geprüft und in Ordnung sind bisher nur
+`C10`/`C11` an U2, `C12` an U3 und `C13`/`C14` an Q4 — die stehen jeweils rund
+einen Millimeter entfernt. **Die anderen hat niemand nachgemessen.**
+
+**Der Platz ist da:** die Unterseite unter U1 ist in `x` 10 … 23,
+`y` 12,5 … 20,5 weiterhin fast leer.
