@@ -1186,3 +1186,72 @@ ausgelesen, nicht mehr „Two Layers".
 
 **Damit sind die Vorbedingungen für `pcb_import_changes` erfüllt:** Rand da,
 Regelsatz passend, vier Kupferlagen gesetzt.
+
+## Widerspruch, der vor dem Platzieren weg muss: mittige Zelle gegen Sensorfeld
+
+Vom Gehäuse-Strang kamen am 24.10.2026 zwei Bestätigungen, die sich
+gegenseitig ausschließen:
+
+1. **„Das Sensorfeld liegt unten, neben der Zelle"** — quer: Zelle 12,0 +
+   Trennabstand 0,5 + Sensorfeld 11,0 = 23,50 von 24,60 nutzbar.
+2. **„Die Zelle bleibt mittig."**
+
+**Beides geht nicht.** Mittig gelegt (Zelle `x` 6,80 … 18,80) bleiben **je
+Seite 6,30 mm**. Das Sensorfeld braucht mit Trennabstand **11,50 mm.** Es passt
+auf **keiner** der beiden Seiten.
+
+| Lage der Zelle | Platz links | Platz rechts | Sensorfeld (11,5 nötig) |
+| --- | --- | --- | --- |
+| mittig | 6,30 | 6,30 | **passt nicht** |
+| an der Kante (`x` 1,20 … 13,20) | 0 | **11,50** | **passt genau** |
+
+**Die Zelle liegt also an der Kante — nicht mehr als Kunstgriff, sondern weil
+das Sensorfeld die andere Seite braucht.** Der Satz „der Versatz war die
+Antwort auf ein Platzproblem, das die 12-mm-Zelle nicht mehr hat" gilt für den
+**alten** Grund (U2 neben der Zelle); der **neue** Grund ist das Sensorfeld und
+er wiegt schwerer.
+
+> **Zu entscheiden, und nicht von mir:** Entweder die Zelle liegt an der Kante
+> und Stufe 2 bleibt möglich — so ist dieser Entwurf gerechnet — **oder** die
+> Zelle liegt mittig und **das Sensorfeld entfällt**, womit Thomas' Entscheidung
+> von heute zurückgenommen wäre. **Ich zeichne nach der ersten Lesart** und
+> warte auf Widerspruch.
+
+## Die Zelle der Stufe 2 ist dicker, nicht nur schmaler
+
+**LP-401230-J: 4,05 mm dick**, Adafruit 1317: 3,80 mm. **Das Gerät wächst um
+0,25 mm**, obwohl die Zelle schmaler ist.
+
+**Damit sind die Höhenangaben weiter oben überholt**, soweit sie mit 3,8 mm
+rechnen (Maßtabelle, „das dickste Teil", die Höhenaddition, der
+Sensorvergleich). Richtig ist jetzt: **dickstes Teil ist die Zelle mit
+4,05 mm**; grobe Addition 0,8 Platine + 4,05 Zelle + 2,05 Modul ≈ **6,90 mm**
+statt 6,65, plus Ferritfolie und Gehäuse.
+
+**Wer die schmale Zelle für die rundum kleinere hält, rechnet falsch.**
+
+## USB-Buchse bündig zur Gehäusefront: was ich dafür brauche
+
+Die Auflage ist **± 0,3 mm** auf die Vorderkante der Buchse — nach dem
+Spritzen nicht mehr zu korrigieren. Der Steckerkörper ist **9,17 mm tief**.
+
+**Die Rechnung ist einfach, es fehlt nur eine Zahl:** Sei `d` der Abstand, um
+den die **Gehäusefront vor der Platinenkante `y` = 0** liegt. Dann muss die
+Vorderfläche der Buchse bei `y` = −`d` sitzen, also
+
+> **J1-Mitte `y` = 4,585 − `d`**
+
+| `d` | J1-Mitte `y` | Bedeutung |
+| --- | --- | --- |
+| 0,00 | **4,585** | Gehäusefront liegt auf der Platinenkante |
+| 1,03 | 3,555 | Front 1,03 mm davor (Differenz Nase 10,20 − Körper 9,17) |
+
+**Mein Entwurf hat J1 bei `y` = 4,6** — das entspricht `d` = −0,015, die
+Buchse stünde also 0,015 mm hinter der Platinenkante. **Innerhalb der ± 0,3 mm,
+aber nur, wenn `d` = 0 ist.**
+
+> **Frage an den Gehäuse-Strang, eine Zahl:** **Wie viele Millimeter liegt die
+> Gehäusefront vor der Platinenkante `y` = 0?** Danach setze ich J1 auf
+> 4,585 − `d` und nicht auf einen Schätzwert. Bei einer Durchsteckbuchse kann
+> der Körper über die Platinenkante hinausragen, die Pins aber nicht — wenn
+> `d` groß wird, ist das eine eigene Prüfung.
