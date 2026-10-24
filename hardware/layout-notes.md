@@ -936,3 +936,149 @@ eingeschlossen, obwohl ich die 25 … 51 selbst ausgerechnet habe.
 > Kante wie alles andere heute. Die `x`-Werte in diesem Entwurf gelten für
 > **26 mm**; bei 27 mm wandern die mittenbezogenen Teile um 0,5 mm und der
 > Freihaltestreifen auf `x` 25,5 … 27.
+
+# Platzierung für 27 mm und Stufe 2 — gerechnet 24.10.2026
+
+**Diese Fassung gilt.** Die Tabellen weiter oben haben `x`-Werte für **26 mm**
+und sind damit überholt; die Bänder in `y` ändern sich hier ebenfalls, weil die
+Zelle gewechselt ist. Entschieden von Thomas: **Platine 27 mm breit**,
+**Buchse bleibt** (USB4085, Gerät vorn gut einen Millimeter dicker),
+**Sensor der Stufe 2 von Anfang an eingeplant**.
+
+## Die Bänder, nachgerechnet statt überschlagen
+
+| Band | `y` | Länge | Inhalt |
+| --- | --- | --- | --- |
+| Z1 | 0 … 9,5 | 9,5 | USB-C, Ladepfad |
+| Z2 | 9,5 … 25,0 | 15,5 | Funkmodul, Entkopplung, Quarz, **und was aus Z3 weichen musste** |
+| Z3 | 25,0 … **55,5** | **30,5** | Zelle **und** Sensorfeld, nebeneinander |
+| Z4 | **55,5** … 70 | **14,50** | NFC-Schleife |
+
+9,5 + 15,5 + 30,5 + 14,50 = **70,00 mm.**
+
+**Die 14,5 mm stimmen** — und sie waren vorhin tatsächlich nur ein Überschlag.
+Nachgerechnet: die LP-401230-J ist **30,5 mm lang**, Z3 beginnt bei 25,0, endet
+also bei 55,5; 70 − 55,5 = **14,50**. Zum Vergleich: mit der Adafruit 1317
+wären es 18,98 mm gewesen.
+
+**Was das die Antenne kostet, auf gleicher Grundlage gerechnet** (nutzbare
+Breite, nicht Plattenbreite — der Klemmkragen nimmt 1,2 mm je Seite):
+
+| | Schleifenfläche |
+| --- | --- |
+| Stufe 1 bei 26 mm, Zelle 26,02 lang | 19,0 × 23,6 = **448 mm²** |
+| **jetzt: 27 mm, Zelle 30,5 lang** | 14,5 × 24,6 = **357 mm²** |
+
+**Rund ein Fünftel weniger Fläche.** Meine 494 mm² von vorhin waren mit der
+voll­en Plattenbreite gerechnet — die steht nicht zur Verfügung. Thomas kennt
+den Preis und hat ihn angenommen; **er gehört so ins Handbuch**, wo schon
+steht, dass keine Zahl zur Reichweite genannt wird.
+
+## Quer: Zelle und Sensorfeld nebeneinander
+
+Nutzbar quer ist **1,20 … 25,80 = 24,60 mm** (Klemmkragen 1,2 mm je Seite).
+
+| von | bis | Breite | was |
+| --- | --- | --- | --- |
+| 1,20 | 13,20 | 12,00 | **Zelle LP-401230-J** |
+| 13,20 | 13,70 | 0,50 | Trennabstand |
+| 13,70 | 24,70 | 11,00 | **Sensorfeld, Stufe 2 — bleibt leer** |
+| 24,70 | 25,80 | **1,10** | Reserve |
+
+23,50 belegt von 24,60 → **1,10 mm Reserve** statt der 0,10 mm bei 26 mm. Das
+war der Grund für die 27 mm, und er geht auf.
+
+> **Das Sensorfeld wird in Stufe 1 freigehalten, nicht bestückt.** Der Sensor
+> ist nicht einmal ausgewählt. **Wer das Feld zubaut, nimmt Thomas'
+> Entscheidung zurück.**
+
+## Die Folge, die man leicht übersieht: die Unterseite von Z3 ist vergeben
+
+Zelle und Sensorfeld belegen quer **1,20 … 24,70** über die **ganze Länge von
+Z3**. Übrig bleibt ein Streifen von **1,10 mm** — zu schmal für jedes Bauteil.
+
+**Damit ist die Unterseite von Z3 vollständig vergeben.** Alles, was dort
+stand, muss weg:
+
+| Teil | stand | muss | warum |
+| --- | --- | --- | --- |
+| U2 Sicherheitschip | `x` 22,9 / `y` 33 | **nach Z2** | Streifen daneben gibt es nicht mehr |
+| U3 Flash | war schon in Z2 | bleibt in Z2 | — |
+| C10, C11, R6, R7 | im Streifen | **nach Z2** | mit U2 |
+| **J2 Akkustecker** | `x` 13 / `y` 49,5 | **neu zu setzen** | liegt mitten im Zellfeld |
+
+**U2 kommt damit von sich aus nah ans Funkmodul** — das war das Ziel der
+außermittigen Zelle, und es ergibt sich jetzt ohne sie. **Die außermittige
+Zelle ist damit erledigt:** sie war die Antwort auf „neben der 19,75 mm
+breiten Zelle passt nichts". Mit 12 mm Zelle und einem reservierten Sensorfeld
+daneben gibt es diesen Streifen nicht mehr, und U2 sitzt ohnehin in Z2.
+
+## Vorläufige Plätze, und was dafür noch fehlt
+
+**Unterseite Z2** (`y` 9,5 … 25, quer 1,20 … 25,80, abzüglich Freihaltezone)
+muss jetzt tragen: U2 (3 × 3), U3 (8 × 6), C10, C11, C12, R6, R7, R8, dazu was
+schon dort war — L1, X1, C8, C9, C3, C4, C5, Q2, Q3, R4, R5.
+
+**Flächenprobe:** Z2-Unterseite ist 24,6 × 15,5 = **381 mm²**; die Körper
+belegen zusammen rund **100 mm²**. **Es passt von der Fläche**, aber nicht
+beliebig.
+
+| Teil | Seite | `x` | `y` | Stand |
+| --- | --- | --- | --- | --- |
+| U1 | oben | 17,75 | 17,3 | fest; Körper `x` 10,0 … 25,5, Antennenkante **25,5** |
+| U3 Flash | unten | 18 | 19,5 | **vorläufig** — kurze QSPI-Wege bleiben das Ziel |
+| U2 | unten | 23 | 17 | **vorläufig** — unter dem Modul, kurze I2C |
+| J1 | oben | **13,5** | 4,6 | mittig, +0,5 gegenüber 26 mm |
+| J4, DS1 (Glas) | oben | **13,5** | 27 / 38 | mittig |
+| D1 LED | oben | **13,5** | 66 | am Kopfende; **liegt jetzt in Z4** |
+| SW1 / SW2 | oben | 3,5 / **23,5** | 24,5 | an den Längskanten |
+| C15, C16 | unten | 10,5 / 16,5 | 56,5 | symmetrisch zur Mitte, in Z4 |
+| J2 Akkustecker | **offen** | — | — | **siehe unten** |
+
+> **Was fehlt, um die vorläufigen Werte festzumachen:** die **Footprints**. Ich
+> habe bisher mit Gehäusemaßen gerechnet; für Abstände von einem Millimeter
+> brauche ich die Pad-Umrisse, und die sind über die Brücke nicht auslesbar.
+> **Erst nach `pcb_import_changes` sind U2, U3 und die Passiven in Z2
+> kollisionsfrei zu setzen** — vorher wäre jede Zahl auf 0,1 mm erfunden.
+
+## Drei offene Punkte, die aus dieser Umstellung kommen
+
+1. **Auf welcher Seite liegt das Sensorfeld?** Die Vorgabe nennt nur
+   Querwerte. Ein Fingerabdrucksensor wird berührt, muss also nach außen
+   zeigen. **Liegt das Feld unten, ist die Unterseite von Z3 vergeben (so
+   gerechnet); liegt es oben, kollidiert es mit dem Anzeigeglas**
+   (`x` 6,55 … 20,45, `y` 27 … 49). Die zweite Lesart geht nicht auf —
+   **ich rechne mit „unten" und bitte um Bestätigung.**
+2. **Wohin kommt J2, der Akkustecker?** In Z3 ist kein Platz mehr. Möglich
+   wären: oben neben dem Glas (`x` ≈ 23, `y` ≈ 52), oder in das Band
+   `y` 22,6 … 25 zwischen Modul und Zellfeld — dort sind aber nur 2,4 mm, und
+   der JST-PH ist größer. **Das hängt davon ab, wo die Zelle ihr Kabel
+   herausführt** und gehört mit dem Gehäuse-Strang entschieden.
+3. **Wie lang ist das Sensorfeld?** Angegeben ist nur die Breite (11 mm). Ich
+   reserviere **die ganze Länge von Z3**, also 11 × 30,5 = **336 mm²** — das
+   ist die sichere Lesart. Wenn der Sensor kürzer ist, wird Platz frei, den
+   Stufe 1 nutzen könnte. **Solange der Sensor nicht ausgewählt ist, bleibt es
+   reserviert.**
+
+## Ferritfolie und Freihaltezone, mitgezogen
+
+**Ferritfolie:** Die Zelle ist jetzt **12 mm breit** und liegt an
+`x` 1,20 … 13,20.
+
+- **Richtung Antenne (in `y`) unverändert erfüllbar** — die Zelle endet bei
+  `y` 55,5, die Schleife beginnt dort.
+- **Quer hat die Folie 0,5 mm Luft nach innen** (der Trennabstand bis 13,70)
+  und **keine nach außen** (Klemmkragen ab 1,20). Sie wird also **12 mm breit
+  geschnitten, höchstens 12,5**. Besser als bei der breiten Zelle, wo quer gar
+  keine Reserve blieb — aber immer noch eine Fertigungsauflage für die
+  Bauanleitung.
+- **Neu zu bedenken:** Die Folie darf **nicht unter das Sensorfeld** reichen.
+  Was ein Fingerabdrucksensor von einer Ferritlage unter sich hält, weiß ich
+  nicht — `ungeprueft`, aber der Abstand kostet nichts.
+
+**Freihaltezone des Moduls:** Antennenkante **25,5**, Plattenrand **27**. Von
+den 3,8 mm Tiefe liegen wieder nur **1,5 mm auf der Platine**:
+
+> **`x` 25,5 … 27, `y` 12,0 … 22,6 — kupferfrei in allen vier Lagen.**
+
+**Prüfzahl für den Umriss: 194 mm** in vier Segmenten (2 × 27 + 2 × 70).
