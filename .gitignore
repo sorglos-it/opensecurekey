@@ -29,8 +29,11 @@ node_modules/
 # die waechst endlos. Die Projektdatei selbst gehoert sehr wohl ins Repo.
 hardware/opensecurekey_backup/
 
-# Die lokale Projektdatei hinkt dem Editor hinterher - gemessen am 24.10.2026:
-# sie trug noch den alten Taster und die alte Spule, Stunden nach dem Tausch.
-# Wer sie einchecken wuerde, sicherte Vergangenheit und taeuschte Sicherheit vor.
-# Verlaesslich ist der Export ueber die Bruecke (schematic-source-*.txt).
+# EasyEDAs lokale Projektdatei wird nicht bei jeder Aenderung nachgezogen.
+# Sie laeuft hier nur mit, wenn jemand im Editor speichert - die Brueckenarbeit
+# allein erreicht sie nicht. Eine alte Fassung sieht aus wie eine Sicherung und
+# ist keine. Darum: nicht blind einchecken, sondern frisch erzeugen und danach
+# pruefen, ob die zuletzt geaenderten Teile wirklich drinstehen.
+# Fuer den laufenden Stand gilt der Export ueber die Bruecke
+# (hardware/schematic-source-*.txt), der liegt im Repo.
 hardware/opensecurekey.eprj2
