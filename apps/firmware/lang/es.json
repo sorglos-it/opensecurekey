@@ -1,0 +1,53 @@
+{
+  "ask": {
+    "by": "Programa",
+    "decrypt": {
+      "label": "Archivo",
+      "title": "Leer"
+    },
+    "detail": "Detalle",
+    "login": {
+      "label": "Servicio",
+      "title": "Entrar"
+    },
+    "next": "Corto: seguir",
+    "no": "Corto: no",
+    "pair": {
+      "label": "Dispositivo",
+      "title": "Vincular"
+    },
+    "reread": "2x: leer otra vez",
+    "secret": {
+      "label": "Entrada",
+      "title": "Mostrar"
+    },
+    "sign": {
+      "amount": "Importe",
+      "label": "Destinatario",
+      "title": "Firma"
+    },
+    "twice": "Pulsa largo otra vez",
+    "wipe": {
+      "label": "Perfil",
+      "title": "Borrar",
+      "warn": "Se borrará todo"
+    },
+    "yes": "Largo: sí"
+  },
+  "error": {
+    "denied": "Cancelado",
+    "timeout": "Se agotó el tiempo"
+  },
+  "status": {
+    "battery": "Batería baja",
+    "busy": "Trabaja",
+    "error": "Error",
+    "locked": "Bloqueado",
+    "unlocked": "Abierto"
+  },
+  "verify": {
+    "hint": "Introduce el PIN en el ordenador",
+    "ok": "Aprobado",
+    "title": "PIN"
+  }
+}

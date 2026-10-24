@@ -2,6 +2,7 @@
 
 - [architecture.md](architecture.md) — how the device is built
 - [threat-model.md](threat-model.md) — what it protects against, and what it does not
+- [display.md](display.md) — the display, the button, and how approval works
 - [hardware.md](hardware.md) — parts, test setup, target board
 - [integration.md](integration.md) — how other programs reach the key
 - [../shared/protocol.md](../shared/protocol.md) — device ↔ program protocol

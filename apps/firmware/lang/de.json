@@ -1,0 +1,53 @@
+{
+  "ask": {
+    "by": "Programm",
+    "decrypt": {
+      "label": "Datei",
+      "title": "Lesen"
+    },
+    "detail": "Dazu",
+    "login": {
+      "label": "Dienst",
+      "title": "Anmelden"
+    },
+    "next": "Kurz: weiter",
+    "no": "Kurz: nein",
+    "pair": {
+      "label": "Gerät",
+      "title": "Koppeln"
+    },
+    "reread": "2x: nochmal lesen",
+    "secret": {
+      "label": "Eintrag",
+      "title": "Zeigen"
+    },
+    "sign": {
+      "amount": "Betrag",
+      "label": "Empfänger",
+      "title": "Signatur"
+    },
+    "twice": "Noch einmal lang",
+    "wipe": {
+      "label": "Profil",
+      "title": "Löschen",
+      "warn": "Alles wird gelöscht"
+    },
+    "yes": "Lang: ja"
+  },
+  "error": {
+    "denied": "Abgebrochen",
+    "timeout": "Zeit abgelaufen"
+  },
+  "status": {
+    "battery": "Akku schwach",
+    "busy": "Arbeitet",
+    "error": "Fehler",
+    "locked": "Gesperrt",
+    "unlocked": "Offen"
+  },
+  "verify": {
+    "hint": "PIN am Rechner eingeben",
+    "ok": "Freigegeben",
+    "title": "PIN"
+  }
+}

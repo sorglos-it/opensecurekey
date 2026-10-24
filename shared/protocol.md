@@ -28,14 +28,22 @@ the program then says in plain words which function is missing.
 | 1 | `hello` — version, serial, which transports are on | no |
 | 2 | `unlock` — PIN or fingerprint session | yes |
 | 3 | `lock` | no |
-| 4 | `list` — item metadata, never secrets | after unlock |
+| 4 | `list` — item metadata, never secrets; carries `pub` for SSH keys, certificates and PGP keys | after unlock |
 | 5 | `reveal` — one secret | yes, every time |
 | 6 | `add` / 7 `update` / 8 `delete` | yes |
 | 9 | `log` — read device log | after unlock |
 | 10 | `pair` — pair a second device or a host | yes, number comparison |
 | 11 | `backup` / 12 `restore` — encrypted blob | yes |
 | 13 | `update` — signed firmware image | yes |
-| 14 | `attest` — challenge/response for dongle use | configurable |
+| 14 | `attest` — challenge/response for dongle use: `ch` nonce(32), `bh` program hash(32) → `sig`, `pub` | configurable |
+| 15 | `derive` — `info`, `n` → `key`; never returns the root secret | no |
+| 16 | `agree` — `k` label, `pub` peer(32) → `sec`; may answer `OSK_ERR_UNSUPPORTED` on a part without ECDH | yes, or grant |
+| 17 | `session` — `on`, `k` labels, `ttl`, or `ask` → state (the server grant) | yes, to switch on |
+| 18 | `sign` — `k` label, `h` hash(32) → `sig`; or `pub`+`cv` for the public part | yes, or grant |
+
+`attest` and `sign` are deliberately separate, and the device puts a distinct
+purpose string in front of each before signing. A firmware that signs whatever
+it is handed breaks that separation no matter how careful the host is.
 
 ## Setup: one question that cannot be taken back
 
