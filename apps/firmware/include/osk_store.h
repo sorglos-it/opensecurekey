@@ -75,6 +75,23 @@ osk_result_t osk_store_update(osk_item_id_t id, const osk_item_meta_t *meta, con
 			      size_t secret_len);
 osk_result_t osk_store_delete(osk_item_id_t id);
 
+/* Den oeffentlichen Teil eines Eintrags holen - ohne Freigabe und ohne das
+ * Geheimnis anzufassen.
+ *
+ * Gilt fuer OSK_ITEM_SSH_KEY, OSK_ITEM_CERT und OSK_ITEM_PGP_KEY. Ein
+ * oeffentlicher Schluessel ist kein Geheimnis; ihn wie eines zu behandeln
+ * kostet nur Tastendruecke und schuetzt nichts.
+ *
+ * Der Anlass: Der ssh-Agent muss ssh ALLE Identitaeten nennen, bevor
+ * irgendetwas unterschrieben wird. Ohne diese Funktion kostete das einen
+ * Tastendruck je Schluessel, nur um den Namen zu erfahren - und der Nutzer
+ * lernt dabei, Tastendruecke wegzudruecken, ohne hinzusehen. Genau das
+ * zerstoert den Wert jeder spaeteren echten Nachfrage.
+ *
+ * Liegt der Schluessel im SE050, kommt der oeffentliche Teil von dort
+ * (osk_se050_key_public); bei eingelesenen Schluesseln aus dem Tresor. */
+osk_result_t osk_store_public(osk_item_id_t id, uint8_t *out, size_t cap, size_t *len_out);
+
 /* Gibt das Geheimnis heraus. Fragt selbst nach Freigabe (osk_ui_confirm)
  * und traegt den Zugriff ins Geraeteprotokoll ein. Der Puffer des Aufrufers
  * wird nach Gebrauch von ihm selbst geloescht. */

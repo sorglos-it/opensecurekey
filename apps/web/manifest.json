@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "OpenSecureKey",
+  "version": "0.0.1",
+  "description": "Fuellt Anmeldefelder aus dem Sicherheitsschluessel - nur auf der im Eintrag hinterlegten Adresse.",
+  "author": "Sorglos Thomas Weirich",
+  "icons": { "128": "assets/icon-128.png" },
+  "action": {
+    "default_title": "OpenSecureKey",
+    "default_popup": "views/popup.html"
+  },
+  "background": { "service_worker": "assets/background.js" },
+  "permissions": ["nativeMessaging", "activeTab", "scripting"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; default-src 'none'; style-src 'self'; img-src 'self'"
+  }
+}

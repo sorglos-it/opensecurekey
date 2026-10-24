@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<!-- Das Fenster der Erweiterung. Ohne Logik: die steckt in assets/popup.js,
+     die Texte kommen aus lang/. Jeder sichtbare Satz haengt an data-text. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>OpenSecureKey</title>
+  <link rel="stylesheet" href="../assets/popup.css">
+</head>
+<body>
+  <header>
+    <h1 data-text="popup.title">OpenSecureKey</h1>
+    <p class="site" id="site"></p>
+  </header>
+
+  <!-- Kein Geraet, kein Programm, keine brauchbare Seite -->
+  <section id="trouble" hidden>
+    <p class="trouble" id="troubleText"></p>
+  </section>
+
+  <!-- Gesperrt: PIN eingeben -->
+  <section id="locked" hidden>
+    <p data-text="popup.locked">The device is locked.</p>
+    <form id="unlockForm">
+      <label for="pin" data-text="popup.pin">PIN</label>
+      <input type="password" id="pin" autocomplete="off" inputmode="numeric"
+             data-placeholder="popup.pin" required>
+      <button type="submit" data-text="popup.unlock">Unlock</button>
+    </form>
+  </section>
+
+  <!-- Offen: die Eintraege dieser Adresse -->
+  <section id="open" hidden>
+    <ul id="matches"></ul>
+    <p class="none" id="none" data-text="popup.none" hidden></p>
+    <p class="bound" data-text="popup.bound"></p>
+    <button type="button" id="lock" class="quiet" data-text="popup.lock">Lock</button>
+  </section>
+
+  <p class="note" id="note" role="status" aria-live="polite"></p>
+
+  <footer>
+    <p class="device" id="device"></p>
+    <p class="claim" id="claim"></p>
+  </footer>
+
+  <script src="../assets/rules.js"></script>
+  <script src="../assets/texts.js"></script>
+  <script src="../assets/popup.js"></script>
+</body>
+</html>

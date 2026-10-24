@@ -142,6 +142,11 @@ static osk_result_t index_read_block(uint8_t profile, uint16_t block)
 		break;
 	case OSK_FMT_V3:
 	case OSK_FMT_V4:
+	case OSK_FMT_V5:
+		/* Gleiche Satzgroesse seit Fassung 3. Fassung 5 benutzt nur
+		 * Bytes, die vorher auf 0 standen - ein alter Satz liest sich
+		 * darum als "kein oeffentlicher Teil, kein Chip-Schluessel"
+		 * und muss nicht umgerechnet werden. */
 		rec_size = sizeof(osk_idx_rec_t);
 		break;
 	default:
@@ -431,22 +436,28 @@ osk_result_t osk_index_remove(uint8_t profile, size_t index)
 	return OSK_OK;
 }
 
-/* ---- Geheimnisse ------------------------------------------------------ */
+/* ---- Geheimnisse und oeffentliche Teile ------------------------------- */
+/* Beide liegen auf Datenplaetzen desselben Bereichs und benutzen denselben
+ * Rahmen - aber mit VERSCHIEDENER Kennung. Dadurch laesst sich der
+ * oeffentliche Teil eines Eintrags nicht an die Stelle seines Geheimnisses
+ * schieben und umgekehrt: der Rahmen ist zusaetzliche Daten der
+ * Verschluesselung, und eine falsche Kennung darin laesst den Pruefwert
+ * anschlagen. */
 
 static uint32_t blob_crc(const osk_blob_frame_t *f)
 {
 	return osk_crc32(f, sizeof(*f) - sizeof(f->crc32));
 }
 
-osk_result_t osk_blob_write(uint32_t slot, osk_item_id_t id, const uint8_t *secret, size_t len,
-			    const osk_key_t *key, uint32_t *ct_len_out,
-			    uint8_t nonce_out[OSK_NONCE_LEN])
+static osk_result_t slot_write(uint32_t magic, uint32_t slot, osk_item_id_t id, const uint8_t *data,
+			       size_t len, const osk_key_t *key, uint32_t *ct_len_out,
+			       uint8_t nonce_out[OSK_NONCE_LEN])
 {
 	osk_store_state_t *st = osk_store_state();
 	osk_blob_frame_t frame;
 	osk_result_t r;
 
-	if (slot >= OSK_BLOB_SLOTS || len == 0 || len > OSK_SECRET_MAX || secret == NULL) {
+	if (slot >= OSK_BLOB_SLOTS || len == 0 || len > OSK_SECRET_MAX || data == NULL) {
 		return OSK_ERR_ARG;
 	}
 
@@ -456,7 +467,7 @@ osk_result_t osk_blob_write(uint32_t slot, osk_item_id_t id, const uint8_t *secr
 	}
 
 	memset(&frame, 0, sizeof(frame));
-	frame.magic = OSK_BLOB_MAGIC;
+	frame.magic = magic;
 	frame.id = id;
 	frame.ct_len = (uint32_t)(len + OSK_TAG_LEN);
 	frame.generation = st->hdr.seq;
@@ -469,8 +480,8 @@ osk_result_t osk_blob_write(uint32_t slot, osk_item_id_t id, const uint8_t *secr
 	memset(g_blob, 0xFF, sizeof(g_blob));
 	memcpy(g_blob, &frame, sizeof(frame));
 	r = osk_crypto_seal(key, nonce_out, (const uint8_t *)&frame,
-			    sizeof(frame) - sizeof(frame.crc32), secret, len,
-			    g_blob + sizeof(frame), sizeof(g_blob) - sizeof(frame), &ct_len);
+			    sizeof(frame) - sizeof(frame.crc32), data, len, g_blob + sizeof(frame),
+			    sizeof(g_blob) - sizeof(frame), &ct_len);
 	if (r != OSK_OK) {
 		osk_crypto_wipe(g_blob, sizeof(g_blob));
 		return r;
@@ -493,37 +504,82 @@ osk_result_t osk_blob_write(uint32_t slot, osk_item_id_t id, const uint8_t *secr
 	return OSK_OK;
 }
 
-osk_result_t osk_blob_read(const osk_idx_rec_t *rec, const osk_key_t *key, uint8_t *out, size_t cap,
-			   size_t *len_out)
+static osk_result_t slot_read(uint32_t magic, uint32_t slot, osk_item_id_t id, uint32_t want_ct_len,
+			      const uint8_t nonce[OSK_NONCE_LEN], const osk_key_t *key,
+			      uint8_t *out, size_t cap, size_t *len_out)
 {
 	osk_blob_frame_t frame;
 	osk_result_t r;
 
-	if (rec == NULL || out == NULL || len_out == NULL || rec->slot >= OSK_BLOB_SLOTS) {
+	if (out == NULL || len_out == NULL || slot >= OSK_BLOB_SLOTS) {
 		return OSK_ERR_ARG;
 	}
-	if (rec->blob_ct_len < OSK_TAG_LEN || rec->blob_ct_len > sizeof(g_blob) - sizeof(frame)) {
+	if (want_ct_len < OSK_TAG_LEN || want_ct_len > sizeof(g_blob) - sizeof(frame)) {
 		return OSK_ERR_FORMAT;
 	}
 
-	r = osk_flash_read(osk_blob_addr(rec->slot), &frame, sizeof(frame));
+	r = osk_flash_read(osk_blob_addr(slot), &frame, sizeof(frame));
 	if (r != OSK_OK) {
 		return r;
 	}
-	if (frame.magic != OSK_BLOB_MAGIC || frame.crc32 != blob_crc(&frame) ||
-	    frame.id != rec->id || frame.ct_len != rec->blob_ct_len) {
+	if (frame.magic != magic || frame.crc32 != blob_crc(&frame) || frame.id != id ||
+	    frame.ct_len != want_ct_len) {
 		return OSK_ERR_FORMAT;
 	}
 
-	r = osk_flash_read(osk_blob_addr(rec->slot) + sizeof(frame), g_blob, frame.ct_len);
+	r = osk_flash_read(osk_blob_addr(slot) + sizeof(frame), g_blob, frame.ct_len);
 	if (r != OSK_OK) {
 		return r;
 	}
-	r = osk_crypto_open(key, rec->nonce, (const uint8_t *)&frame,
+	r = osk_crypto_open(key, nonce, (const uint8_t *)&frame,
 			    sizeof(frame) - sizeof(frame.crc32), g_blob, frame.ct_len, out, cap,
 			    len_out);
 	osk_crypto_wipe(g_blob, sizeof(g_blob));
 	return r;
+}
+
+osk_result_t osk_blob_write(uint32_t slot, osk_item_id_t id, const uint8_t *secret, size_t len,
+			    const osk_key_t *key, uint32_t *ct_len_out,
+			    uint8_t nonce_out[OSK_NONCE_LEN])
+{
+	return slot_write(OSK_BLOB_MAGIC, slot, id, secret, len, key, ct_len_out, nonce_out);
+}
+
+osk_result_t osk_blob_read(const osk_idx_rec_t *rec, const osk_key_t *key, uint8_t *out, size_t cap,
+			   size_t *len_out)
+{
+	if (rec == NULL) {
+		return OSK_ERR_ARG;
+	}
+	return slot_read(OSK_BLOB_MAGIC, rec->slot, rec->id, rec->blob_ct_len, rec->nonce, key, out,
+			 cap, len_out);
+}
+
+/* Der oeffentliche Teil. Eigener Platz, eigene Nonce, eigene Kennung im
+ * Rahmen - und darum lesbar, ohne den Platz des Geheimnisses anzufassen. */
+osk_result_t osk_pub_write(uint32_t slot, osk_item_id_t id, const uint8_t *pub, size_t len,
+			   const osk_key_t *key, uint32_t *ct_len_out,
+			   uint8_t nonce_out[OSK_NONCE_LEN])
+{
+	if (len > OSK_PUBLIC_MAX) {
+		return OSK_ERR_ARG;
+	}
+	return slot_write(OSK_PUB_MAGIC, slot, id, pub, len, key, ct_len_out, nonce_out);
+}
+
+osk_result_t osk_pub_read(const osk_idx_rec_t *rec, const osk_key_t *key, uint8_t *out, size_t cap,
+			  size_t *len_out)
+{
+	if (rec == NULL) {
+		return OSK_ERR_ARG;
+	}
+	/* Die Laenge entscheidet, nicht die Platznummer: Platz 0 ist ein
+	 * gueltiger Platz. */
+	if (rec->pub_len == 0u) {
+		return OSK_ERR_NOT_FOUND;
+	}
+	return slot_read(OSK_PUB_MAGIC, rec->pub_slot, rec->id, rec->pub_ct_len, rec->pub_nonce,
+			 key, out, cap, len_out);
 }
 
 osk_result_t osk_blob_erase(uint32_t slot)

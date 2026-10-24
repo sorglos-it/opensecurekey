@@ -39,6 +39,12 @@ void fake_flash_count_reset(void);
 bool fake_flash_is_dead(void);
 void fake_flash_revive(void);
 
+/* Lesezugriffe in einem Bereich, Sektor fuer Sektor gezaehlt. Damit laesst
+ * sich belegen, dass ein Weg einen Bereich NICHT angefasst hat - etwa
+ * osk_store_public(), das den Datenplatz des Geheimnisses nie liest. */
+void fake_flash_read_reset(void);
+uint32_t fake_flash_reads_in(uint32_t area_off, uint32_t area_len);
+
 /* Loeschvorgaenge eines Sektors, fuer die Verschleissmessung. */
 uint32_t fake_flash_erase_count(uint32_t addr);
 uint32_t fake_flash_erase_total(void);

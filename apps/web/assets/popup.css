@@ -1,0 +1,187 @@
+/* Das Fenster der Erweiterung.
+ *
+ * Weiss, viel Luft, ein Akzent aus dem Spektrum (Indigo) - wie die uebrigen
+ * Oberflaechen des Projekts. Keine Farbflaechen, keine Schatten.
+ * Kontraste nach WCAG AA, bedienbar mit der Tastatur.
+ */
+:root {
+  --text: #191919;
+  --quiet: #595959;
+  --line: #d6d6d6;
+  --accent: #3a4e9d;
+  --warn: #c4254f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 320px;
+  margin: 0;
+  padding: 14px;
+  background: #ffffff;
+  color: var(--text);
+  font: 14px/1.45 Arial, Helvetica, sans-serif;
+}
+
+h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 0.02em;
+}
+
+.site {
+  margin: 2px 0 12px;
+  color: var(--quiet);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  grid-template-areas: "name fill copy" "where fill copy";
+  gap: 2px 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+li:first-child {
+  border-top: none;
+}
+
+.name {
+  grid-area: name;
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+.where {
+  grid-area: where;
+  color: var(--quiet);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+button {
+  padding: 6px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent);
+  color: #ffffff;
+  font: inherit;
+  cursor: pointer;
+}
+
+button.quiet {
+  background: #ffffff;
+  color: var(--accent);
+}
+
+button:disabled {
+  border-color: var(--line);
+  background: var(--line);
+  color: #ffffff;
+  cursor: default;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+form {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+}
+
+label {
+  font-size: 12px;
+  color: var(--quiet);
+}
+
+input {
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font: inherit;
+  color: var(--text);
+}
+
+#lock {
+  margin-top: 12px;
+}
+
+.none,
+.bound,
+.note,
+.claim,
+.device {
+  font-size: 12px;
+  color: var(--quiet);
+}
+
+.bound {
+  margin: 12px 0 0;
+}
+
+.trouble {
+  margin: 0;
+  color: var(--warn);
+}
+
+.note:empty {
+  margin: 0;
+}
+
+footer {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+footer p {
+  margin: 0 0 4px;
+}
+
+.claim {
+  color: var(--quiet);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #f2f2f2;
+    --quiet: #b8b8b8;
+    --line: #3d3d3d;
+    --accent: #8d9cd6;
+    --warn: #ef8da6;
+  }
+
+  body {
+    background: #191919;
+  }
+
+  button {
+    color: #191919;
+  }
+
+  button.quiet {
+    background: #191919;
+    color: var(--accent);
+  }
+
+  input {
+    background: #262626;
+  }
+}

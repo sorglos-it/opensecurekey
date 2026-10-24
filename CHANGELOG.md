@@ -3,6 +3,65 @@
 ## [Unreleased]
 
 ### Added
+- Five integration routes, each proven by one real operation against the device
+  simulator: **ssh-agent** (`git push` through it on Windows and Linux; the
+  public part computed from the private key matches `ssh-keygen` character for
+  character), **command line** (`osk run` hands the secret only to the child
+  process — measured, the shell next to it sees nothing), **PKCS#11** as .dll
+  and .so with 29 functions (`openssl` reports "Verified OK", a flipped byte is
+  rejected, and `ssh -I ./osk-pkcs11.so` signed a `git push` with no agent and
+  no key file), **browser extension** (a login field filled in a real Chromium;
+  an entry for another address was refused — that refusal is the phishing
+  protection, not a convenience), and a **local socket** where a refused request
+  never reaches the device.
+  42 mutation checks across three sets. Four of the strand's own tests were
+  hollow at first measurement — they failed at an earlier wall and would never
+  have tested the latch — and were sharpened until the mutants died.
+  **No real device was involved. macOS is cross-compiled but untested.**
+- Crypto wallet: BIP39 (12 or 24 words, optional passphrase), BIP32/BIP44 and
+  SLIP-0010 derivation in the device, PSBT signing per BIP174 (the open route
+  Electrum, Sparrow and Bitcoin Core all speak), Ethereum transactions
+  (EIP-155, 2930, 1559) and messages (EIP-191, 712), plus a Ledger-compatible
+  APDU layer so MetaMask and Electrum recognise the device without changes —
+  protocol written from the specifications, no foreign code.
+  **What the device cannot display legibly, it does not sign** without an
+  explicit extra approval. That rule is the reason the display exists at all.
+  1099 test cases and two fuzzers green, including the official BIP32 and BIP39
+  test vectors. **No real transaction was ever sent** and nothing ran on
+  hardware.
+- Smart card side: USB-CCID (Windows, Linux and macOS bring the driver
+  themselves — that is why this route was chosen), PIV per SP 800-73-4 with
+  slots 9A/9C/9D/9E, OpenPGP card 3.4, Yubico-OTP and HMAC-SHA1
+  challenge-response for KeePassXC and VeraCrypt. Keys live in the secure
+  element, certificates in the vault; every signature asks for approval on the
+  device. 564 test cases green. **No real card reader stack was involved.**
+- NFC and Bluetooth transports. **NFC** as an ISO/IEC 14443-4 Type 4 tag with
+  ISO-DEP framing, chaining and timeouts, carrying the same CTAP core as USB —
+  the core was built transport-independent and this is the proof. Plus NDEF tap
+  (open an address or type a one-time code with no app at all), switchable off.
+  Every operation over NFC still needs the button pressed, with no exception for
+  "NFC is brief anyway" — that is the defence against relay attacks from a
+  pocket. **Bluetooth** as a GATT service for the management program only, not
+  for FIDO: browsers do not support FIDO over Bluetooth reliably. Pairing uses
+  LE Secure Connections with numeric comparison, encryption required, no "Just
+  Works", and the button has to be pressed on the device; the radio address
+  rotates against tracking.
+  1367 test cases and two fuzzers (ISO-DEP and NDEF parsers) green.
+  **No radio was measured** — there is no board. Everything here is written and
+  compiled, nothing more.
+- Display and on-device approval: SSD1306-family driver over SPI for both the
+  target part (48×64) and the test board (128×64), size as a constant rather
+  than an assumption. `osk_ui_confirm()` now draws a screen per occasion —
+  login, signature, decryption, secret release, pairing, wipe — showing the
+  service, the recipient and the amount **verbatim**. Long names wrap or scroll;
+  nothing is silently truncated, because a cut-off recipient on a transfer is
+  worse than no display at all. Two hand-built fonts covering all five
+  languages, costing 5.3 KB of flash — 0.55 % of the usable 960 KB, counted
+  from the generated tables rather than estimated. Button handling (short,
+  long, double, debounce, timeout), status display, five language files.
+  4094 test cases green on 48×64 and 4092 on 128×64, both with sanitizers.
+  **Nothing has ever appeared on a real display**, and the SPI binding
+  (`osk_ui_port_nrf.c`) has never been compiled — it needs the SDK.
 - Vault for the firmware: the encrypted store behind every secret the device
   holds. Typed items (login, TOTP/HOTP, SSH key, certificate, PGP key, API key,
   recovery codes, BIP39 seed, licence, card, identity, Wi-Fi, note, small file),

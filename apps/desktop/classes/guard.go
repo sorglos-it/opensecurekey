@@ -225,19 +225,10 @@ func GuardVerify(devicePublicKey []byte, answer GuardAnswer) error {
 	return nil
 }
 
-// constantEqual vergleicht ohne Abhaengigkeit von der Stelle, an der die
-// beiden sich unterscheiden. Hier sind nur oeffentliche Werte im Spiel,
-// aber der Vergleich kostet nichts und die Gewohnheit ist richtig.
-func constantEqual(a, b []byte) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	var diff byte
-	for i := range a {
-		diff |= a[i] ^ b[i]
-	}
-	return diff == 0
-}
+// constantEqual steht in agent.go - derselbe Vergleich, von einem anderen
+// Strang zuerst geschrieben. Beim Zusammenfuehren standen beide Fassungen
+// da, wortgleich im Verhalten; meine ist weg, weil zwei gleiche Funktionen
+// in einem Paket nicht uebersetzen und die dortige mehr Aufrufer hat.
 
 // Present ist eine vollstaendige Runde: fragen und pruefen. Kommt hier kein
 // Fehler, steckte das richtige Geraet in diesem Augenblick - und die

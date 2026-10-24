@@ -34,6 +34,7 @@ add_executable(store_tests
 	test_core.c
 	test_tag.c
 	test_paging.c
+	test_public.c
 	test_power.c
 	test_migrate.c
 	test_backup.c
