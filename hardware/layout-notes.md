@@ -818,3 +818,33 @@ selbst auf.
 > Rückschritt gegenüber der Buchse (keine Zugentlastung, kein Schirm). Weg 1
 > (Gerät vorn dicker) bleibt der einzige, der **heute** funktioniert und
 > nichts Unbekanntes enthält.
+
+### Was beim Hersteller zu erfragen ist — vergeblich gesucht
+
+Nur nötig, wenn Weg 3a (Randstecker) verfolgt wird. **Herstellerkontakt macht
+Thomas.** Hier steht, wonach er fragen müsste, weil ich es nicht gefunden habe:
+
+**An JLCPCB (oder den gewählten Fertiger):**
+
+1. **Bietet ihr Randkontakte („gold fingers") an, und für welche
+   Plattendicken?** Die Fähigkeitsseite nennt 0,8 mm als Standarddicke, sagt
+   aber nicht, ob Randkontakte darauf möglich sind.
+2. **Welche Goldstärke** haben diese Kontakte (in Mikrozoll), und ist es
+   **Hartgold** oder ENIG? Die Seite nennt zu Randkontakten keine Zahl; zu
+   metallisierten Rändern steht nur „copper-plated and ENIG treated".
+3. **Wird eine Fase (Anschrägung) an der Steckkante angeboten, und mit welchem
+   Winkel?** Nicht erwähnt.
+4. **Gibt es eine Angabe zu Steckzyklen** für solche Kontakte? Zum Vergleich:
+   die Buchse GCT USB4085 verbürgt 20 000.
+
+**An Molex, zum Teil 1054440001:**
+
+5. **Bauhöhe über und unter der Platine** bei 0,8 mm Plattendicke — das ist die
+   Zahl, die über den 2,35-mm-Hohlraum entscheidet.
+6. **Lötbild und nötiger Ausschnitt** am Platinenrand.
+7. **Lieferzeit** — Digi-Key nennt 14 Wochen; gibt es einen kürzeren Weg?
+
+Was ich abgerufen habe und was dabei herauskam, steht im Abschnitt darüber.
+**GCTs eigene Seite und TDKs Produktseite antworten auf Abruf mit HTTP 403** —
+beide Hersteller sind von hier aus nicht lesbar. Das ist kein Hinweis auf die
+Teile, nur auf den Weg dorthin.
