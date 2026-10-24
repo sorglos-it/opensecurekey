@@ -258,13 +258,35 @@ examples/Example03_NavigationUART   examples/Example04_EnrollUART
 Erkennung über I²C und über UART.** Für ein MIT-Projekt ist MIT die bequemste
 Lage, die es gibt — bequemer als Apache-2.0 beim BM-Lite.
 
-FPC liefert zum Entwicklungskit außerdem eine Kopfdatei `fpc_api.h` und
-Beispielcode (`FPC2534 AllKey Pro Development Kit Getting Started`,
-Dok. INS27386, Fassung 1, auf `fpc.com`; Beispiele unter
-`examples/secure_com/src/`). **Die Lizenz dieses FPC-Beispielcodes ist
-`ungeprueft`** — sie steht in keiner der eingesehenen Quellen. Sie wird auch
-nicht gebraucht: Die MIT-Bibliothek von SparkFun und die öffentliche
-Beschreibung reichen aus.
+**Und die Befehlsschnittstelle selbst liegt unter Apache-2.0 vor, von FPC.** In
+der SparkFun-Bibliothek liegt FPCs eigene Kopfdatei mit:
+
+`SparkFun_FPC2534_Arduino_Library`, `src/sfTk/fpc_api.h`, abgerufen 24.10.2026:
+
+```
+/*
+ * Copyright (c) 2024 Fingerprint Cards AB
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License")
+ * …
+ */
+/**
+ * @file    fpc_api.h
+ * @brief   FPC AllKey Pro API
+ *
+ * This is the Command Interface for the Fingerprint Sensor Module fpc2534.
+ */
+```
+
+**Das ist dieselbe Lage wie beim BM-Lite, nur zwei Jahre neuer:** FPC
+veröffentlicht die Befehlsschnittstelle seiner Sensoren als Quelltext unter
+Apache-2.0. Punkt 3 ist damit nicht nur über die Händler-PDF erfüllt, sondern
+über eine freie Lizenz auf genau der Datei, die man zum Bauen braucht.
+
+Die Kopfdatei gehört zum Entwicklungskit (`FPC2534 AllKey Pro Development Kit
+Getting Started`, Dok. INS27386, Fassung 1, auf `fpc.com`; Beispiele unter
+`examples/secure_com/src/`) — SparkFun liefert sie in ihrem MIT-Verzeichnis mit,
+unter dem Apache-Kopf, den FPC ihr gegeben hat.
 
 ### Beschaffung — Einzelstücke bei echten Händlern
 
@@ -293,7 +315,65 @@ und ein Fertigboard für 60 USD, beides in Menge 1.
 Das SparkFun-Board ist zudem das richtige Teil für den Teststand: Es trägt den
 **Pro** (FPC2534), kostet ein Viertel des FPC-Entwicklungskits, ist lagernd
 statt zehn Wochen Lieferzeit — und bringt die MIT-Bibliothek mit, in der
-I²C und UART bereits vorgeführt werden. In Europa gibt es es bei Antratek.
+I²C und UART bereits vorgeführt werden. In Europa gibt es das Board bei
+Antratek.
+
+### Teststand: passt der Sensor neben den Sicherheitschip?
+
+**Ja, ohne Konflikt.** Beide hängen am I²C des nRF52840-DK, aber auf
+verschiedenen Adressen:
+
+| Teil | I²C-Adresse | Quelle |
+| --- | --- | --- |
+| SE051C2 (MIKROE-5392) | **0x48** werkseitig | `hardware/schematic.md`, nach SE050 DS Rev. 3.8 |
+| FPC2534 (SEN-29854) | **0x24** als Vorgabe | `sfDevFPC2534I2C.h`, `kFPC2534DefaultAddress`, abgerufen 24.10.2026 |
+
+Die Adressen in der Herstellerbeschreibung SPC27317-8 ließen sich im
+ausgelesenen Text nicht finden — die 0x24 stammt aus der SparkFun-Bibliothek und
+ist insoweit `ungeprueft`, aber sie ist der Wert, mit dem die mitgelieferten
+Beispiele laufen. **Der Sensor kann also an denselben Bus wie der
+Sicherheitschip**, und das Board führt zusätzlich UART und SPI heraus, falls
+I²C zu langsam wird (SPI bis 10 MHz, UART bis 921 600 Baud).
+
+### Und FIDO2 damit? Zum Teil — ein Befehl fehlt
+
+Hier ist zu trennen, was der Sensor am FIDO2-Protokoll tun soll. Es sind zwei
+verschiedene Dinge, und nur eines davon geht mit der heutigen Firmware.
+
+**Was heute schon geht: der Finger als Freigabe.** Die Firmware hat genau einen
+Engpass für die Freigabe am Gerät — `osk_ui_confirm()` in
+`apps/firmware/include/osk_ui.h`, Zeile 35. Der CTAP-Kern fragt dort bei jedem
+Vorgang selbst nach (so steht es in `src/classes/transport/nfc_ctap.h`). Ein
+Sensor, der ja/nein liefert, wird an dieser einen Stelle angeschlossen; die
+UV-Flagge im Authenticator-Data wird dann gesetzt wie heute nach der PIN
+(belegt durch `test/ctap/test_pin.c`, Zeile 289: „Jetzt muss die UV-Flagge
+gesetzt sein"). `authenticatorGetInfo` meldet bereits `uv: true` und
+`pinUvAuthToken: true` (`osk_ctap_core.c`, Zeilen 1286 und 1292).
+**Dafür ist am CTAP-Teil nichts zu ändern.**
+
+**Was fehlt: das Anlernen über FIDO2.** Der Befehl
+`authenticatorBioEnrollment` (0x09) ist nicht umgesetzt, und zwar
+**absichtlich und ausdrücklich**. In `src/classes/ctap/osk_pin.c`, Zeile 744:
+
+> „Was wir nicht koennen, darf auch nicht verlangt werden: wir haben weder
+> credMgmt noch bioEnroll noch authenticatorConfig."
+
+Die Berechtigung `OSK_PERM_BE` wird mit `CTAP2_ERR_UNAUTHORIZED_PERM`
+abgewiesen. **Folge:** Ein Browser oder Windows kann auf diesem Schlüssel keine
+Finger anlernen, löschen oder auflisten — so wie es bei einem YubiKey Bio geht.
+
+**Das ist kein Hindernis, sondern eine Festlegung, wo angelernt wird:**
+**am Gerät, über OLED und Taster**, nicht über den Rechner. Dafür ist die
+Anzeige ohnehin da, und der AllKey bringt die Befehle mit (`0x0054 Enroll`
+über mehrere Berührungen, mit Rückmeldung je Berührung — SPC27317-8, Abschn. 3.7).
+Wer das Anlernen über den Browser will, muss `bioEnroll` nachbauen; das gehört
+dem CTAP-Strang und ist mit dem Sensor nicht erledigt.
+
+**Noch nicht geprüft:** ob `uv: true` in `getInfo` heute richtig gemeldet ist.
+In CTAP 2.1 meint die Option `uv` die **im Gerät eingebaute** Prüfung — die PIN
+wird getrennt über `clientPin` gemeldet. Solange nur die PIN da ist, könnte das
+Feld zu viel versprechen. Mit einem Sensor wäre es dann richtig. **Gehört dem
+CTAP-Strang; hier nur gemeldet, nicht entschieden.**
 
 ## 3. Bedingung 4 nachgerechnet: die Baugröße ist kein Hindernis mehr
 
@@ -511,6 +591,10 @@ ist ungelöst". Die ist jetzt gelöst. Daraus folgt ein abgestufter Vorschlag:
    die Anbindung am nRF52840-DK ausprobieren, **bevor** eine Platine davon
    abhängt. Das ist kein Vorrat, sondern das Wegnehmen des letzten
    ungeprüften Punkts — denn **nichts davon ist an echter Hardware gelaufen.**
+   Es passt ohne Umbau neben den Sicherheitschip (I²C 0x24 gegen 0x48), und
+   der Finger kann über `osk_ui_confirm()` sofort als Freigabe dienen —
+   **die FIDO2-Benutzerprüfung geht damit ohne Änderung am CTAP-Teil.** Nur das
+   Anlernen über den Browser fehlt (`bioEnroll`); angelernt wird am Gerät.
 4. **Das FPC-Entwicklungskit nicht bestellen** (140–164 USD, 10 Wochen
    Lieferzeit bei DigiKey). Das SparkFun-Board tut dasselbe für ein Drittel und
    ist lagernd.
@@ -531,8 +615,6 @@ Ehrlich aufgezählt, weil es die Grenzen dieses Durchgangs sind:
   „Public" gekennzeichnet) ließ sich nicht herunterladen — Mouser bricht den
   Abruf ab. Die BM-Lite-Zahlen in diesem Dokument stammen daher aus `parts.md`
   und sind dort schon als `ungeprueft` geführt.
-- **Die Lizenz des FPC-eigenen Beispielcodes** zum AllKey-Entwicklungskit ist
-  `ungeprueft`. Für den Bau nicht nötig (SparkFun/MIT reicht), aber ungeklärt.
 - **Die Zahl der Vorlagen** widerspricht sich: 30 laut SPC27317-8, 45 laut
   SparkFun. Nicht aufgelöst.
 - **Ob das BM-Lite noch gefertigt wird**, ist nicht belegt. FPC bewirbt AllKey
@@ -584,6 +666,16 @@ Für `hardware/layout-notes.md` (gehört ebenfalls nicht diesem Strang):
 8. **Die Einschränkung „mit der 19,75 mm breiten Zelle wird es eng"** gilt für
    den AllKey nicht mehr: Ø 11 mm statt 15 × 15 mm.
 
+Für den CTAP-Strang (`docs/ctap.md`, `osk_ctap_core.c`, `osk_pin.c`):
+
+11. **`bioEnroll` fehlt und wird abgewiesen** (`osk_pin.c`, Zeile 744 ff.).
+    Ohne diesen Befehl kann kein Browser Finger anlernen; angelernt wird am
+    Gerät über OLED und Taster. Das ist eine Festlegung, die irgendwo stehen
+    sollte — heute steht sie nur als Kommentar im Quelltext.
+12. **`uv: true` in `getInfo` ist zu prüfen.** In CTAP 2.1 meint die Option die
+    im Gerät eingebaute Prüfung; die PIN wird über `clientPin` gemeldet. Ohne
+    Sensor könnte das Feld zu viel versprechen.
+
 Für `docs/threat-model.md`:
 
 9. **„Der Vergleich passiert im Modul" ist beim AllKey mehr als Software:**
@@ -617,6 +709,11 @@ Für `docs/threat-model.md`:
 
 - `github.com/sparkfun/SparkFun_FPC2534_Arduino_Library` — **MIT**, letzter Push
   04.12.2025. Beispiele für Anmeldung und Navigation über I²C und UART.
+  Darin `src/sfTk/fpc_api.h` — **„Copyright (c) 2024 Fingerprint Cards AB",
+  Apache-2.0**, „FPC AllKey Pro API … Command Interface for the Fingerprint
+  Sensor Module fpc2534". Die Befehlsschnittstelle vom Hersteller, frei
+  lizenziert. Dazu `src/sfTk/sfDevFPC2534I2C.h` mit der I²C-Vorgabeadresse
+  **0x24**.
 - `github.com/andpp/BM-Lite`, Zweig `master` — Apache-2.0.
   `BMLite_sdk/inc/fpc_hcp_common.h` trägt **„Copyright (c) 2020 Fingerprint
   Cards AB"**; `hcp_tiny.c`, `bmlite_if.c`, `bmlite_hal.h` tragen
