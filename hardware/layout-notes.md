@@ -466,14 +466,16 @@ Raytac bietet an, ein Layout als PDF gegenzulesen (`service@raytac.com`).
 
 | Teil | Seite | x | y | Dreh. | Warum |
 | --- | --- | --- | --- | --- | --- |
-| Akku (kein Bauteil) | unten | 13,0 | 38,0 | 0° | 19,75 × 26,02 mm, liegt auf Ferritfolie; **Fläche darunter frei von Bauteilen halten**, damit die Zelle plan liegt |
+| Akku (kein Bauteil) | unten | **11,075** | 38,0 | 0° | 19,75 × 26,02 mm, **außermittig: `x` 1,20 … 20,95** (entschieden 24.10.2026, siehe unten); liegt auf Ferritfolie; **Fläche darunter frei von Bauteilen halten**, damit die Zelle plan liegt |
 | J2 | unten | 13,0 | 49,5 | 180° | am akkufernen Ende von Z3, Kabel läuft zur Zelle zurück; weg vom Funkteil |
 | J4 | oben | 13,0 | 27,0 | 0° | FPC-Fahne der Anzeige zeigt nach `y` = 0, die Fahne wird unter das Glas gelegt |
 | DS1 (Glas) | oben | 13,0 | 38,0 | 0° | 13,90 × 22,00 mm, Fenster im Gehäuse; aktive Fläche 10,54 × 14,70 mm |
 | Q4, R9, C13, C14 | oben | 3 … 6 | 28 … 36 | – | Lastschalter der Anzeige, neben dem Glas, kurze Bahn zu J4 Pin 10/11 |
-| U2 + C10, C11 | unten | 6,0 | 47,5 | 0° | Sicherheitschip, **am akkufernen Ende** (siehe Entscheidung unten); `SE_VOUT` von Pin 15 nach Pin 18 **so kurz wie möglich** |
-| U3 + C12, R8 | unten | 19,0 | 47,5 | 0° | Flash gegenüber von U2, gleiches Band |
-| R6, R7 | unten | 6,0 | 50,0 | 0° | I2C-Abschluss, dicht an U2 |
+| U2 | unten | **22,9** | **33,0** | 0° | Sicherheitschip **im Streifen neben der Zelle** (`x` 20,95 … 24,80, 0,85 mm Luft); `SE_VOUT` von Pin 15 nach Pin 18 **so kurz wie möglich**; I2C zum Modul **rund 12 mm, auf einer Innenlage** |
+| C10, C11 | unten | 22,9 | 30,0 / 36,0 | 90° | im selben Streifen, dicht an U2 Pin 12 bzw. 18 |
+| U3 | unten | **17,0** | **19,5** | 0° | Flash **unter das Modul**, nicht ins Akkufeld (siehe Fund unten). Körper 8 × 6 mm → `x` 13 … 21, `y` 16,5 … 22,5. Nebenwirkung, die zählt: die sechs QSPI-Leitungen werden damit **kurz** — der Takt läuft mit bis zu 32 MHz |
+| C12, R8 | unten | 13,0 / 20,0 | 24,0 | 0° | dicht an U3 Pin 8 bzw. Pin 1, außerhalb des Zellfelds (beginnt bei `y` 25) |
+| R6, R7 | unten | 22,9 | 27,5 / 38,5 | 90° | I2C-Abschluss, im Streifen dicht an U2 |
 | C1, U4, C2, R1, R2 | unten | 4 … 22 | 6 … 12 | – | Ladepfad gebündelt **nach Z1 verlegt**, zu C1 an `VBUS` — weg vom Funkteil und weg von der Zelle |
 | Q5, R17 | unten | 22,0 | 40,0 | 0° | Lastschalter Sensor; Stufe 2 |
 
@@ -848,3 +850,89 @@ Was ich abgerufen habe und was dabei herauskam, steht im Abschnitt darüber.
 **GCTs eigene Seite und TDKs Produktseite antworten auf Abruf mit HTTP 403** —
 beide Hersteller sind von hier aus nicht lesbar. Das ist kein Hinweis auf die
 Teile, nur auf den Weg dorthin.
+
+## Außermittige Zelle: entschieden, gerechnet — und ein Fund dabei
+
+**Entschieden am 24.10.2026** (Platinen- und Gehäuse-Strang, vom Master
+getragen): Die Zelle rückt an die Kante, damit U2 in den Streifen daneben
+passt und die I2C-Leitung **12 statt 25 mm** lang wird.
+
+### Die Kante liegt bei 1,20, nicht bei 0,75
+
+Mein erster Vorschlag (Zelle ab `x` 0,75) lag **0,45 mm im Klemmkragen** des
+Gehäuses. Nachgemessen vom Gehäuse-Strang; der bauteilfreie Bereich quer ist
+**1,20 … 24,80 mm**, darunter liegt die Auflage, auf der die Platine geklemmt
+wird.
+
+| | quer |
+| --- | --- |
+| **Zelle** | **1,20 … 20,95** (19,75 breit), Mitte `x` = 11,075 |
+| **Streifen daneben** | **20,95 … 24,80 = 3,85 mm** |
+| U2, 3,0 mm breit | **0,85 mm Luft** — reicht |
+
+### Die Ferritfolie: geprüft, sie geht — aber sie verliert ihre Querreserve
+
+**Die Auflage lautet** (Abschnitt „Akku gegen NFC-Antenne"): die Folie
+überdeckt die Zellfläche **und** reicht in Richtung Antenne über.
+
+- **Richtung Antenne heißt in der Länge**, nicht quer: die Antenne liegt in Z4
+  (`y` 51 … 70), die Zelle endet bei `y` 51. **Die Zelle rückt nur quer, ihre
+  Lage in `y` ändert sich nicht** — der Überstand zur Antenne ist also
+  unberührt. **Die Auflage ist erfüllbar.**
+- **Quer ist die Folie jetzt eingeklemmt:** nach außen endet der bauteilfreie
+  Bereich bei 1,20 (dahinter der Klemmkragen), nach innen sitzt ab 20,95 der
+  Streifen mit U2. **Die Folie muss also auf die Zellbreite geschnitten werden,
+  19,75 mm, ohne Überstand nach den Seiten.** Vorher lag sie mittig mit
+  3,13 mm Luft auf jeder Seite.
+- **Das ist kein schlechter Tausch, aber eine Fertigungsauflage:** Eine von
+  Hand zugeschnittene Folie, 0,45 mm zu breit aufgelegt, liegt entweder im
+  Kragen oder auf U2 — und dann kippt die Zelle. **Gehört in die Bauanleitung,
+  nicht nur hierher.**
+
+> **`ungeprueft` bleibt:** welche Folie, welche Dicke, welche Permeabilität bei
+> 13,56 MHz. Das steht schon als offener Punkt oben.
+
+### Der Fund: `y` 44 … 51 liegt unter der Zelle
+
+**U2 und U3 standen bei `y` 47,5 — das ist unter der Zelle.** Die Zuweisung
+„`y` 44 … 51, dort ist die Zelle zu Ende" stammt aus der Zeit, als der Akku
+noch bei 44 mm enden sollte. **Seit die Zelle als 25 … 51 gerechnet ist, ist
+dieser Platz Zellfeld** — und die Regel „Fläche darunter frei von Bauteilen
+halten" war damit verletzt. Keinem von uns beiden ist es aufgefallen, mir
+eingeschlossen, obwohl ich die 25 … 51 selbst ausgerechnet habe.
+
+**Aufgelöst:**
+
+- **U2 in den Streifen** neben der Zelle (`x` 22,9, `y` 33) — das war ohnehin
+  der Sinn der Verschiebung, und es löst den Fehler mit.
+- **U3 unter das Modul** (`x` 17, `y` 19,5, Unterseite, Körper `x` 13 … 21,
+  `y` 16,5 … 22,5). In den 3,85-mm-Streifen passt der Flash nicht, er braucht
+  6 mm. Unter dem Modul ist Platz, das Zellfeld beginnt erst bei `y` 25, und
+  die **sechs QSPI-Leitungen werden dadurch kurz** — bei bis zu 32 MHz Takt
+  ist das ein Gewinn, nicht nur ein Ausweichen. Der Freihaltestreifen der
+  Antenne (`x` 24,5 … 26) ist nicht berührt.
+- **Unter der Zelle steht damit nichts mehr.**
+
+> **Zu bestätigen:** Die Verlegung von U3 weicht von der Zuweisung „U2 und U3
+> nach `y` 44 … 51" ab. Sie muss abweichen, weil die Zuweisung auf der alten
+> Zellenlänge beruhte. Wenn jemand einen besseren Platz sieht, jetzt sagen.
+
+### Zwei Zahlen aus der Gehäuseantwort, hier festgehalten
+
+- **Die Achse ist bestätigt: die Stufe-2-Vorgaben sind quer gemeint.** Meine
+  Vermutung war richtig.
+- **Die Reserve der Stufe-2-Aufteilung ist 0,10 mm, nicht 0,60.** Das
+  Gehäusedokument enthielt zwei widersprüchliche Zahlen; die Summenzeile hatte
+  den halben Millimeter Trennabstand nicht mitgerechnet. **Bei 24 mm Breite
+  hätten 1,90 mm gefehlt, nicht 1,40.**
+
+> ### Der Umriss wartet: 27 mm statt 26 steht zur Entscheidung
+>
+> Weil 0,10 mm keine Reserve sind und die Breitentoleranz einer von Hand
+> eingeklebten Zelle niemand kennt, empfiehlt der Gehäuse-Strang **27 mm**,
+> falls Stufe 2 den Sensor wirklich bekommt. **Thomas entscheidet.**
+>
+> **Bis dahin wird der Umriss nicht gezeichnet** — 26 oder 27 trifft dieselbe
+> Kante wie alles andere heute. Die `x`-Werte in diesem Entwurf gelten für
+> **26 mm**; bei 27 mm wandern die mittenbezogenen Teile um 0,5 mm und der
+> Freihaltestreifen auf `x` 25,5 … 27.
