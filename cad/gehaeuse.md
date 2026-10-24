@@ -30,37 +30,35 @@ heraus, realistisch 9,5–10,0 mm. Rechnung in [masse.md](masse.md), Abschnitt 3
 empfohlene (3,80 mm) und macht das Gerät auf **9,80 mm**. Sie hilft nur gegen
 Breite und Länge.
 
-### 2. Der Fingerabdrucksensor passt auf 24 mm Breite nicht neben die Zelle
+### 2. Die Platine muss 26 mm breit werden, nicht 24
 
-Gerechnet, nicht geschätzt:
+**Entschieden am 24.10.2026 und eingearbeitet.** Der Grund ist der
+Fingerabdrucksensor der Stufe 2:
 
-| | Maß |
-| --- | --- |
-| Platinenbreite | 24,00 mm |
-| abzüglich bauteilfreier Rand (2 × 1,2) | **21,60 mm nutzbar** |
-| schmale Zelle LP-401230 | 12,00 mm |
-| Sensor FPC2534 | 11,00 mm |
-| **gebraucht** | **23,00 mm** |
-| **Fehlbetrag** | **1,40 mm** |
+| | bei 24 mm | **bei 26 mm** |
+| --- | --- | --- |
+| nutzbar quer (Platine − 2 × 1,2 mm bauteilfreier Rand) | 21,60 mm | **23,60 mm** |
+| gebraucht: schmale Zelle 12,0 + Sensor FPC2534 11,0 | 23,00 mm | 23,00 mm |
+| | **1,40 mm zu wenig** | **0,60 mm Reserve** |
 
-Mit der empfohlenen Zelle (19,75 mm breit) fehlen sogar 9,15 mm. Der Sensor kann
-auch nicht in ein anderes Drittel: vorn liegt die Chipantenne des Moduls, hinten
-die NFC-Antenne – beide dürfen kein Metall und kein Einlegeteil in der Nähe
-haben.
+In ein anderes Drittel kann der Sensor nicht: vorn liegt die Chipantenne des
+Moduls, hinten die NFC-Antenne – beide dürfen kein Metall und kein Einlegeteil
+in der Nähe haben.
 
-**Das ist eine Entscheidung, nicht ein Rechenfehler.** Zwei Wege:
+**Was die 2 mm kosten:** das Gehäuse wird **29,8 mm breit statt 27,8 mm**. Die
+Dicke bleibt bei 9,55 mm, die Länge bei 70 mm. Das ist der ganze Preis.
 
-- **(a) Platine jetzt 26 mm breit statt 24 mm.** Dann sind 23,6 mm nutzbar und
-  der Sensor passt in Stufe 2 neben die schmale Zelle. Preis: das Gehäuse wird
-  29,8 mm breit statt 27,8 mm. Die Platine bleibt 70 mm lang.
-- **(b) Bei 24 mm bleiben.** Dann braucht Stufe 2 eine neue Platine **und** ein
-  neues Gehäuse – der Zweck „ein Gehäuse für beide Stufen" ist damit weg.
+**Was sie voraussetzen:** die **schmale Zelle** LP-401230-J (12,0 mm breit,
+100 mAh). Mit der empfohlenen Zelle (Adafruit 1317, 19,75 mm) wären 30,75 mm
+nötig – das geht auch auf 26 mm nicht. Wer den Sensor will, zahlt mit der
+Laufzeit: etwa 4,6 statt 6,8 Monate (`../docs/power-budget.md`).
 
-Gezeichnet ist (b) mit 24 mm, weil das die derzeitige Vorgabe ist. Die
-Sensoröffnung liegt an der einzigen Stelle, die das Gehäuse hergibt: Mitte
-y = 16,5 mm. Weiter nach außen bricht sie in die Seitenwand. Sie überlappt
-damit das Feld der schmalen Zelle um 1,5 mm – **auf der Platine ist das noch
-nicht gelöst.**
+**Stufe 1 ohne Sensor darf weiter die große Zelle nehmen** – der Akkuraum ist
+23,6 mm breit. Das Gehäuse trägt beide Stufen, und genau dafür sind die 2 mm
+ausgegeben.
+
+Aufteilung quer, als Vorgabe ans Layout: **Zelle y = 0…12 mm, Sensorfeld
+y = 12,5…23,5 mm.** Die Sensoröffnung des Gehäuses liegt auf Mitte y = 18,0 mm.
 
 ### 3. Die Bauhöhe des USB-Steckers fehlt in den Unterlagen
 
@@ -104,7 +102,7 @@ Abschnitt 5 – kurz: **0,4 mm Düse, 0,2 mm Schichthöhe, PETG.**
   der Boden liegt auf der Platte. Alle Öffnungen in den Seitenwänden sind
   senkrechte Schlitze. Das Fenster im Dach ist ein Durchbruch in einer flachen
   Decke – das druckt als Brücke.
-- **Längste freitragende Brücke: 21,6 mm** – die Decke über dem Hohlraum. Das
+- **Längste freitragende Brücke: 23,6 mm** – die Decke über dem Hohlraum. Das
   ist für PETG unkritisch; wer es sauber will, druckt die erste Deckenschicht
   langsamer.
 - **Überhänge:** die Auflagestufe für die Platine ist ein 1,2 mm breiter
@@ -198,8 +196,10 @@ nicht.
 Die vollständige Liste steht in [masse.md](masse.md), Abschnitt 7. Das
 Wichtigste:
 
-1. **Das Gehäuse verträgt 24 × 70 mm, 0,8 mm dick** – genau das Maß aus den
-   Layout-Vorgaben. Toleranz ohne Nacharbeit: **± 0,2 mm**. Jede größere
+1. **Das Gehäuse verträgt 26 × 70 mm, 0,8 mm dick** – die Breite ist gegenüber
+   den Layout-Vorgaben von 24 auf 26 mm erhöht, Begründung in Befund 2. Die
+   Länge und die Dicke bleiben, wie sie dort stehen. Toleranz ohne Nacharbeit:
+   **± 0,2 mm** je Maß. Jede größere
    Änderung ist eine Zeile in `parameters.csv` und ein neuer Druck, kein
    Neuentwurf.
 2. **Rundum 1,2 mm Platinenrand oben und unten frei von Bauteilen.** Dort wird
@@ -207,8 +207,9 @@ Wichtigste:
 3. **Platinenecken R 1,5 mm abrunden.**
 4. **Höhengrenzen: 2,05 mm auf der Anzeigenseite, 4,20 mm auf der Akkuseite**
    (Ferritfolie mitgerechnet). Wer höher baut, macht das Gerät dicker.
-5. **Will Stufe 2 den Sensor, muss die Platine 26 mm breit werden** – siehe
-   Befund 2. Diese Entscheidung fällt jetzt, nicht später.
+5. **Stufe 2 mit Sensor braucht die schmale Zelle** (LP-401230-J, 12 mm) und die
+   Aufteilung quer: Zelle y = 0…12 mm, Sensorfeld y = 12,5…23,5 mm. Siehe
+   Befund 2. Stufe 1 ohne Sensor darf die große Zelle nehmen.
 6. **Die Bauhöhe des USB4085 über der Platine ist zu besorgen** – siehe
    Befund 3.
 7. **Die Anzeige braucht ein 0,8 mm dickes Klebepad**, damit ihr Glas bündig mit
@@ -217,7 +218,9 @@ Wichtigste:
 ## Offene Punkte
 
 1. **Bauhöhe des USB4085** – Befund 3. Ohne sie ist die Frontöffnung geraten.
-2. **Sensor und Platinenbreite** – Befund 2, Entscheidung (a) oder (b).
+2. **Zellenwahl für Stufe 2** – die Platinenbreite ist entschieden (26 mm,
+   Befund 2), die Zelle nicht: der Sensor erzwingt die schmale mit 100 mAh.
+   Welche Laufzeit es sein soll, ist nicht meine Entscheidung.
 3. **Lage von Fenster, Taster, LED und Sensoröffnung** ist **vorläufig**
    (`*_cx`, `*_cy` in der CSV sind mit `VORLAEUFIG` gekennzeichnet). Sie kommt
    aus dem Layout, sobald es gezeichnet ist.
