@@ -280,11 +280,14 @@ Vollständig in [masse.md](masse.md), Abschnitt 13. Das Wichtigste:
 4. **Länge und Abgang des Flachbands am FPC2534AM** – steht in
    `../docs/fingerprint.md` nicht. Davon hängt ab, wo der Sitz im Boden liegen
    darf. Bis dahin steht er auf längs 36,0 / quer 19,20 mm. **Wird gebraucht.**
-5. **Bauhöhe des Akkusteckers J2 über der Platine** – `JST-PH 2.0, 2-polig,
-   liegend` steht im Schaltplan, ein Maß nirgends. Der Zellenraum ist
-   **randvoll** (4,65 mm Tiefe, 4,65 mm belegt): **jedes Bauteil neben der
-   Zelle, das höher als 4,45 mm baut, macht das Gerät dicker.** **Wird
-   gebraucht.**
+5. **Bauhöhe des Akkusteckers J2 über der Platine.** Ich hatte das als
+   *fehlende Angabe* gemeldet – **es ist ein fehlendes Teil.** Der
+   Platinen-Strang hat am 24.10.2026 gemessen, dass J2 kein bestellbarer
+   Artikel ist, sondern ein **Bibliotheksplatzhalter ohne Datenblatt**. Wer
+   hier sucht, sucht nach einem Datenblatt, das es nie gab: **es ist zuerst ein
+   Teil auszuwählen.** Die Auflage ans Layout bleibt davon unberührt – der
+   Zellenraum ist 4,65 mm tief und mit der Adafruit 1317 zu 4,40 mm belegt;
+   **alles neben der Zelle über 4,45 mm macht das Gerät dicker.**
 6. **Ferritfolie**: Dicke 0,3–0,5 mm angenommen, Material offen. ±0,2 mm
    Gesamtdicke. Breite 12 mm, der schmalen Zelle folgend.
 7. **Platz für die umgelegte FPC-Fahne der Anzeige** – der Hohlraum ist 2,35 mm
