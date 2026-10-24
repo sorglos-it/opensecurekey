@@ -1,0 +1,10 @@
+# Erzeugtes und Laufzeitdaten der Pruefungen
+stand.json
+stand-*.json
+*.o
+*.obj
+*.exe
+bin/
+obj/
+example
+test_guard
