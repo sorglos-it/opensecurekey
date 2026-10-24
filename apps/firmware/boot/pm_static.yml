@@ -1,0 +1,113 @@
+# Feste Aufteilung der Speicher. Der zweite Platz fuers Update liegt im
+# EXTERNEN QSPI-Flash, nicht im internen - sonst blieben je Abbild rund
+# 496 kB statt rund 960 kB (docs/architecture.md, "How much room is there,
+# really").
+#
+# Eingebunden wird die Datei beim Bauen der Firmware:
+#   -DPM_STATIC_YML_FILE=boot/pm_static.yml
+# Diese Zeile gehoert in apps/firmware/CMakeLists.txt und steht nicht hier -
+# die Datei gehoert dem Bau-Strang.
+#
+# UNGEPRUEFT: Es gab keine Hardware und keinen ARM-Bau. Die Groessen folgen
+# dem Datenblatt des nRF52840 (1 MB internes Flash, 4 kB Seiten) und der
+# Aufteilung, die das nRF Connect SDK fuer MCUboot vorgibt. Ob das Abbild
+# in 960 kB passt, sagt der erste echte Bau - und nur er.
+
+# --- internes Flash: 0x000000 bis 0x100000 (1 MB) ---------------------------
+
+mcuboot:
+  address: 0x0
+  size: 0xc000          # 48 kB Bootloader
+  region: flash_primary
+  placement:
+    before: [mcuboot_primary]
+
+# Der laufende Platz. Zephyr setzt 'mcuboot_pad' davor, dort liegt der
+# Abbildkopf von MCUboot.
+mcuboot_pad:
+  address: 0xc000
+  size: 0x200
+  region: flash_primary
+  placement:
+    before: [mcuboot_primary_app]
+
+mcuboot_primary:
+  address: 0xc000
+  size: 0xf0000         # 960 kB: Kopf + Anwendung
+  region: flash_primary
+  span: [mcuboot_pad, mcuboot_primary_app]
+
+mcuboot_primary_app:
+  address: 0xc200
+  size: 0xefe00
+  region: flash_primary
+  span: [app]
+
+app:
+  address: 0xc200
+  size: 0xefe00
+  region: flash_primary
+
+# Zustand des Updates - zwei Abdruecke von je 128 Byte, siehe boot_state.c.
+# Eigene Seite, weil Flash seitenweise geloescht wird: liegt der Zustand mit
+# etwas anderem auf einer Seite, nimmt jede Loeschung das andere mit.
+# NICHT im Tresor und nicht im externen Flash: der Bootloader muss ihn
+# lesen koennen, bevor der QSPI-Baustein ueberhaupt angesprochen wurde.
+osk_boot_state:
+  address: 0xfc000
+  size: 0x1000          # eine Seite
+  region: flash_primary
+
+# Was Zephyr selbst braucht.
+settings_storage:
+  address: 0xfd000
+  size: 0x2000
+  region: flash_primary
+
+scratch_unused:
+  address: 0xff000
+  size: 0x1000
+  region: flash_primary
+
+# --- externes QSPI-Flash: 64 MB --------------------------------------------
+#
+# Reihenfolge mit Absicht: der zweite Platz liegt VORN, der Tresor dahinter.
+# Der zweite Platz hat eine feste Groesse; wuerde er hinter dem Tresor
+# liegen, verschoebe jede Aenderung an der Tresorgroesse seine Adresse - und
+# ein Bootloader mit alter Adresse schreibt dann in den Tresor.
+
+mcuboot_secondary:
+  address: 0x000000
+  size: 0xf0000         # 960 kB, genau wie der laufende Platz
+  device: MX25R6435F    # Name des QSPI-Bausteins in der Gerätebeschreibung
+  region: external_flash
+
+# Platz fuer ein zweites Abbild spaeter (zwei Anwendungen, etwa Firmware
+# und ein eigenstaendiges Rettungsprogramm). Heute unbenutzt und ausdruecklich
+# reserviert, damit der Tresor nicht spaeter weichen muss.
+osk_update_spare:
+  address: 0x0f0000
+  size: 0xf0000
+  device: MX25R6435F
+  region: external_flash
+
+# Der Tresor. Das Update fasst diesen Bereich nicht an - geprueft in
+# apps/firmware/test/boot/test_vault.c.
+osk_vault:
+  address: 0x1e0000
+  size: 0x1e20000       # rund 30 MB
+  device: MX25R6435F
+  region: external_flash
+
+# Geraeteprotokoll und das schreibgeschuetzte Laufwerk mit den Programmen.
+osk_log:
+  address: 0x2000000
+  size: 0x200000
+  device: MX25R6435F
+  region: external_flash
+
+osk_drive:
+  address: 0x2200000
+  size: 0x1e00000
+  device: MX25R6435F
+  region: external_flash

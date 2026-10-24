@@ -1,0 +1,40 @@
+name;value_mm;comment
+pcb_len;70.0;Platinenlaenge, aus hardware/layout-notes.md
+pcb_wid;26.0;Platinenbreite - Vorgabe ans Layout, 24 auf 26 erhoeht, damit der Sensor der Stufe 2 neben die Zelle passt
+pcb_th;0.8;Platinendicke, festgelegt wegen Platinenrand-Stecker
+pcb_fit;0.3;Spiel zwischen Platinenkante und Innenwand, je Seite
+pcb_corner_r;1.5;Eckenradius der Platine - Vorgabe ans Layout
+wall_t;1.6;Seitenwand, traegt die Schnappstufe
+skin_t;1.0;Dach und Boden, 5 Schichten a 0.2 mm
+ledge_w;1.2;Auflagebreite fuer die Platine rundum - bauteilfreier Rand
+gap_top;0.3;Luft ueber dem hoechsten Bauteil der Anzeigenseite
+gap_bot;0.2;Luft unter der Platine, Loetseite
+h_top_part;2.05;hoechstes Bauteil oben - U1 Modul MDBT50Q-1MV2
+h_bot_part;4.2;hoechstes Bauteil unten - Ferritfolie 0.4 + Akku 3.8
+lip_h;1.0;Hoehe der Schnappstufe ueber der Trennebene
+lip_t;0.8;Dicke der Schnappstufe, halbe Seitenwand
+snap_len;6.0;Laenge eines Schnappwulstes
+snap_h;0.5;Hoehe des Schnappwulstes
+snap_d;0.4;Vorstand des Schnappwulstes
+oled_win_x;15.7;Fenster in Laengsrichtung - aktiv 14.70 + 2 x 0.5 Rand
+oled_win_y;11.54;Fenster in Querrichtung - aktiv 10.54 + 2 x 0.5 Rand
+oled_cx;34.0;Fenstermitte in Laengsrichtung - VORLAEUFIG
+oled_cy;13.0;Fenstermitte in Querrichtung - VORLAEUFIG
+led_win_d;2.5;Lichtfenster der RGB-LED
+led_cx;47.0;LED-Mitte in Laengsrichtung - VORLAEUFIG
+led_cy;13.0;LED-Mitte in Querrichtung - VORLAEUFIG
+btn_slot_x;5.0;Tasteroeffnung in Laengsrichtung
+btn_slot_z;2.4;Tasteroeffnung in Dickenrichtung
+btn_cx;55.0;Tastermitte in Laengsrichtung - VORLAEUFIG
+btn_z;0.7;Tastermitte ueber Platinenoberseite - halbe Bauteilhoehe 1.35
+usb_open_y;10.5;Frontoeffnung breit - Koerper 8.94 + 2 x 0.78 Spiel
+usb_open_z;4.0;Frontoeffnung hoch - UNGEPRUEFT, Bauhoehe des USB4085 fehlt
+usb_cy;13.0;Frontoeffnung mittig auf der kurzen Kante
+fp_open_d;12.0;Sensoroeffnung - FPC2534 Durchmesser 11 + 0.5 Rand
+fp_cx;36.0;Sensormitte in Laengsrichtung - VORLAEUFIG
+fp_cy;18.0;Sensormitte in Querrichtung - neben der schmalen Zelle (0..12 mm), VORLAEUFIG
+fp_plug_th;1.0;Dicke des Blindstuecks fuer Stufe 1
+fp_plug_fit;0.2;Spiel des Blindstuecks im Loch
+eye_len;8.0;Anbau der Oese hinter der Platine
+eye_hole_d;4.0;Loch der Oese
+outer_corner_r;3.0;Aussenradius der Gehaeuseecken

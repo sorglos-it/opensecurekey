@@ -3,6 +3,26 @@
 ## [Unreleased]
 
 ### Added
+- Setup wizard, read-only drive, signed updates and the device side of the
+  dongle commands:
+  - **Setup wizard** — four steps, not skippable, and the first question is the
+    one that cannot be taken back: mirrored or this-device-only. Both ways state
+    their price, the recommendation says why, and there is **no quiet default**.
+    `mode` deliberately starts at 1, not 0, because CBOR reads an absent field
+    as zero and that would have made "forgot the field" mean "mirrored".
+    Printable emergency sheet that contains **no printed secret**.
+  - **Read-only USB drive** carrying the three portable programs. Every write is
+    refused, including the ones disguised as something else; the content only
+    changes through a signed firmware update (`tools/mkimage.py`).
+  - **MCUboot with the second slot in the external flash**, ed25519-signed, with
+    rollback blocked and an abort test at every point of the update — after each
+    one the device still starts.
+  - **Device side of commands 14–18**, with the purpose strings kept apart, held
+    in place by the forgery case the program side found.
+  - **PKCS#11 now costs zero approvals** when listing, like the agent.
+  10 firmware test suites, 94,281 checks green. **Nothing has run on hardware,
+  and nothing has been compiled for ARM** — that is being set up separately and
+  has not succeeded yet.
 - Dongle and server use: software that only runs while the stick is plugged in,
   and servers that sign and encrypt through the stick instead of a key file on
   disk. **Two stages, and the documentation says what each is worth**: stage one
