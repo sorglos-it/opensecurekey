@@ -224,6 +224,10 @@ In der Reihenfolge, in der sie das Layout behindern:
 3. **Pad-Maße aus dem Gerber prüfen**, nicht aus der Bibliothek — Hausregel, und
    in einem anderen Projekt lag die Bibliothek um bis zu 4,5 mm daneben.
 4. **J3 und J6** auf richtige Teile bringen (1,27 mm bzw. Testpunkte).
+   **Entschieden: nicht jetzt, aber vor dem ersten Gerber.** Der Schaltplan
+   trägt die Verbindungen, nicht die Maße — ein Teiletausch jetzt kostet eine
+   Runde und bringt nichts. Auf einem Schlüsselanhänger sind 2,54-mm-Stiftfelder
+   aber nicht unterzubringen, also muss es weg, bevor gefertigt wird.
 5. **C15/C16 am Netzwerkanalysator abstimmen**, beide Zweige immer gleich.
 6. **Die LED-Vorwiderstände am Muster nachstellen** (R10 1 kΩ, R11/R12 470 Ω
    sind vorläufig).
