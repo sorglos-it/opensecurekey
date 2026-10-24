@@ -1577,13 +1577,13 @@ C2691448), die Taster (C388883) und sämtliche Passiven.
 Halbleiter.** Der Satz „die Steckverbinder sind die schwächste Stelle dieses
 Entwurfs" ist damit gezählt, nicht gefühlt.
 
-## J4 — echtes Teil gefunden, **und es hat 12 Pole, nicht 14**
+## J4 — echtes Teil gefunden, **und es hat dieselben 14 Pins**
 
 | | |
 | --- | --- |
 | Teil | **Hirose FH12-12S-0.5SH(55)** |
 | Nummer | **C88360**, Hersteller HRS, **mit Datenblatt** |
-| Pole | **12** |
+| Kontakte | **12** (dazu zwei Haltelaschen, zusammen **14 Pins**) |
 | Raster | 0,5 mm |
 | Bauhöhe über der Platine | **2 mm** |
 | Bauart | Deckelverschluss, **Unterkontakt**, Folie 0,3 mm, Goldkontakte |
@@ -1597,6 +1597,26 @@ Entwurfs" ist damit gezählt, nicht gefühlt.
 > **Das passt zur Anzeige:** Das Crystalfontz-Glas hat 12 Pole, und genau die
 > zwölf stehen in `schematic.md`. **Die 14 waren die Erfindung des
 > Platzhalters, nicht eine Eigenschaft der Anzeige.**
+
+> **BERICHTIGUNG 24.10.2026, noch am selben Abend — der Kasten darüber ist
+> falsch, und zwar sein ganzer Schluss.** Ich hatte die **Kontaktzahl** des
+> echten Teils („Number of Contacts: 12P“) mit der **Pinzahl** des
+> Platzhalters verglichen. Das sind zwei verschiedene Größen.
+>
+> **Gemessen, nicht vermutet:** Das Hirose-Teil als Wegwerfteil gesetzt und
+> seine Pins ausgelesen. Es hat **14 Pins** — 1 bis 12 die Kontakte, 13 und
+> 14 die Haltelaschen. Genau wie der Platzhalter, dessen Name selbst „12P“
+> lautet. **An der Netzliste ändert sich nichts;** `J4.13` und `J4.14` liegen
+> weiter an `GND`. Nach dem Tausch gezählt: 54 Bauteile, 59 Netze, 219
+> Verbindungen, DRC 0 Fehler.
+>
+> **Es ist derselbe Fehler, den ich zwei Absätze weiter unten bei J2
+> aufgedeckt hatte** — dort waren 7,9 und 8,6 mm nicht zwei widersprechende
+> Angaben, sondern Länge und Tiefe. Zwei Zahlen zu vergleichen, die dasselbe
+> Ding verschieden messen, fällt nicht auf, solange beide plausibel sind.
+> Dass ich die Falle beim Nachbarteil erkannt und beim eigenen Befund
+> übersehen habe, ist der Grund, warum eine Pinzahl nachgesehen wird und
+> nicht erschlossen.
 
 ## J2 — zwei echte Teile, und eines löst das Höhenproblem
 
