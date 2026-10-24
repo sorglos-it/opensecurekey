@@ -31,6 +31,12 @@ func RunCLI(app *App, args []string, in io.Reader, out, errOut io.Writer) int {
 		fmt.Fprintln(out, app.Text("cli.usage"))
 		return 0
 	default:
+		// Die Wege nach draussen (ssh-Agent, Befehle fuer Skripte, lokale
+		// Schnittstelle) tragen sich in extraCommands ein - je Weg eine
+		// eigene Datei, siehe native_cli.go.
+		if run, found := extraCommands[command]; found {
+			return run(app, args, in, out, errOut)
+		}
 		fmt.Fprintln(errOut, app.Text("cli.usage"))
 		return 2
 	}
