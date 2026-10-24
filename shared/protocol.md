@@ -28,7 +28,7 @@ the program then says in plain words which function is missing.
 | 1 | `hello` — version, serial, which transports are on | no |
 | 2 | `unlock` — PIN or fingerprint session | yes |
 | 3 | `lock` | no |
-| 4 | `list` — item metadata, never secrets | after unlock |
+| 4 | `list` — item metadata, never secrets; carries `pub` for SSH keys, certificates and PGP keys | after unlock |
 | 5 | `reveal` — one secret | yes, every time |
 | 6 | `add` / 7 `update` / 8 `delete` | yes |
 | 9 | `log` — read device log | after unlock |
