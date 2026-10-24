@@ -307,3 +307,24 @@ Seite liegt. Das ist beim Platzieren gemeinsam mit der Regel zu lösen, dass der
 > HTTP 403, die Händlerangabe schweigt zur Bauart. Die Auflage gilt trotzdem:
 > sie kostet nur Platzierungsarbeit, und die sicherere Variante ist hier die
 > richtige. Wer das Gegenteil belegt, darf die Auflage streichen.
+
+## Erster Layout-Schritt: was ging und was nicht (24.10.2026)
+
+Vom Schaltplan unabhängig und darum vorgezogen:
+
+- **Vier Kupferlagen sind gesetzt** (gemessen: vorher 2, nachher 4). Die Lagen
+  heißen `TOP`, `INNER_1`, `INNER_2`, `BOTTOM`.
+- **Der Platinenumriss ist nicht gezeichnet.** EasyEDAs Schnittstelle lehnt
+  Linien auf dem Umriss-Layer ab (*„無法創建直線圖元"*), und zwar unabhängig von
+  Koordinaten, Breite und Netz — auf `TOP` gelingt dieselbe Linie sofort. Der
+  Umriss-Layer steht in EasyEDAs Typliste für Linien offenbar nicht drin; er
+  bräuchte eine Polylinie, die die Brücke nicht anbietet. **24 × 70 mm sind
+  darum im Editor von Hand zu zeichnen** (oder über eine Vorlage), bevor
+  platziert wird.
+- **Die Entwurfsregeln heißen noch „JLCPCB Capability(Two Layers Board)".**
+  Der Regelsatz für vier Lagen ist im Editor zu wählen; über die Schnittstelle
+  ließe sich nur der ganze Regelbaum überschreiben, und das wäre geraten statt
+  belegt. **Vor dem Verlegen umstellen.**
+
+Erst danach lohnt `pcb_import_changes` — sonst landen 54 Bauteile auf einer
+Platine ohne Umriss und mit den Regeln für zwei Lagen.
