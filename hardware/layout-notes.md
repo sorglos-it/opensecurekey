@@ -1035,7 +1035,7 @@ beliebig.
 | U1 | oben | 17,75 | 17,3 | fest; Körper `x` 10,0 … 25,5, Antennenkante **25,5** |
 | U3 Flash | unten | 18 | 19,5 | **vorläufig** — kurze QSPI-Wege bleiben das Ziel |
 | U2 | unten | 23 | 17 | **vorläufig** — unter dem Modul, kurze I2C |
-| J1 | oben | **13,5** | **4,6 `vorlaeufig`** | quer mittig. **Der Längswert hängt an `d`** (Abstand Gehäusefront vor Platinenkante): gültig ist `y` = 4,585 − `d`. Die 4,6 gelten nur für `d` = 0 und sind **nicht gemessen** — Auflage ± 0,3 mm |
+| J1 | oben | **13,5** | **2,685** | quer mittig. Längs aus `d` = 1,90 gerechnet: `y` = 4,585 − 1,90. **Der Körper ragt damit 1,90 mm über die Platinenkante** — Pinreihen prüfen (siehe unten). Auflage ± 0,3 mm |
 | J4, DS1 (Glas) | oben | **13,5** | 27 / 38 | mittig |
 | D1 LED | oben | **13,5** | 66 | am Kopfende; **liegt jetzt in Z4** |
 | SW1 / SW2 | oben | 3,5 / **23,5** | 24,5 | an den Längskanten |
@@ -1352,3 +1352,59 @@ unplatziert**, bis die Zahl da ist.
 **Nichts davon ist zurückgebaut.** Der Entwurf steht weiter auf 27 mm und der
 schmalen Zelle, bis entschieden ist — Umriss und Regelsatz sind geprüft, und
 beides noch einmal anzufassen muss sich lohnen.
+
+## Zwei Zahlen vom Gehäuse nachgezogen, 24.10.2026
+
+### `d` = 1,90 mm: die Buchse wandert 1,91 mm nach hinten
+
+Mit Herkunft, nicht als nackte Zahl:
+
+| Bezug | längs |
+| --- | --- |
+| Platinenkante | 0,00 |
+| Innenseite der Frontwand (Spiel 0,30) | −0,30 |
+| Außenseite der Frontwand (Wand 1,60) | **−1,90** |
+
+**`d` = 1,90** → **J1-Mitte `y` = 9,17/2 − 1,90 = 2,685**. Mein Entwurf stand
+auf 4,60, das entsprach `d` = 0 — **einem Gehäuse ohne Frontwand.** Nachgezogen
+ist nur diese eine Zeile; weil sie als `vorlaeufig` mit der Formel dastand, hat
+niemand mit der 4,60 weitergerechnet.
+
+**Daraus eine echte Prüfung, keine Vorsorge: der Körper ragt 1,90 mm über die
+Platinenkante.** Die Pinreihen müssen weiter hinten liegen als 1,90 mm, sonst
+sitzen Lötpads im Nichts. 1,90 von 9,17 mm Körpertiefe ist für eine randnahe
+Buchse üblich — **„üblich" ist kein Beleg.** `ungeprueft`, **und mit den
+Lesewerkzeugen der Brücke nicht zu klären**: Footprints geben nur Kopfdaten
+her. **Die Prüfung geht erst nach `pcb_import_changes` am gesetzten Footprint**
+(`pcb_pads_list`), und sie gehört zu den ersten Dingen danach.
+
+> **Vorbereiteter Ausweg, falls sie durchfällt:** eine flache Mulde um die
+> Öffnung, 0,8 mm tief → `d` = 1,10 und J1-Mitte **3,485**. Der Gehäuse-Strang
+> hat sie **nicht** eingebaut, damit hier kein wandernder Wert steht; ein Wort
+> genügt. **Nicht einrechnen, bis sie bestellt ist.**
+
+### Bauteile beginnen quer bei 1,40, nicht bei 1,20
+
+Die Hohlraumwand steht bei 1,20; gedruckte Flächen haben 0,1 … 0,2 mm
+Toleranz, eine Zelle genau an 1,20 berührt sie.
+
+**Angegeben wurde nur die eine Seite.** Ich rechne **symmetrisch** weiter, das
+ist die sicherere Lesart:
+
+| | Band | nutzbar |
+| --- | --- | --- |
+| bisher | 1,20 … 25,80 | 24,60 |
+| **jetzt** | **1,40 … 25,60** | **24,20** |
+
+> **Zu bestätigen:** Gilt die 0,20 auch am anderen Rand (dann 25,60) oder nur
+> vorn? Der Unterschied sind 0,20 mm.
+
+**Es kostet nichts, beide Fälle tragen:**
+
+| Fall | belegt | nutzbar 24,20 | Rest |
+| --- | --- | --- | --- |
+| Stufe 2 quer (Zelle 12,0 + 0,5 + Sensorfeld 11,0) | 23,50 | ja | **0,70 mm** |
+| Adafruit mittig (19,75) | 19,75 | ja | **4,45 mm**, je Seite 2,225 |
+
+**Das Band ist symmetrisch um die Plattenmitte** — (1,40 + 25,60)/2 = **13,50**.
+Eine mittige Zelle sitzt also auf `x` 13,50 und spannt 3,625 … 23,375.
