@@ -111,20 +111,53 @@ Seitenwand 1,6 mm, damit die Schnappverbindung als Stufe darin Platz hat
 
 Entschieden am 24.10.2026. Gerechnet, nicht geschätzt:
 
+**Alle Maße dieses Abschnitts sind quer**, also über die kurze Seite der
+Platine – im Bezugssystem des Platinen-Strangs ist das sein `x` (0…26), nicht
+sein `y`. Längs ändert sich nichts.
+
 | | Maß |
 | --- | --- |
 | nutzbare Breite = Platinenbreite − 2 × 1,2 mm bauteilfreier Rand | |
 | bei 24 mm Platine | 21,60 mm |
 | **bei 26 mm Platine** | **23,60 mm** |
-| gebraucht: schmale Zelle LP-401230 (12,0) + Sensor FPC2534 (11,0) | **23,00 mm** |
+| gebraucht: Zelle LP-401230 (12,0) + **Trennabstand 0,5** + Sensor FPC2534 (11,0) | **23,50 mm** |
 
-Bei 24 mm fehlten **1,40 mm** – der Fingerabdrucksensor der Stufe 2 hätte nicht
+Bei 24 mm fehlten **1,90 mm** – der Fingerabdrucksensor der Stufe 2 hätte nicht
 neben die Zelle gepasst. In ein anderes Drittel kann er nicht: vorn liegt die
 Chipantenne des Moduls, hinten die NFC-Antenne, und beide dürfen kein Metall und
 kein Einlegeteil in der Nähe haben.
 
-**Mit 26 mm passt es, mit 0,60 mm Reserve.** Das kostet 2 mm Gehäusebreite
-(29,8 statt 27,8 mm) und ändert die Dicke nicht. Die Länge bleibt 70 mm.
+### Berichtigt am 24.10.2026: die Reserve ist 0,10 mm, nicht 0,60
+
+**In der Zeile oben fehlte der Trennabstand von 0,5 mm zwischen Zelle und
+Sensor.** Die Aufteilung weiter unten (Zelle 1,2…13,2, Sensor 13,7…24,7) hatte
+ihn, die Summe nicht – also war die Aufteilung richtig und die Reserve falsch
+genannt. Gefunden hat es der Platinen-Strang beim Nachrechnen.
+
+**Mit 26 mm passt es auf 0,10 mm genau.** Das ist keine Reserve, das ist Glück.
+Und es zeigt sich sofort an der Sensoröffnung: liegt der Sensor mit Abstand bei
+13,7…24,7, ist seine Mitte 19,20 – meine Öffnung Ø 12 reicht dann bis 25,20 und
+**bricht 0,40 mm in die Auflagestufe ein.**
+
+| Platine | Kragen | nutzbar | gebraucht | Reserve | Sensoröffnung |
+| --- | --- | --- | --- | --- | --- |
+| 24 mm | 1,2 | 21,60 | 23,50 | **fehlt 1,90** | – |
+| 26 mm | 1,2 | 23,60 | 23,50 | 0,10 | **bricht 0,40 mm ein** |
+| 26 mm | **1,0** | 24,00 | 23,50 | 0,50 | gerade eben |
+| **27 mm** | 1,2 | 24,60 | 23,50 | **1,10** | **0,60 mm Rand** |
+
+**Empfehlung: 27 mm, wenn Stufe 2 den Sensor wirklich bekommen soll.** Das
+kostet 1 mm Gehäusebreite (30,8 statt 29,8 mm) und sonst nichts. Der Weg über
+einen schmaleren Kragen (1,0 statt 1,2 mm) wäre billiger, schwächt aber genau
+die Klemmung, die die Schrauben ersetzt.
+
+**Was die Entscheidung eigentlich braucht, habe ich nicht:** die
+Breitentoleranz der Zelle. Eine von Hand eingeklebte LiPo-Zelle sitzt nicht auf
+0,1 mm genau, und in `../docs/parts.md` steht keine Toleranz. Darum die 27 mm:
+sie überleben eine Toleranz, die wir nicht kennen.
+
+Die 26 mm kosten 2 mm Gehäusebreite (29,8 statt 27,8 mm) und ändern die Dicke
+nicht. Die Länge bleibt 70 mm.
 
 **Das setzt die schmale Zelle voraus** (LP-401230-J, 12,0 mm breit, 100 mAh).
 Mit der empfohlenen Zelle (Adafruit 1317, 19,75 mm breit) wären 19,75 + 11,0 =
@@ -181,9 +214,11 @@ Das sind **Vorgaben ans Layout**, keine Wünsche:
    das Gehäuse dicker.
 5. **Das Sensorfeld der Stufe 2 bleibt neben der Zelle**, nicht über ihr. Sonst
    wären es 3,8 + 0,83 mm auf einer Seite und das Gehäuse müsste neu entstehen.
-   Aufteilung quer: **Zelle bei y = 0…12 mm, Sensor bei y = 12,5…23,5 mm**, die
-   Sensoröffnung des Gehäuses liegt auf Mitte y = 18,0 mm. Reserve: 0,60 mm.
-   Das geht nur mit der schmalen Zelle – Abschnitt 4a.
+   Aufteilung **quer** (das `x` des Platinen-Strangs, 0…26): **Zelle
+   1,20…13,20 mm, Trennabstand 0,5, Sensor 13,70…24,70 mm.** Reserve zum
+   bauteilfreien Rand: **0,10 mm** – siehe die Berichtigung in Abschnitt 4a.
+   Die Zelle beginnt bei 1,20 und nicht bei 0, weil dort der Klemmkragen
+   aufliegt. Das geht nur mit der schmalen Zelle.
 6. **Die beiden Taster bei Länge 22,75…26,25 mm an den langen Kanten**, so wie
    der Platinen-Strang sie übergeben hat. Mitte der Betätigungsfläche **0,7 mm
    über der Platinenoberseite** (halbe Bauteilhöhe 1,35 mm). Weicht das ab, sind
@@ -315,3 +350,39 @@ ist ein anderes Teil und ein Ausschnitt in der Platine.
 
 **Das Gehäuse hat keine Meinung dazu, welcher Weg richtig ist** – es sagt nur,
 was jeder kostet. Entschieden wird das am Gerät, nicht am Rahmen.
+
+## 10. Darf die Zelle aus der Mitte?
+
+Gefragt vom Platinen-Strang am 24.10.2026: rückt die große Zelle (Adafruit
+1317, 19,75 mm breit) an eine Kante, bleibt gegenüber ein Streifen für den
+Sicherheitschip frei, und die I2C-Leitung wird 12 statt 25 mm kurz.
+
+**Vom Gehäuse aus: ja, mit einer Einschränkung.**
+
+| | Maß |
+| --- | --- |
+| bauteilfreier Bereich quer | 1,20 … 24,80 mm |
+| Vorschlag des Platinen-Strangs | Zelle 0,75 … 20,50 mm |
+| **Problem** | beginnt **0,45 mm vor dem Klemmkragen** – dort drückt das Gehäuse auf die Platine |
+| **Was geht** | Zelle **1,20 … 20,95 mm** |
+| Streifen gegenüber | 20,95 … 24,80 = **3,85 mm** |
+| SE051C2 ist 3,0 mm breit | **0,85 mm Luft** – reicht |
+
+Der Hohlraum ist ein glatter Kasten; nichts im Gehäuse hält die Zelle an einer
+bestimmten Stelle. Außermittig kostet mich also nichts, und **die Klemmung
+ändert sich nicht** – sie läuft am Platinenrand und nicht über der Zelle.
+
+**Fühlt es sich schief an?** Die Zellenmitte wandert von 13,00 auf 11,07 mm,
+also **1,93 mm** – 6,5 % der Gehäusebreite, 2,4 % der Länge. Bei einem
+Schlüsselanhänger, der ohnehin dreimal so lang wie breit ist und am Ring hängt,
+halte ich das für nicht spürbar. **Das ist eine Einschätzung, keine Messung** –
+die Masse der Zelle und des fertigen Geräts stehen in keiner Unterlage, also
+kann ich den Schwerpunkt nicht ausrechnen.
+
+**Eines gehört zum Layout, nicht zu mir:** die Ferritfolie wandert mit der Zelle
+nach außen. Ob sie dort die Zellfläche noch überdeckt und in Richtung Antenne
+übersteht, wie es `../hardware/layout-notes.md` verlangt, muss der
+Platinen-Strang prüfen.
+
+**Mein Urteil: machen.** Eine kurze I2C-Leitung ist ein echter Gewinn, der
+Preis ist ein Versatz, den man nicht merkt.

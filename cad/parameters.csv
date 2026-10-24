@@ -21,8 +21,8 @@ oled_win_y;11.54;Fenster in Querrichtung - aktiv 10.54 + 2 x 0.5 Rand
 oled_cx;38.0;Fenstermitte laengs - Glas 27..49 laut Uebergabe des Platinen-Strangs
 oled_cy;13.0;Fenstermitte in Querrichtung - VORLAEUFIG
 led_win_d;2.5;Lichtfenster der RGB-LED
-led_cx;24.5;LED-Mitte laengs - VORLAEUFIG, Lage noch nicht vom Layout genannt
-led_cy;13.0;LED-Mitte in Querrichtung - VORLAEUFIG
+led_cx;66.0;LED-Mitte laengs - Kopfende, vom Platinen-Strang bestaetigt
+led_cy;13.0;LED-Mitte quer - Plattenmitte bei 26 mm Breite
 btn_slot_x;4.5;Tasteroeffnung laengs - Taster 3.5 plus 0.5 je Seite
 btn_slot_z;2.4;Tasteroeffnung in Dickenrichtung
 btn_cx;24.5;Tastermitte laengs - beide Taster, aus der Uebergabe des Platinen-Strangs
