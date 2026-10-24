@@ -35,9 +35,15 @@ const (
 // Die zwei Betriebsarten, wie sie auf der Leitung stehen (shared/protocol.md
 // Befehl 19). Es sind Zahlen, keine Namen: das Geraet rechnet damit, und ein
 // Name waere eine zweite Wahrheit, die auseinanderlaufen kann.
+//
+// Sie fangen bei 1 an, und das ist der Kern der Sache: CBOR liest ein
+// fehlendes Feld als null. Waere eine der beiden Arten die Null, haette eine
+// Anfrage, die das Feld vergisst, still eine Betriebsart gewaehlt - genau
+// die stille Vorgabe, die dieser Entwurf verbietet, nur durch ein
+// Versaeumnis statt durch eine Entscheidung. Darum ist die Null ein Fehler.
 const (
-	ModeMirrored uint64 = 0 // Ersatz moeglich
-	ModeOnly     uint64 = 1 // nur dieses Geraet
+	ModeMirrored uint64 = 1 // Ersatz moeglich
+	ModeOnly     uint64 = 2 // nur dieses Geraet
 )
 
 // ModeNoneSet ist die Betriebsart eines Profils, das noch keine hat. Das
@@ -47,8 +53,8 @@ const (
 const ModeNoneSet uint64 = 0xffff
 
 // ValidMode sagt, ob die Zahl eine der zwei Betriebsarten ist. Eine dritte
-// gibt es nicht, und eine fehlende ist keine stille Vorgabe, sondern ein
-// Fehler.
+// gibt es nicht; die Null und eine fehlende Angabe sind keine stille
+// Vorgabe, sondern ein Fehler.
 func ValidMode(mode uint64) bool {
 	return mode == ModeMirrored || mode == ModeOnly
 }

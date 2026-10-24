@@ -130,14 +130,16 @@ func TestAssistentWeistHalbeAngabenAb(t *testing.T) {
 		name string
 		body string
 	}{
-		// Gar keine Angabe darf NICHT still zu null werden - null ist
-		// "Ersatz moeglich", also genau die Vorgabe, die es nicht
-		// geben darf.
+		// Die drei wichtigsten Zeilen hier: eine vergessene, eine leere
+		// und eine auf null gesetzte Angabe duerfen NIE zu einer
+		// Betriebsart werden. Darum faengt die Zaehlung bei 1 an - waere
+		// eine der Arten die Null, haette ein Versaeumnis still gewaehlt.
 		{"ohne Betriebsart", `{"pin":"123456","confirm":true}`},
 		{"Betriebsart null statt Zahl", `{"mode":null,"pin":"123456","confirm":true}`},
-		{"dritte Betriebsart", `{"mode":2,"pin":"123456","confirm":true}`},
-		{"ohne Bestaetigung", `{"mode":0,"pin":"123456","confirm":false}`},
-		{"PIN zu kurz", `{"mode":0,"pin":"12345","confirm":true}`},
+		{"Betriebsart 0", `{"mode":0,"pin":"123456","confirm":true}`},
+		{"dritte Betriebsart", `{"mode":3,"pin":"123456","confirm":true}`},
+		{"ohne Bestaetigung", `{"mode":1,"pin":"123456","confirm":false}`},
+		{"PIN zu kurz", `{"mode":1,"pin":"12345","confirm":true}`},
 	}
 	for _, fall := range faelle {
 		t.Run(fall.name, func(t *testing.T) {
@@ -183,7 +185,7 @@ func TestAssistentGanzerWeg(t *testing.T) {
 
 	// Schritt 1 und 2: Betriebsart und PIN gehen zusammen zum Geraet.
 	answer := apiCall(t, client, origin, http.MethodPost, base+"api/setup",
-		`{"mode":1,"pin":"123456","confirm":true}`)
+		`{"mode":2,"pin":"123456","confirm":true}`)
 	if ok, _ := answer["ok"].(bool); !ok {
 		t.Fatalf("einrichten abgewiesen: %v", answer["error"])
 	}
@@ -195,7 +197,7 @@ func TestAssistentGanzerWeg(t *testing.T) {
 	// Die Wahl ist endgueltig: ein zweiter Versuch wird abgewiesen, und das
 	// Geraet hat genau einmal eingerichtet.
 	zweiter := apiCall(t, client, origin, http.MethodPost, base+"api/setup",
-		`{"mode":0,"pin":"654321","confirm":true}`)
+		`{"mode":1,"pin":"654321","confirm":true}`)
 	if ok, _ := zweiter["ok"].(bool); ok {
 		t.Error("die Betriebsart liess sich ein zweites Mal setzen")
 	}
@@ -253,7 +255,7 @@ func TestZettelWarntNurBeiNurDiesemStick(t *testing.T) {
 	_, base, origin, client := oberflaeche(t,
 		startSimulator(t, "-werkszustand"))
 	apiCall(t, client, origin, http.MethodPost, base+"api/setup",
-		`{"mode":0,"pin":"123456","confirm":true}`)
+		`{"mode":1,"pin":"123456","confirm":true}`)
 
 	code, _, body := hole(t, client, base+"sheet")
 	if code != http.StatusOK {
@@ -303,7 +305,7 @@ func TestEingerichteteAttrappeBleibtWieSieWar(t *testing.T) {
 
 	// Und ein `setup` auf ein eingerichtetes Geraet wird abgewiesen.
 	answer := apiCall(t, client, origin, http.MethodPost, base+"api/setup",
-		`{"mode":1,"pin":"123456","confirm":true}`)
+		`{"mode":2,"pin":"123456","confirm":true}`)
 	if ok, _ := answer["ok"].(bool); ok {
 		t.Error("die eingerichtete Attrappe nahm ein zweites setup an")
 	}
