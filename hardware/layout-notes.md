@@ -1553,3 +1553,82 @@ rechts neben dem Brett, nicht verstreut.
    die Masseflächen sind noch nicht gegossen. Beim Gießen muss der Streifen in
    **allen vier** Lagen ausgespart bleiben.
 3. **J2, J5, J6** brauchen Entscheidungen, nicht Plätze.
+
+# Stückliste durchgezählt: genau zwei Platzhalter — und für beide gibt es echte Teile
+
+Stand 24.10.2026. Grundlage ist die **Bauteilliste der Platine selbst**
+(`pcb_components_list`, alle 54 Einträge mit LCSC-Nummer), nicht meine
+Erinnerung.
+
+## Das Loch ist genau zwei Teile groß
+
+| Kennung | Nummer | Art |
+| --- | --- | --- |
+| **J2** | `C9900141337` | **Platzhalter** |
+| **J4** | `C9900036520` | **Platzhalter** |
+
+**Alle anderen 52 Bauteile tragen echte Lagernummern** mit Hersteller: die
+fünf Halbleiter (C5118826, C5202100, C7389628, C38066, C323793), die fünf
+MOSFETs (C2940629), Quarz (C32346), Spule (C295388), LED (C3019536), TVS
+(C552589), USB-C (C7095263), die drei Stiftfelder (C492401, C41434767,
+C2691448), die Taster (C388883) und sämtliche Passiven.
+
+**Es sind also beide Steckverbinder, die keine Teile sind — und kein
+Halbleiter.** Der Satz „die Steckverbinder sind die schwächste Stelle dieses
+Entwurfs" ist damit gezählt, nicht gefühlt.
+
+## J4 — echtes Teil gefunden, **und es hat 12 Pole, nicht 14**
+
+| | |
+| --- | --- |
+| Teil | **Hirose FH12-12S-0.5SH(55)** |
+| Nummer | **C88360**, Hersteller HRS, **mit Datenblatt** |
+| Pole | **12** |
+| Raster | 0,5 mm |
+| Bauhöhe über der Platine | **2 mm** |
+| Bauart | Deckelverschluss, **Unterkontakt**, Folie 0,3 mm, Goldkontakte |
+
+> **Das ist die Schaltplanfrage, nicht eine Layoutfrage:** Der Platzhalter hat
+> **14** Pads, das echte Teil **12**. Die beiden zusätzlichen Pole, auf die ich
+> die „Haltelaschen" an `GND` gelegt habe, **gibt es an diesem Teil nicht.**
+> Beim Tausch fallen `J4.13` und `J4.14` aus der Netzliste — das sind zwei
+> Verbindungen weniger, nicht zwei andere.
+>
+> **Das passt zur Anzeige:** Das Crystalfontz-Glas hat 12 Pole, und genau die
+> zwölf stehen in `schematic.md`. **Die 14 waren die Erfindung des
+> Platzhalters, nicht eine Eigenschaft der Anzeige.**
+
+## J2 — zwei echte Teile, und eines löst das Höhenproblem
+
+| | **JST S2B-PH-SM4-TB** | **JST SM02B-SRSS-TB** |
+| --- | --- | --- |
+| Nummer | C295747 | **C160402** |
+| Reihe | PH, 2,00 mm Raster | **SH, 1,00 mm Raster** |
+| **Bauhöhe** | **5,5 mm** | **2,9 mm** |
+| Grundfläche | 7,9 × 8,6 mm | **4,0 × 4,32 mm** |
+| Strom | 2 A | 1 A |
+
+**Die Grenze ist 4,45 mm.** Der PH liegt **1,05 mm darüber**, der SH **1,55 mm
+darunter** — und braucht nur ein Viertel der Fläche. 1 A gegen 100 mA
+Ladestrom ist reichlich.
+
+> **Nebenbei löst sich der Widerspruch, der die Quellenlage so dünn aussehen
+> ließ:** Die Händler nannten 7,6 und 8,6 mm für „die Tiefe". Die
+> Bibliotheksangabe zeigt, dass es **zwei verschiedene Maße** sind — Länge 7,9
+> und Tiefe 8,6. **Sie haben sich nicht widersprochen, sondern verschiedene
+> Kanten gemessen.**
+
+**Was der SH kostet, und das ist die Entscheidung:** Die Adafruit 1317 wird
+**mit PH-Stecker am Kabel** geliefert. Mit einem SH auf der Platine passt das
+Kabel der Zelle nicht — entweder wird es **umgecrimpt**, oder es braucht eine
+Zelle mit SH-Stecker, oder ein kurzes Zwischenkabel.
+
+> **Damit sind es nicht mehr drei unbestimmte Wege, sondern zwei klare:**
+> **(a) SH-Stecker (2,9 mm, passt) und das Zellkabel anpassen**, oder
+> **(b) PH behalten (5,5 mm) und das Gerät 1,05 mm dicker machen.**
+> Der dritte Weg — Kabel direkt anlöten — bleibt möglich, macht den Akku aber
+> unaustauschbar. **Thomas entscheidet; ich habe keinen der Wege eingebaut.**
+
+**J2 und J4 bleiben bis dahin neben der Platine geparkt.** Ein Tausch ändert
+Footprint und bei J4 die Netzliste; das gehört in einen eigenen Durchgang,
+nicht zwischen zwei Platzierungsrunden.
