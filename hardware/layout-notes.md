@@ -1844,3 +1844,115 @@ Aussage über Bauteile und war eine über Mittelpunkte — genau wie 25,50 nach
 einer Messung klang und eine Annahme über einen Ursprung war, und wie „12 Pole"
 nach einer Pinzahl klang und eine Kontaktzahl war. **Dreimal dieselbe Falle:
 zwei Größen, die gleich heißen und Verschiedenes messen.**
+
+# Die Paare auseinandergezogen: 0 Regelverstöße, und ein Fall, der keiner Rechnung weicht
+
+Stand 24.10.2026. Maß ist jetzt das **Kupferrechteck** aus `pcb_pads_list`
+(`extent_mm`, also nach der Drehung), Grenze die Vorschrift aus dem Regelsatz:
+**SMD-Pad ↔ SMD-Pad = 0,15200122 mm**, Pad ↔ Platinenrand = 0,29999940 mm.
+
+## Erst noch ein Verstoß, den mein eigener Vergleich verdeckt hatte
+
+`J1` hat **MULTI**-Pads — Durchsteiger, die auf **beiden** Kupferlagen liegen.
+Mein Vergleich hatte nach Lage gruppiert und MULTI als dritte Lage behandelt,
+also **nie gegen TOP oder BOTTOM geprüft**. Mit MULTI auf beiden Lagen kommt
+ein Paar hinzu:
+
+> `J1.S1` (Schirm, GND) ↔ `R3.1` (Q1_G): **0,0092 mm.**
+
+Damit waren es **13** Verstöße zwischen verschiedenen Netzen, nicht 12.
+Dieselbe Falle wie immer: „Lage" heißt bei einem Durchsteiger etwas anderes als
+bei einem SMD-Pad.
+
+## Der Änderungssatz, vorher durchgerechnet
+
+17 Bauteile, in einem Zug gesetzt, Zielabstand 0,25 mm statt der erlaubten
+0,152 — damit die Mil-Rasterung des Werkzeugs (0,0254 mm) nichts kippen kann.
+
+| Reihe | Teile | was geschah |
+| --- | --- | --- |
+| `y` ≈ 2,0 | R3, R4, R5, R13, R14 | nach rechts gestaffelt, R3 hinter `J1` |
+| `y` ≈ 7,0 | C11, R6, R7 | nach rechts gestaffelt, C10 blieb |
+| `y` ≈ 10–12 | C2 (+0,30 `x`), R1 (+0,85 `y`) | von `U4` weg; R1 nach oben statt zur Seite, weil rechts `Q2` steht |
+| `y` ≈ 23,9 | C5, C3, C4, C8, C9, X1, L1 | ganze Reihe neu aufgeteilt, 0,25 mm Luft |
+
+R2 blieb, wo es war: durch R1s Weg nach oben ist der Konflikt in `y` gelöst,
+und nach rechts hätte R2 in `Q2` gelaufen.
+
+## Gemessen, nachdem es gesetzt war
+
+| | vorher | nachher |
+| --- | --- | --- |
+| Verstöße, verschiedene Netze | **13** | **0** |
+| davon Überlappungen | 4 | **0** |
+| kleinster Abstand verschiedener Netze | −0,5362 | **+0,2006** |
+| Pads unter 0,300 mm am Rand | 0 | **0** |
+
+Der engste Punkt ist jetzt `C2.1` (VBAT_RAW) gegen `U4.2` (GND) mit
+**0,2006 mm** — ein Drittel über der Vorschrift.
+
+## Stichprobe von Hand, damit es nicht am Skript hängt
+
+| Paar | Rechnung aus den Mitten | vorher |
+| --- | --- | --- |
+| `L1.1` ↔ `X1.2` | 13,82256 − 13,57388 = **0,24868** | −0,5362 |
+| `C9.2` ↔ `X1.1` | 10,07098 − 9,82072 = **0,25026** | −0,2222 |
+| `C2.1` ↔ `U4.2` | 4,90098 − 4,70036 = **0,20062** | −0,1016 |
+| `J1.S1` ↔ `R3.1` | 18,52570 − 18,27522 = **0,25048** | +0,0092 |
+| `R1.1` ↔ `U4.1` | in `y`: 11,87832 − 11,64822 = **0,23010** | −0,0151 |
+| `R6.2` ↔ `R7.1` | 23,69460 − 23,44272 = **0,25188** | +0,0665 |
+
+`R1` gegen `U4` ist der lehrreiche: in `x` überlappen die beiden weiter um
+0,0151 mm, der Abstand kommt allein aus `y`. **Wer nur eine Achse ansieht,
+hält das für ungelöst.**
+
+## Was es gekostet hat
+
+`L1.1` (DCCH) steht jetzt bei `x` 14,64056, U1s DCCH-Pad bei 12,04976 — **2,59
+mm in `x`, 1,1075 mm mehr als vorher.** Das ist die Schleife des
+Abwärtswandlers, und länger ist dort schlechter. Der Grund ist zwingend: X1
+musste zwischen L1 und C9 Platz bekommen, und X1 gehört an die Pads 17/18, die
+ebenfalls am tiefen `x`-Ende liegen. **Spule und Quarz streiten um dieselbe
+Ecke.** Wenn die 1,1 mm wehtun, ist die Antwort nicht eine andere Verteilung in
+dieser Reihe, sondern den Quarz in eine andere Reihe zu nehmen.
+
+## Der Fall, der keiner Rechnung weicht: SW2
+
+`SW2` bleibt stehen, und zwar nicht aus Nachlässigkeit. Zwei Befunde:
+
+1. `SW2.2'` (GND) überlappt `U1.1` (GND) um **0,2502 mm**. Gleiches Netz, also
+   kein Kurzschluss — als Kupfer trotzdem falsch.
+2. **Beide unteren Taster-Pads liegen in der Freihaltezone**: `SW2.1'` bei
+   `x` 23,6994 … 24,7994 und `SW2.2'` bei 22,2008 … 23,3008, jeweils
+   `y` 22,0 … 23,4, und die Zone endet oben bei `y` 22,5499.
+
+**Und der Taster passt dort nicht, mit keinem `y`:**
+
+| | |
+| --- | --- |
+| Padspanne des Tasters, gemessen | **4,9992 mm** |
+| Band zwischen U1-Körper (22,5499) und Glas (27,0) | **4,4501 mm** |
+| fehlen | **0,5491 mm** |
+
+Mit der Vorschrift von 0,152 gegen den Modulkörper müsste das tiefste Pad bei
+22,7019 beginnen und das höchste läge bei 27,7011 — **0,7011 mm im
+Anzeigefenster.** Selbst wenn man nur gegen U1s Pads rechnet (22,3000) und den
+2,2 mm hohen Modulkörper ignoriert, sind es noch 0,4512 mm.
+
+> **Der Taster war nie dort unterzubringen, auch vor der Drehung nicht.** Das
+> alte Pad 33 lag bei `y` 21,901 … 22,300 und `x` 22,901 … 23,500 und
+> überlappte `SW2.2'` ebenso. Die Drehung hat den Fall nur sichtbar gemacht.
+
+**`SW1` ist nicht betroffen:** es steht bei `x` 2,2008 … 4,7994, also links von
+U1s Körper (ab 11,5004) und weit von der Zone (ab 23,1484).
+
+**Ein Ausweichband gibt es, und zwar unter U1:** auf der Oberseite ist zwischen
+`J1` (bis `y` 5,9892) und U1s Körper (ab 12,0499) nichts. Mit der Vorschrift
+bleibt `y` 6,1412 … 22,3979, also **16,2567 mm für 4,9992 mm Taster — es
+passt.** Das heißt aber: der Reset-Taster sitzt dann am USB-Ende, nicht
+zwischen Modul und Anzeige, und SW1 und SW2 stehen nicht mehr symmetrisch.
+
+**Das ist eine Gehäusefrage und keine Rechnung.** Drei Wege, alle mit Folgen:
+`SW2` ans USB-Ende (Symmetrie weg), **beide** Taster dorthin (Symmetrie bleibt,
+zwei Öffnungen wandern), oder das Anzeigefenster beginnt später als `y` 27.
+**Ich habe keinen eingebaut.**
