@@ -107,6 +107,15 @@ This project is at **level 2, plus runs on the computer with test devices.** Lev
 - A test reports missing keys as an error.
 - If a text is missing, the English one applies.
 
+## Assembly
+
+**New:** This section is new. More rules for assembly will be added here once the hardware is on the table.
+
+- The ferrite foil under the battery is **12.0 mm** wide, **12.5 mm at most.** Not wider, not even a little.
+- It ends **flush with the outer edge of the cell.** It must not be narrower either: it has to cover the cell.
+- Otherwise the cell tilts.
+- The measurements are kept only in `hardware/layout-notes.md`. If it says something different, that file is right.
+
 ## Taking part
 
 Never change only the technology. When function, operation, settings or structure change, the documentation belongs with it: `docs/` and this manual.

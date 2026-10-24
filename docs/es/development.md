@@ -107,6 +107,15 @@ Este proyecto está en el **nivel 2, además de ejecuciones en el ordenador con 
 - Una prueba informa de las claves que faltan como error.
 - Si falta un texto, vale el inglés.
 
+## Montaje
+
+**Nuevo:** esta sección es nueva. Aquí se añadirán más normas de montaje cuando el hardware esté sobre la mesa.
+
+- La lámina de ferrita bajo la batería mide **12,0 mm** de ancho, **12,5 mm como máximo.** No más ancha, ni un poco.
+- Termina **al ras del borde exterior de la celda.** Tampoco debe ser más estrecha: tiene que cubrir la celda.
+- Si no, la celda se inclina.
+- Las medidas solo están escritas en `hardware/layout-notes.md`. Si ahí dice otra cosa, vale ese archivo.
+
 ## Colaborar
 
 Nunca cambies solo la técnica. Cuando cambian la función, el manejo, los ajustes o la estructura, la documentación forma parte: `docs/` y este manual.
