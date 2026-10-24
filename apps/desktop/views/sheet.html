@@ -11,7 +11,7 @@
       </tr>
       <tr>
         <th scope="row">{{.Texts.Get "setup.mode.chosen"}}</th>
-        <td>{{if .ModeOnly}}{{.Texts.Get "setup.only.title"}}{{else if .Info.Mode}}{{.Texts.Get "setup.mirrored.title"}}{{else}}&nbsp;{{end}}</td>
+        <td>{{if .ModeName}}{{.Texts.Get .ModeName}}{{else}}&nbsp;{{end}}</td>
       </tr>
       <tr>
         <th scope="row">{{.Texts.Get "sheet.date"}}</th>

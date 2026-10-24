@@ -32,18 +32,38 @@ const (
 	CmdSetup    = 19
 )
 
-// Die Namen der zwei Betriebsarten. Sie stehen so auf der Leitung und so in
-// docs/architecture.md; die Oberflaeche uebersetzt sie ueber Schluessel.
+// Die zwei Betriebsarten, wie sie auf der Leitung stehen (shared/protocol.md
+// Befehl 19). Es sind Zahlen, keine Namen: das Geraet rechnet damit, und ein
+// Name waere eine zweite Wahrheit, die auseinanderlaufen kann.
 const (
-	ModeMirrored = "mirrored"
-	ModeOnly     = "only"
+	ModeMirrored uint64 = 0 // Ersatz moeglich
+	ModeOnly     uint64 = 1 // nur dieses Geraet
 )
 
-// ValidMode sagt, ob der Name eine der zwei Betriebsarten ist. Eine dritte
-// gibt es nicht, und ein leerer Name ist keine stille Vorgabe, sondern ein
+// ModeNoneSet ist die Betriebsart eines Profils, das noch keine hat. Das
+// Protokoll nennt in `modes` nur eingerichtete Profile, also steht diese
+// Zahl nie auf der Leitung - sie ist das "noch nichts gewaehlt" dieses
+// Programms und absichtlich keine der beiden Arten.
+const ModeNoneSet uint64 = 0xffff
+
+// ValidMode sagt, ob die Zahl eine der zwei Betriebsarten ist. Eine dritte
+// gibt es nicht, und eine fehlende ist keine stille Vorgabe, sondern ein
 // Fehler.
-func ValidMode(mode string) bool {
+func ValidMode(mode uint64) bool {
 	return mode == ModeMirrored || mode == ModeOnly
+}
+
+// ModeKey ist der Textschluessel, unter dem die Betriebsart in den
+// Sprachdateien steht. Die Zahl bleibt die Wahrheit; dies ist nur ihr Name
+// fuer das Auge.
+func ModeKey(mode uint64) string {
+	switch mode {
+	case ModeMirrored:
+		return "setup.mirrored.title"
+	case ModeOnly:
+		return "setup.only.title"
+	}
+	return ""
 }
 
 // Ergebniswerte des Geraets, gleiche Reihenfolge wie osk_result_t in
@@ -181,15 +201,23 @@ type DeviceInfo struct {
 	Transports []string `json:"transports"`
 	Unlocked   bool     `json:"unlocked"`
 	Profiles   uint64   `json:"profiles"`
-	// Mode ist die Betriebsart des Profils, leer bei einem Geraet im
-	// Werkszustand. Sie kommt aus hello, damit die Oberflaeche sie zeigen
-	// kann, ohne das Geraet nach einem Geheimnis zu fragen.
-	Mode string `json:"mode"`
-	// Fresh heisst: das Geraet haelt noch kein Geheimnis und die Frage nach
-	// der Betriebsart ist noch offen. Ein Geraet, das dazu nichts sagt,
-	// gilt als eingerichtet - lieber keinen Assistenten zeigen als die
-	// unumkehrbare Frage an einem Geraet, das schon Zugaenge haelt.
-	Fresh bool `json:"fresh"`
+	// Modes ist die Betriebsart je Profil, wie hello sie nennt. Ein Profil,
+	// das noch nichts haelt, steht nicht darin.
+	Modes []uint64 `json:"modes"`
+	// Factory heisst: es ist noch nichts eingerichtet, und nur in diesem
+	// Zustand nimmt das Geraet `setup` an. Ein Geraet, das dazu nichts
+	// sagt, gilt als eingerichtet - lieber keinen Assistenten zeigen als
+	// die unumkehrbare Frage an einem Geraet, das schon Zugaenge haelt.
+	Factory bool `json:"factory"`
+}
+
+// ModeOf nennt die Betriebsart eines Profils, oder ModeNoneSet, wenn das
+// Geraet fuer dieses Profil keine nennt.
+func (d DeviceInfo) ModeOf(profile uint8) uint64 {
+	if int(profile) >= len(d.Modes) {
+		return ModeNoneSet
+	}
+	return d.Modes[profile]
 }
 
 // Hello fragt Fassung, Seriennummer und eingeschaltete Zugaenge ab.
@@ -203,15 +231,23 @@ func (c *Client) Hello() (DeviceInfo, error) {
 	info.Serial, _ = CborText(data, "serial")
 	info.Protocol, _ = CborUint(data, "proto")
 	info.Profiles, _ = CborUint(data, "profiles")
-	info.Mode, _ = CborText(data, "mode")
 	if unlocked, ok := data["unlocked"].(bool); ok {
 		info.Unlocked = unlocked
 	}
-	if fresh, ok := data["fresh"].(bool); ok {
-		info.Fresh = fresh
+	if factory, ok := data["factory"].(bool); ok {
+		info.Factory = factory
 	}
-	if !ValidMode(info.Mode) {
-		info.Mode = ""
+	if list, ok := CborList(data, "modes"); ok {
+		for _, entry := range list {
+			mode, isNumber := entry.(uint64)
+			if !isNumber || !ValidMode(mode) {
+				// Eine Zahl, die keine der zwei Arten ist, wird nicht
+				// geraten. Das Profil gilt dann als nicht eingerichtet.
+				info.Modes = append(info.Modes, ModeNoneSet)
+				continue
+			}
+			info.Modes = append(info.Modes, mode)
+		}
 	}
 	if list, ok := CborList(data, "tr"); ok {
 		for _, entry := range list {
@@ -234,7 +270,7 @@ func (c *Client) Hello() (DeviceInfo, error) {
 // OSK_ERR_DENIED - die Entscheidung liegt beim Geraet, nicht hier.
 //
 // Der Puffer mit der PIN wird ueberschrieben, sobald er geschickt ist.
-func (c *Client) Setup(mode string, pin []byte) error {
+func (c *Client) Setup(mode uint64, pin []byte) error {
 	defer Wipe(pin)
 	if !ValidMode(mode) {
 		return Fail("error.setup.mode")

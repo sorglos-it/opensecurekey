@@ -11,8 +11,10 @@
 //   - Danach ist die Oberflaeche frei, und der Notfallzettel nennt die
 //     Betriebsart.
 //
-// Kein echtes Geraet ist beteiligt: gespielt wird gegen das Geraet im
-// Werkszustand aus werkszustand_test.go.
+// Kein echtes Geraet ist beteiligt: gespielt wird gegen die Attrappe mit
+// -werkszustand. Dass es dieselbe Attrappe ist wie ueberall sonst, ist
+// Absicht - zwei Attrappen wuerden auseinanderlaufen, und dann prueft jeder
+// gegen eine andere Vorstellung vom Geraet.
 package tests
 
 import (
@@ -63,8 +65,7 @@ func hole(t *testing.T, client *http.Client, url string) (int, string, []byte) {
 
 // Im Werkszustand fuehrt jede Seite zum Assistenten.
 func TestAssistentLaesstSichNichtUeberspringen(t *testing.T) {
-	address, _ := starteFrischesGeraet(t)
-	_, base, _, client := oberflaeche(t, address)
+	_, base, _, client := oberflaeche(t, startSimulator(t, "-werkszustand"))
 
 	for _, path := range []string{"", "item", "certs", "devices", "backup",
 		"firmware", "settings", "sheet"} {
@@ -122,17 +123,21 @@ func enthaelt(body []byte, text string) bool {
 // Der halbe Weg richtet nichts ein: keine Betriebsart, keine Bestaetigung,
 // zu kurze PIN - jedes Mal eine Absage.
 func TestAssistentWeistHalbeAngabenAb(t *testing.T) {
-	address, device := starteFrischesGeraet(t)
-	_, base, origin, client := oberflaeche(t, address)
+	app, base, origin, client := oberflaeche(t,
+		startSimulator(t, "-werkszustand"))
 
 	faelle := []struct {
 		name string
 		body string
 	}{
-		{"ohne Betriebsart", `{"mode":"","pin":"123456","confirm":true}`},
-		{"fremde Betriebsart", `{"mode":"irgendwas","pin":"123456","confirm":true}`},
-		{"ohne Bestaetigung", `{"mode":"mirrored","pin":"123456","confirm":false}`},
-		{"PIN zu kurz", `{"mode":"mirrored","pin":"12345","confirm":true}`},
+		// Gar keine Angabe darf NICHT still zu null werden - null ist
+		// "Ersatz moeglich", also genau die Vorgabe, die es nicht
+		// geben darf.
+		{"ohne Betriebsart", `{"pin":"123456","confirm":true}`},
+		{"Betriebsart null statt Zahl", `{"mode":null,"pin":"123456","confirm":true}`},
+		{"dritte Betriebsart", `{"mode":2,"pin":"123456","confirm":true}`},
+		{"ohne Bestaetigung", `{"mode":0,"pin":"123456","confirm":false}`},
+		{"PIN zu kurz", `{"mode":0,"pin":"12345","confirm":true}`},
 	}
 	for _, fall := range faelle {
 		t.Run(fall.name, func(t *testing.T) {
@@ -146,40 +151,59 @@ func TestAssistentWeistHalbeAngabenAb(t *testing.T) {
 			}
 		})
 	}
-	if zahl := device.zahlDerEinrichtungen(); zahl != 0 {
-		t.Errorf("das Geraet wurde %dmal eingerichtet, erwartet keinmal", zahl)
+	// Und das Geraet ist unveraendert: noch im Werkszustand, ohne
+	// Betriebsart. Gemessen am Geraet, nicht am Programm - das Programm
+	// koennte sich irren.
+	info := helloVon(t, app)
+	if !info.Factory || info.ModeOf(0) != classes.ModeNoneSet {
+		t.Errorf("factory=%v mode=%d, erwartet Werkszustand ohne Betriebsart",
+			info.Factory, info.ModeOf(0))
 	}
-	if art := device.betriebsart(); art != "" {
-		t.Errorf("Betriebsart %q, erwartet keine", art)
+}
+
+// helloVon fragt das Geraet nach seinem Zustand.
+func helloVon(t *testing.T, app *classes.App) classes.DeviceInfo {
+	t.Helper()
+	client, err := app.Client()
+	if err != nil {
+		t.Fatalf("verbinden: %v", app.Message(err))
 	}
+	info, err := client.Hello()
+	if err != nil {
+		t.Fatalf("hello: %v", app.Message(err))
+	}
+	return info
 }
 
 // Der ganze Weg: Betriebsart, PIN, Sicherung, Zettel - und danach ist die
 // Wahl fest.
 func TestAssistentGanzerWeg(t *testing.T) {
-	address, device := starteFrischesGeraet(t)
-	_, base, origin, client := oberflaeche(t, address)
+	app, base, origin, client := oberflaeche(t,
+		startSimulator(t, "-werkszustand"))
 
 	// Schritt 1 und 2: Betriebsart und PIN gehen zusammen zum Geraet.
 	answer := apiCall(t, client, origin, http.MethodPost, base+"api/setup",
-		`{"mode":"only","pin":"123456","confirm":true}`)
+		`{"mode":1,"pin":"123456","confirm":true}`)
 	if ok, _ := answer["ok"].(bool); !ok {
 		t.Fatalf("einrichten abgewiesen: %v", answer["error"])
 	}
-	if art := device.betriebsart(); art != classes.ModeOnly {
-		t.Fatalf("Betriebsart %q, erwartet %q", art, classes.ModeOnly)
+	// Am Geraet nachgesehen, nicht beim Programm nachgefragt.
+	if art := helloVon(t, app).ModeOf(0); art != classes.ModeOnly {
+		t.Fatalf("Betriebsart %d, erwartet %d", art, classes.ModeOnly)
 	}
 
 	// Die Wahl ist endgueltig: ein zweiter Versuch wird abgewiesen, und das
 	// Geraet hat genau einmal eingerichtet.
 	zweiter := apiCall(t, client, origin, http.MethodPost, base+"api/setup",
-		`{"mode":"mirrored","pin":"654321","confirm":true}`)
+		`{"mode":0,"pin":"654321","confirm":true}`)
 	if ok, _ := zweiter["ok"].(bool); ok {
 		t.Error("die Betriebsart liess sich ein zweites Mal setzen")
 	}
-	if zahl := device.zahlDerEinrichtungen(); zahl != 1 {
-		t.Errorf("das Geraet wurde %dmal eingerichtet, erwartet genau einmal",
-			zahl)
+	// Auch die Betriebsart selbst ist unveraendert - eine Absage, die
+	// trotzdem etwas umgestellt haette, waere das Schlimmste von beidem.
+	if art := helloVon(t, app).ModeOf(0); art != classes.ModeOnly {
+		t.Errorf("Betriebsart nach dem zweiten Versuch %d, erwartet %d",
+			art, classes.ModeOnly)
 	}
 
 	// Jetzt ist die Oberflaeche frei - keine Umleitung mehr.
@@ -226,10 +250,10 @@ func TestAssistentGanzerWeg(t *testing.T) {
 // Zettel stehen. Ohne diese Gegenprobe waere der Test oben auch gruen, wenn
 // die Warnung immer gedruckt wuerde.
 func TestZettelWarntNurBeiNurDiesemStick(t *testing.T) {
-	address, _ := starteFrischesGeraet(t)
-	_, base, origin, client := oberflaeche(t, address)
+	_, base, origin, client := oberflaeche(t,
+		startSimulator(t, "-werkszustand"))
 	apiCall(t, client, origin, http.MethodPost, base+"api/setup",
-		`{"mode":"mirrored","pin":"123456","confirm":true}`)
+		`{"mode":0,"pin":"123456","confirm":true}`)
 
 	code, _, body := hole(t, client, base+"sheet")
 	if code != http.StatusOK {
@@ -253,5 +277,38 @@ func TestOhneGeraetKeineUmleitung(t *testing.T) {
 	if code != http.StatusOK {
 		t.Errorf("die Uebersicht antwortet %d nach %q, erwartet 200",
 			code, ziel)
+	}
+}
+
+// Die Gegenprobe zum Werkszustand: die Attrappe OHNE den Schalter verhaelt
+// sich wie bisher. Sie ist eingerichtet, fuehrt niemanden in den Assistenten
+// und nimmt kein `setup` mehr an. Ohne diese Pruefung waere die Ergaenzung
+// an der Attrappe nicht nachweisbar additiv.
+func TestEingerichteteAttrappeBleibtWieSieWar(t *testing.T) {
+	app, base, origin, client := oberflaeche(t, startSimulator(t))
+
+	info := helloVon(t, app)
+	if info.Factory {
+		t.Error("die gewoehnliche Attrappe meldet Werkszustand")
+	}
+	if art := info.ModeOf(0); art != classes.ModeMirrored {
+		t.Errorf("Betriebsart %d, erwartet %d", art, classes.ModeMirrored)
+	}
+
+	// Keine Umleitung: die Oberflaeche ist sofort bedienbar.
+	code, ziel, _ := hole(t, client, base)
+	if code != http.StatusOK {
+		t.Errorf("die Uebersicht antwortet %d nach %q, erwartet 200", code, ziel)
+	}
+
+	// Und ein `setup` auf ein eingerichtetes Geraet wird abgewiesen.
+	answer := apiCall(t, client, origin, http.MethodPost, base+"api/setup",
+		`{"mode":1,"pin":"123456","confirm":true}`)
+	if ok, _ := answer["ok"].(bool); ok {
+		t.Error("die eingerichtete Attrappe nahm ein zweites setup an")
+	}
+	if art := helloVon(t, app).ModeOf(0); art != classes.ModeMirrored {
+		t.Errorf("Betriebsart nach dem Versuch %d, erwartet %d",
+			art, classes.ModeMirrored)
 	}
 }

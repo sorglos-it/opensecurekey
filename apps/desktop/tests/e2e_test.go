@@ -55,10 +55,13 @@ func simulatorBinary(t *testing.T) string {
 }
 
 // startSimulator startet die Attrappe und gibt ihre Adresse zurueck.
-func startSimulator(t *testing.T) string {
+// Zusaetzliche Schalter werden durchgereicht, etwa -werkszustand fuer ein
+// Geraet, das noch nichts haelt.
+func startSimulator(t *testing.T, extra ...string) string {
 	t.Helper()
 	port := freePort(t)
-	cmd := exec.Command(simulatorBinary(t), "-port", strconv.Itoa(port))
+	args := append([]string{"-port", strconv.Itoa(port)}, extra...)
+	cmd := exec.Command(simulatorBinary(t), args...)
 	var output bytes.Buffer
 	cmd.Stdout = &output
 	cmd.Stderr = &output
