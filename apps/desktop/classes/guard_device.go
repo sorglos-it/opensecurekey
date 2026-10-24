@@ -271,14 +271,31 @@ func (d *GuardFakeDevice) Handle(payload []byte) CborMap {
 // handleAttest unterschreibt die Frage. Der Zweck wird hier davorgesetzt,
 // nicht vom Rechner mitgeschickt - sonst koennte jemand einen Auftrag als
 // Frage hineingeben und bekaeme eine gueltige Auftragsunterschrift.
+//
+// Zwei Wege, zwei Zwecke: mit Pruefsumme (`bh`) ist es der Dongle-Weg mit
+// festen Laengen, ohne sie der alte Aufruf Client.Attest() mit einer
+// Aufgabe beliebiger Laenge. Warum die Zwecke verschieden sein MUESSEN,
+// steht bei guardAttestRawDomain in guard.go.
 func (d *GuardFakeDevice) handleAttest(seq uint64, data CborMap) CborMap {
 	nonce, _ := CborBytes(data, "ch")
-	binHash, _ := CborBytes(data, "bh")
-	if len(nonce) != GuardNonceLen || len(binHash) != GuardHashLen {
+	binHash, hasBinHash := CborBytes(data, "bh")
+	if len(nonce) == 0 || len(nonce) > 256 {
 		return guardFakeReply(seq, 1, nil) // OSK_ERR_ARG
 	}
-	signature := ed25519.Sign(d.identity, GuardMessage(guardAttestDomain, nonce, binHash))
-	d.note("attest", 0)
+	var message []byte
+	if hasBinHash {
+		// Der Dongle-Weg: beide Laengen sind fest, damit die Bytefolge
+		// eindeutig zerlegt werden kann.
+		if len(nonce) != GuardNonceLen || len(binHash) != GuardHashLen {
+			return guardFakeReply(seq, 1, nil)
+		}
+		message = GuardMessage(guardAttestDomain, nonce, binHash)
+		d.note("attest", 0)
+	} else {
+		message = GuardMessage(guardAttestRawDomain, nonce, nil)
+		d.note("attest-raw", 0)
+	}
+	signature := ed25519.Sign(d.identity, message)
 	return guardFakeReply(seq, 0, CborMap{"sig": signature, "pub": d.PublicKey()})
 }
 

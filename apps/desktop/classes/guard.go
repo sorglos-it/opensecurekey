@@ -37,6 +37,22 @@ const (
 	guardAttestDomain = "osk-guard/attest/1"
 	guardSignDomain   = "osk-guard/sign/1"
 	guardSealDomain   = "osk-guard/seal/1"
+
+	// Der alte Aufruf Client.Attest() schickt nur eine Aufgabe beliebiger
+	// Laenge und keine Pruefsumme. Er bekommt einen EIGENEN Zweck, und das
+	// ist nicht Ordnungsliebe, sondern ein Loch, das sonst offen stuende:
+	//
+	// Beide Wege wuerden "Zweck 0x00 <Aufgabe> <Pruefsumme>" unterschreiben.
+	// Eine Aufgabe von 64 Byte ist aber genau so lang wie Frage und
+	// Pruefsumme zusammen - wer also den alten Weg mit
+	// <Frage>||<Pruefsumme> aufruft, bekommt eine Unterschrift, die der
+	// neue Weg fuer gueltig haelt. Damit haette ein geaendertes Programm
+	// wieder gueltige Antworten bekommen, solange der echte Stick steckt:
+	// die Bindung an die Programmdatei waere weg.
+	//
+	// Mit zwei verschiedenen Zwecken kann keine Unterschrift des einen
+	// Weges im anderen gelten. Ein Fall prueft das.
+	guardAttestRawDomain = "osk-guard/attest-raw/1"
 )
 
 // Groessen des Verfahrens.

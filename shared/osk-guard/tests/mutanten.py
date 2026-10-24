@@ -84,6 +84,14 @@ MUTANTS = [
      'Eine kaputte Lizenz eines fremden Produkts beendet die Suche - wer '
      'zwei Produkte auf einem Stick hat, kommt an keines.'),
 
+    ('tot12-ein-zweck-fuer-beide-wege', True, 'guard_device.go',
+     '\t\tmessage = GuardMessage(guardAttestRawDomain, nonce, nil)',
+     '\t\tmessage = GuardMessage(guardAttestDomain, nonce, nil)',
+     'Der alte Aufruf Client.Attest() unterschreibt denselben Zweck wie der '
+     'Dongle-Weg. Eine Aufgabe von 64 Byte ist so lang wie Frage und '
+     'Pruefsumme zusammen - damit bekaeme ein geaendertes Programm wieder '
+     'gueltige Antworten.'),
+
     # --- Der CBOR-Leser der Go-Bindung -----------------------------------
     # Diese vier messen, was ohne die unterschriebenen Lizenz-Pruefwerte in
     # tests/license-vectors.json gar nicht messbar waere: geprueft wird die

@@ -337,3 +337,79 @@ func TestBinaryBindingIsOnByDefault(t *testing.T) {
 		t.Fatal("ausgeschaltet und trotzdem gebunden")
 	}
 }
+
+// Der alte Aufruf Client.Attest() darf keine Antwort liefern, die als
+// Dongle-Nachweis gilt.
+//
+// Der Angriff, den das verhindert: eine Aufgabe von 64 Byte ist genau so
+// lang wie Frage und Pruefsumme zusammen. Wuerden beide Wege denselben
+// Zweck unterschreiben, bekaeme man mit dem alten Aufruf und der Aufgabe
+// <Frage>||<Pruefsumme> eine Unterschrift, die GuardVerify annimmt - und
+// damit waere die Bindung an die Programmdatei weg, obwohl der echte
+// Stick steckt. Gemessen, nicht ueberlegt.
+func TestRawAttestCannotForgeADongleAnswer(t *testing.T) {
+	device, err := NewGuardFakeDevice(GuardFakeOptions{Seed: []byte("zwei-wege")})
+	if err != nil {
+		t.Fatalf("Attrappe: %v", err)
+	}
+	client := device.GuardFakeClient("test")
+
+	// Die Frage, die ein Pruefer stellen wuerde, und die Pruefsumme eines
+	// GEAENDERTEN Programms.
+	nonce := make([]byte, GuardNonceLen)
+	if _, err := rand.Read(nonce); err != nil {
+		t.Fatalf("Zufall: %v", err)
+	}
+	patched := sha256.Sum256([]byte("das geaenderte Programm"))
+
+	// Der alte Weg, aufgerufen mit beidem hintereinander.
+	raw, err := client.Attest(append(append([]byte{}, nonce...), patched[:]...))
+	if err != nil {
+		t.Fatalf("der alte Aufruf muss weiter funktionieren: %v", err)
+	}
+	if len(raw) != GuardSigLen {
+		t.Fatalf("Unterschrift hat %d Byte", len(raw))
+	}
+
+	// Und genau diese Unterschrift darf als Dongle-Antwort nicht gelten.
+	err = GuardVerify(device.PublicKey(), GuardAnswer{
+		Nonce:     nonce,
+		BinHash:   patched[:],
+		Signature: raw,
+		PublicKey: device.PublicKey(),
+	})
+	if err == nil {
+		t.Fatal("eine Antwort des alten Aufrufs galt als Dongle-Nachweis - " +
+			"damit koennte ein geaendertes Programm weiterlaufen")
+	}
+	var problem *Problem
+	if !errors.As(err, &problem) || problem.Key != "error.guard.signature" {
+		t.Fatalf("erwartet error.guard.signature, bekommen %v", err)
+	}
+}
+
+// Der alte Aufruf bleibt benutzbar - die Oberflaeche und der Prueflauf
+// gegen die Attrappe benutzen ihn. Nur gilt seine Antwort eben nur dort.
+func TestRawAttestStillWorksForShortChallenges(t *testing.T) {
+	device, err := NewGuardFakeDevice(GuardFakeOptions{Seed: []byte("alt")})
+	if err != nil {
+		t.Fatalf("Attrappe: %v", err)
+	}
+	client := device.GuardFakeClient("test")
+	for _, challenge := range [][]byte{[]byte("a"), []byte("aufgabe"),
+		make([]byte, 256)} {
+		signature, err := client.Attest(challenge)
+		if err != nil {
+			t.Fatalf("Aufgabe mit %d Byte: %v", len(challenge), err)
+		}
+		// Die Antwort gilt gegen den eigenen Zweck.
+		if !ed25519.Verify(ed25519.PublicKey(device.PublicKey()),
+			GuardMessage(guardAttestRawDomain, challenge, nil), signature) {
+			t.Fatalf("die Antwort gilt nicht einmal im eigenen Zweck")
+		}
+	}
+	// Zu lang wird abgewiesen, nicht abgeschnitten.
+	if _, err := client.Attest(make([]byte, 257)); err == nil {
+		t.Fatal("eine zu lange Aufgabe wurde angenommen")
+	}
+}

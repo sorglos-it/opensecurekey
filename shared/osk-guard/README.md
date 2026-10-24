@@ -111,9 +111,19 @@ somebody could hand you a job as a "question" and get a valid job signature
 back.
 
 ```
-presence:  "osk-guard/attest/1" 0x00 nonce(32) binhash(32)
-job:       "osk-guard/sign/1"   0x00 label 0x00 sha256(job)
+presence:  "osk-guard/attest/1"     0x00 nonce(32) binhash(32)
+job:       "osk-guard/sign/1"       0x00 label 0x00 sha256(job)
+legacy:    "osk-guard/attest-raw/1" 0x00 challenge(1..256)
 ```
+
+The third one is the older `attest` call that takes a free-length challenge
+and no program hash. It has a **separate purpose string**, and that is not
+tidiness — it closes a hole. Both forms would otherwise sign
+`purpose 0x00 <challenge> <hash>`, and a 64-byte challenge is exactly as long
+as a nonce plus a hash. So anyone could call the legacy form with
+`<nonce>||<hash>` and get a signature the dongle check accepts — a patched
+program would get valid answers again for as long as the real key is plugged
+in. Two purposes make that impossible, and a test measures it.
 
 Both are signed with Ed25519 over the message itself (not over a
 pre-hash), so a verifier needs plain Ed25519 and SHA-256, nothing else.

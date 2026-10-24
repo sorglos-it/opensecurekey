@@ -217,6 +217,7 @@ this work; `attest` (14) gains two fields.
 | `c` | Name | Data | Needs approval |
 | --- | --- | --- | --- |
 | 14 | `attest` | `ch` nonce(32), `bh` program hash(32) → `sig`, `pub` | configurable |
+| 14 | `attest` without `bh` | `ch` challenge(1..256) → `sig`, `pub`; the older call, **signed under its own purpose string** | configurable |
 | 15 | `derive` | `info`, `n` → `key` | no (never returns the root secret) |
 | 16 | `agree` | `k` label, `pub` peer(32) → `sec`; may answer `OSK_ERR_UNSUPPORTED` | yes, or grant |
 | 17 | `session` | `on`, `k` labels, `ttl`, or `ask` → state | yes, to switch on |
@@ -225,6 +226,14 @@ this work; `attest` (14) gains two fields.
 `attest` and `sign` are separate commands on purpose — see the purpose strings
 above. Both must put the purpose in front on the device side; a firmware that
 signs whatever it is handed breaks the separation no matter what the host does.
+
+The same applies **within** `attest`: with `bh` it is the dongle form with
+fixed lengths, without it the older free-length call, and the two are signed
+under different purpose strings. If they shared one, a 64-byte challenge to
+the old call would yield a signature the dongle check accepts — the length of
+a nonce plus a hash — and the binding to the program file would be gone. This
+was found while making the shared simulator sign for real, and it is measured
+by a test and a mutant.
 
 ## Using it
 
@@ -241,10 +250,18 @@ Against the simulator in `apps/desktop/classes/guard_device.go` (real
 Ed25519, X25519, HKDF and AES-GCM; only the button press and the chip itself
 are simulated):
 
-- The Go side: every property above has a test.
-- **Twelve mutation controls** (`shared/osk-guard/tests/mutanten.py`), across
-  the Go core and the Go binding's licence reader: eleven mutants must break a
-  test, one must not. All twelve behave as required.
+- The Go side: every property above has a test, including the whole path over
+  a socket against the **shared** simulator in `apps/desktop/tests/simulator` —
+  the one the interface and the command line use. That matters: until
+  24.10.2026 that simulator answered `attest` with the challenge XOR 0x5a, so
+  it could not sign at all, and a dongle check measured against it was not
+  measured. It now signs with real Ed25519, and it does so by using the same
+  code as the in-memory simulator rather than a second copy; a test fails if
+  the two ever disagree. Against the old version, 2 of the 4 new tests fail —
+  which is what makes them worth having.
+- **Fourteen mutation controls** (`shared/osk-guard/tests/mutanten.py`), across
+  the Go core and the Go binding's licence reader: thirteen mutants must break
+  a test, one must not. All fourteen behave as required.
 - Two mutants *survived* on the way there, and both were worth more than the
   ones that died. One removed a second binding of the seal label — the label
   was bound in three places, and only one of the three could be tested; the two

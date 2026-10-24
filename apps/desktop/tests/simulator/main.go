@@ -1,13 +1,25 @@
 // Geraete-Attrappe: spricht das Protokoll aus shared/protocol.md, damit
 // Oberflaeche und Kommandozeile ohne Hardware laufen. Sie ist ein Pruefmittel
-// und nichts anderes: der Tresor liegt im Arbeitsspeicher, es wird nichts
-// verschluesselt, und die Freigabe am Geraet wird nur behauptet.
+// und nichts anderes: der Tresor liegt im Arbeitsspeicher, und die Freigabe
+// am Geraet wird nur behauptet.
+//
+// Was hier NICHT behauptet wird, ist die Rechnung. Frueher antwortete diese
+// Attrappe auf `attest` mit der Frage XOR 0x5a - damit liess sich keine
+// Unterschrift pruefen, und ein Dongle-Schutz, der gegen so etwas geprueft
+// wurde, ist nicht geprueft. Darum unterschreibt sie jetzt mit echtem
+// Ed25519 und rechnet echtes X25519 und HKDF. Sie tut das nicht selbst,
+// sondern ueber classes.GuardFakeDevice: eine Rechnung, zwei Vorderseiten -
+// diese hier am Netz, die andere im Arbeitsspeicher der Pruefungen. Zwei
+// Nachbauten wuerden auseinanderlaufen.
 //
 //	go run ./tests/simulator            lauscht auf 127.0.0.1:8201
 //	go run ./tests/simulator -port 8202
+//	go run ./tests/simulator -no-ecdh   stellt ein Stueck ohne ECDH nach
 package main
 
 import (
+	"crypto/ed25519"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"io"
@@ -29,6 +41,10 @@ type vault struct {
 	nextID   uint32
 	items    map[uint32]record
 	log      []classes.CborMap
+
+	// guard rechnet alles Kryptografische: Unterschriften, Ableitung,
+	// Schluesselaustausch. Dieselbe Rechnung wie in den Pruefungen.
+	guard *classes.GuardFakeDevice
 }
 
 type record struct {
@@ -38,15 +54,59 @@ type record struct {
 
 const demoPin = "123456"
 
-func newVault() *vault {
-	v := &vault{nextID: 1, items: map[uint32]record{}}
+// Die Saat ist fest, damit der Geraeteschluessel ueber Laeufe hinweg
+// derselbe bleibt: ein geschuetztes Programm traegt ihn ein, und ein
+// Skript, das bei jedem Start einen neuen Schluessel eintragen muesste,
+// pruefte nichts. Fuer ein Pruefmittel ist eine feste Saat richtig - fuer
+// ein Geraet waere sie das Gegenteil, und darum steht sie hier und nicht
+// in der Firmware.
+const demoSeed = "osk-simulator-1"
+
+// demoIssuerSeed ist der Hersteller der Beispiel-Lizenz.
+const demoIssuerSeed = "osk-simulator-hersteller-1"
+
+func newVault(noECDH bool) *vault {
+	guard, err := classes.NewGuardFakeDevice(classes.GuardFakeOptions{
+		Seed:   []byte(demoSeed),
+		NoECDH: noECDH,
+	})
+	if err != nil {
+		log.Println("Attrappe laesst sich nicht bauen:", err)
+		os.Exit(1)
+	}
+	v := &vault{nextID: 1, items: map[uint32]record{}, guard: guard}
 	v.put(classes.Item{Type: classes.ItemLogin, Name: "Beispiel-Zugang",
 		Site: "example.org"}, []byte("geheim-1"))
 	v.put(classes.Item{Type: classes.ItemCert, Name: "Beispiel-Zertifikat",
 		Site: "vpn.example.org"}, []byte("-----BEGIN CERTIFICATE-----"))
 	v.put(classes.Item{Type: classes.ItemTotp, Name: "Beispiel-Einmalcode",
 		Site: "mail.example.org"}, []byte("JBSWY3DPEHPK3PXP"))
+	// Eine unterschriebene Lizenz, damit der Dongle-Weg vollstaendig gegen
+	// diese Attrappe laeuft - ohne sie faende Guard.License nichts, und
+	// der Teil waere ungeprueft.
+	if license, err := classes.LicenseSign(classes.License{
+		Product:    "beispiel-programm",
+		Holder:     "Sorglos Thomas Weirich",
+		Number:     "SIM-0001",
+		Tiers:      []string{"basis", "berichte"},
+		Seats:      3,
+		IssuedUTC:  1700000000,
+		ExpiresUTC: 4070908800, // 01.01.2099
+	}, demoIssuer()); err == nil {
+		v.put(classes.Item{Type: classes.ItemLicense,
+			Name: "beispiel-programm"}, license)
+	}
 	return v
+}
+
+// demoIssuer ist der private Schluessel des Herstellers der Beispiel-Lizenz.
+// Er steht hier im Klartext, weil er zu einem Pruefmittel gehoert und zu
+// nichts sonst - eine echte Lizenz wird nicht von dieser Attrappe
+// unterschrieben.
+func demoIssuer() ed25519.PrivateKey {
+	seed := make([]byte, ed25519.SeedSize)
+	copy(seed, demoIssuerSeed)
+	return ed25519.NewKeyFromSeed(seed)
 }
 
 func (v *vault) put(meta classes.Item, secret []byte) uint32 {
@@ -72,6 +132,9 @@ func (v *vault) note(event, askedBy string, id uint32) {
 
 func main() {
 	port := flag.Int("port", 8201, "Port auf 127.0.0.1")
+	noECDH := flag.Bool("no-ecdh", false,
+		"ein Stueck, das im Werk auf FIPS gestellt wurde und darum keinen "+
+			"Schluesselaustausch macht")
 	flag.Parse()
 
 	listener, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(*port))
@@ -79,8 +142,17 @@ func main() {
 		log.Println("Port belegt:", err)
 		os.Exit(1)
 	}
-	store := newVault()
+	store := newVault(*noECDH)
 	fmt.Printf("Attrappe laeuft auf 127.0.0.1:%d (PIN %s)\n", *port, demoPin)
+	// Die Schluessel werden genannt, damit ein geschuetztes Programm sie
+	// eintragen kann. Beim echten Geraet liest man sie mit `osk guard-key`.
+	fmt.Printf("Geraeteschluessel %s\n", hex.EncodeToString(store.guard.PublicKey()))
+	fmt.Printf("Herstellerschluessel %s\n",
+		hex.EncodeToString(demoIssuer().Public().(ed25519.PublicKey)))
+	if *noECDH {
+		fmt.Println("ECDH ist AUS - der Serverbetrieb mit Schluessel im Chip " +
+			"faellt damit weg")
+	}
 	for {
 		conn, acceptErr := listener.Accept()
 		if acceptErr != nil {
@@ -189,6 +261,13 @@ func handle(payload []byte, store *vault) classes.CborMap {
 		store.unlocked = false
 		store.note("lock", askedBy, 0)
 		return reply(seq, 0, classes.CborMap{})
+	case classes.CmdAttest:
+		// Vor der PIN, und das ist Absicht: ein geschuetztes Programm soll
+		// nachsehen koennen, ob der Stick steckt, ohne den Tresor zu
+		// oeffnen. Es bekommt dabei nichts aus dem Tresor - nur eine
+		// Unterschrift auf seine eigene Frage.
+		store.note("attest", askedBy, 0)
+		return forward(store, request)
 	}
 
 	if !store.unlocked {
@@ -280,20 +359,25 @@ func handle(payload []byte, store *vault) classes.CborMap {
 			store.note("firmware", askedBy, 0)
 		}
 		return reply(seq, 0, classes.CborMap{"off": uint64(len(part))})
-	case classes.CmdAttest:
-		challenge, _ := classes.CborBytes(data, "ch")
-		if len(challenge) == 0 {
-			return reply(seq, 1, nil)
-		}
-		store.note("attest", askedBy, 0)
-		// Keine echte Unterschrift - nur eine Antwort gleicher Laenge.
-		signature := make([]byte, len(challenge))
-		for i, b := range challenge {
-			signature[i] = b ^ 0x5a
-		}
-		return reply(seq, 0, classes.CborMap{"sig": signature})
+	case classes.CmdDerive, classes.CmdAgree, classes.CmdSign,
+		classes.CmdSession:
+		// Die Dongle- und Serverbefehle. Gerechnet wird in
+		// classes.GuardFakeDevice, damit es nur eine Rechnung gibt.
+		store.note("guard", askedBy, 0)
+		return forward(store, request)
 	}
 	return reply(seq, 10, nil) // OSK_ERR_UNSUPPORTED
+}
+
+// forward gibt die Anfrage unveraendert an die Attrappe mit der echten
+// Rechnung weiter. Ihre Antwort traegt schon v, s und r.
+func forward(store *vault, request classes.CborMap) classes.CborMap {
+	seq, _ := classes.CborUint(request, "s")
+	payload, err := classes.CborEncode(request)
+	if err != nil {
+		return reply(seq, 11, nil) // OSK_ERR_INTERNAL
+	}
+	return store.guard.Handle(payload)
 }
 
 func listItems(store *vault, query string) []any {
