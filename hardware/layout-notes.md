@@ -1083,6 +1083,25 @@ beliebig.
   Was ein Fingerabdrucksensor von einer Ferritlage unter sich hält, weiß ich
   nicht — `ungeprueft`, aber der Abstand kostet nichts.
 
+> **Wichtig gegen ein Missverständnis:** Dass die *Entscheidung* „außermittige
+> Zelle" hinfällig ist, gibt der Folie **keine Querreserve zurück**. Die Zelle
+> liegt weiterhin an der Kante — nicht mehr, weil wir sie dorthin gerückt
+> haben, sondern weil **das Sensorfeld die andere Seite belegt**. Nach außen
+> beginnt bei 1,20 der Klemmkragen, nach innen bei 13,70 das Sensorfeld.
+> **Die Auflage „nicht breiter" bleibt also, nur ihr Grund hat sich geändert.**
+
+**Fürs Handbuch, in einem Satz:** **Ferritfolie 12,0 mm breit, bündig an die
+Außenkante der Zelle, höchstens 12,5 mm** — breiter reicht sie unter das
+Sensorfeld.
+
+**Die Länge der Folie kann ich nicht als Zahl angeben.** Sie soll Richtung
+Antenne überstehen, und die Antennenschleife beginnt jetzt unmittelbar dort,
+wo die Zelle endet (`y` 55,5). Wie weit die Folie unter die Schleife reichen
+darf, **ist Teil der Abstimmungsmessung** — Ferrit unter einer NFC-Schleife ist
+üblich und nötig, verschiebt aber die Resonanz. **Daraus folgt eine harte
+Bedingung: die Folie muss beim Abstimmen schon liegen**, sonst gilt die
+Messung nicht. Sie steht bei den Bedingungen für die NFC-Abstimmung.
+
 **Freihaltezone des Moduls:** Antennenkante **25,5**, Plattenrand **27**. Von
 den 3,8 mm Tiefe liegen wieder nur **1,5 mm auf der Platine**:
 
