@@ -729,3 +729,92 @@ Teils.**
 > sowieso vorgesehen war. Was Weg 3 verlangt: **ENIG** (steht schon fest) und
 > **Gold auf den Kontaktflächen am Rand**, sowie ein Umriss, der die
 > Steckerzunge formt. Das gehört gerechnet, bevor jemand den Rand zeichnet.
+
+## Weg 3 geprüft: er zerfällt in zwei, und einer davon ist unbelegt
+
+Geprüft am 24.10.2026 gegen das, was im Repo steht und was von außen abrufbar
+war. **Die Quelle meiner eigenen 0,8-mm-Behauptung ist `docs/parts.md`,
+Abschnitt „Buchse oder Stecker"** — nicht die Erinnerung, aber auch nicht ein
+Datenblatt.
+
+### 3a — Stecker als Bauteil am Platinenrand
+
+**Es gibt ein konkretes Teil, und es steht schon im Repo:**
+
+| Teil | Art | Preis | Bezug |
+| --- | --- | --- | --- |
+| **Molex 1054440001** | **Stecker, Straddle Mount am Platinenrand** | 2,72 € | Digi-Key, **14 Wochen Lieferzeit** |
+
+Das ist ein Bauteil, das den Platinenrand umgreift — kein geätzter Rand. Die
+Platine steckt in ihm, nicht in der Buchse des Rechners.
+
+- **Die 0,8 mm beziehen sich auf genau diese Bauart.** `docs/parts.md` nennt
+  als belegte Randbedingungen „Leiterplattendicke 0,8 mm statt 1,6 mm (alle
+  gefundenen Edge-Mount-Stecker passen nur auf 0,8 mm)" und „ENIG statt HASL
+  (die dickere HASL-Schicht macht das erste Stecken schwer)".
+- **`ungeprueft`:** Die Datei nennt **kein Datenblatt** und außer Molex keine
+  Teilenummern. Die Zahl ist also auf ein Dokument im Repo zurückführbar, nicht
+  auf eine Herstellerangabe. **Bauhöhe über der Platine, Ausschnitt und
+  Lötbild sind nicht bekannt** — das muss aus dem Molex-Datenblatt kommen.
+- **Die 14 Wochen Lieferzeit sind der eigentliche Preis dieses Weges**, nicht
+  die 2,72 €.
+
+### 3b — Zunge direkt in die Platine geätzt, ohne Bauteil
+
+**Das ist der Weg, der nicht belegt ist, und `docs/parts.md` sagt es selbst:**
+
+> *„Für einen direkt in die Platine geätzten Stecker ohne Bauteil wurde keine
+> Quelle zur Konformität mit der Type-C-Steckerspezifikation gefunden —
+> `ungeprueft`."*
+
+Dazu kommt, was gegen ihn spricht und was man ohne Spezifikation sehen kann:
+Ein USB-C-Stecker trägt **24 Kontakte auf beiden Seiten einer Zunge** und
+braucht eine **Metallhülle mit Verriegelung**. Eine nackte Platinenkante
+liefert die Hülle nicht. Bei USB-A geht das, weil dort eine einfache
+rechteckige Hülle genügt; bei USB-C ist die Zunge Teil eines Steckers mit
+eigener Mechanik. **Die Zungendicke der Spezifikation habe ich nicht belegen
+können** — die Type-C-Spezifikation ist nur per Download zu bekommen (steht
+schon in `schematic.md` beim CC-Widerstand).
+
+### Was die Fertigung dazu sagt — auch nicht belegt
+
+Abgerufen wurde JLCPCBs Fähigkeitsseite. **Sie nennt zu Randkontakten
+nichts Verwertbares:**
+
+- **Goldstärke für Randkontakte: nicht angegeben.**
+- **Unterstützte Dicken für Randkontakte: nicht angegeben.**
+- **Fase (Anschrägung der Zunge): nicht angegeben**, kein Winkel genannt.
+- Belegt ist nur: **0,8 mm ist eine Standarddicke** („0.4/0.6/0.8/1.0/1.2/1.6/
+  2.0 mm"), und metallisierte Ränder werden „copper-plated and ENIG treated".
+
+**Das gehört beim Hersteller erfragt** — Kontakt zu Herstellern nimmt Thomas
+selbst auf.
+
+### Die Bilanz, beide Seiten
+
+**Was wegfällt:**
+
+- **Die Abschirmung um die Datenleitungen.** Die Buchse bringt einen Schirm
+  mit, der auf `GND` liegt; am Platinenrand gibt es ihn nicht.
+- **Die mechanische Entlastung.** Die vier Haltestifte des USB4085 nehmen die
+  Zugkräfte auf. Beim Randstecker trägt die **Platine selbst** — 0,8 mm dünn,
+  und sie wird bei jedem Stecken belastet.
+- **20 000 Steckzyklen**, die der USB4085 verbürgt. Für Randkontakte ist keine
+  Zahl bekannt.
+- Die einfache Handlötbarkeit (Durchsteckteil).
+
+**Was dazukommt:**
+
+- **Der Hohlraumkonflikt verschwindet** — kein Körper, der 3,46 mm aufbaut.
+- **Ein Bauteil weniger** auf der Platine.
+- **Die Bauform, die der Plan von Anfang an nennt:** direkt in den Rechner
+  stecken, ohne Kabel.
+- Weniger Bauhöhe am vorderen Ende.
+
+> **Mein Fazit, als Vorlage für Thomas' Entscheidung:** **3b ist nicht
+> entscheidungsreif** — ohne Konformitätsquelle würde man eine Platine
+> fertigen, von der niemand weiß, ob sie in eine USB-C-Buchse passt. **3a ist
+> entscheidungsreif, kostet aber 14 Wochen Lieferzeit** und ist mechanisch ein
+> Rückschritt gegenüber der Buchse (keine Zugentlastung, kein Schirm). Weg 1
+> (Gerät vorn dicker) bleibt der einzige, der **heute** funktioniert und
+> nichts Unbekanntes enthält.
