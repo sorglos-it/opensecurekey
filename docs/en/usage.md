@@ -50,6 +50,16 @@ Good to know:
 - Some company sites demand an attestation certificate. The key does not have one.
 - Over NFC, every approval also needs the button.
 
+## Tapping with a phone (NFC)
+
+**Status:** Never tried with a real phone. The range has not been measured.
+
+- Hold the key **closer to the reader than you would hold a card.**
+- This comes from the shape of the device. It is not a fault. The antenna in the small case is smaller than the one in a card.
+- How close exactly will only be known after a measurement on the finished device. That is why there is no number here.
+- If it does not work at once: slide the key a little, slowly. Do not press harder.
+- Over NFC, every approval still needs the button on the key.
+
 ## Getting a password
 
 **Status:** checked against the test device, never against a real key.

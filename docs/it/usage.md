@@ -50,6 +50,16 @@ Buono a sapersi:
 - Alcuni siti aziendali richiedono un certificato di attestazione. La chiave non lo ha.
 - Anche via NFC ogni autorizzazione richiede il pulsante.
 
+## Avvicinare al telefono (NFC)
+
+**Stato:** mai provato con un telefono vero. La portata non è stata misurata.
+
+- Tieni la chiave **più vicino al lettore di una carta.**
+- Dipende dalla forma del dispositivo. Non è un guasto. Nel piccolo involucro l'antenna è più piccola di quella di una carta.
+- Quanto vicino, esattamente, lo sapremo solo dopo una misura sul dispositivo finito. Per questo qui non c'è un numero.
+- Se non funziona subito: sposta la chiave un po', lentamente. Non premere più forte.
+- Anche via NFC ogni autorizzazione richiede il pulsante sulla chiave.
+
 ## Prendere una password
 
 **Stato:** verificato con il dispositivo di prova, mai con una chiave vera.

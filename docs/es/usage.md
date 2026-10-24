@@ -50,6 +50,16 @@ Bueno saber:
 - Algunas páginas de empresas exigen un certificado de certificación. La llave no lo tiene.
 - Por NFC, cada autorización también necesita el botón.
 
+## Acercar al teléfono (NFC)
+
+**Estado:** nunca probado con un teléfono real. El alcance no se ha medido.
+
+- Sostén la llave **más cerca del lector que una tarjeta.**
+- Se debe a la forma del dispositivo. No es un fallo. En la carcasa pequeña la antena es más pequeña que la de una tarjeta.
+- La distancia exacta solo se sabrá tras medir el dispositivo terminado. Por eso aquí no hay ninguna cifra.
+- Si no funciona enseguida: desplaza la llave un poco, despacio. No presiones más fuerte.
+- Incluso por NFC, cada autorización necesita el botón de la llave.
+
 ## Obtener una contraseña
 
 **Estado:** comprobado contra el dispositivo de prueba, nunca contra una llave real.
