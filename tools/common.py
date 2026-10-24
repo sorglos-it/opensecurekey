@@ -14,6 +14,10 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PARTS = ('firmware', 'desktop', 'web')
 VERSION_RE = re.compile(r'^(\d+)\.(\d+)\.(\d+)\.(\d+)$')
+# Zephyrs eigene Schreibweise derselben Nummer - siehe parse_version_file().
+ZEPHYR_KEYS = ('VERSION_MAJOR', 'VERSION_MINOR', 'PATCHLEVEL', 'VERSION_TWEAK')
+ZEPHYR_RE = re.compile(r'^[ 	]*(%s)[ 	]*=[ 	]*(\d+)[ 	]*$' % '|'.join(ZEPHYR_KEYS),
+                       re.MULTILINE)
 
 OK, SKIPPED, FAILED = 'ok', 'uebersprungen', 'FEHLER'
 
@@ -42,6 +46,39 @@ def parse_version(text):
     if not match:
         raise ValueError('Version braucht vier Zahlen (v.x.y.z), gefunden: %r' % text.strip())
     return tuple(int(n) for n in match.groups())
+
+
+def parse_version_file(text):
+    """Liest beide Schreibweisen derselben vierstelligen Nummer.
+
+    Eine Zeile '0.0.1.0' ist der Hausstandard (version.md). Zephyr liest die
+    Datei apps/firmware/VERSION aber selbst, und zwar als Kconfig-Datei
+    (Kconfig.zephyr, fest verdrahtet) - dort muessen vier Zuweisungen stehen.
+    Darum traegt die Firmware ihre Nummer in Zephyrs Schreibweise; es ist
+    dieselbe Nummer, nur anders geschrieben.
+    """
+    felder = dict((m.group(1), int(m.group(2))) for m in ZEPHYR_RE.finditer(text))
+    if felder:
+        fehlend = [k for k in ZEPHYR_KEYS if k not in felder]
+        if fehlend:
+            raise ValueError('in der Zephyr-Schreibweise fehlt: %s' % ', '.join(fehlend))
+        return tuple(felder[k] for k in ZEPHYR_KEYS)
+    return parse_version(text)
+
+
+def format_version_file(numbers, zephyr):
+    """Erzeugt den Dateiinhalt in der Schreibweise, die die Datei schon hatte."""
+    if not zephyr:
+        return format_version(numbers) + '\n'
+    return ''.join('%s = %d\n' % (key, n) for key, n in zip(ZEPHYR_KEYS, numbers))
+
+
+def is_zephyr_version(part, root=ROOT):
+    try:
+        with io.open(version_file(part, root), encoding='utf-8') as handle:
+            return bool(ZEPHYR_RE.search(handle.read()))
+    except OSError:
+        return False
 
 
 def format_version(numbers):
@@ -73,10 +110,9 @@ def version_file(part, root=ROOT):
 
 
 def read_version(part, root=ROOT):
+    """Gibt die Nummer immer als 'v.x.y.z' zurueck, egal wie sie in der Datei steht."""
     with io.open(version_file(part, root), encoding='utf-8') as handle:
-        text = handle.read().strip()
-    parse_version(text)
-    return text
+        return format_version(parse_version_file(handle.read()))
 
 
 # --- Teilprogramme ------------------------------------------------------------
