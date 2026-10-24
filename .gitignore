@@ -28,3 +28,9 @@ node_modules/
 # EasyEDA legt bei jedem Speichern eine Sicherung mit Zeitstempel an -
 # die waechst endlos. Die Projektdatei selbst gehoert sehr wohl ins Repo.
 hardware/opensecurekey_backup/
+
+# Die lokale Projektdatei hinkt dem Editor hinterher - gemessen am 24.10.2026:
+# sie trug noch den alten Taster und die alte Spule, Stunden nach dem Tausch.
+# Wer sie einchecken wuerde, sicherte Vergangenheit und taeuschte Sicherheit vor.
+# Verlaesslich ist der Export ueber die Bruecke (schematic-source-*.txt).
+hardware/opensecurekey.eprj2
