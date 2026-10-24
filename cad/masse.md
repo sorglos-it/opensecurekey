@@ -363,3 +363,79 @@ Das sind **Vorgaben ans Layout**, keine Wünsche:
 9. **Die NFC-Antenne liegt im letzten Drittel.** Dort hat das Gehäuse **kein
    Einlegeteil, keine Schraube, kein Metall**; die Öse ist aus Kunststoff und
    sitzt hinter der Platine.
+
+## 14. Der Sensor gehört in den Boden, nicht auf die Platine
+
+Gerechnet am 24.10.2026, als der Platinen-Strang fragte, auf welcher Seite das
+Sensorfeld liegt. **Die Antwort auf die Seitenfrage ist „unten". Die Rechnung
+dahinter bringt aber noch etwas anderes ans Licht.**
+
+### Auf der Platine ist der Sensor nicht zu erreichen
+
+| Ebene | z |
+| --- | --- |
+| Platinenunterseite | −0,80 mm |
+| Sensorfläche, wenn er auf der Platine sitzt (0,83 dick) | −1,63 mm |
+| Bodeninnenseite | −5,45 mm |
+| **Bodenaußenseite – dort liegt der Finger** | **−6,45 mm** |
+
+**Zwischen Sensorfläche und Finger lägen 4,82 mm.** Ein kapazitiver
+Fingerabdrucksensor liest durch Bruchteile eines Millimeters Deckschicht, nicht
+durch fünf Millimeter Luft und Kunststoff. **Auf der Platine ist er nutzlos.**
+
+Den Hohlraum einfach flacher zu machen geht nicht: er ist randvoll. 0,2 mm
+Luft + 0,4 mm Ferritfolie + 4,05 mm Zelle = 4,65 mm, und genau 4,65 mm ist er
+tief.
+
+### Darum sitzt er im Boden
+
+Das passt zur Bauform: `../docs/fingerprint.md` nennt den FPC2534**AM** ein
+**Flex-Modul** – „Sensor auf Flex, 12-poliger ZIF-Anschluss". Der Sensor hängt
+am Flachband und ist dafür gemacht, in ein Gehäuse geklebt zu werden, nicht auf
+eine Platine gelötet.
+
+| Maß | Wert |
+| --- | --- |
+| Sitz im Boden | **Ø 11,30 mm**, glattes Loch |
+| Sensor | Ø 11,00 × 0,83 mm |
+| Klebefuge ringsum | 0,15 mm |
+| Bodendicke | 1,00 mm |
+| **Sensorfläche hinter der Außenfläche** | **0,17 mm** – der Finger erreicht sie |
+
+Der Sensor wird **von innen eingesetzt und eingeklebt**, bündig nach außen. Das
+Flachband läuft von dort zum ZIF-Anschluss auf der Platine.
+
+Das Blindstück der Stufe 1 geht denselben Weg: Körper Ø 11,10 × 1,00 mm, innen
+ein Bund Ø 12,80 mm, der es festhält. Außen schließt es bündig mit dem Boden ab.
+
+### Was das für die Platine bedeutet
+
+**Die Platine braucht neben der Zelle keine 11 mm freie Fläche mehr** – nur den
+ZIF-Anschluss und einen Weg für das Flachband. Das Flachband ist dünn und
+biegsam; es darf über anderes hinweglaufen.
+
+**Damit ist der Grund, aus dem die Platine von 24 auf 27 mm gewachsen ist,
+möglicherweise entfallen.** Das ist keine Entscheidung, die ich treffe:
+
+- **Die 27 mm kosten 1 mm Gehäusebreite** gegenüber 26 und 3 mm gegenüber 24 –
+  mehr nicht. Dicke und Länge sind unberührt.
+- **Das Gehäuse funktioniert bei jeder der drei Breiten.** Eine Zeile in
+  `parameters.csv`, ein neuer Lauf.
+- Ob die Platine die gewonnene Fläche braucht, weiß der Platinen-Strang, nicht
+  ich. Auf einer Platine, auf der es eng zugeht, sind 11 mm Breite viel.
+
+**Nicht geprüft, und es fehlt dafür eine Angabe:** wie lang das Flachband des
+FPC2534AM ist und wohin es abgeht. Steht in `../docs/fingerprint.md` nicht.
+Davon hängt ab, wo der Sitz im Boden liegen darf, ohne dass das Band zu kurz
+oder zu lang wird. **Diese Zahl wird gebraucht**, bevor der Sitz festgelegt
+wird; bis dahin steht er auf längs 36,0 / quer 19,20 mm.
+
+### Zwei Nebenfolgen
+
+- **Die Frage, was Ferrit unter dem Sensor anrichtet, stellt sich nicht mehr.**
+  Die Ferritfolie liegt zwischen Zelle und Platine, der Sensor sitzt 3,8 mm
+  tiefer im Boden. Sie können einander nicht überlagern. Die vorsichtige
+  Lesart kostet also nichts und darf bleiben.
+- **Das Sensorfeld ist 11 × 11 mm, nicht 11 × 30,5 mm.** Der FPC2534 ist rund,
+  Ø 11,0 mm. Die ganze Länge der Zelle dafür zu sperren wäre rund 20 mm zu viel.
+  Was wirklich Platz braucht, ist der ZIF-Anschluss und der Weg des Flachbands.

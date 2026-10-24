@@ -20,7 +20,7 @@ Schlüsselring.
 | --- | --- | --- |
 | Obere Schale | `export/shell-top.*` | Anzeigenseite: Fenster, Lichtfenster der LED, Schlitz für SW1, Blindtasche für SW2, Nase über dem Stecker |
 | Untere Schale | `export/shell-bottom.*` | Akkuseite: Platinentasche, Zellenraum, Sensoröffnung, Öse, Schnappfalz |
-| Blindstück | `export/sensor-plug.*` | schließt die Sensoröffnung, solange kein Sensor bestückt ist |
+| Blindstück | `export/sensor-plug.*` | schließt den Sensorsitz, solange kein Sensor eingesetzt ist |
 
 Je Teil liegt ein **STL** (zum Drucken) und ein **STEP** (zum Weiterarbeiten
 ohne Fusion) in `export/`.
@@ -71,7 +71,32 @@ dem Stecker angehoben:
 Volle Breite, senkrechte Stufe, keine Fase – das druckt ohne Stütze und sieht
 gewollt aus.
 
-### 4. Der Schnappfalz stand vor zwei Öffnungen
+### 4. Der Sensor gehört in den Boden, nicht auf die Platine
+
+Gerechnet, als der Platinen-Strang nach der Seite fragte. **Die Seite ist
+„unten" – aber auf der Platine wäre der Sensor gar nicht zu erreichen:**
+
+| Ebene | z |
+| --- | --- |
+| Sensorfläche, wenn er auf der Platine sitzt | −1,63 mm |
+| **Bodenaußenseite – dort liegt der Finger** | **−6,45 mm** |
+| **Abstand** | **4,82 mm** |
+
+Ein kapazitiver Sensor liest durch Bruchteile eines Millimeters, nicht durch
+fünf. Und der Hohlraum lässt sich nicht flacher machen: 0,2 Luft + 0,4 Ferrit
++ 4,05 Zelle = 4,65 mm, genau seine Tiefe.
+
+Das passt zur Bauform – der FPC2534**AM** ist ein **Flex-Modul**, gemacht zum
+Einkleben in ein Gehäuse. Also sitzt er **im Boden**: glattes Loch Ø 11,30 mm,
+Sensor von innen eingeklebt, Fläche **0,17 mm hinter der Außenfläche**.
+
+**Folge für die Platine:** sie braucht neben der Zelle keine 11 mm freie Fläche
+mehr, nur den ZIF-Anschluss und einen Weg fürs Flachband. **Damit ist der Grund
+für die 27 mm möglicherweise entfallen** – das zu entscheiden ist nicht meine
+Sache, und das Gehäuse trägt jede der drei Breiten. Einzelheiten in
+[masse.md](masse.md), Abschnitt 14.
+
+### 5. Der Schnappfalz stand vor zwei Öffnungen
 
 Gefunden beim Nachrechnen der Taster-Übergabe. Der Falz der unteren Schale
 steigt 1,0 mm über die Trennebene und **stand damit mitten vor der
@@ -242,12 +267,16 @@ Vollständig in [masse.md](masse.md), Abschnitt 13. Das Wichtigste:
 3. **Körperlänge des EVQP7C01P** – Panasonic sagt 3,5 mm, DigiKey 4,70 mm. Die
    Freistellung ist mit 5,6 mm so gewählt, dass **beide Lesarten passen**.
    Sollte am Footprint auffallen, welche stimmt: Bescheid sagen.
-4. **Lage der Sensoröffnung längs** – steht vorläufig auf 36,0 mm.
-5. **Ob die Zelle außermittig liegt** – der Platinen-Strang rechnet das neu,
-   seit die Zelle 12 statt 19,75 mm breit ist. Vom Gehäuse aus geht beides,
-   solange die Zelle **nicht vor 1,20 mm** beginnt: davor liegt der Klemmkragen.
+4. **Länge und Abgang des Flachbands am FPC2534AM** – steht in
+   `../docs/fingerprint.md` nicht. Davon hängt ab, wo der Sitz im Boden liegen
+   darf. Bis dahin steht er auf längs 36,0 / quer 19,20 mm. **Wird gebraucht.**
+5. **Bauhöhe des Akkusteckers J2 über der Platine** – `JST-PH 2.0, 2-polig,
+   liegend` steht im Schaltplan, ein Maß nirgends. Der Zellenraum ist
+   **randvoll** (4,65 mm Tiefe, 4,65 mm belegt): **jedes Bauteil neben der
+   Zelle, das höher als 4,45 mm baut, macht das Gerät dicker.** **Wird
+   gebraucht.**
 6. **Ferritfolie**: Dicke 0,3–0,5 mm angenommen, Material offen. ±0,2 mm
-   Gesamtdicke.
+   Gesamtdicke. Breite 12 mm, der schmalen Zelle folgend.
 7. **Platz für die umgelegte FPC-Fahne der Anzeige** – der Hohlraum ist 2,35 mm
    hoch, ob das reicht, sagt erst das Layout.
 8. **Freihaltezone um die Chipantenne des Moduls** – davon hängt ab, ob die
@@ -255,6 +284,16 @@ Vollständig in [masse.md](masse.md), Abschnitt 13. Das Wichtigste:
 9. **Welcher 3D-Drucker** – die Druckerwerte sind Annahmen.
 10. **Schlüsselring aus Stahl neben der NFC-Antenne** – nur messbar, nicht
     rechenbar.
+
+**Geschlossen am 24.10.2026:** *Liegt die Zelle außermittig?* **Nein, sie
+bleibt mittig.** Der Versatz war die Antwort darauf, dass neben der 19,75 mm
+breiten Zelle nichts mehr Platz hatte; mit der 12 mm schmalen Zelle gibt es
+diesen Engpass nicht mehr. Hohlraum und Ferritfolie bleiben symmetrisch.
+
+**Geschlossen am 24.10.2026:** *Auf welcher Seite liegt das Sensorfeld?*
+**Unten**, auf der Akkuseite – oben überlappte es das Anzeigeglas. Die
+Sensoröffnung des Gehäuses sitzt seit dem ersten Entwurf im Boden, also auf
+derselben Seite. Befund 4 sagt, was dabei zusätzlich herauskam.
 
 **Geschlossen am 24.10.2026:** *Buchse oder Stecker vorn.* Thomas hat die
 **Buchse** entschieden. Verworfen wurden die geätzte Zunge (ohne Metallhülle
