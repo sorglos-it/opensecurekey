@@ -64,12 +64,13 @@ osk put --type sshkey --name github --site github.com < ~/.ssh/id_ed25519
 osk keys                  # the authorized_keys lines
 ```
 
-**One button press too many, and why.** `list` in `shared/protocol.md` does
-not carry the public part of a key. `ssh` wants the list of identities
-*before* anything is signed. So the agent fetches every ssh key once at the
-start, computes the public part and overwrites the private one immediately —
-one press per key, only to learn its name. A field `pub` on `list` would
-remove that step; it is reported to the protocol strand.
+**One button press too many, and why — now avoidable.** `ssh` wants the list
+of identities *before* anything is signed. When this was written, `list` did
+not carry the public part of a key, so the agent fetches every ssh key once at
+the start, computes the public part and overwrites the private one immediately
+— one press per key, only to learn its name. `shared/protocol.md` has carried
+a `pub` field on `list` since the strand reported this; the agent does not use
+it yet. See the loose ends at the bottom.
 
 ### What was measured
 
@@ -359,10 +360,16 @@ other five routes useful on a strange computer.
 
 - **macOS is untested.** The code builds (cross-compiled); nothing was run.
 - **No real device.** Every number on this page comes from the dummy.
-- `list` should carry the public part of ssh keys and certificates — it would
-  save one button press per key on two routes.
-- The vault format has no field for a user name.
-- `shared/vault-format.md` allows 64/128 characters for name/address,
-  `apps/desktop/classes/items.go` allows 128/256. One of the two is wrong.
-- The icon of the extension was drawn with a script that belongs in
-  `tools/logo.py`; that folder is outside this strand.
+- **`list` now carries `pub`, and two routes do not use it yet.** The protocol
+  gained the field after this code was written (`shared/protocol.md`, command
+  4). The ssh agent and the PKCS#11 library still fetch every key once to
+  compute its public part — one button press per key that is no longer
+  necessary. Taking it out is a small change in `Agent.Identities` and
+  `Pkcs11Token.loadObjects`, and it needs the dummy to answer `pub` first.
+- The vault format has no field for a user name, so the extension offers the
+  entry's **name** as the user name.
+
+Two earlier entries here are **done**: the contradiction over name and address
+lengths (`items.go` now says 64/128, same as the device) and the status line in
+`docs/integration.md`. The icon script is now `tools/logo.py`; it reproduces
+the checked-in `apps/web/assets/icon-128.png` byte for byte.
