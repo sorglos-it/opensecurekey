@@ -11,7 +11,7 @@ für den Schlüsselring sitzt hinten.
 
 | Teil | Datei | Was es ist |
 | --- | --- | --- |
-| Obere Schale | `export/shell-top.*` | Anzeigenseite: Fenster, Lichtfenster der LED, Tasteröffnung |
+| Obere Schale | `export/shell-top.*` | Anzeigenseite: Fenster, Lichtfenster der LED, Schlitz für SW1, Blindtasche für SW2 |
 | Untere Schale | `export/shell-bottom.*` | Akkuseite: Platinentasche, Akkuraum, Sensoröffnung, Öse |
 | Blindstück | `export/sensor-plug.*` | schließt die Sensoröffnung, solange Stufe 1 ohne Sensor läuft |
 
@@ -73,6 +73,50 @@ Steht der Körper stattdessen vollständig **über** der Platine, passt er nicht
 den 2,35 mm hohen Hohlraum der Anzeigenseite, und das Gerät wird vorn etwa
 1,3 mm dicker oder braucht einen anderen Stecker. **Diese Zahl ist zu besorgen,
 bevor gedruckt wird.**
+
+### 4. Der Schnappfalz stand vor zwei Öffnungen – behoben
+
+Gefunden am 24.10.2026 beim Nachrechnen der Taster-Übergabe. Der Falz der
+unteren Schale steigt 1,0 mm über die Trennebene – **und stand damit mitten vor
+der Tasteröffnung (Taster 0…1,35 mm) und vor der USB-Öffnung
+(−2,4…+1,6 mm).** Der Taster wäre nicht zu drücken gewesen, das Kabel nicht zu
+stecken.
+
+Behoben: der Falz ist an beiden Stellen unterbrochen. Nachgewiesen mit
+Stichproben im Körper (`frei` dort, wo die Öffnung ist, `voll` daneben) – die
+Prüfung steht unter „Was geprüft ist".
+
+**Das war kein Rechenfehler in den Maßen, sondern ein Loch in der Form**, das
+die Dickenrechnung nicht gezeigt hätte. Es ist nur aufgefallen, weil der
+Platinen-Strang nach den Tastern gefragt hat.
+
+## Die beiden Taster
+
+Lage aus der Übergabe des Platinen-Strangs: beide bei **längs
+22,75…26,25 mm**, an den **Längskanten**, seitlich betätigt, 1,35 mm hoch.
+
+**Der enge Punkt der Übergabe – 0,75 mm zum Anzeigeglas – ist nicht die Grenze
+des Rahmens.** Das Fenster ist ein glatter Durchbruch im Dach ohne nach unten
+gezogenen Rand und beginnt erst bei 30,15 mm: **3,90 mm vom Taster entfernt.**
+Quer liegt das Glas 4,85 mm neben dem Klemmkragen. Die vollständige Rechnung
+steht in [masse.md](masse.md), Abschnitt 8.
+
+**Was der Rahmen wirklich brauchte, war etwas anderes:** der Klemmkragen läuft
+1,2 mm breit am Platinenrand um – genau dort, wo ein seitlich betätigter Taster
+sitzt. Er ist jetzt an **beiden** Längskanten über 22,25…26,75 mm bis auf
+1,65 mm Höhe freigestellt. Das unterbricht die Klemmung an zwei Stellen um je
+4,5 mm von rund 192 mm Umfang – das trägt sie.
+
+| Taster | Kante | Gehäuse |
+| --- | --- | --- |
+| SW1 (Bestätigen) | quer 0 | **Schlitz durch die Wand**, 4,5 × 2,4 mm, 0,50 mm Luft je Seite |
+| SW2 (Reset) | quer 26 | **Blindtasche 0,8 mm**, Wand bleibt 0,8 mm stehen – von außen nicht erreichbar |
+
+SW2 bekommt keine durchgehende Öffnung, weil `../hardware/layout-notes.md` das
+ausdrücklich verlangt: der Reset-Taster darf von außen nicht zu drücken sein.
+Ganz zumachen geht aber auch nicht – eine geschlossene Wand stünde 0,3 mm vor
+dem Stößel und könnte ihn dauerhaft gedrückt halten. Die Blindtasche gibt ihm
+**1,10 mm ab Platinenrand**.
 
 ## Wie die Teile zusammenhalten
 
@@ -177,6 +221,7 @@ die drei Teile und schreibt STEP, STL und `housing.f3d` nach `export/`.
 | --- | --- |
 | Maße gerechnet | **ja** – [masse.md](masse.md), jede Zahl mit Quelle |
 | Netz dicht und Volumen positiv | **ja** – Selbstprüfung in `build_mesh.py`, `check: ok` |
+| Jede Öffnung wirklich offen | **ja** – 10 Proben im Körper (`frei` in der Öffnung, `voll` daneben). Gegenprobe gemacht: schiebt man den Falz wieder davor, fällt die Probe – sie ist also nicht hohl |
 | STL erzeugt | **ja** – 3 Dateien in `export/` |
 | STEP erzeugt | **ja**, aber **in keinem CAD geöffnet** – auf diesem Rechner ist keines vorhanden. Das Skript prüft nur, dass jede benutzte Nummer vergeben ist. **`ungeprueft`** |
 | Fusion-Datei `housing.f3d` | **nein** – Fusion läuft hier nicht. Entsteht beim ersten Lauf von `housing.py` |
@@ -221,16 +266,26 @@ Wichtigste:
 2. **Zellenwahl für Stufe 2** – die Platinenbreite ist entschieden (26 mm,
    Befund 2), die Zelle nicht: der Sensor erzwingt die schmale mit 100 mAh.
    Welche Laufzeit es sein soll, ist nicht meine Entscheidung.
-3. **Lage von Fenster, Taster, LED und Sensoröffnung** ist **vorläufig**
-   (`*_cx`, `*_cy` in der CSV sind mit `VORLAEUFIG` gekennzeichnet). Sie kommt
-   aus dem Layout, sobald es gezeichnet ist.
-4. **Ferritfolie**: Dicke 0,3–0,5 mm angenommen, Material offen (offener Punkt 3
+3. **Länge des Stößels am EVQP7C01P** – wie weit er über den 3,55 mm Körper
+   hinausragt, steht in keiner erreichbaren Unterlage. Das Gehäuse gibt ihm
+   1,10 mm ab Platinenrand; ist er länger, muss die Blindtasche tiefer und die
+   Wand dünner werden. **Wird gebraucht.**
+4. **Lage der LED** ist vorläufig auf längs 24,5 mm gesetzt, quer mittig –
+   zwischen Modulende (21,5) und Glasanfang (27). Vom Layout nicht genannt.
+   **Wird gebraucht**, weil das Lichtfenster im Dach danach sitzt.
+5. **Lage der Sensoröffnung** ist vorläufig (längs 36, quer 18). Fenster und
+   Taster stehen jetzt auf den Werten der Übergabe des Platinen-Strangs.
+6. **Ferritfolie**: Dicke 0,3–0,5 mm angenommen, Material offen (offener Punkt 3
    der Layout-Vorgaben). ±0,2 mm Gesamtdicke.
-5. **Platz für die umgelegte FPC-Fahne der Anzeige** ist nicht bemaßt – der
+7. **Platz für die umgelegte FPC-Fahne der Anzeige** ist nicht bemaßt – der
    Hohlraum ist 2,35 mm hoch, ob das reicht, sagt erst das Layout.
-6. **Freihaltezone um die Chipantenne des Moduls** (offener Punkt 1 der
+8. **Freihaltezone um die Chipantenne des Moduls** (offener Punkt 1 der
    Layout-Vorgaben) – davon hängt ab, ob die Seitenwand dort wegbleiben muss.
-7. **Welcher 3D-Drucker** – die Druckerwerte sind Annahmen für einen
+9. **Welcher 3D-Drucker** – die Druckerwerte sind Annahmen für einen
    gewöhnlichen Schmelzdrucker.
-8. **Schlüsselring aus Stahl neben der NFC-Antenne** – nur messbar, nicht
-   rechenbar.
+10. **Schlüsselring aus Stahl neben der NFC-Antenne** – nur messbar, nicht
+    rechenbar.
+11. **Der Platinen-Strang rechnet noch mit 24 mm Breite.** Thomas hat 26 mm
+    entschieden (Befund 2); die Taster-Übergabe nennt quer 0…24. Die Längsmaße
+    der Taster sind davon nicht betroffen, die Querkante schon: SW2 sitzt dann
+    an quer 26, nicht 24. **Muss beim Layout ankommen.**
