@@ -107,6 +107,13 @@ Questo progetto è al **livello 2, più prove sul computer con dispositivi di pr
 - Un test segnala come errore le chiavi mancanti.
 - Se manca un testo, vale quello inglese.
 
+## Montaggio
+
+**Nuovo:** questa sezione è nuova. Qui arriveranno altre regole di montaggio, appena l'hardware sarà sul tavolo.
+
+- La pellicola di ferrite sotto la batteria deve essere larga **esattamente 19,75 mm**, **non più larga, nemmeno un poco.**
+- Altrimenti la cella si inclina.
+
 ## Partecipare
 
 Non cambiare mai solo la tecnica. Quando cambiano funzione, uso, impostazioni o struttura, la documentazione ne fa parte: `docs/` e questo manuale.

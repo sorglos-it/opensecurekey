@@ -107,6 +107,13 @@ Ce projet en est au **niveau 2, plus des essais sur l’ordinateur avec des appa
 - Un test signale les clés manquantes comme erreur.
 - Si un texte manque, c’est l’anglais qui vaut.
 
+## Assemblage
+
+**Nouveau :** cette section est nouvelle. D'autres consignes d'assemblage viendront ici dès que le matériel sera sur la table.
+
+- Le film de ferrite sous la batterie doit mesurer **exactement 19,75 mm** de large, **pas plus large, même pas un peu.**
+- Sinon la cellule bascule.
+
 ## Participer
 
 Ne change jamais seulement la technique. Quand la fonction, l’utilisation, les réglages ou la structure changent, la documentation en fait partie : `docs/` et ce manuel.

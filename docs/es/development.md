@@ -107,6 +107,13 @@ Este proyecto está en el **nivel 2, además de ejecuciones en el ordenador con 
 - Una prueba informa de las claves que faltan como error.
 - Si falta un texto, vale el inglés.
 
+## Montaje
+
+**Nuevo:** esta sección es nueva. Aquí se añadirán más normas de montaje cuando el hardware esté sobre la mesa.
+
+- La lámina de ferrita bajo la batería debe medir **exactamente 19,75 mm** de ancho, **no más ancha, ni un poco.**
+- Si no, la celda se inclina.
+
 ## Colaborar
 
 Nunca cambies solo la técnica. Cuando cambian la función, el manejo, los ajustes o la estructura, la documentación forma parte: `docs/` y este manual.

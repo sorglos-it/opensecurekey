@@ -107,6 +107,13 @@ Dieses Projekt steht bei **Stufe 2, dazu Läufe am Rechner mit Attrappen.** Stuf
 - Ein Test meldet fehlende Schlüssel als Fehler.
 - Fehlt ein Text, gilt der englische.
 
+## Zusammenbau
+
+**Neu:** Dieser Abschnitt ist neu. Hier kommen weitere Auflagen für den Zusammenbau hin, sobald die Hardware auf dem Tisch liegt.
+
+- Die Ferritfolie unter dem Akku muss **genau 19,75 mm** breit sein, **nicht breiter, auch nicht ein bisschen.**
+- Sonst kippt die Zelle.
+
 ## Mitmachen
 
 Ändere nie nur die Technik. Wenn sich Funktion, Bedienung, Einstellungen oder Aufbau ändern, gehört die Doku dazu: `docs/` und dieses Handbuch.
