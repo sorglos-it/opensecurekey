@@ -466,14 +466,16 @@ Raytac bietet an, ein Layout als PDF gegenzulesen (`service@raytac.com`).
 
 | Teil | Seite | x | y | Dreh. | Warum |
 | --- | --- | --- | --- | --- | --- |
-| Akku (kein Bauteil) | unten | 13,0 | 38,0 | 0° | 19,75 × 26,02 mm, liegt auf Ferritfolie; **Fläche darunter frei von Bauteilen halten**, damit die Zelle plan liegt |
+| Akku (kein Bauteil) | unten | **11,075** | 38,0 | 0° | 19,75 × 26,02 mm, **außermittig: `x` 1,20 … 20,95** (entschieden 24.10.2026, siehe unten); liegt auf Ferritfolie; **Fläche darunter frei von Bauteilen halten**, damit die Zelle plan liegt |
 | J2 | unten | 13,0 | 49,5 | 180° | am akkufernen Ende von Z3, Kabel läuft zur Zelle zurück; weg vom Funkteil |
 | J4 | oben | 13,0 | 27,0 | 0° | FPC-Fahne der Anzeige zeigt nach `y` = 0, die Fahne wird unter das Glas gelegt |
 | DS1 (Glas) | oben | 13,0 | 38,0 | 0° | 13,90 × 22,00 mm, Fenster im Gehäuse; aktive Fläche 10,54 × 14,70 mm |
 | Q4, R9, C13, C14 | oben | 3 … 6 | 28 … 36 | – | Lastschalter der Anzeige, neben dem Glas, kurze Bahn zu J4 Pin 10/11 |
-| U2 + C10, C11 | unten | 6,0 | 47,5 | 0° | Sicherheitschip, **am akkufernen Ende** (siehe Entscheidung unten); `SE_VOUT` von Pin 15 nach Pin 18 **so kurz wie möglich** |
-| U3 + C12, R8 | unten | 19,0 | 47,5 | 0° | Flash gegenüber von U2, gleiches Band |
-| R6, R7 | unten | 6,0 | 50,0 | 0° | I2C-Abschluss, dicht an U2 |
+| U2 | unten | **22,9** | **33,0** | 0° | Sicherheitschip **im Streifen neben der Zelle** (`x` 20,95 … 24,80, 0,85 mm Luft); `SE_VOUT` von Pin 15 nach Pin 18 **so kurz wie möglich**; I2C zum Modul **rund 12 mm, auf einer Innenlage** |
+| C10, C11 | unten | 22,9 | 30,0 / 36,0 | 90° | im selben Streifen, dicht an U2 Pin 12 bzw. 18 |
+| U3 | unten | **17,0** | **19,5** | 0° | Flash **unter das Modul**, nicht ins Akkufeld (siehe Fund unten). Körper 8 × 6 mm → `x` 13 … 21, `y` 16,5 … 22,5. Nebenwirkung, die zählt: die sechs QSPI-Leitungen werden damit **kurz** — der Takt läuft mit bis zu 32 MHz |
+| C12, R8 | unten | 13,0 / 20,0 | 24,0 | 0° | dicht an U3 Pin 8 bzw. Pin 1, außerhalb des Zellfelds (beginnt bei `y` 25) |
+| R6, R7 | unten | 22,9 | 27,5 / 38,5 | 90° | I2C-Abschluss, im Streifen dicht an U2 |
 | C1, U4, C2, R1, R2 | unten | 4 … 22 | 6 … 12 | – | Ladepfad gebündelt **nach Z1 verlegt**, zu C1 an `VBUS` — weg vom Funkteil und weg von der Zelle |
 | Q5, R17 | unten | 22,0 | 40,0 | 0° | Lastschalter Sensor; Stufe 2 |
 
@@ -848,3 +850,505 @@ Was ich abgerufen habe und was dabei herauskam, steht im Abschnitt darüber.
 **GCTs eigene Seite und TDKs Produktseite antworten auf Abruf mit HTTP 403** —
 beide Hersteller sind von hier aus nicht lesbar. Das ist kein Hinweis auf die
 Teile, nur auf den Weg dorthin.
+
+## Außermittige Zelle: entschieden, gerechnet — und ein Fund dabei
+
+**Entschieden am 24.10.2026** (Platinen- und Gehäuse-Strang, vom Master
+getragen): Die Zelle rückt an die Kante, damit U2 in den Streifen daneben
+passt und die I2C-Leitung **12 statt 25 mm** lang wird.
+
+### Die Kante liegt bei 1,20, nicht bei 0,75
+
+Mein erster Vorschlag (Zelle ab `x` 0,75) lag **0,45 mm im Klemmkragen** des
+Gehäuses. Nachgemessen vom Gehäuse-Strang; der bauteilfreie Bereich quer ist
+**1,20 … 24,80 mm**, darunter liegt die Auflage, auf der die Platine geklemmt
+wird.
+
+| | quer |
+| --- | --- |
+| **Zelle** | **1,20 … 20,95** (19,75 breit), Mitte `x` = 11,075 |
+| **Streifen daneben** | **20,95 … 24,80 = 3,85 mm** |
+| U2, 3,0 mm breit | **0,85 mm Luft** — reicht |
+
+### Die Ferritfolie: geprüft, sie geht — aber sie verliert ihre Querreserve
+
+**Die Auflage lautet** (Abschnitt „Akku gegen NFC-Antenne"): die Folie
+überdeckt die Zellfläche **und** reicht in Richtung Antenne über.
+
+- **Richtung Antenne heißt in der Länge**, nicht quer: die Antenne liegt in Z4
+  (`y` 51 … 70), die Zelle endet bei `y` 51. **Die Zelle rückt nur quer, ihre
+  Lage in `y` ändert sich nicht** — der Überstand zur Antenne ist also
+  unberührt. **Die Auflage ist erfüllbar.**
+- **Quer ist die Folie jetzt eingeklemmt:** nach außen endet der bauteilfreie
+  Bereich bei 1,20 (dahinter der Klemmkragen), nach innen sitzt ab 20,95 der
+  Streifen mit U2. **Die Folie muss also auf die Zellbreite geschnitten werden,
+  19,75 mm, ohne Überstand nach den Seiten.** Vorher lag sie mittig mit
+  3,13 mm Luft auf jeder Seite.
+- **Das ist kein schlechter Tausch, aber eine Fertigungsauflage:** Eine von
+  Hand zugeschnittene Folie, 0,45 mm zu breit aufgelegt, liegt entweder im
+  Kragen oder auf U2 — und dann kippt die Zelle. **Gehört in die Bauanleitung,
+  nicht nur hierher.**
+
+> **`ungeprueft` bleibt:** welche Folie, welche Dicke, welche Permeabilität bei
+> 13,56 MHz. Das steht schon als offener Punkt oben.
+
+### Der Fund: `y` 44 … 51 liegt unter der Zelle
+
+**U2 und U3 standen bei `y` 47,5 — das ist unter der Zelle.** Die Zuweisung
+„`y` 44 … 51, dort ist die Zelle zu Ende" stammt aus der Zeit, als der Akku
+noch bei 44 mm enden sollte. **Seit die Zelle als 25 … 51 gerechnet ist, ist
+dieser Platz Zellfeld** — und die Regel „Fläche darunter frei von Bauteilen
+halten" war damit verletzt. Keinem von uns beiden ist es aufgefallen, mir
+eingeschlossen, obwohl ich die 25 … 51 selbst ausgerechnet habe.
+
+**Aufgelöst:**
+
+- **U2 in den Streifen** neben der Zelle (`x` 22,9, `y` 33) — das war ohnehin
+  der Sinn der Verschiebung, und es löst den Fehler mit.
+- **U3 unter das Modul** (`x` 17, `y` 19,5, Unterseite, Körper `x` 13 … 21,
+  `y` 16,5 … 22,5). In den 3,85-mm-Streifen passt der Flash nicht, er braucht
+  6 mm. Unter dem Modul ist Platz, das Zellfeld beginnt erst bei `y` 25, und
+  die **sechs QSPI-Leitungen werden dadurch kurz** — bei bis zu 32 MHz Takt
+  ist das ein Gewinn, nicht nur ein Ausweichen. Der Freihaltestreifen der
+  Antenne (`x` 24,5 … 26) ist nicht berührt.
+- **Unter der Zelle steht damit nichts mehr.**
+
+> **Zu bestätigen:** Die Verlegung von U3 weicht von der Zuweisung „U2 und U3
+> nach `y` 44 … 51" ab. Sie muss abweichen, weil die Zuweisung auf der alten
+> Zellenlänge beruhte. Wenn jemand einen besseren Platz sieht, jetzt sagen.
+
+### Zwei Zahlen aus der Gehäuseantwort, hier festgehalten
+
+- **Die Achse ist bestätigt: die Stufe-2-Vorgaben sind quer gemeint.** Meine
+  Vermutung war richtig.
+- **Die Reserve der Stufe-2-Aufteilung ist 0,10 mm, nicht 0,60.** Das
+  Gehäusedokument enthielt zwei widersprüchliche Zahlen; die Summenzeile hatte
+  den halben Millimeter Trennabstand nicht mitgerechnet. **Bei 24 mm Breite
+  hätten 1,90 mm gefehlt, nicht 1,40.**
+
+> ### Der Umriss wartet: 27 mm statt 26 steht zur Entscheidung
+>
+> Weil 0,10 mm keine Reserve sind und die Breitentoleranz einer von Hand
+> eingeklebten Zelle niemand kennt, empfiehlt der Gehäuse-Strang **27 mm**,
+> falls Stufe 2 den Sensor wirklich bekommt. **Thomas entscheidet.**
+>
+> **Bis dahin wird der Umriss nicht gezeichnet** — 26 oder 27 trifft dieselbe
+> Kante wie alles andere heute. Die `x`-Werte in diesem Entwurf gelten für
+> **26 mm**; bei 27 mm wandern die mittenbezogenen Teile um 0,5 mm und der
+> Freihaltestreifen auf `x` 25,5 … 27.
+
+# Platzierung für 27 mm und Stufe 2 — gerechnet 24.10.2026
+
+**Diese Fassung gilt.** Die Tabellen weiter oben haben `x`-Werte für **26 mm**
+und sind damit überholt; die Bänder in `y` ändern sich hier ebenfalls, weil die
+Zelle gewechselt ist. Entschieden von Thomas: **Platine 27 mm breit**,
+**Buchse bleibt** (USB4085, Gerät vorn gut einen Millimeter dicker),
+**Sensor der Stufe 2 von Anfang an eingeplant**.
+
+## Die Bänder, nachgerechnet statt überschlagen
+
+| Band | `y` | Länge | Inhalt |
+| --- | --- | --- | --- |
+| Z1 | 0 … 9,5 | 9,5 | USB-C, Ladepfad |
+| Z2 | 9,5 … 25,0 | 15,5 | Funkmodul, Entkopplung, Quarz, **und was aus Z3 weichen musste** |
+| Z3 | 25,0 … **55,5** | **30,5** | Zelle **und** Sensorfeld, nebeneinander |
+| Z4 | **55,5** … 70 | **14,50** | NFC-Schleife |
+
+9,5 + 15,5 + 30,5 + 14,50 = **70,00 mm.**
+
+**Die 14,5 mm stimmen** — und sie waren vorhin tatsächlich nur ein Überschlag.
+Nachgerechnet: die LP-401230-J ist **30,5 mm lang**, Z3 beginnt bei 25,0, endet
+also bei 55,5; 70 − 55,5 = **14,50**. Zum Vergleich: mit der Adafruit 1317
+wären es 18,98 mm gewesen.
+
+**Was das die Antenne kostet, auf gleicher Grundlage gerechnet** (nutzbare
+Breite, nicht Plattenbreite — der Klemmkragen nimmt 1,2 mm je Seite):
+
+| | Schleifenfläche |
+| --- | --- |
+| Stufe 1 bei 26 mm, Zelle 26,02 lang | 19,0 × 23,6 = **448 mm²** |
+| **jetzt: 27 mm, Zelle 30,5 lang** | 14,5 × 24,6 = **357 mm²** |
+
+**Rund ein Fünftel weniger Fläche.** Meine 494 mm² von vorhin waren mit der
+voll­en Plattenbreite gerechnet — die steht nicht zur Verfügung. Thomas kennt
+den Preis und hat ihn angenommen.
+
+> **Diese Zahl bleibt hier und kommt nicht ins Handbuch** (entschieden
+> 24.10.2026). Dem Nutzer sagt eine Flächenangabe nichts; er braucht die
+> Folge, und die steht im Handbuch schon: näher halten als eine Karte, und
+> keine Zahl, bis gemessen wurde. **Eine Quadratmillimeterzahl daneben würde
+> Genauigkeit vortäuschen, wo die Reichweite gar nicht bekannt ist.** Die
+> 357 mm² gehören hierher — und an die Stelle, wo später die gemessene
+> Reichweite eingetragen wird.
+
+## Quer: Zelle und Sensorfeld nebeneinander
+
+Nutzbar quer ist **1,20 … 25,80 = 24,60 mm** (Klemmkragen 1,2 mm je Seite).
+
+| von | bis | Breite | was |
+| --- | --- | --- | --- |
+| 1,20 | 13,20 | 12,00 | **Zelle LP-401230-J** |
+| 13,20 | 13,70 | 0,50 | Trennabstand |
+| 13,70 | 24,70 | 11,00 | **Sensorfeld, Stufe 2 — bleibt leer** |
+| 24,70 | 25,80 | **1,10** | Reserve |
+
+23,50 belegt von 24,60 → **1,10 mm Reserve** statt der 0,10 mm bei 26 mm. Das
+war der Grund für die 27 mm, und er geht auf.
+
+> **Das Sensorfeld wird in Stufe 1 freigehalten, nicht bestückt.** Der Sensor
+> ist nicht einmal ausgewählt. **Wer das Feld zubaut, nimmt Thomas'
+> Entscheidung zurück.**
+
+## Die Folge, die man leicht übersieht: die Unterseite von Z3 ist vergeben
+
+Zelle und Sensorfeld belegen quer **1,20 … 24,70** über die **ganze Länge von
+Z3**. Übrig bleibt ein Streifen von **1,10 mm** — zu schmal für jedes Bauteil.
+
+**Damit ist die Unterseite von Z3 vollständig vergeben.** Alles, was dort
+stand, muss weg:
+
+| Teil | stand | muss | warum |
+| --- | --- | --- | --- |
+| U2 Sicherheitschip | `x` 22,9 / `y` 33 | **nach Z2** | Streifen daneben gibt es nicht mehr |
+| U3 Flash | war schon in Z2 | bleibt in Z2 | — |
+| C10, C11, R6, R7 | im Streifen | **nach Z2** | mit U2 |
+| **J2 Akkustecker** | `x` 13 / `y` 49,5 | **neu zu setzen** | liegt mitten im Zellfeld |
+
+**U2 kommt damit von sich aus nah ans Funkmodul** — das war das Ziel der
+außermittigen Zelle, und es ergibt sich jetzt ohne sie. **Die außermittige
+Zelle ist damit erledigt:** sie war die Antwort auf „neben der 19,75 mm
+breiten Zelle passt nichts". Mit 12 mm Zelle und einem reservierten Sensorfeld
+daneben gibt es diesen Streifen nicht mehr, und U2 sitzt ohnehin in Z2.
+
+## Vorläufige Plätze, und was dafür noch fehlt
+
+**Unterseite Z2** (`y` 9,5 … 25, quer 1,20 … 25,80, abzüglich Freihaltezone)
+muss jetzt tragen: U2 (3 × 3), U3 (8 × 6), C10, C11, C12, R6, R7, R8, dazu was
+schon dort war — L1, X1, C8, C9, C3, C4, C5, Q2, Q3, R4, R5.
+
+**Flächenprobe:** Z2-Unterseite ist 24,6 × 15,5 = **381 mm²**; die Körper
+belegen zusammen rund **100 mm²**. **Es passt von der Fläche**, aber nicht
+beliebig.
+
+| Teil | Seite | `x` | `y` | Stand |
+| --- | --- | --- | --- | --- |
+| U1 | oben | 17,75 | 17,3 | fest; Körper `x` 10,0 … 25,5, Antennenkante **25,5** |
+| U3 Flash | unten | 18 | 19,5 | **vorläufig** — kurze QSPI-Wege bleiben das Ziel |
+| U2 | unten | 23 | 17 | **vorläufig** — unter dem Modul, kurze I2C |
+| J1 | oben | **13,5** | **4,6 `vorlaeufig`** | quer mittig. **Der Längswert hängt an `d`** (Abstand Gehäusefront vor Platinenkante): gültig ist `y` = 4,585 − `d`. Die 4,6 gelten nur für `d` = 0 und sind **nicht gemessen** — Auflage ± 0,3 mm |
+| J4, DS1 (Glas) | oben | **13,5** | 27 / 38 | mittig |
+| D1 LED | oben | **13,5** | 66 | am Kopfende; **liegt jetzt in Z4** |
+| SW1 / SW2 | oben | 3,5 / **23,5** | 24,5 | an den Längskanten |
+| C15, C16 | unten | 10,5 / 16,5 | 56,5 | symmetrisch zur Mitte, in Z4 |
+| J2 Akkustecker | **offen** | — | — | **siehe unten** |
+
+> **Was fehlt, um die vorläufigen Werte festzumachen:** die **Footprints**. Ich
+> habe bisher mit Gehäusemaßen gerechnet; für Abstände von einem Millimeter
+> brauche ich die Pad-Umrisse, und die sind über die Brücke nicht auslesbar.
+> **Erst nach `pcb_import_changes` sind U2, U3 und die Passiven in Z2
+> kollisionsfrei zu setzen** — vorher wäre jede Zahl auf 0,1 mm erfunden.
+
+## Drei offene Punkte, die aus dieser Umstellung kommen
+
+1. **Auf welcher Seite liegt das Sensorfeld?** Die Vorgabe nennt nur
+   Querwerte. Ein Fingerabdrucksensor wird berührt, muss also nach außen
+   zeigen. **Liegt das Feld unten, ist die Unterseite von Z3 vergeben (so
+   gerechnet); liegt es oben, kollidiert es mit dem Anzeigeglas**
+   (`x` 6,55 … 20,45, `y` 27 … 49). Die zweite Lesart geht nicht auf —
+   **ich rechne mit „unten" und bitte um Bestätigung.**
+2. **Wohin kommt J2, der Akkustecker?** In Z3 ist kein Platz mehr. Möglich
+   wären: oben neben dem Glas (`x` ≈ 23, `y` ≈ 52), oder in das Band
+   `y` 22,6 … 25 zwischen Modul und Zellfeld — dort sind aber nur 2,4 mm, und
+   der JST-PH ist größer. **Das hängt davon ab, wo die Zelle ihr Kabel
+   herausführt** und gehört mit dem Gehäuse-Strang entschieden.
+3. **Wie lang ist das Sensorfeld?** Angegeben ist nur die Breite (11 mm). Ich
+   reserviere **die ganze Länge von Z3**, also 11 × 30,5 = **336 mm²** — das
+   ist die sichere Lesart. Wenn der Sensor kürzer ist, wird Platz frei, den
+   Stufe 1 nutzen könnte. **Solange der Sensor nicht ausgewählt ist, bleibt es
+   reserviert.**
+
+## Ferritfolie und Freihaltezone, mitgezogen
+
+**Ferritfolie:** Die Zelle ist jetzt **12 mm breit** und liegt an
+`x` 1,20 … 13,20.
+
+- **Richtung Antenne (in `y`) unverändert erfüllbar** — die Zelle endet bei
+  `y` 55,5, die Schleife beginnt dort.
+- **Quer hat die Folie 0,5 mm Luft nach innen** (der Trennabstand bis 13,70)
+  und **keine nach außen** (Klemmkragen ab 1,20). Sie wird also **12 mm breit
+  geschnitten, höchstens 12,5**. Besser als bei der breiten Zelle, wo quer gar
+  keine Reserve blieb — aber immer noch eine Fertigungsauflage für die
+  Bauanleitung.
+- **Neu zu bedenken:** Die Folie darf **nicht unter das Sensorfeld** reichen.
+  Was ein Fingerabdrucksensor von einer Ferritlage unter sich hält, weiß ich
+  nicht — `ungeprueft`, aber der Abstand kostet nichts.
+
+> **Wichtig gegen ein Missverständnis:** Dass die *Entscheidung* „außermittige
+> Zelle" hinfällig ist, gibt der Folie **keine Querreserve zurück**. Die Zelle
+> liegt weiterhin an der Kante — nicht mehr, weil wir sie dorthin gerückt
+> haben, sondern weil **das Sensorfeld die andere Seite belegt**. Nach außen
+> beginnt bei 1,20 der Klemmkragen, nach innen bei 13,70 das Sensorfeld.
+> **Die Auflage „nicht breiter" bleibt also, nur ihr Grund hat sich geändert.**
+
+**Fürs Handbuch, in einem Satz:** **Ferritfolie 12,0 mm breit, bündig an die
+Außenkante der Zelle, höchstens 12,5 mm** — breiter reicht sie unter das
+Sensorfeld.
+
+**Die Länge der Folie kann ich nicht als Zahl angeben.** Sie soll Richtung
+Antenne überstehen, und die Antennenschleife beginnt jetzt unmittelbar dort,
+wo die Zelle endet (`y` 55,5). Wie weit die Folie unter die Schleife reichen
+darf, **ist Teil der Abstimmungsmessung** — Ferrit unter einer NFC-Schleife ist
+üblich und nötig, verschiebt aber die Resonanz. **Daraus folgt eine harte
+Bedingung: die Folie muss beim Abstimmen schon liegen**, sonst gilt die
+Messung nicht. Sie steht bei den Bedingungen für die NFC-Abstimmung.
+
+**Freihaltezone des Moduls:** Antennenkante **25,5**, Plattenrand **27**. Von
+den 3,8 mm Tiefe liegen wieder nur **1,5 mm auf der Platine**:
+
+> **`x` 25,5 … 27, `y` 12,0 … 22,6 — kupferfrei in allen vier Lagen.**
+
+**Prüfzahl für den Umriss: 194 mm** in vier Segmenten (2 × 27 + 2 × 70).
+
+## U3 unter dem Modul: nachgerechnet, und ich nehme es zurück
+
+Der Einwand war berechtigt. Raytacs Layout-Abschnitt verlangt unter dem Modul
+eine **durchgehende Massefläche**, in der Zeichnung auf Seite 14 ausdrücklich
+auch auf der Unterseite („Bottom layer: Ground Area"), dazu *„Please add via
+holes in GROUND area as many as possible, especially around the four
+corners."*
+
+**Die Zahlen, nicht das Gefühl.** Modulschatten `x` 10,0 … 25,5 × `y` 12,0 …
+22,6 = **164,30 mm²**. U3 mit 8 × 6 mm an `x` 18 / `y` 19,5, plus 0,25 mm
+Abstandsring zur Fläche:
+
+| | mm² | Anteil |
+| --- | --- | --- |
+| Modulschatten | 164,30 | 100 % |
+| U3 mit Abstandsring (8,5 × 6,5) | **55,25** | **33,6 %** |
+| **Massefläche bleibt** | **109,05** | **66,4 %** |
+
+**Ein Drittel der Fläche wäre weg**, die der Hersteller als durchgehend
+verlangt.
+
+**Und die Eckvias?** Links bleiben 3,75 mm, rechts 3,25 mm, unten 4,25 mm —
+dort passen Durchkontaktierungen. **Oben nicht:** der Abstandsring reicht bis
+`y` 22,75, die Modulkante liegt bei 22,6. **Rechnerisch −0,15 mm, also kein
+Platz, sondern Überstand.** Die Oberkante des Modulschattens wäre nicht nur
+viafrei, U3 ragte dort hinaus.
+
+**Zur eigentlichen Frage — reicht eine durchgehende Fläche auf `INNER_1`,
+wenn `BOTTOM` unterbrochen ist? `ungeprueft`.** Raytacs Zeichnung zeigt eine
+**zweilagige** Platine; eine Aussage für vier Lagen steht dort nicht, und ich
+habe keine gefunden. **Ich lege das nicht zu meinen Gunsten aus.**
+
+> **Damit nehme ich U3 unter dem Modul zurück.** Es gilt die Hausregel: bei
+> zwei Wegen und unbelegter Lage die sicherere Variante. Ein langsamerer Flash
+> ist ein Ärgernis, schlechter Funk macht das halbe Gerät wertlos.
+
+**Neuer Platz: `x` 5,45 / `y` 18,0, Unterseite** — im Streifen **links neben
+dem Modulschatten** (`x` 1,20 … 10,0, 8,80 mm breit × 15,5 lang). U3 mit
+Abstandsring braucht 8,5 mm, es bleiben **0,30 mm** übrig. Eng, aber es passt,
+und die Massefläche unter dem Modul bleibt **ganz**.
+
+**Was das kostet:** Die sechs QSPI-Leitungen werden einige Millimeter länger,
+weil sie am Modulschatten vorbei müssen. **Immer noch ein Bruchteil der 25 mm**,
+die es aus Z3 geworden wären. Die genaue Länge ergibt sich erst, wenn die
+Pad-Lagen des Moduls bekannt sind.
+
+**Verdrängt werden dadurch** L1, C3, C4, C5, X1, C8, C9 aus genau diesem
+Streifen. Alle sieben sind klein (0402/0603 und ein 3,2 × 1,5-Quarz), und in
+Z2 bleiben rund 280 mm² frei — **aber ihre neuen Plätze setze ich erst mit den
+Footprints**, nicht vorher.
+
+## Zwei Befunde vom Umriss, die in die Notizen gehören
+
+**1. Der Umriss ist ein POLY, keine Linie — und meine Prüfzahl war die
+falsche.** Thomas hat gezeichnet, aus dem Quelltext gelesen steht dort
+
+```
+{"type":"POLY","polyType":"BOARD_OUTLINE","layerId":11,
+ "path":["R",0,2755.9055,1062.9921,2755.9055,0,0]}
+```
+
+In mil, umgerechnet **27,0000 × 70,0000 mm**, Umfang **194,0 mm** — genau die
+Prüfzahl, und das `R` heißt Rechteck, also geschlossen.
+
+> **Die Lehre, und sie korrigiert auch meine eigene Beweisführung weiter oben:**
+> `pcb_lines_list` auf `BOARD_OUTLINE` meldet **count 0, obwohl der Umriss da
+> ist** — er ist ein POLY, kein LINE. Ich hatte diese Null oben als Belegstück
+> aufgeführt („nachgezählt: 0 Segmente"). **Als Beweis, dass nichts angelegt
+> wurde, war sie nie tauglich**; der eigentliche Beleg ist die Fehlermeldung
+> der Schnittstelle. **Geprüft wird ein Umriss mit `doc_export_source`, nicht
+> mit `pcb_lines_list`.**
+
+**2. Der Regelsatz steht:** „JLCPCB Capability(**Multiple Layers Board**)",
+ausgelesen, nicht mehr „Two Layers".
+
+**Damit sind die Vorbedingungen für `pcb_import_changes` erfüllt:** Rand da,
+Regelsatz passend, vier Kupferlagen gesetzt.
+
+## Widerspruch, der vor dem Platzieren weg muss: mittige Zelle gegen Sensorfeld
+
+Vom Gehäuse-Strang kamen am 24.10.2026 zwei Bestätigungen, die sich
+gegenseitig ausschließen:
+
+1. **„Das Sensorfeld liegt unten, neben der Zelle"** — quer: Zelle 12,0 +
+   Trennabstand 0,5 + Sensorfeld 11,0 = 23,50 von 24,60 nutzbar.
+2. **„Die Zelle bleibt mittig."**
+
+**Beides geht nicht.** Mittig gelegt (Zelle `x` 6,80 … 18,80) bleiben **je
+Seite 6,30 mm**. Das Sensorfeld braucht mit Trennabstand **11,50 mm.** Es passt
+auf **keiner** der beiden Seiten.
+
+| Lage der Zelle | Platz links | Platz rechts | Sensorfeld (11,5 nötig) |
+| --- | --- | --- | --- |
+| mittig | 6,30 | 6,30 | **passt nicht** |
+| an der Kante (`x` 1,20 … 13,20) | 0 | **11,50** | **passt genau** |
+
+**Die Zelle liegt also an der Kante — nicht mehr als Kunstgriff, sondern weil
+das Sensorfeld die andere Seite braucht.** Der Satz „der Versatz war die
+Antwort auf ein Platzproblem, das die 12-mm-Zelle nicht mehr hat" gilt für den
+**alten** Grund (U2 neben der Zelle); der **neue** Grund ist das Sensorfeld und
+er wiegt schwerer.
+
+> **Zu entscheiden, und nicht von mir:** Entweder die Zelle liegt an der Kante
+> und Stufe 2 bleibt möglich — so ist dieser Entwurf gerechnet — **oder** die
+> Zelle liegt mittig und **das Sensorfeld entfällt**, womit Thomas' Entscheidung
+> von heute zurückgenommen wäre. **Ich zeichne nach der ersten Lesart** und
+> warte auf Widerspruch.
+
+## Die Zelle der Stufe 2 ist dicker, nicht nur schmaler
+
+**LP-401230-J: 4,05 mm dick**, Adafruit 1317: 3,80 mm. **Das Gerät wächst um
+0,25 mm**, obwohl die Zelle schmaler ist.
+
+**Damit sind die Höhenangaben weiter oben überholt**, soweit sie mit 3,8 mm
+rechnen (Maßtabelle, „das dickste Teil", die Höhenaddition, der
+Sensorvergleich). Richtig ist jetzt: **dickstes Teil ist die Zelle mit
+4,05 mm**; grobe Addition 0,8 Platine + 4,05 Zelle + 2,05 Modul ≈ **6,90 mm**
+statt 6,65, plus Ferritfolie und Gehäuse.
+
+**Wer die schmale Zelle für die rundum kleinere hält, rechnet falsch.**
+
+## USB-Buchse bündig zur Gehäusefront: was ich dafür brauche
+
+Die Auflage ist **± 0,3 mm** auf die Vorderkante der Buchse — nach dem
+Spritzen nicht mehr zu korrigieren. Der Steckerkörper ist **9,17 mm tief**.
+
+**Die Rechnung ist einfach, es fehlt nur eine Zahl:** Sei `d` der Abstand, um
+den die **Gehäusefront vor der Platinenkante `y` = 0** liegt. Dann muss die
+Vorderfläche der Buchse bei `y` = −`d` sitzen, also
+
+> **J1-Mitte `y` = 4,585 − `d`**
+
+| `d` | J1-Mitte `y` | Bedeutung |
+| --- | --- | --- |
+| 0,00 | **4,585** | Gehäusefront liegt auf der Platinenkante |
+| 1,03 | 3,555 | Front 1,03 mm davor (Differenz Nase 10,20 − Körper 9,17) |
+
+**Mein Entwurf hat J1 bei `y` = 4,6** — das entspricht `d` = −0,015, die
+Buchse stünde also 0,015 mm hinter der Platinenkante. **Innerhalb der ± 0,3 mm,
+aber nur, wenn `d` = 0 ist.**
+
+> **Frage an den Gehäuse-Strang, eine Zahl:** **Wie viele Millimeter liegt die
+> Gehäusefront vor der Platinenkante `y` = 0?** Danach setze ich J1 auf
+> 4,585 − `d` und nicht auf einen Schätzwert. Bei einer Durchsteckbuchse kann
+> der Körper über die Platinenkante hinausragen, die Pins aber nicht — wenn
+> `d` groß wird, ist das eine eigene Prüfung.
+
+# Sensor gehört nicht auf die Platine — was dadurch wieder möglich wird
+
+Gerechnet 24.10.2026, nachdem der Gehäuse-Strang gemessen hat, dass zwischen
+Platinenunterseite und Finger **4,82 mm** liegen und der Hohlraum nicht flacher
+geht (0,2 Luft + 0,4 Folie + 4,05 Zelle = 4,65 mm). Ein kapazitiver Sensor
+liest durch Bruchteile eines Millimeters, nicht durch fünf.
+
+**Unsere eigene Doku sagt es ebenfalls:** `docs/fingerprint.md` führt den
+FPC2534AM als **Flex-Modul**, „Sensor auf Flex, **12-poliger ZIF-Anschluss**",
+und schreibt an anderer Stelle: „Der Flex-Anschluss (12-polig, ZIF) braucht
+einen Steckverbinder". Er ist zum Einkleben gedacht, nicht zum Löten.
+
+**Die Platine braucht davon: einen ZIF-Steckverbinder und einen Weg fürs
+Flachband. Kein 11-mm-Feld.**
+
+## 1. Ja, die große Zelle kann zurück — und das Antennenfeld gewinnt deutlich
+
+| | Zelle | Z3 endet | **Antennenfeld Z4** | Schleifenfläche |
+| --- | --- | --- | --- | --- |
+| jetzt | LP-401230-J, 30,5 lang, 4,05 dick | 55,50 | **14,50 mm** | 357 mm² |
+| **mit Adafruit 1317** | 26,02 lang, **3,80 dick** | 51,02 | **18,98 mm** | **467 mm²** |
+
+**+4,48 mm Antennenfeld und +31 % Schleifenfläche** — und das Gerät wird
+**0,25 mm dünner**, weil die Adafruit die flachere Zelle ist.
+
+> **Damit war das Opfer tatsächlich unnötig.** Thomas hat 4,5 mm Antennenfeld
+> und 0,25 mm Bauhöhe für ein Sensorfeld gegeben, das der Sensor nie gebraucht
+> hätte. **Das ist die Zahl, auf die es ankam.**
+
+## 2. Ja, die Zelle darf wieder mittig
+
+Ohne Sensorfeld zwingt nichts sie an die Kante. Quer bleibt dann je Seite:
+
+| Platinenbreite | nutzbar | je Seite neben der Adafruit |
+| --- | --- | --- |
+| 24 mm | 21,60 | 0,925 mm |
+| 26 mm | 23,60 | 1,925 mm |
+| **27 mm** | 24,60 | **2,425 mm** |
+
+**Und die Ferritfolie bekommt ihre Toleranz zurück:** 19,75 mm breit mit rund
+2,4 mm Luft je Seite statt „12,0 mm, nicht breiter".
+
+> **Darum jetzt keine Folienzahl ans Handbuch.** Die 12,0 mm wären die dritte
+> Zahl in einem Tag. **Erst wenn die Zelle entschieden ist**, geht eine Zahl
+> raus — dann 19,75 mm mit Toleranz, oder 12,0 mm ohne.
+
+## 3. Braucht die Platine die 27 mm noch? Für Bauteile nein
+
+**Ehrliche Antwort: die gewonnene Breite braucht kein Bauteil.** U2 und U3
+liegen beide in Z2 (siehe unten), J2 passt in keinen Seitenstreifen, und der
+Streifen neben der Zelle bleibt leer.
+
+**Luft ist sie aber nicht:** Sie ist **Toleranz für zwei von Hand eingelegte
+Teile** — die LiPo-Zelle (Breitentoleranz nennt niemand) und die zugeschnittene
+Ferritfolie. Bei 24 mm sind es 0,925 mm je Seite; bei einem handgebauten Gerät
+ist das knapp.
+
+> **Mein Rat, Thomas entscheidet:** **27 mm behalten.** Der Umriss ist mit
+> 27,0000 × 70,0000 gezeichnet und geprüft; ihn zu ändern kostet einen weiteren
+> Handgriff und bringt 3 mm Gehäusebreite. Der Gegenwert — 2,4 mm Toleranz je
+> Seite statt 0,9 — ist mehr wert als 3 mm Gehäuse. **26 mm wäre das vernünftige
+> Minimum, 24 mm möglich aber knapp.**
+
+## 4. U2 kommt ebenfalls unter dem Modul heraus — nach meiner eigenen Regel
+
+Im Entwurf stand U2 bei `x` 23 / `y` 17, also **unter dem Modulschatten**. Mit
+0,25-mm-Ring wären das **12,25 mm² = 7,5 %** der Massefläche, die der
+Hersteller als durchgehend verlangt. Weniger als U3s 33,6 %, **aber derselbe
+unbelegte Vier-Lagen-Fall** — und wer bei 33,6 % die sicherere Variante nimmt,
+kann bei 7,5 % nicht anders entscheiden, nur weil es weniger weh tut.
+
+**U2 geht in den linken Streifen** (`x` 1,20 … 10,0), wo U3 schon liegt: U3
+belegt 6,5 der 15,5 mm Länge, es bleiben **9,0 mm** — U2 braucht mit Ring 3,5.
+Beide passen, die Massefläche bleibt ganz.
+
+**Vorläufig: U3 bei `x` 5,45 / `y` 18,0, U2 bei `x` 5,45 / `y` 11,5.** Die
+I2C-Leitung wird dadurch länger als unter dem Modul; sie läuft weiterhin auf
+einer Innenlage.
+
+## 5. Zwei Dinge, die dieser Befund neu aufmacht
+
+**a) J5 ist im Schaltplan das falsche Bauteil.** Dort steht ein **Stiftfeld
+1 × 6** mit VDD, GND, SCK, MOSI, MISO, CS. Der FPC2534AM hat einen
+**12-poligen ZIF-Anschluss**. **Das ist keine Layoutfrage, das ist der
+Schaltplan:** es braucht einen 12-poligen FPC-Steckverbinder mit der
+**richtigen Pinbelegung des Sensors** — und die hat bisher niemand
+nachgelesen. Solange steht `ungeprueft` darüber.
+
+**b) Die Bauhöhe von J2 fehlt im Repo.** Der Zellenraum ist randvoll: jedes
+Bauteil neben der Zelle, das **höher als 4,45 mm** baut, macht das Gerät
+dicker. Beim liegenden JST-PH ist das nicht ausgeschlossen. **J2 bleibt
+unplatziert**, bis die Zahl da ist.
+
+**Nichts davon ist zurückgebaut.** Der Entwurf steht weiter auf 27 mm und der
+schmalen Zelle, bis entschieden ist — Umriss und Regelsatz sind geprüft, und
+beides noch einmal anzufassen muss sich lohnen.
