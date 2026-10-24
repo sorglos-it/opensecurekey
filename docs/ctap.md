@@ -206,3 +206,26 @@ outermost check.
   that actually matches is decrypted. A test counts the openings and fails if
   there is more than one. The user handle itself lives in the encrypted
   record, so that one opening remains.
+
+## Where fingerprints get enrolled — and why not in the browser
+
+`authenticatorBioEnrollment` (0x09) is **not implemented**, and that is a
+decision, not a gap. `osk_pin.c` refuses `OSK_PERM_BE` explicitly. No browser
+and no website can enrol a finger on this key; enrolment happens on the device
+itself, through the display and the button.
+
+The reason is the same one the display exists for: enrolling a finger from the
+host means trusting the host about which finger is being added. On a machine
+with malware that is the wrong place to decide it.
+
+What the host *does* get, once a sensor is fitted: the finger counts as user
+verification through `osk_ui_confirm()`, and `getInfo` reports `uv`. No change
+to the CTAP core is needed for that — it was built that way.
+
+**Until a sensor is fitted, `getInfo` must not report `uv` at all.** In CTAP 2.1
+that option means built-in user verification — a fingerprint or the like — not
+the PIN, which is reported separately through `clientPin`. Reporting `uv: true`
+with only a PIN tells a relying party the device can verify a user by itself,
+which it cannot. It stood that way until 24.10.2026, found by the fingerprint
+search while checking whether a sensor would need CTAP changes. A test now
+fails if the option comes back (`test_ctap.c`, "uv wird NICHT gemeldet").

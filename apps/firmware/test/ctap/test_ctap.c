@@ -53,8 +53,35 @@ static void test_get_info(void)
 	T_EQ("erstes lesen", osk_cbor_read_uint(&r, &v), OSK_OK);
 	T_EQ("Protokoll 2 bevorzugt", (long long)v, 2);
 
-	/* clientPin ist false, solange keine PIN gesetzt ist. */
+	/* Die Optionen einzeln nachsehen. Frueher stand hier nur "options
+	 * vorhanden" - und genau darum fiel jahrelang nicht auf, dass "uv"
+	 * fest auf true stand, obwohl das Geraet keine eingebaute
+	 * Benutzerpruefung hat. "uv" meint in CTAP 2.1 den Fingerabdruck,
+	 * nicht die PIN; die wird ueber "clientPin" gemeldet. */
 	T_TRUE("options vorhanden", h_find(g_body, g_len, 0x04, &r));
+	size_t opt_count = 0;
+	T_EQ("options ist eine Map", osk_cbor_enter_map(&r, &opt_count), OSK_OK);
+	bool saw_uv = false, saw_client_pin = false, client_pin_value = true;
+	for (size_t i = 0; i < opt_count; i++) {
+		const char *key = NULL;
+		size_t key_len = 0;
+		T_EQ("Schluessel lesbar", osk_cbor_read_text(&r, &key, &key_len), OSK_OK);
+		bool value = false;
+		T_EQ("Wert lesbar", osk_cbor_read_bool(&r, &value), OSK_OK);
+		if (key_len == 2 && memcmp(key, "uv", 2) == 0) {
+			saw_uv = true;
+		} else if (key_len == 9 && memcmp(key, "clientPin", 9) == 0) {
+			saw_client_pin = true;
+			client_pin_value = value;
+		}
+	}
+	/* Ohne Sensor darf "uv" gar nicht auftauchen: so sagt die
+	 * Spezifikation, dass wir es nicht koennen. Ein false waere die
+	 * Aussage "koennen wir, ist aber nicht eingerichtet" - auch das
+	 * stimmte nicht. Kommt der Sensor, wird dieser Fall umgedreht. */
+	T_TRUE("uv wird NICHT gemeldet, es gibt keinen Sensor", !saw_uv);
+	T_TRUE("clientPin wird gemeldet", saw_client_pin);
+	T_TRUE("clientPin ist false ohne gesetzte PIN", !client_pin_value);
 
 	/* Mit Nutzdaten ist GetInfo ein Laengenfehler. */
 	const uint8_t msg2[2] = {OSK_CTAP_CMD_GET_INFO, 0x00};

@@ -1278,12 +1278,22 @@ static uint8_t do_get_info(osk_cbor_writer_t *w)
 	osk_cbor_put_bytes(w, OSK_AAGUID, sizeof(OSK_AAGUID));
 
 	osk_cbor_put_uint(w, 0x04);
-	osk_cbor_put_map(w, 7);
+	/* "uv" meint in CTAP 2.1 die im GERAET eingebaute Benutzerpruefung -
+	 * also Fingerabdruck oder dergleichen -, nicht die PIN. Die wird
+	 * getrennt ueber "clientPin" gemeldet.
+	 *
+	 * Solange kein Sensor verbaut ist, waere "uv": true eine falsche
+	 * Zusage: ein Dienst, der userVerification verlangt, glaubt dann, das
+	 * Geraet koenne es selbst. Also lassen wir die Option weg - so sagt die
+	 * Spezifikation, dass wir sie nicht unterstuetzen. Kommt der Sensor,
+	 * wird daraus ein echtes true (dann sind es wieder sieben Eintraege).
+	 *
+	 * Gefunden vom Fingerabdruck-Strang beim Nachlesen, ob der Sensor
+	 * Aenderungen am CTAP-Teil braucht. */
+	osk_cbor_put_map(w, 6);
 	osk_cbor_put_text(w, "rk");
 	osk_cbor_put_bool(w, true);
 	osk_cbor_put_text(w, "up");
-	osk_cbor_put_bool(w, true);
-	osk_cbor_put_text(w, "uv");
 	osk_cbor_put_bool(w, true);
 	osk_cbor_put_text(w, "plat");
 	osk_cbor_put_bool(w, false);
