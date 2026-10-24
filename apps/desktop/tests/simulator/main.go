@@ -307,7 +307,7 @@ func listItems(store *vault, query string) []any {
 			!contains(entry.meta.Site, query) {
 			continue
 		}
-		out = append(out, classes.CborMap{
+		record := classes.CborMap{
 			"id": uint64(entry.meta.ID),
 			"t":  uint64(entry.meta.Type),
 			"p":  uint64(entry.meta.Profile),
@@ -316,9 +316,38 @@ func listItems(store *vault, query string) []any {
 			"ch": uint64(entry.meta.ChangedUTC),
 			"m":  entry.meta.Mirrored,
 			"ph": entry.meta.PairedHostOnly,
-		})
+		}
+		// Der oeffentliche Teil geht ohne Freigabe mit - das echte Geraet
+		// macht es genauso (osk_store_public, shared/protocol.md Befehl 4).
+		// Er ist kein Geheimnis, und ihn einzeln abzuholen haette einen
+		// Tastendruck je Schluessel gekostet.
+		if pub := publicPartOf(entry); len(pub) > 0 {
+			record["pub"] = pub
+		}
+		out = append(out, record)
 	}
 	return out
+}
+
+// publicPartOf liefert den oeffentlichen Teil eines Eintrags, soweit sein Typ
+// einen hat. Die Attrappe rechnet ihn aus dem gespeicherten Geheimnis - das
+// echte Geraet holt ihn aus dem Sicherheitschip oder aus dem Tresor, ohne das
+// Geheimnis anzufassen. Fuer den Aufrufer ist das derselbe Wert.
+func publicPartOf(entry record) []byte {
+	switch entry.meta.Type {
+	case classes.ItemSSHKey:
+		key, err := classes.ParseSSHKey(entry.secret)
+		if err != nil {
+			return nil
+		}
+		defer key.Wipe()
+		return append([]byte(nil), key.Blob...)
+	case classes.ItemCert, classes.ItemPGPKey:
+		// Zertifikate und PGP-Schluessel liegen hier als Ganzes; der
+		// oeffentliche Teil ist das, was auch ohne Freigabe herausgeht.
+		return append([]byte(nil), entry.secret...)
+	}
+	return nil
 }
 
 // contains sucht ohne Ruecksicht auf Gross- und Kleinschreibung.

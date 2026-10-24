@@ -63,6 +63,14 @@ type agentIdentity struct {
 	itemID  uint32
 }
 
+// Blob gibt den oeffentlichen Teil heraus - genau die Bytes, die ssh als
+// Identitaet sieht. Oeffentlich, weil der Wert kein Geheimnis ist und
+// Pruefungen ihn brauchen.
+func (i agentIdentity) Blob() []byte { return append([]byte(nil), i.blob...) }
+
+// Comment ist der Name des Eintrags, so wie ihn ssh anzeigt.
+func (i agentIdentity) Comment() string { return i.comment }
+
 // Agent beantwortet die Fragen von ssh. Er haelt keine Geheimnisse.
 type Agent struct {
 	app *App
@@ -70,6 +78,21 @@ type Agent struct {
 	mu         sync.Mutex
 	identities []agentIdentity
 	primed     bool
+
+	// Wie oft der Rueckfall ueber Reveal gebraucht wurde, weil das Geraet
+	// den oeffentlichen Teil nicht mitschickte. Bei einem Geraet auf dem
+	// heutigen Stand muss das 0 bleiben; jede andere Zahl heisst, dass
+	// Tastendruecke anfallen, die nichts schuetzen.
+	revealFallbacks int
+}
+
+// RevealFallbacks sagt, wie oft der Agent einen Schluessel doch noch per
+// Reveal holen musste. Fuer Pruefungen und fuer die Fehlersuche: eine Zahl
+// ueber 0 ist kein Fehler, aber sie erklaert zusaetzliche Tastendruecke.
+func (a *Agent) RevealFallbacks() int {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.revealFallbacks
 }
 
 // NewAgent baut den Agenten auf dem Kern des Programms auf - dieselbe
@@ -135,6 +158,25 @@ func (a *Agent) Identities(askedBy string) ([]agentIdentity, error) {
 	}
 	found := make([]agentIdentity, 0, len(items))
 	for _, item := range items {
+		// Der oeffentliche Teil kommt mit der Liste - ohne Freigabe, weil er
+		// kein Geheimnis ist. Frueher holte diese Schleife jeden Schluessel
+		// einzeln per Reveal, nur um den Namen zu erfahren: ein Tastendruck
+		// je Schluessel, der nichts schuetzte. Wer lernt, Tastendruecke
+		// wegzudruecken, drueckt auch den weg, der zaehlt.
+		if len(item.Pub) > 0 {
+			found = append(found, agentIdentity{
+				blob:    append([]byte(nil), item.Pub...),
+				comment: item.Name,
+				itemID:  item.ID,
+			})
+			continue
+		}
+		// Rueckfall fuer ein Geraet mit aelterem Protokoll: das kostet die
+		// Freigabe wie frueher. Gezaehlt, damit es nicht stillschweigend
+		// greift - RevealFallbacks() macht es nachpruefbar.
+		a.mu.Lock()
+		a.revealFallbacks++
+		a.mu.Unlock()
 		secret, revealErr := access.Reveal(item.ID)
 		if revealErr != nil {
 			// Ein Schluessel, den das Geraet nicht herausgibt, fehlt eben

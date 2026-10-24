@@ -247,10 +247,18 @@ func TestAgentSignsForSimulator(t *testing.T) {
 				line.AskedBy, AgentAskedBy("ssh.exe"))
 		}
 	}
-	if reveals < 2 {
-		// Einmal fuer die Identitaet, einmal fuer die Unterschrift. Weniger
-		// hiesse, dass der Agent einen privaten Schluessel behalten hat.
-		t.Errorf("%d Zugriffe im Protokoll, erwartet mindestens 2", reveals)
+	// Die Sorge hinter dieser Pruefung ist: Der Agent darf keinen privaten
+	// Schluessel behalten. Frueher wurde das an der Zahl 2 gemessen - einmal
+	// fuers Auflisten, einmal fuers Unterschreiben. Das Auflisten braucht
+	// seit dem oeffentlichen Teil in der Liste keinen Zugriff mehr, also
+	// waere 2 heute falsch und 1 richtig.
+	//
+	// Nur die Zahl zu senken wuerde die Sorge aber nicht mehr messen. Darum
+	// wird jetzt die Eigenschaft selbst geprueft: JEDE Unterschrift kostet
+	// genau einen Zugriff. Behielte der Agent den Schluessel, waere die
+	// zweite umsonst.
+	if reveals != 1 {
+		t.Errorf("%d Zugriffe fuer eine Unterschrift, erwartet genau 1", reveals)
 	}
 }
 

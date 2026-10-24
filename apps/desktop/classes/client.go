@@ -266,6 +266,9 @@ func itemFromCbor(record CborMap) (Item, error) {
 	if pairedOnly, found := record["ph"].(bool); found {
 		item.PairedHostOnly = pairedOnly
 	}
+	if pub, found := record["pub"].([]byte); found && len(pub) > 0 {
+		item.Pub = append([]byte(nil), pub...)
+	}
 	if !item.Type.Valid() {
 		return Item{}, Fail("error.item.type")
 	}

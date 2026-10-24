@@ -356,6 +356,43 @@ login. All of them are operating system integration and need admin rights to
 install — `docs/integration.md` says so, and that is exactly what makes the
 other five routes useful on a strange computer.
 
+## Measured: how many approvals an operation costs
+
+A public key is not a secret. Fetching one through `reveal` cost a button press
+per key — and a user who learns to dismiss button presses without looking will
+dismiss the one that matters too. That makes the real question at signing time
+worthless, and that question is the point of the whole device.
+
+Since the device sends the public part with `list`, the agent takes it from
+there. Measured, not assumed (`tests/freigaben_test.go`, three keys):
+
+| Operation | Approvals |
+| --- | --- |
+| Listing identities | **0** |
+| Signing once | **1** |
+
+Both halves matter. Without the second row the test would also pass if nothing
+asked for approval at all.
+
+The counter-check: with the agent forced back to the old path, the same test
+reports "listing cost 3 approvals, expected 0" and three reveal fallbacks. So
+the test measures something.
+
+One existing test had to change with it. It required "at least 2 accesses",
+meaning one for listing and one for signing, and its comment named the real
+worry: the agent must not keep a private key. Lowering the number to 1 would
+have stopped measuring that worry, so the test now checks the property itself —
+**every** signature costs exactly one access. If the agent kept the key, the
+second signature would be free.
+
+**Still open: PKCS#11 does the same thing.** `Pkcs11Token.loadObjects` still
+reveals every key, because it needs the public parameters (curve point, modulus,
+exponent) and currently reads them out of the private key. Using `pub` there
+needs a parser for the SSH public-key format — an addition, not a rewrite, and
+not something to hurry through in a crypto parser. The agent was the larger win:
+`ssh` lists identities on every connection, while PKCS#11 loads its objects once
+per session.
+
 ## Loose ends
 
 - **macOS is untested.** The code builds (cross-compiled); nothing was run.
