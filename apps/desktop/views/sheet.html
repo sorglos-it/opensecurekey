@@ -1,0 +1,49 @@
+{{template "head" .}}
+<p>{{.Texts.Get "sheet.intro"}}</p>
+<p class="noprint"><button type="button" id="print">{{.Texts.Get "action.print"}}</button></p>
+
+<article class="sheet">
+  <table class="facts">
+    <tbody>
+      <tr>
+        <th scope="row">{{.Texts.Get "sheet.serial"}}</th>
+        <td>{{if .Info.Serial}}{{.Info.Serial}}{{else}}&nbsp;{{end}}</td>
+      </tr>
+      <tr>
+        <th scope="row">{{.Texts.Get "setup.mode.chosen"}}</th>
+        <td>{{if .ModeOnly}}{{.Texts.Get "setup.only.title"}}{{else if .Info.Mode}}{{.Texts.Get "setup.mirrored.title"}}{{else}}&nbsp;{{end}}</td>
+      </tr>
+      <tr>
+        <th scope="row">{{.Texts.Get "sheet.date"}}</th>
+        <td>{{.Today}}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  {{if .ModeOnly}}
+  <p class="warnbox" role="note">{{.Texts.Get "sheet.only.warn"}}</p>
+  {{end}}
+
+  <h2>{{.Texts.Get "sheet.file.title"}}</h2>
+  <p>{{.Texts.Get "sheet.file.text"}}</p>
+  <p class="byhand">{{.Texts.Get "sheet.file.where"}}: <span class="line"></span></p>
+
+  <h2>{{.Texts.Get "sheet.pass.title"}}</h2>
+  <p>{{.Texts.Get "sheet.pass.text"}}</p>
+  <p class="byhand"><span class="line"></span></p>
+
+  <h2>{{.Texts.Get "sheet.shares.title"}}</h2>
+  <p>{{.Texts.Get "sheet.shares.text"}}</p>
+  <p class="byhand">{{.Texts.Get "sheet.shares.need"}}: <span class="line short"></span></p>
+  <p class="byhand">{{.Texts.Get "sheet.shares.who"}}:</p>
+  <p class="byhand"><span class="line"></span></p>
+  <p class="byhand"><span class="line"></span></p>
+  <p class="byhand"><span class="line"></span></p>
+
+  <h2>{{.Texts.Get "sheet.steps.title"}}</h2>
+  <p>{{.Texts.Get "sheet.steps.text"}}</p>
+
+  <p class="warnbox">{{.Texts.Get "sheet.nopin"}}</p>
+  <p>{{.Texts.Get "sheet.keep"}}</p>
+</article>
+{{template "foot" .}}

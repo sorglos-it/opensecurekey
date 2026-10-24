@@ -103,6 +103,15 @@ const (
 	MaxSecretLen = 2048
 )
 
+// Grenzen der PIN. Sechs Zeichen sind das Mindeste, mit dem eine PIN noch
+// etwas taugt; die Obergrenze haelt sie in einer Nachricht. Gezaehlt werden
+// Bytes - eine PIN mit Umlauten ist darum frueher voll als eine ohne, und
+// das ist besser, als sie unterwegs abzuschneiden.
+const (
+	MinPinLen = 6
+	MaxPinLen = 64
+)
+
 // CheckItem prueft einen Eintrag, bevor er zum Geraet geht. Das Geraet prueft
 // noch einmal selbst - hier geht es darum, dem Anwender frueh zu antworten.
 func CheckItem(it Item) error {

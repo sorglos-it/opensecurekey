@@ -336,18 +336,7 @@ function setupBackup() {
 		if (!data) {
 			return;
 		}
-		const raw = atob(data.blob);
-		const bytes = new Uint8Array(raw.length);
-		for (let i = 0; i < raw.length; i += 1) {
-			bytes[i] = raw.charCodeAt(i);
-		}
-		const url = URL.createObjectURL(new Blob([bytes],
-			{ type: "application/octet-stream" }));
-		const link = document.createElement("a");
-		link.href = url;
-		link.download = "opensecurekey.oskbak";
-		link.click();
-		URL.revokeObjectURL(url);
+		saveBackup(data.blob);
 	});
 	document.getElementById("restore").addEventListener("submit", async (event) => {
 		event.preventDefault();
@@ -357,6 +346,156 @@ function setupBackup() {
 		}
 		const blob = await fileToBase64(file);
 		await call("/api/restore", { blob: blob });
+	});
+}
+
+// saveBackup legt die verschluesselte Sicherung als Datei ab. Der Assistent
+// und die Sicherungsseite nutzen denselben Weg - zwei Nachbauten wuerden
+// auseinanderlaufen.
+function saveBackup(blob) {
+	const raw = atob(blob);
+	const bytes = new Uint8Array(raw.length);
+	for (let i = 0; i < raw.length; i += 1) {
+		bytes[i] = raw.charCodeAt(i);
+	}
+	const url = URL.createObjectURL(new Blob([bytes],
+		{ type: "application/octet-stream" }));
+	const link = document.createElement("a");
+	link.href = url;
+	link.download = "opensecurekey.oskbak";
+	link.click();
+	URL.revokeObjectURL(url);
+}
+
+// Einrichtungsassistent: vier Schritte in einer Seite. Der Ablauf ist fest -
+// zuerst die Betriebsart, dann die PIN, dann die Sicherung, dann der Zettel.
+// Vor- und zuruecksetzen geht nur ueber diese Funktion, damit kein Schritt
+// uebersprungen werden kann.
+function setupWizard() {
+	const first = document.getElementById("step-mode");
+	if (!first) {
+		return;
+	}
+	const order = ["mode", "pin", "backup", "sheet"];
+	// Die Wahl steht nur hier, nicht in der Adresse und nicht in einer
+	// Ablage des Browsers: eine unumkehrbare Wahl soll kein Lesezeichen
+	// mitbringen koennen.
+	let chosenMode = "";
+
+	function show(name) {
+		for (const step of order) {
+			const section = document.getElementById("step-" + step);
+			const tab = document.getElementById("tab-" + step);
+			const current = step === name;
+			section.hidden = !current;
+			if (current) {
+				tab.setAttribute("aria-current", "step");
+			} else {
+				tab.removeAttribute("aria-current");
+			}
+		}
+		// Der Fokus wandert auf die Ueberschrift des Schrittes - sonst
+		// steht ein Vorleseprogramm nach dem Weiter noch oben am Anfang.
+		const head = document.getElementById("head-" + name);
+		if (head) {
+			head.focus();
+		}
+	}
+
+	// Erster Schritt: kein Knopf, solange nicht gewaehlt UND bestaetigt ist.
+	const modeForm = document.getElementById("mode-form");
+	const confirm = document.getElementById("mode-confirm");
+	const modeNext = document.getElementById("mode-next");
+	function readMode() {
+		const picked = modeForm.querySelector("input[name=mode]:checked");
+		return picked ? picked.value : "";
+	}
+	function checkMode() {
+		modeNext.disabled = !(readMode() && confirm.checked);
+	}
+	modeForm.addEventListener("change", checkMode);
+	checkMode();
+	modeForm.addEventListener("submit", (event) => {
+		event.preventDefault();
+		const mode = readMode();
+		if (!mode) {
+			showProblem(t("error.setup.mode"));
+			return;
+		}
+		if (!confirm.checked) {
+			showProblem(t("error.setup.confirm"));
+			return;
+		}
+		showProblem("");
+		chosenMode = mode;
+		const label = document.getElementById("pin-mode");
+		label.textContent = t("setup.mode.chosen") + ": " +
+			t(mode === "only" ? "setup.only.title" : "setup.mirrored.title");
+		show("pin");
+	});
+
+	// Zweiter Schritt: die PIN. Erst hier geht die Wahl zum Geraet - mit
+	// ihr entsteht das Hauptgeheimnis.
+	document.getElementById("pin-form").addEventListener("submit", async (event) => {
+		event.preventDefault();
+		const field = document.getElementById("pin-new");
+		const again = document.getElementById("pin-again");
+		if (field.value.length < 6) {
+			showProblem(t("error.setup.pin.short"));
+			return;
+		}
+		if (field.value !== again.value) {
+			showProblem(t("error.setup.pin.mismatch"));
+			return;
+		}
+		const data = await call("/api/setup", {
+			mode: chosenMode,
+			pin: field.value,
+			confirm: true,
+		});
+		// Die Eingabefelder werden geleert, ob es geklappt hat oder nicht.
+		field.value = "";
+		again.value = "";
+		if (!data) {
+			return;
+		}
+		refreshState();
+		show("backup");
+	});
+
+	// Dritter Schritt: die Sicherung. Weiter geht es erst, wenn der
+	// Anwender sie geholt und bestaetigt hat.
+	const saved = document.getElementById("backup-done");
+	const backupNext = document.getElementById("backup-next");
+	document.getElementById("backup-now").addEventListener("click", async () => {
+		const data = await call("/api/backup", {});
+		if (!data) {
+			return;
+		}
+		saveBackup(data.blob);
+	});
+	saved.addEventListener("change", () => {
+		backupNext.disabled = !saved.checked;
+	});
+	document.getElementById("backup-form").addEventListener("submit", (event) => {
+		event.preventDefault();
+		if (!saved.checked) {
+			return;
+		}
+		show("sheet");
+	});
+
+	show("mode");
+}
+
+// Der Notfallzettel wird gedruckt, nicht gespeichert.
+function setupSheet() {
+	const button = document.getElementById("print");
+	if (!button) {
+		return;
+	}
+	button.addEventListener("click", () => {
+		window.print();
 	});
 }
 
@@ -427,6 +566,8 @@ async function init() {
 	setupBackup();
 	setupFirmware();
 	setupSettings();
+	setupWizard();
+	setupSheet();
 }
 
 init();
