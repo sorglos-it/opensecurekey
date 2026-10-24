@@ -636,6 +636,7 @@ osk_result_t osk_store_update(osk_item_id_t id, const osk_item_meta_t *meta, con
 
 	uint32_t old_slot = rec->slot;
 	uint32_t new_slot = old_slot;
+	uint32_t old_pub = OSK_BLOB_SLOTS; /* OSK_BLOB_SLOTS = keiner */
 
 	if (secret != NULL) {
 		/* Niemals an derselben Stelle ueberschreiben: solange der neue
@@ -656,6 +657,20 @@ osk_result_t osk_store_update(osk_item_id_t id, const osk_item_meta_t *meta, con
 		rec->blob_ct_len = ct_len;
 		rec->secret_len = (uint32_t)secret_len;
 		memcpy(rec->nonce, nonce, sizeof(nonce));
+
+		/* Der oeffentliche Teil gehoerte zum ALTEN Schluessel. Ein
+		 * neues Geheimnis macht ihn ungueltig, und ein falscher
+		 * oeffentlicher Schluessel ist schlimmer als keiner: der
+		 * ssh-Agent wuerde eine Identitaet anbieten, zu der er nicht
+		 * unterschreiben kann. Er fliegt darum weg und wird mit
+		 * osk_store_item_set_public() neu gesetzt. Dasselbe gilt fuer
+		 * den Vermerk auf einen Schluessel im Chip. */
+		old_pub = (rec->pub_len != 0u) ? rec->pub_slot : OSK_BLOB_SLOTS;
+		rec->pub_len = 0u;
+		rec->pub_slot = 0u;
+		rec->pub_ct_len = 0u;
+		rec->se050_key = 0u;
+		memset(rec->pub_nonce, 0, sizeof(rec->pub_nonce));
 	}
 	if (meta != NULL) {
 		rec->type = (uint16_t)meta->type;
@@ -681,6 +696,9 @@ osk_result_t osk_store_update(osk_item_id_t id, const osk_item_meta_t *meta, con
 		osk_space_slot_set(new_slot, true);
 		osk_space_slot_set(old_slot, false);
 	}
+	if (old_pub < OSK_BLOB_SLOTS) {
+		osk_space_slot_set(old_pub, false);
+	}
 	r = osk_hdr_commit();
 	if (r != OSK_OK) {
 		return rollback(&snap, r);
@@ -690,6 +708,9 @@ osk_result_t osk_store_update(osk_item_id_t id, const osk_item_meta_t *meta, con
 		 * Loeschen, bleibt dort Kryptotext ohne Schluessel liegen und
 		 * wird beim naechsten Gebrauch des Platzes geloescht. */
 		(void)osk_blob_erase(old_slot);
+	}
+	if (old_pub < OSK_BLOB_SLOTS) {
+		(void)osk_blob_erase(old_pub);
 	}
 	(void)osk_log_add_internal(OSK_LOG_UPDATE, id, NULL);
 	return OSK_OK;
@@ -717,6 +738,9 @@ osk_result_t osk_store_delete(osk_item_id_t id)
 	osk_hdr_snapshot(&snap);
 
 	uint32_t slot = rec->slot;
+	/* Der oeffentliche Teil liegt auf einem eigenen Platz - der muss mit
+	 * weg, sonst bliebe er fuer immer belegt. */
+	uint32_t pub_slot = (rec->pub_len != 0u) ? rec->pub_slot : OSK_BLOB_SLOTS;
 
 	/* Luecke schliessen und die betroffenen Bloecke schreiben. */
 	r = osk_index_remove(profile, index);
@@ -724,11 +748,17 @@ osk_result_t osk_store_delete(osk_item_id_t id)
 		return rollback(&snap, r);
 	}
 	osk_space_slot_set(slot, false);
+	if (pub_slot < OSK_BLOB_SLOTS) {
+		osk_space_slot_set(pub_slot, false);
+	}
 	r = osk_hdr_commit();
 	if (r != OSK_OK) {
 		return rollback(&snap, r);
 	}
 	(void)osk_blob_erase(slot);
+	if (pub_slot < OSK_BLOB_SLOTS) {
+		(void)osk_blob_erase(pub_slot);
+	}
 	(void)osk_log_add_internal(OSK_LOG_DELETE, id, NULL);
 	return OSK_OK;
 }
@@ -798,6 +828,196 @@ osk_result_t osk_store_reveal(osk_item_id_t id, const char *asked_by, uint8_t *o
 		return lr;
 	}
 	*len_out = len;
+	return OSK_OK;
+}
+
+/* ---- Der oeffentliche Teil -------------------------------------------- */
+/* Ein oeffentlicher Schluessel ist kein Geheimnis. Ihn wie eines zu behandeln
+ * kostet nur Tastendruecke und schuetzt nichts - schlimmer noch, es schadet:
+ * der ssh-Agent muss ssh ALLE Identitaeten nennen, bevor etwas unterschrieben
+ * wird. Ueber osk_store_reveal() waere das ein Tastendruck je Schluessel, nur
+ * um den Namen zu erfahren. Der Nutzer lernt dabei, Tastendruecke
+ * wegzudruecken, ohne hinzusehen - und damit ist die eine echte Nachfrage beim
+ * Signieren wertlos. Die ist der Kern des ganzen Geraets.
+ *
+ * Darum hat der oeffentliche Teil seinen eigenen Datenplatz. Dieser Weg liest
+ * den Platz des Geheimnisses nicht, und er fragt nicht. Beides ist gemessen,
+ * nicht behauptet (test_public.c). */
+
+/* Welche Typen ueberhaupt einen oeffentlichen Teil haben. Alles andere -
+ * Passwort, Notiz, TOTP - bekommt OSK_ERR_UNSUPPORTED und keinen leeren
+ * Puffer: ein leerer Puffer sieht aus wie "kein Schluessel hinterlegt" und
+ * waere eine Antwort auf eine Frage, die keinen Sinn hat. */
+static bool type_has_public(uint16_t type)
+{
+	return type == (uint16_t)OSK_ITEM_SSH_KEY || type == (uint16_t)OSK_ITEM_CERT ||
+	       type == (uint16_t)OSK_ITEM_PGP_KEY;
+}
+
+osk_result_t osk_store_public(osk_item_id_t id, uint8_t *out, size_t cap, size_t *len_out)
+{
+	osk_store_state_t *st = osk_store_state();
+	uint8_t profile = 0;
+	size_t index = 0;
+
+	if (out == NULL || len_out == NULL) {
+		return OSK_ERR_ARG;
+	}
+	*len_out = 0;
+
+	osk_result_t r = find_rec(id, &profile, &index);
+
+	if (r != OSK_OK) {
+		return r;
+	}
+
+	osk_idx_rec_t *rec = NULL;
+
+	r = osk_index_rec(profile, index, &rec);
+	if (r != OSK_OK) {
+		return r;
+	}
+	if (!type_has_public(rec->type)) {
+		return OSK_ERR_UNSUPPORTED;
+	}
+
+	/* Liegt der private Schluessel im Chip, kommt der oeffentliche Teil von
+	 * dort. Der Tresor haelt dann keine Kopie - und braucht keine. */
+	if (rec->se050_key != 0u) {
+		return osk_se050_key_public(rec->se050_key, out, cap, len_out);
+	}
+
+	/* Sonst vom eigenen Datenplatz. Hier wird NICHT rec->slot gelesen -
+	 * daran haengt die ganze Zusage dieser Funktion. */
+	if (rec->pub_len == 0u) {
+		return OSK_ERR_NOT_FOUND;
+	}
+	if (cap < rec->pub_len) {
+		return OSK_ERR_ARG;
+	}
+	return osk_pub_read(rec, &st->key_profile[profile], out, cap, len_out);
+}
+
+osk_result_t osk_store_item_set_public(osk_item_id_t id, const uint8_t *pub, size_t len)
+{
+	osk_store_state_t *st = osk_store_state();
+	osk_hdr_t snap;
+	uint8_t profile = 0;
+	size_t index = 0;
+	osk_result_t r = find_rec(id, &profile, &index);
+
+	if (r != OSK_OK) {
+		return r;
+	}
+	if (len > OSK_PUBLIC_MAX || (len != 0u && pub == NULL)) {
+		return OSK_ERR_ARG;
+	}
+
+	osk_idx_rec_t *rec = NULL;
+
+	r = osk_index_rec(profile, index, &rec);
+	if (r != OSK_OK) {
+		return r;
+	}
+	if ((rec->flags & OSK_FLAG_READONLY) != 0u) {
+		return OSK_ERR_DENIED;
+	}
+	if (!type_has_public(rec->type)) {
+		return OSK_ERR_UNSUPPORTED;
+	}
+
+	osk_hdr_snapshot(&snap);
+
+	uint32_t old_pub = (rec->pub_len != 0u) ? rec->pub_slot : OSK_BLOB_SLOTS;
+	uint32_t new_pub = OSK_BLOB_SLOTS;
+
+	if (len != 0u) {
+		/* Dieselbe Reihenfolge wie bei jedem Geheimnis: erst auf einen
+		 * FREIEN Platz, dann der Index, dann der Kopfsatz. Vorher gilt
+		 * der alte Zustand vollstaendig. */
+		r = osk_space_slot_alloc(&new_pub);
+		if (r != OSK_OK) {
+			return rollback(&snap, r);
+		}
+
+		uint32_t ct_len = 0;
+		uint8_t nonce[OSK_NONCE_LEN];
+
+		r = osk_pub_write(new_pub, id, pub, len, &st->key_profile[profile], &ct_len, nonce);
+		if (r != OSK_OK) {
+			return rollback(&snap, r);
+		}
+		rec->pub_slot = new_pub;
+		rec->pub_ct_len = ct_len;
+		rec->pub_len = (uint16_t)len;
+		memcpy(rec->pub_nonce, nonce, sizeof(nonce));
+	} else {
+		rec->pub_slot = 0u;
+		rec->pub_ct_len = 0u;
+		rec->pub_len = 0u;
+		memset(rec->pub_nonce, 0, sizeof(rec->pub_nonce));
+	}
+	rec->changed_utc = osk_now_utc();
+
+	r = osk_index_store(profile);
+	if (r != OSK_OK) {
+		return rollback(&snap, r);
+	}
+	if (new_pub < OSK_BLOB_SLOTS) {
+		osk_space_slot_set(new_pub, true);
+	}
+	if (old_pub < OSK_BLOB_SLOTS) {
+		osk_space_slot_set(old_pub, false);
+	}
+	r = osk_hdr_commit();
+	if (r != OSK_OK) {
+		return rollback(&snap, r);
+	}
+	if (old_pub < OSK_BLOB_SLOTS) {
+		(void)osk_blob_erase(old_pub);
+	}
+	(void)osk_log_add_internal(OSK_LOG_UPDATE, id, NULL);
+	return OSK_OK;
+}
+
+osk_result_t osk_store_item_set_se050_key(osk_item_id_t id, uint32_t key_id)
+{
+	osk_hdr_t snap;
+	uint8_t profile = 0;
+	size_t index = 0;
+	osk_result_t r = find_rec(id, &profile, &index);
+
+	if (r != OSK_OK) {
+		return r;
+	}
+
+	osk_idx_rec_t *rec = NULL;
+
+	r = osk_index_rec(profile, index, &rec);
+	if (r != OSK_OK) {
+		return r;
+	}
+	if ((rec->flags & OSK_FLAG_READONLY) != 0u) {
+		return OSK_ERR_DENIED;
+	}
+	if (!type_has_public(rec->type)) {
+		return OSK_ERR_UNSUPPORTED;
+	}
+	if (rec->se050_key == key_id) {
+		return OSK_OK;
+	}
+
+	osk_hdr_snapshot(&snap);
+	rec->se050_key = key_id;
+	rec->changed_utc = osk_now_utc();
+
+	r = osk_index_store(profile);
+	if (r == OSK_OK) {
+		r = osk_hdr_commit();
+	}
+	if (r != OSK_OK) {
+		return rollback(&snap, r);
+	}
 	return OSK_OK;
 }
 

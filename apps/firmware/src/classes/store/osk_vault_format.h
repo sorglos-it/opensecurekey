@@ -33,7 +33,17 @@
 	   * unveraendert 320 Byte lang; geaendert    \
 	   * haben sich der Klartext-Kopf und die     \
 	   * Einteilung der Partition. */
-#define OSK_FMT_CURRENT OSK_FMT_V4
+#define OSK_FMT_V5                                    \
+	5 /* jetzige Fassung: der Eintrag kann einen  \
+	   * OEFFENTLICHEN Teil haben - auf eigenem   \
+	   * Datenplatz oder im SE050. Der Satz ist   \
+	   * weiter 320 Byte lang; benutzt werden nur \
+	   * Bytes, die in Fassung 4 als reserved auf \
+	   * 0 standen. Ein Block der Fassung 4 liest \
+	   * sich darum unveraendert als "kein        \
+	   * oeffentlicher Teil" - umzurechnen ist    \
+	   * nichts. */
+#define OSK_FMT_CURRENT OSK_FMT_V5
 #define OSK_FMT_OLDEST_KNOWN OSK_FMT_V1
 
 /* ---- Grenzen ---------------------------------------------------------- */
@@ -50,6 +60,7 @@
 #define OSK_NAME_MAX 64						/* mit Null-Abschluss */
 #define OSK_SITE_MAX 128
 #define OSK_SECRET_MAX 4096 /* laengstes Geheimnis, auch kleine Dateien */
+#define OSK_PUBLIC_MAX 4096 /* laengster oeffentlicher Teil (Zertifikat) */
 #define OSK_TAG_MAX 32	    /* Kennung zum Suchen, siehe osk_store.h */
 
 /* ---- Einteilung der Tresorpartition ---------------------------------- */
@@ -290,7 +301,28 @@ typedef struct {
 
 	char name[OSK_NAME_MAX];
 	char site[OSK_SITE_MAX];
-	uint8_t reserved[40];
+
+	/* Der oeffentliche Teil (ab Fassung 5). Er liegt auf einem EIGENEN
+	 * Datenplatz, nicht beim Geheimnis - nur darum kann
+	 * osk_store_public() ihn herausgeben, ohne den Platz des Geheimnisses
+	 * auch nur zu lesen. Verschluesselt ist er trotzdem: nicht geheim
+	 * heisst nicht, dass jeder, der den Flash ausliest, die Liste der
+	 * Schluessel des Nutzers bekommen soll.
+	 *
+	 * Liegt der private Schluessel im SE050, steht hier stattdessen seine
+	 * Kennung, und der oeffentliche Teil kommt aus dem Chip. */
+	/* ACHTUNG: Ob ein oeffentlicher Teil da ist, entscheidet pub_len und
+	 * NICHT pub_slot. Platz 0 ist ein gueltiger Datenplatz - eine 0 in
+	 * pub_slot als "keiner" zu lesen wuerde genau einen Eintrag im Geraet
+	 * falsch behandeln, und zwar den, der zuerst angelegt wurde. */
+	uint32_t pub_slot;
+	uint32_t pub_ct_len; /* Laenge des Kryptotextes dort */
+	uint16_t pub_len;    /* 0 = keiner; sonst hoechstens OSK_PUBLIC_MAX */
+	uint8_t pad2[2];
+	uint32_t se050_key; /* 0 = kein Schluessel im Chip */
+	uint8_t pub_nonce[OSK_NONCE_LEN];
+
+	uint8_t reserved[12];
 } osk_idx_rec_t;
 
 OSK_STATIC_ASSERT(sizeof(osk_idx_rec_t) == 320, idx_rec_320);
@@ -360,6 +392,7 @@ OSK_STATIC_ASSERT((OSK_AREA_IDX_LEN + OSK_AREA_IDX2_LEN) >
  * Inhalt. Ein Platz wird immer ganz geloescht und ganz neu geschrieben. */
 
 #define OSK_BLOB_MAGIC 0x424B534Fu /* "OSKB" */
+#define OSK_PUB_MAGIC 0x504B534Fu  /* "OSKP" - oeffentlicher Teil */
 
 typedef struct {
 	uint32_t magic;

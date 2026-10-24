@@ -67,6 +67,35 @@ passkey login, there is a known way to make one piece enough instead of twelve.
 It is written down in `../shared/vault-format.md` and deliberately not built, so
 that nobody pays for it before a measurement says it is needed.
 
+## Public keys need no press
+
+An SSH key, a certificate and a PGP key have a part that is not secret: the
+public key. The device hands that out **without asking you**, and without
+touching the secret itself.
+
+That sounds like a shortcut and is the opposite. A program like the ssh-agent
+has to list *all* your keys before anything gets signed. If every name cost a
+press on the device, you would learn to press without looking — and then the one
+press that really matters, the one before signing, would be worth nothing. That
+press is the whole point of the device.
+
+The public part is kept in its own place, apart from the secret, and it is
+encrypted like everything else: it is not secret, but the *list* of keys you own
+is nobody's business either. For a key that lives inside the security chip, the
+public part comes straight from the chip.
+
+Two things are deliberate:
+
+- An entry that has no public part — a password, a note, a one-time code —
+  says so plainly instead of handing back nothing and pretending that worked.
+- Replacing the private key removes the stored public one. It belonged to the
+  old key, and a wrong public key is worse than none: a program would offer an
+  identity it cannot sign for. You set it again with the new key.
+
+One gap, named rather than hidden: the public part is **not** in the backup file
+and does not go to a second device yet. After a restore the key works, but a
+program cannot list it until the public part has been stored again.
+
 ## Entry types
 
 Login, one-time code (TOTP and HOTP), SSH key, certificate, PGP key, API key,

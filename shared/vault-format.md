@@ -259,6 +259,56 @@ Two defences, on purpose:
 The derivation texts carry no format version. Otherwise every migration would
 need the PIN of every profile in order to build new keys.
 
+## The public part
+
+An SSH key, a certificate and a PGP key have a part that is **not secret**: the
+public key. Since version 5 an item can carry it, and `osk_store_public()`
+hands it out **without asking for confirmation and without reading the slot the
+secret sits on**.
+
+That is not convenience, it is the opposite of a weakening. The ssh-agent has
+to name *all* identities to `ssh` before anything is signed. Through
+`osk_store_reveal()` that would be one press per key just to learn a name — and
+a user who is asked for presses that do not matter learns to press without
+looking. The one press that *does* matter, at signing time, is then worth
+nothing, and that press is the core of the whole device.
+
+Two places it can come from:
+
+- **The chip.** If the private key lives in the SE050, the record holds its key
+  id and the public part comes from `osk_se050_key_public()`. The vault keeps no
+  copy and needs none.
+- **The vault**, on a slot of its **own** — never together with the secret.
+  That is the whole reason the promise above can be kept, and it is measured,
+  not asserted: the flash double counts reads per sector, and over five calls
+  the two sectors of the secret's slot are read **0** times, while a
+  `reveal()` of the same item reads them twice. The counter is proven to fire
+  before the zero is believed.
+
+It is encrypted anyway, with the profile key. Not secret does not mean that
+anyone who reads the flash should get the list of the user's keys — the same
+argument as for the search tag.
+
+Three details that are tested:
+
+- A type that has no public part (password, note, TOTP) gets
+  `OSK_ERR_UNSUPPORTED`, **not** a quietly empty buffer. An empty buffer looks
+  like "no key stored" and would be an answer to a question that makes no sense.
+- **A new secret drops the public part.** It belonged to the old key, and a
+  *wrong* public key is worse than none: the agent would offer an identity it
+  cannot sign for. It has to be set again afterwards.
+- The record says `pub_len`, not `pub_slot`, when there is none. **Slot 0 is a
+  valid slot**, so reading a 0 in `pub_slot` as "none" would mishandle exactly
+  one item per device — the first one ever written.
+
+How it gets in: `osk_store_item_set_public()` and
+`osk_store_item_set_se050_key()` in `osk_store_profiles.h`. They are there and
+not in the shared header because `osk_store_add()` has no field for it — the
+same reason the read-only flag lives there. The vault deliberately does **not**
+parse OpenSSH, X.509 or OpenPGP to peel the public part out of the secret: that
+would be format work on foreign data in the middle of the security core, and it
+would have to read the secret's slot — precisely what this path must not do.
+
 ## Secrets
 
 Each secret sits on its own slot of two sectors with its own nonce. A plaintext
@@ -326,7 +376,14 @@ The header carries the format version, and so does every index generation:
 | v1 | 240 B | the first format |
 | v2 | 256 B | read-only flag, HOTP counter |
 | v3 | 320 B | the search tag |
-| v4 | 320 B | the index in blocks: 768 items per profile instead of 64 (current) |
+| v4 | 320 B | the index in blocks: 768 items per profile instead of 64 |
+| v5 | 320 B | the public part of a key, on its own slot or in the chip (current) |
+
+**Version 5 changed no byte that version 4 used.** The new fields sit in bytes
+that were `reserved` and zero, so a version-4 block reads as "no public part,
+no chip key" and there is nothing to convert — only the version number rises.
+Tested like the others, including a power cut at each of the 9 write positions
+of the upgrade.
 
 **Version 4 did not change the record at all.** What changed is the plaintext
 header and the layout of the partition. That makes the upgrade from version 3
@@ -454,6 +511,12 @@ breaks off is detected by the closing chunk.
   because the vault has to be able to allocate index space without overwriting
   the blocks of a *locked* profile, and so it must know where they are even
   then. Names, addresses and secrets stay encrypted.
+- **The public part does not travel.** A backup file and a device-to-device
+  transfer carry the item and its search tag, but not the public part — the
+  chunk has no field for it, and adding one means a new backup file format.
+  After a restore an SSH key is there and usable, but the agent cannot name it
+  until `osk_store_item_set_public()` has been called again. Same shape of gap
+  as the missing tags after a v1/v2 upgrade. **Open.**
 - **Interrupted restore.** A backup restore or a device-to-device transfer that
   breaks off part way leaves the items read so far in the vault. Each one is
   atomic, so the vault is sound, but it is not all-or-nothing across the file.

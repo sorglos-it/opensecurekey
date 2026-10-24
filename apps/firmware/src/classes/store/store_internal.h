@@ -116,6 +116,16 @@ osk_result_t osk_blob_write(uint32_t slot, osk_item_id_t id, const uint8_t *secr
 osk_result_t osk_blob_read(const osk_idx_rec_t *rec, const osk_key_t *key, uint8_t *out, size_t cap,
 			   size_t *len_out);
 
+/* Der oeffentliche Teil eines Eintrags: eigener Datenplatz, eigene Nonce,
+ * eigene Kennung im Rahmen. Nur darum laesst er sich lesen, ohne den Platz des
+ * Geheimnisses anzufassen. */
+osk_result_t osk_pub_write(uint32_t slot, osk_item_id_t id, const uint8_t *pub, size_t len,
+			   const osk_key_t *key, uint32_t *ct_len_out,
+			   uint8_t nonce_out[OSK_NONCE_LEN]);
+
+osk_result_t osk_pub_read(const osk_idx_rec_t *rec, const osk_key_t *key, uint8_t *out, size_t cap,
+			  size_t *len_out);
+
 /* Loescht einen Datenplatz. Erst nach dem Kopfsatz, der ihn freigibt. */
 osk_result_t osk_blob_erase(uint32_t slot);
 
