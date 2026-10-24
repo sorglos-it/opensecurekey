@@ -218,10 +218,18 @@ says plainly that the backup does not bring back what is in the secure chip.
 
 **On the wire** (`shared/protocol.md`, command 19): `hello` reports `factory`
 (true while nothing is set up) and `modes`, one entry per profile; `setup`
-takes `mode` — **0 = mirrored, 1 = this device only** — and the first PIN. The
+takes `mode` — **1 = mirrored, 2 = this device only** — and the first PIN. The
 mode is a number, not a name: the device computes with it, and a name beside
 it would be a second truth that can drift. `ModeKey` turns the number into a
 text key for the interface, so no visible text lives in the code.
+
+**Why the numbering starts at 1.** CBOR reads a missing field as zero. If
+either mode were zero, a request that simply forgot the field would silently
+have picked one — the very default this design forbids, arrived at by an
+omission instead of a decision. So zero, absent and null are all errors, on
+the wire and in `/api/setup`, where `mode` is a pointer for exactly that
+reason. Three lines of `TestAssistentWeistHalbeAngabenAb` hold that down, and
+putting a mode back on zero turns one of them red.
 
 A device that says nothing about `factory` counts as set up — better no wizard
 than the irreversible question at a device that already holds accounts. A

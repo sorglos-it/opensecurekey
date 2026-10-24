@@ -290,6 +290,9 @@ func handle(payload []byte, store *vault) classes.CborMap {
 		// laesst sich nie spiegeln, ein auf dem Wirt erzeugtes nie
 		// zurueckholen. Darum ist ein zweites setup kein Sonderfall,
 		// sondern ein Fehler des Fragenden.
+		// Fehlt `mode`, ist das ein Fehler und keine Vorgabe: CBOR liest
+		// ein fehlendes Feld als null, und die Null ist darum absichtlich
+		// keine der beiden Betriebsarten.
 		mode, hasMode := classes.CborUint(data, "mode")
 		pin, _ := classes.CborBytes(data, "pin")
 		if !hasMode || !classes.ValidMode(mode) || len(pin) < classes.MinPinLen {

@@ -406,8 +406,9 @@ function setupWizard() {
 	const modeForm = document.getElementById("mode-form");
 	const confirm = document.getElementById("mode-confirm");
 	const modeNext = document.getElementById("mode-next");
-	// Die Betriebsart ist eine Zahl, und "noch nichts gewaehlt" ist
-	// deshalb null - nicht 0, denn 0 ist eine der beiden Arten.
+	// Die Betriebsart ist eine Zahl, und "noch nichts gewaehlt" ist hier
+	// null. Die Zahlen auf der Leitung fangen bei 1 an, damit eine
+	// vergessene Angabe nicht still zu einer Betriebsart wird.
 	function readMode() {
 		const picked = modeForm.querySelector("input[name=mode]:checked");
 		return picked ? Number(picked.value) : null;
@@ -432,7 +433,7 @@ function setupWizard() {
 		chosenMode = mode;
 		const label = document.getElementById("pin-mode");
 		label.textContent = t("setup.mode.chosen") + ": " +
-			t(mode === 1 ? "setup.only.title" : "setup.mirrored.title");
+			t(mode === 2 ? "setup.only.title" : "setup.mirrored.title");
 		show("pin");
 	});
 
