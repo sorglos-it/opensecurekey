@@ -1035,7 +1035,7 @@ beliebig.
 | U1 | oben | 17,75 | 17,3 | fest; Körper `x` 10,0 … 25,5, Antennenkante **25,5** |
 | U3 Flash | unten | 18 | 19,5 | **vorläufig** — kurze QSPI-Wege bleiben das Ziel |
 | U2 | unten | 23 | 17 | **vorläufig** — unter dem Modul, kurze I2C |
-| J1 | oben | **13,5** | 4,6 | mittig, +0,5 gegenüber 26 mm |
+| J1 | oben | **13,5** | **4,6 `vorlaeufig`** | quer mittig. **Der Längswert hängt an `d`** (Abstand Gehäusefront vor Platinenkante): gültig ist `y` = 4,585 − `d`. Die 4,6 gelten nur für `d` = 0 und sind **nicht gemessen** — Auflage ± 0,3 mm |
 | J4, DS1 (Glas) | oben | **13,5** | 27 / 38 | mittig |
 | D1 LED | oben | **13,5** | 66 | am Kopfende; **liegt jetzt in Z4** |
 | SW1 / SW2 | oben | 3,5 / **23,5** | 24,5 | an den Längskanten |
