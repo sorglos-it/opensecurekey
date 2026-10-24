@@ -31,7 +31,7 @@ Bauteil weg gedreht. Nichts klebt direkt am Pin.
 | D2 | Nexperia PESD5V0X1BCL,315 | C552589 |
 | Q1–Q5 | Diodes DMG2305UX, SOT-23 | C2940629 |
 | X1 | Epson Q13FC13500004, 32,768 kHz | C32346 |
-| L1 | Murata LQH2MCN100M52L, 10 µH, 2,0 × 1,6 mm | C703109 |
+| L1 | TDK NLCV25T-100K-EFRD, 10 µH, 1008 (2,5 × 2,0 mm) | C295388 |
 | C1, C2, C3, C5 | 4,7 µF 0603 X5R 16 V | C19666 |
 | C4, C10, C11, C12, C14 | 100 nF 0402 X7R | C1525 |
 | C8, C9 | 15 pF 0402 C0G | C307341 |
@@ -86,8 +86,9 @@ inductor (Reg1) are already inside the module."* **L1 an `DCCH` ist die Spule
 der REG0-Stufe** — die Funkspule für REG1 steckt im Modul. Wer das verwechselt,
 sucht an der falschen Stelle, wenn der Wirkungsgrad nicht stimmt.
 
-**Gewählt: Murata LQH2MCN100M52L**, 10 µH ±20 %, drahtgewickelt,
-2,0 × 1,6 mm, **Nennstrom 200 mA**, Gleichstromwiderstand 2,96 Ω (C703109).
+**Gewählt: TDK NLCV25T-100K-EFRD**, 10 µH ±10 %, Gehäuse 1008
+(2,5 × 2,0 mm), **Nennstrom 360 mA**, Gleichstromwiderstand **1,1 Ω**,
+AEC-Q200 (C295388).
 
 Begründung, und sie ist eine Korrektur meiner ersten Wahl: Beim Schaltregler
 muss der **Sättigungsstrom** über dem **Spitzenstrom** liegen, nicht über dem
@@ -96,21 +97,29 @@ Dauerstrom, geht aber schon bei **60 mA in die Sättigung** — dann bricht die
 Induktivität ein, die Welligkeit steigt und der Wirkungsgrad fällt, und zwar
 genau bei den Funkspitzen, wo es darauf ankommt. Die 300 mA helfen dort nichts.
 
-Murata bemisst den Nennstrom als den kleineren von zwei Werten:
-Temperaturanstieg **und** Induktivitätsabfall (|ΔL| ≤ 30 %). Die 200 mA decken
-damit die Sättigung mit ab und liegen deutlich über der Vorgabe von ≥ 150 mA.
+Mit 360 mA liegt der Nennstrom mehr als doppelt über der Vorgabe von ≥ 150 mA,
+und die **1,1 Ω sind ein Drittel** dessen, was die anderen Kandidaten haben
+(Murata LQH2MCN100M52L: 2,96 Ω; TDK MLZ2012N100: 300 mΩ bei nur 110 mA
+Sättigung). Bei einem Akkugerät zahlt der Kupferwiderstand jede Sekunde mit.
+AEC-Q200 bringt die bessere Temperaturdokumentation.
 
-> **`ungeprueft`:** Ein eigener Zahlenwert für `Isat` steht beim Teil nicht
-> dabei; belegt ist der Nennstrom von 200 mA. Wer mehr Reserve und weniger
-> Widerstand will, nimmt **TDK NLCV25T-100K-EFRD** (C295388): 1008-Gehäuse
-> (2,5 × 2,0 mm), **360 mA** Nennstrom, nur 1,1 Ω, AEC-Q200 — kostet
-> 0,5 × 0,4 mm mehr Fläche.
+> **`ungeprueft` — und das bleibt offen:** **Ein Sättigungsstrom ist für dieses
+> Teil nicht zu bekommen.** Die Händlerangabe führt `Isat` ausdrücklich als „-",
+> und die Produktseite von TDK antwortet auf Abruf mit **HTTP 403**. Belegt ist
+> allein der **Nennstrom 360 mA**. Womit TDK diesen Nennstrom bemisst
+> (Temperaturanstieg, Induktivitätsabfall oder der kleinere der beiden), steht
+> an keiner erreichbaren Stelle — jede Aussage dazu wäre erfunden.
+>
+> Das gilt offenbar für diesen Bauteiltyp allgemein: beim Murata-Teil war es
+> dasselbe Bild. Wer es genau wissen will, braucht das TDK-PDF von Hand.
+> **Für die Entscheidung reicht es:** 360 mA Nennstrom gegen einen Spitzenstrom
+> in der Größenordnung einiger zehn Milliampere ist Reserve, egal nach welcher
+> der beiden Regeln gemessen wird.
 
-**Abweichung von der Vorgabe:** Gewünscht war 0805 (2,0 × 1,25 mm). Kein
-0805-Teil der Bibliothek weist einen Sättigungs- oder Nennstrom ≥ 150 mA aus;
-das beste ist MLZ2012N100LT000 mit 110 mA. Das gewählte Teil ist **0,35 mm
-breiter** als 0805. Fürs Layout zu beachten, aber die 150-mA-Vorgabe wiegt
-schwerer als 0,35 mm.
+**Abweichung von der Vorgabe:** Gewünscht war 0805 (2,0 × 1,25 mm). **Kein
+0805-Teil der Bibliothek weist einen Sättigungs- oder Nennstrom ≥ 150 mA aus**
+(bestes: MLZ2012N100LT000 mit 110 mA). Das gewählte Teil ist 1008, also
+0,5 mm länger und 0,75 mm breiter als 0805. Bewusst bezahlt.
 
 ### 2. XL1/XL2 liegen anders als in `pinout.md`
 

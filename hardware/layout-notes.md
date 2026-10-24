@@ -281,3 +281,29 @@ wird das Gehäuse zu groß, weicht die Kapazität, nicht der Abstand.
 Leitungen und Lastschalter Q5 wird verlegt, der Sensor nicht bestückt, und der
 dadurch frei gewordene Platz geht in den Abstand zur Antenne (Antennenfeld
 26 statt 22 mm). Die Ladungspumpen-Kondensatoren der Anzeige entfallen.
+
+## Nachtrag 24.10.2026: L1 hat ein Streufeld
+
+Aus dem Schaltplan-Durchgang (`schematic-notes.md`): **L1 ist die Spule der
+REG0-Stufe** an `DCCH` — gewählt ist die **TDK NLCV25T-100K-EFRD**, 10 µH,
+Gehäuse **1008 (2,5 × 2,0 mm)**, 360 mA, 1,1 Ω. Sie ist größer als die im
+Maßtabellen-Abschnitt genannten 0603, weil kein 0603- und kein 0805-Teil der
+Bibliothek den nötigen Strom ausweist. **Die Maßtabelle oben ist insoweit
+überholt: L1 braucht 2,5 × 2,0 mm, nicht 0603.**
+
+**Platzierungsauflage:** Eine drahtgewickelte Spule ohne Schirmung hat ein
+Streufeld. L1 gehört darum
+
+- **weg von der Chipantenne des Moduls** (die braucht ohnehin Freiraum), und
+- **weg von der NFC-Antenne und ihren Leitungen.**
+
+Dazu bleibt sie **nah an `DCCH`** — das ist die Vorgabe aus `schematic.md` und
+sie widerspricht der Trennung nicht, weil Modulpin 31 auf der modulabgewandten
+Seite liegt. Das ist beim Platzieren gemeinsam mit der Regel zu lösen, dass der
+**Akku nicht hinter der NFC-Antenne** liegen darf.
+
+> **`ungeprueft`:** Dass die NLCV-Reihe drahtgewickelt und ungeschirmt ist,
+> steht in keiner erreichbaren Quelle — die Produktseite von TDK antwortet mit
+> HTTP 403, die Händlerangabe schweigt zur Bauart. Die Auflage gilt trotzdem:
+> sie kostet nur Platzierungsarbeit, und die sicherere Variante ist hier die
+> richtige. Wer das Gegenteil belegt, darf die Auflage streichen.
