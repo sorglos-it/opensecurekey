@@ -513,6 +513,13 @@ liegen nicht mehr in der Schleifenfläche.
 1. **Die genauen Pinlagen** aller Bauteile ergeben sich erst aus den
    Footprints. **Pad-Maße aus dem Gerber prüfen**, nicht aus der Bibliothek.
 2. **1,25 mm / 0,75 mm Luft um die Taster** — beim Zeichnen nachmessen.
+   **Die 0,75 mm zum Anzeigeglas sind ein Punkt fürs Gehäuse, nicht nur fürs
+   Layout:** Glasrand und Gehäuserahmen haben beide Toleranz, und 0,75 mm sind
+   schnell weg. Der Taster wird **seitlich** betätigt, braucht also eine
+   Öffnung in der Rahmenwand bei `y` 22,75 … 26,25 an beiden Längskanten —
+   dort, wo das Anzeigefenster bei `y` 27 beginnt. **An den Gehäuse-Strang
+   übergeben** (Übergabenotiz im gemeinsamen Notizordner,
+   `uebergabe-gehaeuse-taster.md`).
 3. **Die Reichweite der kleineren Antennenschleife** ist nicht bekannt und wird
    geringer sein als mit 26 mm Feld. **Gehört ehrlich ins Handbuch**, nicht in
    eine Enttäuschung beim Antippen. Ist an den Handbuch-Strang zu übergeben.
