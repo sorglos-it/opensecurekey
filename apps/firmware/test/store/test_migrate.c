@@ -127,11 +127,26 @@ static void make_old(uint8_t profile, uint16_t format)
 		const osk_idx_rec_t *n = &page->recs[i];
 		uint8_t *dst = g_plain + sizeof(head) + (size_t)i * rec_size;
 
-		if (format == OSK_FMT_V3) {
-			/* Fassung 3 hatte denselben Satz wie Fassung 4. Nur der
-			 * Kopf und die Einteilung haben sich geaendert - genau
-			 * das ist der Weg, der hier geprueft wird. */
+		if (format >= OSK_FMT_V3) {
+			/* Der Satz ist seit Fassung 3 unveraendert 320 Byte
+			 * lang. Fassung 3 -> 4 hat den Klartext-Kopf und die
+			 * Einteilung geaendert, Fassung 4 -> 5 nur Bytes
+			 * belegt, die vorher auf 0 standen. Genau diese zwei
+			 * Wege werden hier geprueft. */
 			memcpy(dst, n, sizeof(*n));
+			if (format == OSK_FMT_V4) {
+				/* Fassung 4 kannte den oeffentlichen Teil
+				 * nicht: dort lagen Nullen. */
+				osk_idx_rec_t alt4;
+
+				memcpy(&alt4, n, sizeof(alt4));
+				alt4.pub_slot = 0u;
+				alt4.pub_ct_len = 0u;
+				alt4.pub_len = 0u;
+				alt4.se050_key = 0u;
+				memset(alt4.pub_nonce, 0, sizeof(alt4.pub_nonce));
+				memcpy(dst, &alt4, sizeof(alt4));
+			}
 		} else if (format == OSK_FMT_V1) {
 			rec_v1_t o;
 
@@ -212,7 +227,15 @@ static void make_old(uint8_t profile, uint16_t format)
 	st->hdr.index_blocks[profile] = 1u;
 	g_old_len[profile] = total;
 	osk_index_drop();
-	commit_old_header(format);
+	if (format == OSK_FMT_V4) {
+		/* Der Kopf der Fassung 4 ist derselbe wie der jetzige - nur die
+		 * Fassungsnummer darin ist eine andere. Darum braucht es hier
+		 * keinen Nachbau, nur den gewoehnlichen Weg. */
+		st->hdr.format = OSK_FMT_V4;
+		T_OK(osk_hdr_commit());
+	} else {
+		commit_old_header(format);
+	}
 }
 
 static osk_item_id_t g_id[3];
@@ -459,9 +482,9 @@ static void case_unknown_format(void)
 
 void test_migrate(void)
 {
-	const uint16_t formats[3] = {OSK_FMT_V1, OSK_FMT_V2, OSK_FMT_V3};
+	const uint16_t formats[4] = {OSK_FMT_V1, OSK_FMT_V2, OSK_FMT_V3, OSK_FMT_V4};
 
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < 4; i++) {
 		printf("    [Fassung %u -> %u]\n", (unsigned)formats[i], (unsigned)OSK_FMT_CURRENT);
 		case_read_old(formats[i]);
 		case_migrate(formats[i]);

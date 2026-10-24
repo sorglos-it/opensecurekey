@@ -12,6 +12,11 @@
 struct bank {
 	uint8_t *mem;
 	uint32_t erases[SECTORS];
+	/* Lesezugriffe je Sektor. Damit laesst sich beweisen, dass ein Weg
+	 * einen bestimmten Bereich NICHT anfasst - etwa den Datenplatz eines
+	 * Geheimnisses. Eine Zusicherung, die niemand nachzaehlt, ist nur eine
+	 * Behauptung. */
+	uint32_t reads[SECTORS];
 };
 
 static struct bank g_bank[BANKS];
@@ -29,6 +34,7 @@ void fake_flash_init(void)
 		}
 		memset(g_bank[i].mem, 0xFF, OSK_VAULT_SIZE);
 		memset(g_bank[i].erases, 0, sizeof(g_bank[i].erases));
+		memset(g_bank[i].reads, 0, sizeof(g_bank[i].reads));
 	}
 	g_cur = 0;
 	g_writes = 0;
@@ -61,6 +67,7 @@ void fake_flash_wipe(void)
 {
 	memset(g_bank[g_cur].mem, 0xFF, OSK_VAULT_SIZE);
 	memset(g_bank[g_cur].erases, 0, sizeof(g_bank[g_cur].erases));
+	memset(g_bank[g_cur].reads, 0, sizeof(g_bank[g_cur].reads));
 	g_writes = 0;
 	g_dead = false;
 	g_torn = false;
@@ -138,6 +145,25 @@ uint32_t fake_flash_sectors_touched(uint32_t area_off, uint32_t area_len)
 	return n;
 }
 
+void fake_flash_read_reset(void)
+{
+	memset(g_bank[g_cur].reads, 0, sizeof(g_bank[g_cur].reads));
+}
+
+uint32_t fake_flash_reads_in(uint32_t area_off, uint32_t area_len)
+{
+	uint32_t n = 0;
+
+	for (uint32_t a = area_off; a < area_off + area_len; a += OSK_SECTOR) {
+		uint32_t s = a / OSK_SECTOR;
+
+		if (s < SECTORS) {
+			n += g_bank[g_cur].reads[s];
+		}
+	}
+	return n;
+}
+
 /* ---- die Schnittstelle, die der Tresor benutzt ----------------------- */
 
 osk_result_t osk_flash_geometry(osk_flash_geometry_t *out)
@@ -158,6 +184,15 @@ osk_result_t osk_flash_read(uint32_t addr, void *buf, size_t len)
 	}
 	if (buf == NULL || (uint64_t)addr + len > OSK_VAULT_SIZE) {
 		return OSK_ERR_ARG;
+	}
+	/* Jeder gelesene Sektor wird gezaehlt, auch wenn nur ein Byte daraus
+	 * geholt wird: gefragt ist, OB ein Bereich angefasst wurde. */
+	for (uint64_t a = addr; a < (uint64_t)addr + len; a = (a / OSK_SECTOR + 1u) * OSK_SECTOR) {
+		uint32_t s = (uint32_t)(a / OSK_SECTOR);
+
+		if (s < SECTORS) {
+			g_bank[g_cur].reads[s]++;
+		}
 	}
 	memcpy(buf, g_bank[g_cur].mem + addr, len);
 	return OSK_OK;
