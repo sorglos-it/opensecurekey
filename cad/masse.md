@@ -439,3 +439,47 @@ wird; bis dahin steht er auf längs 36,0 / quer 19,20 mm.
 - **Das Sensorfeld ist 11 × 11 mm, nicht 11 × 30,5 mm.** Der FPC2534 ist rund,
   Ø 11,0 mm. Die ganze Länge der Zelle dafür zu sperren wäre rund 20 mm zu viel.
   Was wirklich Platz braucht, ist der ZIF-Anschluss und der Weg des Flachbands.
+
+## 15. Zwei Maße, die das Layout von mir braucht
+
+### d: die Gehäusefront steht 1,90 mm vor der Platinenkante
+
+Gefragt vom Platinen-Strang am 24.10.2026, um die USB-Buchse zu setzen statt zu
+schätzen.
+
+| Ebene | längs |
+| --- | --- |
+| Platinenkante | 0,00 mm |
+| Innenseite der Frontwand (Spiel 0,30) | −0,30 mm |
+| **Außenseite der Frontwand** (Wand 1,60) | **−1,90 mm** |
+
+**d = 1,90 mm.** Daraus folgt für die Buchse, deren Vorderkante bündig mit der
+Gehäusefront sitzen soll:
+
+| | Wert |
+| --- | --- |
+| Buchsenmitte = 9,17/2 − d | **2,685 mm** |
+| Überstand des Körpers über die Platinenkante | **1,90 mm** |
+
+**Der Entwurf des Platinen-Strangs steht auf 4,60 mm** – das entspräche d = 0,
+also einem Gehäuse ohne Frontwand. **1,91 mm nach hinten**, dann stimmt es.
+
+**Was dabei zu prüfen ist, und zwar am Footprint:** bei einer Durchsteckbuchse
+darf der **Körper** über die Platinenkante ragen, die **Pins nicht.** 1,90 mm
+von 9,17 mm Körpertiefe ist üblich, aber ob die Pinreihen weit genug hinten
+liegen, sagt nur die Zeichnung an der Stelle, an der das Footprint entsteht.
+
+**Falls die Prüfung durchfällt, habe ich einen Ausweg vorbereitet, aber nicht
+eingebaut:** eine flache Mulde um die Öffnung, 0,8 mm tief, 14 mm breit. Dann
+bleiben 0,8 mm Wand stehen, **d wird 1,10 mm** und die Buchsenmitte 3,485 mm –
+der Überstand sinkt auf 1,10 mm. Kostet einen Lauf und sieht aus wie bei
+Geräten, die man kennt. **Ein Wort genügt.**
+
+### Bauteile beginnen bei quer 1,40, nicht bei 1,20
+
+Die Wand des Hohlraums steht bei **1,20 mm** – dort hört der Klemmkragen auf.
+Ein Bauteil, das genau bei 1,20 beginnt, **berührt die Wand.**
+
+Gedruckte Flächen haben je 0,1–0,2 mm Toleranz. **Zelle und Ferritfolie sollten
+also bei 1,40 mm beginnen**, damit 0,2 mm Luft bleibt. Das kostet nichts: die
+Aufteilung quer hat 1,10 mm Reserve.

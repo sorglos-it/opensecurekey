@@ -254,8 +254,14 @@ Vollständig in [masse.md](masse.md), Abschnitt 13. Das Wichtigste:
    **und 4,45 mm unten**, Ferritfolie mitgerechnet.
 5. **Aufteilung quer: Zelle 1,20…13,20, Sensorfeld 13,70…24,70 mm.** Der Sensor
    bleibt neben der Zelle, nie über ihr.
-6. **Vorderkante der USB-Buchse bündig mit der Gehäusefront** (± 0,3 mm).
-7. **Die Anzeige braucht ein 0,8 mm dickes Klebepad**, damit ihr Glas bündig mit
+6. **Vorderkante der USB-Buchse bündig mit der Gehäusefront** (± 0,3 mm). Die
+   Front steht **1,90 mm** vor der Platinenkante, die Buchsenmitte liegt damit
+   auf längs **2,685 mm**, der Körper ragt 1,90 mm über die Kante. Dass die
+   **Pins** dabei auf der Platine bleiben, ist am Footprint zu prüfen –
+   [masse.md](masse.md), Abschnitt 15.
+7. **Bauteile im Hohlraum beginnen bei quer 1,40 mm**, nicht bei 1,20: dort
+   steht die Hohlraumwand, und gedruckte Flächen haben Toleranz.
+8. **Die Anzeige braucht ein 0,8 mm dickes Klebepad**, damit ihr Glas bündig mit
    dem Modul abschließt und man nicht durch einen Schacht sieht.
 
 ## Offene Punkte
