@@ -141,9 +141,11 @@ einer, der statt sieben nur viereinhalb Monate hält, schon.
 
 ### Versorgung
 
-- C5 (4,7 µF an `VDD`), C6 (1 µF an `DEC4`) und C7 (4,7 µF an `DECUSB`)
-  **unmittelbar an die jeweiligen Modulpins** — das sind die vom Datenblatt
-  vorgeschriebenen Entkopplungen, keine Zugabe.
+- C5 (4,7 µF an `VDD`) **unmittelbar an den Modulpin 28** — die vom Datenblatt
+  vorgeschriebene Entkopplung, keine Zugabe.
+  **Berichtigung 24.10.2026:** C6 (`DEC4`) und C7 (`DECUSB`) entfallen. Das
+  Raytac-Modul führt diese Pins nicht heraus, die Entkopplung sitzt im Modul
+  (nachgezählt: 48 GPIOs + 5 × GND + 8 Versorgungs- und Datenpins = 61).
 - **L1 (10 µH) dicht an `DCCH`**, kurze dicke Leiterbahn. Sie führt den
   Schaltstrom des DC-DC-Wandlers; eine lange Zuleitung macht aus ihr eine
   Störquelle neben dem Funkteil.
@@ -281,3 +283,181 @@ wird das Gehäuse zu groß, weicht die Kapazität, nicht der Abstand.
 Leitungen und Lastschalter Q5 wird verlegt, der Sensor nicht bestückt, und der
 dadurch frei gewordene Platz geht in den Abstand zur Antenne (Antennenfeld
 26 statt 22 mm). Die Ladungspumpen-Kondensatoren der Anzeige entfallen.
+
+## Nachtrag 24.10.2026: L1 hat ein Streufeld
+
+Aus dem Schaltplan-Durchgang (`schematic-notes.md`): **L1 ist die Spule der
+REG0-Stufe** an `DCCH` — gewählt ist die **TDK NLCV25T-100K-EFRD**, 10 µH,
+Gehäuse **1008 (2,5 × 2,0 mm)**, 360 mA, 1,1 Ω. Sie ist größer als die im
+Maßtabellen-Abschnitt genannten 0603, weil kein 0603- und kein 0805-Teil der
+Bibliothek den nötigen Strom ausweist. **Die Maßtabelle oben ist insoweit
+überholt: L1 braucht 2,5 × 2,0 mm, nicht 0603.**
+
+**Platzierungsauflage:** Eine drahtgewickelte Spule ohne Schirmung hat ein
+Streufeld. L1 gehört darum
+
+- **weg von der Chipantenne des Moduls** (die braucht ohnehin Freiraum), und
+- **weg von der NFC-Antenne und ihren Leitungen.**
+
+Dazu bleibt sie **nah an `DCCH`** — das ist die Vorgabe aus `schematic.md` und
+sie widerspricht der Trennung nicht, weil Modulpin 31 auf der modulabgewandten
+Seite liegt. Das ist beim Platzieren gemeinsam mit der Regel zu lösen, dass der
+**Akku nicht hinter der NFC-Antenne** liegen darf.
+
+> **`ungeprueft`:** Dass die NLCV-Reihe drahtgewickelt und ungeschirmt ist,
+> steht in keiner erreichbaren Quelle — die Produktseite von TDK antwortet mit
+> HTTP 403, die Händlerangabe schweigt zur Bauart. Die Auflage gilt trotzdem:
+> sie kostet nur Platzierungsarbeit, und die sicherere Variante ist hier die
+> richtige. Wer das Gegenteil belegt, darf die Auflage streichen.
+
+## Erster Layout-Schritt: was ging und was nicht (24.10.2026)
+
+Vom Schaltplan unabhängig und darum vorgezogen:
+
+- **Vier Kupferlagen sind gesetzt** (gemessen: vorher 2, nachher 4). Die Lagen
+  heißen `TOP`, `INNER_1`, `INNER_2`, `BOTTOM`.
+- **Der Platinenumriss ist nicht gezeichnet.** EasyEDA lehnt das Anlegen von
+  Linien auf dem Umriss-Layer ab: *„错误：无法创建直线图元"*. **Beide Wege
+  geprüft, drei Versuche:**
+
+  | Versuch | Werkzeug | Ergebnis |
+  | --- | --- | --- |
+  | 1 | `pcb_apply`, `lines[]` mit `layer: BOARD_OUTLINE`, 0,15 mm | abgelehnt, 4 von 4, auch im Wiederholungsschritt der Brücke |
+  | 2 | `pcb_line_create` einzeln, mit und ohne `net`, bei 0/0 und bei 100/100 | abgelehnt |
+  | 3 | `pcb_apply` erneut, 0,254 mm, vorher `dry_run` (Plan sauber: 4 Linien) | abgelehnt, 4 von 4 |
+
+  **Gegenprobe:** dieselbe Linie auf `TOP` mit Netz `GND` gelingt auf Anhieb —
+  Testspur danach gelöscht. Es liegt also nicht am Werkzeug, an der Breite, an
+  den Koordinaten oder am fehlenden Netz, sondern daran, dass der Umriss-Layer
+  in EasyEDAs Typliste für Linien (`TPCB_LayersOfLine`) nicht vorkommt. Ein
+  Umriss bräuchte eine **Polylinie**, und die bietet die Brücke nicht an.
+  Nachgezählt: `pcb_lines_list` auf dem Umriss-Layer liefert **0 Segmente**.
+
+  **24 × 70 mm sind darum im Editor von Hand zu zeichnen**, bevor platziert
+  wird. Die Ecken müssen exakt aufeinandertreffen, sonst ist der Rand offen.
+- **Die Entwurfsregeln heißen noch „JLCPCB Capability(Two Layers Board)".**
+  Auch hier beides geprüft: EasyEDAs Schnittstelle hat Leseoperationen für
+  gespeicherte Regelsätze (`getAllRuleConfigurations`, `getRuleConfiguration`,
+  `getCurrentRuleConfigurationName`), **aber keine, die einen davon auswählt** —
+  und die Brücke bietet keine davon an (`UNKNOWN_OP`), Rohzugriff ist
+  ausgeschaltet. `pcb_rules_set` kann nur den ganzen Regelbaum überschreiben;
+  die Werte dafür wären geraten. **Den Vier-Lagen-Satz im Editor wählen, vor
+  dem Verlegen.**
+
+Erst danach lohnt `pcb_import_changes` — sonst landen 54 Bauteile auf einer
+Platine ohne Umriss und mit den Regeln für zwei Lagen.
+
+## Platzierungsentwurf 24.10.2026 — gerechnet, nicht gesendet
+
+Vorbereitet, solange Umriss und Regelsatz fehlen. **Nichts davon ist in EasyEDA
+eingetragen.** Wenn der Umriss steht, wird das hier abgearbeitet.
+
+### Koordinatensystem
+
+Nullpunkt **untere linke Ecke**, `x` quer über die Platine (0 … 24 mm), `y` in
+der Länge (0 … 70 mm), **`y` = 0 an der USB-Kante**. Alle Angaben sind
+Bauteilmitten in Millimetern. „oben" = Bestückungsseite mit dem Modul,
+„unten" = Rückseite mit dem Akku.
+
+### Die vier Bänder, und wie die Länge aufgeht
+
+| Band | `y` | Länge | Inhalt |
+| --- | --- | --- | --- |
+| Z1 | 0 … 9,5 | 9,5 mm | USB-C-Stecker |
+| Z2 | 9,5 … 25 | 15,5 mm | Funkmodul, Entkopplung, L1, Quarz |
+| Z3 | 25 … 51 | 26,0 mm | Akku (unten), Anzeige (oben) |
+| Z4 | 51 … 70 | 19,0 mm | NFC-Schleife, Taster |
+
+9,5 + 15,5 + 26,0 + 19,0 = **70,0 mm**. Geht auf.
+
+> ### Dabei fällt ein Rechenfehler der bisherigen Vorgaben auf
+>
+> Der Abschnitt „Die Aufteilung" oben sagt, der Akku ende bei 44 mm und das
+> Antennenfeld sei **26 mm** breit. **Das geht mit dieser Zelle nicht.** Die
+> Adafruit 1317 ist **19,75 × 26,02 mm**: Damit der Akku bei 44 endete, müsste
+> seine 26-mm-Seite **quer** liegen — quer sind aber nur **24 mm** Platine da.
+> Die Zelle muss also längs liegen, 25 … 51 mm, und **das Antennenfeld wird
+> 19 mm statt 26 mm.**
+>
+> Die schmale Alternative hilft hier nicht: die LP-401230 ist **30,5 mm lang**,
+> damit bliebe das Antennenfeld sogar nur 14,5 mm — sie gewinnt Breite
+> (12 statt 19,75 mm), nicht Länge. **Zu entscheiden** (Vorschlag: 19 mm
+> behalten und die Schleife am ganzen Rand von Z4 umlaufen lassen, Fläche
+> 19 × 24 mm; das ist mehr Fläche als eine Schleife im 26-mm-Feld bei halber
+> Breite hätte).
+
+### Z1 — USB-C, `y` 0 … 9,5
+
+| Teil | Seite | x | y | Dreh. | Warum |
+| --- | --- | --- | --- | --- | --- |
+| J1 | oben | 12,0 | 4,6 | 0° | mittig an der kurzen Kante, Kabel geht gerade ab; die vier Haltestifte nehmen die Zugkraft auf |
+| R15 | unten | 8,0 | 7,5 | 0° | dicht an J1 A5 |
+| R16 | unten | 16,0 | 7,5 | 0° | dicht an J1 B5, symmetrisch zu R15 |
+| U5 | unten | 12,0 | 10,5 | 90° | **das erste Bauteil nach dem Stecker** — Sinn eines ESD-Teils; D+/D− gehen von hier als Paar gleicher Länge zum Modul |
+| D2 | unten | 4,0 | 11,0 | 0° | an `VBUS`, nahe am Stecker |
+| C1 | unten | 19,0 | 11,0 | 0° | `VBUS`-Puffer am Ladereglereingang |
+
+### Z2 — Funkteil, `y` 9,5 … 25
+
+| Teil | Seite | x | y | Dreh. | Warum |
+| --- | --- | --- | --- | --- | --- |
+| U1 | oben | 14,75 | 17,3 | 90° | Längsachse quer, **Chipantenne zum Rand `x` = 24** (etwa 1,5 mm Abstand); die Pinreihe mit VDD/VDDH/DCCH liegt damit auf der antennenabgewandten Seite |
+| C5 | unten | 7,0 | 20,0 | 0° | unmittelbar an Modulpin 28 (`VDD`) |
+| C3, C4 | unten | 7,0 / 7,0 | 22,5 / 14,0 | 0° | `VSYS` an Modulpin 30 |
+| L1 | unten | 4,0 | 17,3 | 90° | an `DCCH` (Pin 31), **kurze dicke Bahn**; gleichzeitig am weitesten weg von der Chipantenne (`x` 22,5) und von Z4 — das löst die Streufeld-Auflage |
+| X1 | unten | 11,0 | 13,0 | 0° | an `P0.00/P0.01` (Pin 17/18), kurze symmetrische Bahnen |
+| C8, C9 | unten | 11,0 | 10,5 | 0° | je an einem Quarzbein, gleich lang |
+| Q2, Q3, R4, R5 | unten | 17 … 22 | 10 … 14 | – | Lastumschaltung, nahe `VBUS`/`VSYS`, aber außerhalb der Antennen-Freihaltezone |
+
+**Freihaltezone:** oben und unten **kein Kupfer** in `x` 17 … 24 bei
+`y` 8 … 25 (etwa 7 × 17 mm). Das ist eine Annahme — **die Maße der
+Freihaltezone stehen noch nicht im Repo** (`ungeprueft`, Raytac Approval
+Sheet). Zu prüfen, bevor die Masseflächen gegossen werden.
+
+### Z3 — Akku unten, Anzeige oben, `y` 25 … 51
+
+| Teil | Seite | x | y | Dreh. | Warum |
+| --- | --- | --- | --- | --- | --- |
+| Akku (kein Bauteil) | unten | 12,0 | 38,0 | 0° | 19,75 × 26,02 mm, liegt auf Ferritfolie; **Fläche darunter frei von Bauteilen halten**, damit die Zelle plan liegt |
+| J2 | unten | 12,0 | 49,5 | 180° | am akkufernen Ende von Z3, Kabel läuft zur Zelle zurück; weg vom Funkteil |
+| J4 | oben | 12,0 | 27,0 | 0° | FPC-Fahne der Anzeige zeigt nach `y` = 0, die Fahne wird unter das Glas gelegt |
+| DS1 (Glas) | oben | 12,0 | 38,0 | 0° | 13,90 × 22,00 mm, Fenster im Gehäuse; aktive Fläche 10,54 × 14,70 mm |
+| Q4, R9, C13, C14 | oben | 3 … 6 | 28 … 36 | – | Lastschalter der Anzeige, neben dem Glas, kurze Bahn zu J4 Pin 10/11 |
+| U2 + C10, C11 | unten | 4,0 | 29,0 | 0° | Sicherheitschip; `SE_VOUT` von Pin 15 nach Pin 18 **so kurz wie möglich** |
+| U3 + C12, R8 | unten | 19,0 | 29,0 | 0° | Flash gegenüber von U2, beides im akkunahen Streifen neben der Zelle |
+| R6, R7 | unten | 4,0 | 33,0 | 0° | I2C-Abschluss, dicht an U2 |
+| U4, C2, R1, R2 | unten | 20,0 | 44 … 49 | – | Ladepfad gebündelt am akkufernen Ende, **weg vom Funkteil** |
+| Q5, R17 | unten | 20,0 | 40,0 | 0° | Lastschalter Sensor; Stufe 2 |
+
+**Der Streifen neben der Zelle ist eng:** 24 − 19,75 = **4,25 mm**, aufgeteilt
+auf beide Seiten ergibt zweimal rund 2 mm. U2 (3 × 3 mm) und U3 (8 × 6 mm)
+passen dort **nicht** daneben, sondern nur **unter** die Zelle oder in die
+Bänder Z2/Z4. **Das ist der nächste zu lösende Widerspruch** — Vorschlag: U2
+und U3 wandern in den akkufernen Teil von Z3 (`y` 44 … 51, dort ist die Zelle
+zu Ende) und der Ladepfad nach Z1 zu C1. Dann steht in Z3 unten nur die Zelle.
+
+### Z4 — NFC, `y` 51 … 70
+
+| Teil | Seite | x | y | Dreh. | Warum |
+| --- | --- | --- | --- | --- | --- |
+| NFC-Schleife | oben + unten | – | 51 … 70 | – | Schleife am Rand umlaufend, Fläche etwa 19 × 24 mm; **innen keine geschlossene Massefläche** |
+| C15, C16 | unten | 9,0 / 15,0 | 52,0 | 0° | symmetrisch zur Mitte, **gleiche Bahnlängen zu `P0.09`/`P0.10`** |
+| SW1 | oben | 3,5 | 60,0 | 90° | seitlich betätigt, zeigt zur Kante `x` = 0 — mit dem Finger erreichbar |
+| SW2 | oben | 20,5 | 60,0 | 270° | Reset, gegenüberliegende Kante, damit er nicht versehentlich gedrückt wird |
+| D1 | oben | 12,0 | 66,0 | 0° | RGB-LED am Kopfende, von außen sichtbar; R10 … R12 daneben |
+| J5 | unten | 12,0 | 56,0 | 0° | Stiftfeld Fingerabdruck, Stufe 2, **verlegt aber nicht bestückt** |
+| J6 | unten | 12,0 | 67,0 | 0° | SWD am Kopfende, beim Entwickeln erreichbar |
+
+Die Taster in Z4 stehen in der Antennenfläche. **Sie sind aus Metall und
+beeinflussen die Abstimmung** — darum sitzen sie am Rand und werden beim
+Abstimmen mitgemessen, nicht hinterher angelötet.
+
+### Was an diesem Entwurf noch offen ist
+
+1. **U2 und U3 passen nicht neben die Zelle** (4,25 mm Streifen) — Vorschlag
+   oben, zu entscheiden.
+2. **Antennenfeld 19 mm statt 26 mm**, siehe Rechenfehler oben.
+3. **Die Freihaltezone des Moduls** ist geschätzt, nicht belegt.
+4. **Die genauen Pinlagen** aller Bauteile ergeben sich erst aus den
+   Footprints. **Pad-Maße aus dem Gerber prüfen**, nicht aus der Bibliothek.
+5. **Die Taster stehen in der Antennenfläche** — beim Abstimmen bestückt sein.
