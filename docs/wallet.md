@@ -149,8 +149,21 @@ Nothing in the wallet contains a sentence for the user. Where a text is needed,
 a language key is passed on (`wallet.vertragsaufruf`,
 `wallet.eip712-inhalt-unbekannt`, `wallet.blind-unterschrift`, …) and the
 display layer looks it up. Only what really comes from the other side — an
-address, an amount, a message — is shown verbatim. There is no `lang/` folder
-under `apps/firmware` yet; the keys above are the wallet's contribution to it.
+address, an amount, a message — is shown verbatim.
+
+The keys the wallet emits are listed below. They are **not yet in
+`apps/firmware/lang/*.json`** — that folder belongs to the display strand, and
+adding to a shared file from here would only cause a conflict. Whoever owns it
+has to put these in all five languages:
+
+```
+wallet.nichts-lesbar              wallet.blind-unterschrift
+wallet.eingang-ohne-betrag        wallet.ausgang-ohne-adresse
+wallet.gebuehr-negativ            wallet.vertragsaufruf
+wallet.vertrag-wird-angelegt      wallet.betrag-nicht-darstellbar
+wallet.gebuehr-nicht-darstellbar  wallet.adresse-zu-lang
+wallet.nachricht-nicht-lesbar     wallet.eip712-inhalt-unbekannt
+```
 
 ## What was measured, and how
 
