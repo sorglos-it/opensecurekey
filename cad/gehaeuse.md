@@ -1,150 +1,112 @@
 # Gehäuse
 
 Stand 24.10.2026. **Gezeichnet, nichts gedruckt, nichts angepasst.** Die
-Dickenrechnung steht in [masse.md](masse.md) und ist die Grundlage dieser Datei.
+Rechnung dahinter steht in [masse.md](masse.md).
 
 ## Was es ist
 
-Zwei gedruckte Schalen, die Platine dazwischen geklemmt, ohne eine einzige
-Schraube. Der USB-C-Anschluss schaut vorn an der kurzen Kante heraus, die Öse
-für den Schlüsselring sitzt hinten.
+Zwei gedruckte Schalen, die Platine dazwischen geklemmt, **ohne eine einzige
+Schraube**. Vorn eine Nase über dem USB-Anschluss, hinten die Öse für den
+Schlüsselring.
+
+| Maß | Wert |
+| --- | --- |
+| Länge mit Öse | **81,8 mm** |
+| Breite | **30,8 mm** |
+| Dicke hinten | **9,80 mm** |
+| Dicke vorn (Nase) | **11,01 mm** |
 
 | Teil | Datei | Was es ist |
 | --- | --- | --- |
-| Obere Schale | `export/shell-top.*` | Anzeigenseite: Fenster, Lichtfenster der LED, Schlitz für SW1, Blindtasche für SW2 |
-| Untere Schale | `export/shell-bottom.*` | Akkuseite: Platinentasche, Akkuraum, Sensoröffnung, Öse |
-| Blindstück | `export/sensor-plug.*` | schließt die Sensoröffnung, solange Stufe 1 ohne Sensor läuft |
+| Obere Schale | `export/shell-top.*` | Anzeigenseite: Fenster, Lichtfenster der LED, Schlitz für SW1, Blindtasche für SW2, Nase über dem Stecker |
+| Untere Schale | `export/shell-bottom.*` | Akkuseite: Platinentasche, Zellenraum, Sensoröffnung, Öse, Schnappfalz |
+| Blindstück | `export/sensor-plug.*` | schließt die Sensoröffnung, solange kein Sensor bestückt ist |
 
 Je Teil liegt ein **STL** (zum Drucken) und ein **STEP** (zum Weiterarbeiten
 ohne Fusion) in `export/`.
 
-## Die drei wichtigsten Befunde
+## Die Befunde, die der Entwurf hervorgebracht hat
 
-### 1. Das Gerät wird 9,55 mm dick, nicht 8–9 mm
+### 1. Das Gerät wird 9,80 mm dick, nicht 8–9 mm
 
 Die Schätzung in `../hardware/layout-notes.md` war eine Addition ohne Gehäuse.
-Gerechnet mit Wandstärken, Luftspalten und der Ferritfolie kommen **9,55 mm**
-heraus, realistisch 9,5–10,0 mm. Rechnung in [masse.md](masse.md), Abschnitt 3.
+Mit Wandstärken, Luftspalten und Ferritfolie sind es **9,80 mm** hinten,
+realistisch 9,8–10,3 mm. Vorn kommt die Nase dazu: **11,01 mm**.
 
-**Die schmale Zelle hilft nicht:** sie ist mit 4,05 mm dicker als die
-empfohlene (3,80 mm) und macht das Gerät auf **9,80 mm**. Sie hilft nur gegen
-Breite und Länge.
+**Die schmale Zelle ist nicht dünner, sondern dicker** (4,05 statt 3,80 mm) –
+sie hilft nur gegen Breite und Länge. Weil Stufe 2 sie braucht, ist der
+Hohlraum auf 4,65 mm ausgelegt; **damit trägt das Gehäuse beide Zellen.**
 
-### 2. Die Platine muss 26 mm breit werden, nicht 24
+### 2. Der Fingerabdrucksensor hat die Platinenbreite bestimmt
 
-**Entschieden am 24.10.2026 und eingearbeitet.** Der Grund ist der
-Fingerabdrucksensor der Stufe 2:
+Auf 24 mm passt er nicht neben die Zelle, und in ein anderes Drittel kann er
+nicht – vorn die Chipantenne, hinten die NFC-Antenne.
 
-| | bei 24 mm | bei 26 mm | **bei 27 mm** |
+| Platine | nutzbar quer | gebraucht | Reserve |
 | --- | --- | --- | --- |
-| nutzbar quer (Platine − 2 × 1,2 mm bauteilfreier Rand) | 21,60 | 23,60 | **24,60 mm** |
-| gebraucht: Zelle 12,0 + **Trennabstand 0,5** + Sensor 11,0 | 23,50 | 23,50 | 23,50 mm |
-| | **1,90 zu wenig** | 0,10 Reserve | **1,10 Reserve** |
+| 24 mm | 21,60 | 23,50 | **fehlt 1,90** |
+| 26 mm | 23,60 | 23,50 | 0,10 |
+| **27 mm** | **24,60** | 23,50 | **1,10** |
 
-**Berichtigt am 24.10.2026:** In der ersten Fassung fehlte in dieser Summe der
-Trennabstand von 0,5 mm zwischen Zelle und Sensor, darum stand hier „0,60 mm
-Reserve". **Richtig sind 0,10 mm** – das ist keine Reserve. Die Aufteilung
-selbst war richtig gerechnet, nur die Summe nicht; gefunden hat es der
-Platinen-Strang. **Empfehlung daher: 27 mm, falls Stufe 2 den Sensor bekommt**
-(Begründung und die Zahl, die dafür fehlt, in [masse.md](masse.md),
-Abschnitt 4a). Bei 26 mm bricht meine Sensoröffnung 0,40 mm in die
-Auflagestufe ein.
+**Thomas hat 27 mm entschieden.** Das kostet 3 mm Gehäusebreite gegenüber dem
+ursprünglichen Entwurf und ändert die Dicke nicht. Begründung und die Zahl, die
+dafür fehlt, in [masse.md](masse.md), Abschnitt 4.
 
-In ein anderes Drittel kann der Sensor nicht: vorn liegt die Chipantenne des
-Moduls, hinten die NFC-Antenne – beide dürfen kein Metall und kein Einlegeteil
-in der Nähe haben.
+### 3. Der USB-Stecker passt nicht in den Hohlraum – darum die Nase
 
-**Was die 2 mm kosten:** das Gehäuse wird **29,8 mm breit statt 27,8 mm**. Die
-Dicke bleibt bei 9,55 mm, die Länge bei 70 mm. Das ist der ganze Preis.
+GCTs Zeichnung nennt das Teil „USB 2.0 Type C Receptacle, Dip Type, **PCB Top
+Mount**": der Körper sitzt vollständig **auf** der Platine und trägt 3,46 mm
+auf. Der Hohlraum hat 2,35 mm.
 
-**Was sie voraussetzen:** die **schmale Zelle** LP-401230-J (12,0 mm breit,
-100 mAh). Mit der empfohlenen Zelle (Adafruit 1317, 19,75 mm) wären 30,75 mm
-nötig – das geht auch auf 26 mm nicht. Wer den Sensor will, zahlt mit der
-Laufzeit: etwa 4,6 statt 6,8 Monate (`../docs/power-budget.md`).
+**Thomas hat entschieden, bei der Buchse zu bleiben.** Also wird das Dach über
+dem Stecker angehoben:
 
-**Stufe 1 ohne Sensor darf weiter die große Zelle nehmen** – der Akkuraum ist
-23,6 mm breit. Das Gehäuse trägt beide Stufen, und genau dafür sind die 2 mm
-ausgegeben.
+| Maß | Wert |
+| --- | --- |
+| Hohlraum unter der Nase | 3,56 mm |
+| Nase reicht von der Front bis | 10,20 mm |
+| Stufe gegenüber dem hinteren Dach | **1,21 mm** |
+| Wand über der Frontöffnung | 0,80 mm |
 
-Aufteilung quer, als Vorgabe ans Layout: **Zelle y = 0…12 mm, Sensorfeld
-y = 12,5…23,5 mm.** Die Sensoröffnung des Gehäuses liegt auf Mitte y = 18,0 mm.
+Volle Breite, senkrechte Stufe, keine Fase – das druckt ohne Stütze und sieht
+gewollt aus.
 
-### 3. Der USB-Stecker passt nicht in den Hohlraum
+### 4. Der Schnappfalz stand vor zwei Öffnungen
 
-**Die Befürchtung hat sich bestätigt.** GCTs Zeichnung (Rev. A1, 09.04.2018)
-nennt das Teil im Schriftfeld „USB 2.0 Type C Receptacle, Dip Type, **PCB Top
-Mount**" – der Körper sitzt vollständig **auf** der Platine.
+Gefunden beim Nachrechnen der Taster-Übergabe. Der Falz der unteren Schale
+steigt 1,0 mm über die Trennebene und **stand damit mitten vor der
+Tasteröffnung und vor der USB-Öffnung.** Der Taster wäre nicht zu drücken, das
+Kabel nicht zu stecken gewesen.
 
-| Bauhöhe laut Zeichnung | Hohlraum | fehlt |
-| --- | --- | --- |
-| 3,16 mm (Blechgehäuse außen) | 2,35 mm | **0,81 mm** |
-| 3,46 mm (0,30 mm tiefer gemessen) | 2,35 mm | **1,11 mm** |
+Behoben und belegt: der Falz ist an beiden Stellen unterbrochen, und zehn
+Proben im Körper prüfen das bei jedem Bau nach.
 
-Welche der beiden über der Platinenoberseite liegt, ist aus der Zeichnung nicht
-sicher abzulesen (`ungeprueft`) – **es ändert an der Entscheidung nichts, beide
-passen nicht.** Nebenbei berichtigt: die „Öffnung 3,16 mm" aus
-`../hardware/layout-notes.md` ist nicht die Öffnung. Die Öffnung ist
-**8,35 × 2,56 mm**, 3,16 mm ist das Blechgehäuse außen. Rechnung und Quellen in
-[masse.md](masse.md), Abschnitt 9.
-
-**Zwei Wege, und das Gehäuse hat dazu keine Meinung – es nennt nur den Preis:**
-
-| Weg | Dicke | Gehäuseänderung |
-| --- | --- | --- |
-| **A: vorn dicker** | **10,66 mm** vorn, 9,55 mm sonst | Nase über 8,95 × 7,26 mm |
-| **B: Mid-Mount-Stecker** | **9,55 mm, unverändert** | **keine** |
-
-Bei Weg B stünde der Stecker nur noch etwa 2,13 mm über der Platine und passte
-in den vorhandenen Hohlraum. Preis: ein anderes Teil und ein Ausschnitt in der
-Platine.
-
-**Solange das nicht entschieden ist, bleibt die Frontöffnung so, wie sie ist**
-(4,0 mm hoch, mittig zur Platinenmitte) – sie passt zu Weg B und ist bei Weg A
-in einem Zug nachzuziehen.
-
-### 4. Der Schnappfalz stand vor zwei Öffnungen – behoben
-
-Gefunden am 24.10.2026 beim Nachrechnen der Taster-Übergabe. Der Falz der
-unteren Schale steigt 1,0 mm über die Trennebene – **und stand damit mitten vor
-der Tasteröffnung (Taster 0…1,35 mm) und vor der USB-Öffnung
-(−2,4…+1,6 mm).** Der Taster wäre nicht zu drücken gewesen, das Kabel nicht zu
-stecken.
-
-Behoben: der Falz ist an beiden Stellen unterbrochen. Nachgewiesen mit
-Stichproben im Körper (`frei` dort, wo die Öffnung ist, `voll` daneben) – die
-Prüfung steht unter „Was geprüft ist".
-
-**Das war kein Rechenfehler in den Maßen, sondern ein Loch in der Form**, das
-die Dickenrechnung nicht gezeigt hätte. Es ist nur aufgefallen, weil der
+**Das war kein Rechenfehler, sondern ein Loch in der Form** – keine
+Dickenrechnung hätte es gezeigt. Aufgefallen ist es nur, weil der
 Platinen-Strang nach den Tastern gefragt hat.
 
 ## Die beiden Taster
 
-Lage aus der Übergabe des Platinen-Strangs: beide bei **längs
-22,75…26,25 mm**, an den **Längskanten**, seitlich betätigt, 1,35 mm hoch.
+Beide bei **längs 22,75…26,25 mm** an den Längskanten, seitlich betätigt.
 
-**Der enge Punkt der Übergabe – 0,75 mm zum Anzeigeglas – ist nicht die Grenze
-des Rahmens.** Das Fenster ist ein glatter Durchbruch im Dach ohne nach unten
-gezogenen Rand und beginnt erst bei 30,15 mm: **3,90 mm vom Taster entfernt.**
-Quer liegt das Glas 4,85 mm neben dem Klemmkragen. Die vollständige Rechnung
-steht in [masse.md](masse.md), Abschnitt 8.
+Der enge Punkt der Übergabe – 0,75 mm zum Anzeigeglas – ist **nicht die Grenze
+des Rahmens**: das Fenster ist ein glatter Durchbruch im Dach ohne nach unten
+gezogenen Rand und beginnt erst bei 30,15 mm, also **3,90 mm vom Taster**.
 
 **Was der Rahmen wirklich brauchte, war etwas anderes:** der Klemmkragen läuft
 1,2 mm breit am Platinenrand um – genau dort, wo ein seitlich betätigter Taster
-sitzt. Er ist jetzt an **beiden** Längskanten über 22,25…26,75 mm bis auf
-1,65 mm Höhe freigestellt. Das unterbricht die Klemmung an zwei Stellen um je
-4,5 mm von rund 192 mm Umfang – das trägt sie.
+sitzt. Er ist jetzt an beiden Längskanten über 21,70…27,30 mm bis auf 1,65 mm
+Höhe freigestellt: zwei Unterbrechungen von je 5,6 mm bei rund 194 mm Umfang.
 
 | Taster | Kante | Gehäuse |
 | --- | --- | --- |
-| SW1 (Bestätigen) | quer 0 | **Schlitz durch die Wand**, 4,5 × 2,4 mm, 0,50 mm Luft je Seite |
-| SW2 (Reset) | quer 26 | **Blindtasche 0,8 mm**, Wand bleibt 0,8 mm stehen – von außen nicht erreichbar |
+| SW1 (Bestätigen) | quer 0 | **Schlitz durch die Wand**, 4,5 × 2,4 mm |
+| SW2 (Reset) | quer 27 | **Blindtasche 0,8 mm**, von außen nicht erreichbar |
 
 SW2 bekommt keine durchgehende Öffnung, weil `../hardware/layout-notes.md` das
-ausdrücklich verlangt: der Reset-Taster darf von außen nicht zu drücken sein.
-Ganz zumachen geht aber auch nicht – eine geschlossene Wand stünde 0,3 mm vor
-dem Stößel und könnte ihn dauerhaft gedrückt halten. Die Blindtasche gibt ihm
-**1,10 mm ab Platinenrand**.
+verlangt. Ganz zumachen geht aber auch nicht – eine geschlossene Wand stünde
+0,3 mm vor dem Stößel und könnte ihn dauerhaft gedrückt halten. Die Tasche gibt
+ihm 1,10 mm, gebraucht werden 0,85 mm.
 
 ## Wie die Teile zusammenhalten
 
@@ -153,38 +115,35 @@ dem Stößel und könnte ihn dauerhaft gedrückt halten. Die Blindtasche gibt ih
 - Die obere Schale hat innen einen 1,2 mm breiten Kragen, dessen Unterseite
   genau auf der Trennebene liegt. Er drückt die Platine auf die Stufe – **das
   ersetzt Schrauben und Befestigungslöcher.**
-- **Stufenfalz:** die äußere Hälfte der Seitenwand (0,8 von 1,6 mm) steigt an der
-  unteren Schale 1,0 mm über die Trennebene; die obere Schale hat die passende
-  Aufnahme. Das führt die Teile und macht die Fuge dicht gegen Staub.
-- **Vier Schnappwülste**, zwei je lange Seite, bei 15 und 45 mm. Jeder ist
-  6,0 mm lang, 0,5 mm hoch und steht 0,4 mm vor; in der oberen Schale sitzt die
-  passende Tasche. Sie sind absichtlich **nicht an den Schmalseiten** – dort
-  liegen USB-Öffnung und Öse.
-- Zum Öffnen: an einer langen Seite mit dem Fingernagel oder einem dünnen
-  Plättchen in die Fuge, die Wand gibt 0,4 mm nach.
+- **Stufenfalz:** die äußere Hälfte der Seitenwand (0,8 von 1,6 mm) steigt an
+  der unteren Schale 1,0 mm über die Trennebene; die obere Schale hat die
+  passende Aufnahme. Das führt die Teile und hält die Fuge dicht gegen Staub.
+- **Vier Schnappwülste**, zwei je lange Seite, bei 15 und 45 mm. Jeder 6,0 mm
+  lang, 0,5 mm hoch, 0,4 mm vorstehend. Absichtlich **nicht an den
+  Schmalseiten** – dort liegen USB-Öffnung und Öse.
+- Zum Öffnen: an einer langen Seite mit dem Fingernagel in die Fuge, die Wand
+  gibt 0,4 mm nach.
 
 ## Für den 3D-Druck ausgelegt
 
-Druckerwerte, mit denen gerechnet ist, stehen in [masse.md](masse.md),
-Abschnitt 5 – kurz: **0,4 mm Düse, 0,2 mm Schichthöhe, PETG.**
+Druckerwerte in [masse.md](masse.md), Abschnitt 7 – kurz: **0,4 mm Düse, 0,2 mm
+Schichthöhe, PETG.**
 
 - **Wandstärken:** Seitenwand 1,6 mm (4 Bahnen), Dach und Boden 1,0 mm
-  (5 Schichten), kleinster Steg 0,8 mm (2 Bahnen). Nichts ist dünner.
-- **Kein Stützmaterial.** Jede Schale wird mit der Öffnung nach oben gedruckt,
-  der Boden liegt auf der Platte. Alle Öffnungen in den Seitenwänden sind
-  senkrechte Schlitze. Das Fenster im Dach ist ein Durchbruch in einer flachen
-  Decke – das druckt als Brücke.
-- **Längste freitragende Brücke: 23,6 mm** – die Decke über dem Hohlraum. Das
-  ist für PETG unkritisch; wer es sauber will, druckt die erste Deckenschicht
-  langsamer.
-- **Überhänge:** die Auflagestufe für die Platine ist ein 1,2 mm breiter
-  waagerechter Vorsprung. 1,2 mm trägt sich ohne Stütze; wer auf Nummer sicher
-  gehen will, gibt ihr im Schneider eine 45°-Fase.
-- **Keine Löcher unter Ø 1,6 mm** und keine Schraubgewinde – gedruckte Gewinde in
-  dieser Größe halten nicht.
+  (5 Schichten), kleinster Steg 0,8 mm. Nichts ist dünner.
+- **Kein Stützmaterial.** Jede Schale wird mit der Öffnung nach oben gedruckt.
+  Alle Öffnungen in den Seitenwänden sind senkrechte Schlitze, das Fenster im
+  Dach ist ein Durchbruch in einer flachen Decke – das druckt als Brücke.
+- **Längste freitragende Brücke: 24,6 mm** – die Decke über dem Hohlraum. Für
+  PETG unkritisch; wer es sauber will, druckt die erste Deckenschicht langsamer.
+- **Die Nase ist eine senkrechte Stufe von 1,21 mm** – kein Überhang, keine
+  Stütze, keine Fase nötig.
+- **Überhänge:** die Auflagestufe ist ein 1,2 mm breiter waagerechter Vorsprung.
+  Das trägt sich ohne Stütze; wer sichergehen will, gibt ihr im Schneider eine
+  45°-Fase.
+- **Keine Löcher unter Ø 1,6 mm**, keine gedruckten Gewinde.
 - **Spiel Teil zu Teil 0,2 mm.** Sitzt der Falz nach dem ersten Druck zu fest
-  oder zu lose, ist das der Parameter `lip_t` bzw. der Schneider-Wert
-  „horizontale Ausdehnung".
+  oder zu lose, ist das `lip_t` bzw. die „horizontale Ausdehnung" im Schneider.
 
 ## Rücksicht auf die NFC-Antenne
 
@@ -192,20 +151,16 @@ Aus den Layout-Vorgaben: kein Metall, kein Einlegeteil in der Nähe der Antenne,
 und der Akku darf nicht dahinter liegen. Das Gehäuse hält das ein:
 
 - **Kein Einlegeteil, keine Schraube, keine Mutter, kein Gewindeeinsatz** im
-  ganzen Gehäuse – es hält allein durch Schnapp und Klemmung. Das ist der
-  eigentliche Grund für die schraubenlose Bauweise.
+  ganzen Gehäuse. Das ist der eigentliche Grund für die schraubenlose Bauweise.
 - **Die Öse ist aus demselben Kunststoff** und sitzt hinter der Platine
-  (x = 71,9…79,9 mm), nicht über dem Antennenfeld (x = 44…70 mm).
+  (längs 71,9…79,9 mm), nicht über dem Antennenfeld.
 - **Über dem Antennenfeld liegt nur 1,0 mm Kunststoff** – kein Akku, kein
   Blindstück, keine Verstärkungsrippe.
-- Die Ferritfolie liegt auf der Zelle, nicht im Gehäuse – das Gehäuse hat an
-  dieser Stelle nichts.
 
 **Eine Warnung, die ich nicht wegrechnen kann:** Ein **stählerner
 Schlüsselring** im Ösenloch liegt etwa 10 mm von der Kante des Antennenfelds.
-Das ist leitfähiges Metall in der Nähe der Antenne, und wie stark es verstimmt,
-lässt sich nur **am Netzwerkanalysator messen**, nicht rechnen. Empfehlung:
-**eine Textilschlaufe oder ein Kunststoffring**, und die Abstimmung der Antenne
+Wie stark das verstimmt, lässt sich nur **am Netzwerkanalysator messen**.
+Empfehlung: **eine Textilschlaufe oder ein Kunststoffring**, und die Abstimmung
 wird mit dem Ring am Gerät gemessen, nicht ohne.
 
 ## Parametrisch: wo die Maße herkommen
@@ -215,7 +170,7 @@ mit Kommentar. Im Körper steht keine Zahl, die nicht von dort kommt.
 
 ```text
 cad/
-├── masse.md          die Dickenrechnung - kommt vor der Zeichnung
+├── masse.md          die Rechnung - kommt vor der Zeichnung
 ├── gehaeuse.md       diese Datei
 ├── parameters.csv    alle Maße, eine Zeile je Maß
 ├── housing.py        Fusion-360-Skript: baut und exportiert
@@ -225,18 +180,17 @@ cad/
 └── export/           STL, STEP (und housing.f3d, sobald Fusion gelaufen ist)
 ```
 
-**Die endgültige Platinengröße eintragen** heißt: in `parameters.csv` die Zeilen
+**Eine neue Platinengröße eintragen** heißt: in `parameters.csv` die Zeilen
 `pcb_len`, `pcb_wid`, `pcb_th` ändern und neu bauen. Alles andere – Außenmaße,
 Hohlraum, Auflagestufe, Lage der Öse – rechnet sich daraus. Dasselbe gilt für
-die Lage von Fenster, Taster, LED und Sensoröffnung (`*_cx`, `*_cy`), sobald das
-Layout sie festlegt.
+die Lage von Fenster, Taster, LED und Sensoröffnung (`*_cx`, `*_cy`).
 
 ```powershell
 python cad\tools\build_mesh.py
 ```
 
-Das schreibt STL und STEP neu und prüft dabei selbst, dass jedes Netz dicht ist
-(jede Kante genau zweimal, gegenläufig) und ein positives Volumen hat. Ohne die
+Das schreibt STL und STEP neu und prüft dabei selbst, dass jedes Netz dicht ist,
+ein positives Volumen hat und **jede Öffnung wirklich offen ist**. Ohne die
 Zeile `check: ok` am Ende ist der Lauf nicht durchgelaufen.
 
 In Fusion 360: `cad/housing.py` als Skript hinzufügen, eine **leere** neue
@@ -249,78 +203,63 @@ die drei Teile und schreibt STEP, STL und `housing.f3d` nach `export/`.
 | --- | --- |
 | Maße gerechnet | **ja** – [masse.md](masse.md), jede Zahl mit Quelle |
 | Netz dicht und Volumen positiv | **ja** – Selbstprüfung in `build_mesh.py`, `check: ok` |
-| Jede Öffnung wirklich offen | **ja** – 10 Proben im Körper (`frei` in der Öffnung, `voll` daneben). Gegenprobe gemacht: schiebt man den Falz wieder davor, fällt die Probe – sie ist also nicht hohl |
+| Jede Öffnung wirklich offen | **ja** – 10 Proben im Körper (`frei` in der Öffnung, `voll` daneben). Gegenprobe gemacht: schiebt man den Falz wieder davor, fallen sie – die Probe ist also nicht hohl |
 | STL erzeugt | **ja** – 3 Dateien in `export/` |
 | STEP erzeugt | **ja**, aber **in keinem CAD geöffnet** – auf diesem Rechner ist keines vorhanden. Das Skript prüft nur, dass jede benutzte Nummer vergeben ist. **`ungeprueft`** |
-| Fusion-Datei `housing.f3d` | **nein** – Fusion läuft hier nicht. Entsteht beim ersten Lauf von `housing.py` |
-| `housing.py` in Fusion gelaufen | **nein** – nur auf Syntax geprüft (`py_compile`). **`ungeprueft`** |
+| Fusion-Datei `housing.f3d` | **nein** – Fusion läuft hier nicht |
+| `housing.py` in Fusion gelaufen | **nein** – nur auf Syntax geprüft. **`ungeprueft`** |
 | Gedruckt, Platine eingelegt, Passung geprüft | **nein** – die Platine gibt es nicht |
 
 **Das STL ist eckig gerechnet:** Gehäuseecken, Lichtfenster, Sensoröffnung und
 Ösenloch sind im STL **Quadrate**. Die Rundungen (Ecken R 3 mm, Löcher rund)
 macht `housing.py` in Fusion. Das STL ist damit zum **Maßprüfen** gut und zum
-**Vorzeigen**; wer das fertige Teil drucken will, lässt erst Fusion laufen.
-Der Grund steht offen im Kopf von `build_mesh.py`: ein exakter Schnitt
-achsparalleler Quader ist in reinem Python machbar und nachprüfbar, ein runder
-nicht.
+**Vorzeigen**; wer das fertige Teil drucken will, lässt erst Fusion laufen. Der
+Grund steht im Kopf von `build_mesh.py`: ein exakter Schnitt achsparalleler
+Quader ist in reinem Python machbar und nachprüfbar, ein runder nicht.
 
 ## Was das Layout wissen muss
 
-Die vollständige Liste steht in [masse.md](masse.md), Abschnitt 7. Das
-Wichtigste:
+Vollständig in [masse.md](masse.md), Abschnitt 13. Das Wichtigste:
 
-1. **Das Gehäuse verträgt 26 × 70 mm, 0,8 mm dick** – die Breite ist gegenüber
-   den Layout-Vorgaben von 24 auf 26 mm erhöht, Begründung in Befund 2. Die
-   Länge und die Dicke bleiben, wie sie dort stehen. Toleranz ohne Nacharbeit:
-   **± 0,2 mm** je Maß. Jede größere
-   Änderung ist eine Zeile in `parameters.csv` und ein neuer Druck, kein
-   Neuentwurf.
+1. **Platine 27 × 70 mm, 0,8 mm dick.** Toleranz ohne Nacharbeit ± 0,2 mm.
 2. **Rundum 1,2 mm Platinenrand oben und unten frei von Bauteilen.** Dort wird
-   geklemmt. Ohne diesen Rand hält die Platine nicht.
+   geklemmt; ohne diesen Rand hält die Platine nicht.
 3. **Platinenecken R 1,5 mm abrunden.**
-4. **Höhengrenzen: 2,05 mm auf der Anzeigenseite, 4,20 mm auf der Akkuseite**
-   (Ferritfolie mitgerechnet). Wer höher baut, macht das Gerät dicker.
-5. **Stufe 2 mit Sensor braucht die schmale Zelle** (LP-401230-J, 12 mm) und die
-   Aufteilung quer: Zelle y = 0…12 mm, Sensorfeld y = 12,5…23,5 mm. Siehe
-   Befund 2. Stufe 1 ohne Sensor darf die große Zelle nehmen.
-6. **Die Bauhöhe des USB4085 über der Platine ist zu besorgen** – siehe
-   Befund 3.
+4. **Höhengrenzen: 2,05 mm oben** (außer der USB-Buchse auf den ersten 10,2 mm)
+   **und 4,45 mm unten**, Ferritfolie mitgerechnet.
+5. **Aufteilung quer: Zelle 1,20…13,20, Sensorfeld 13,70…24,70 mm.** Der Sensor
+   bleibt neben der Zelle, nie über ihr.
+6. **Vorderkante der USB-Buchse bündig mit der Gehäusefront** (± 0,3 mm).
 7. **Die Anzeige braucht ein 0,8 mm dickes Klebepad**, damit ihr Glas bündig mit
    dem Modul abschließt und man nicht durch einen Schacht sieht.
 
 ## Offene Punkte
 
-1. **Welcher USB-Weg** – Befund 3. Entscheidung A oder B liegt bei Thomas. Rein
-   aus Sicht des Gehäuses ist B besser: es ändert nichts und bleibt bei 9,55 mm.
-   Offen bleibt dabei nur, ob 3,16 oder 3,46 mm über der Platine stehen – das
-   braucht erst Weg A, für die Entscheidung reicht es nicht.
-2. **Zellenwahl für Stufe 2** – die Platinenbreite ist entschieden (26 mm,
-   Befund 2), die Zelle nicht: der Sensor erzwingt die schmale mit 100 mAh.
-   Welche Laufzeit es sein soll, ist nicht meine Entscheidung.
+1. **Ob der Stecker 3,16 oder 3,46 mm über der Platine steht** – gerechnet ist
+   mit der größeren Zahl, also der sicheren. Betrifft nur die Höhe der Nase.
+2. **Breitentoleranz der Zelle** – steht in `../docs/parts.md` nicht. Sie ist
+   das, was die 1,10 mm Reserve der Stufe 2 auffangen muss.
 3. **Körperlänge des EVQP7C01P** – Panasonic sagt 3,5 mm, DigiKey 4,70 mm. Die
-   Freistellung ist mit 5,6 mm so gewählt, dass **beide Lesarten passen**
-   (1,05 bzw. 0,45 mm Luft je Seite). Sollte am Footprint auffallen, welche
-   stimmt: Bescheid sagen, dann kann die Freistellung wieder schrumpfen.
-   Der Stößel ist geklärt – 0,65 mm plus 0,2 mm Hub, Reserve 0,25 mm.
-4. ~~Lage der LED~~ **beantwortet**: längs 66,0 mm am Kopfende, quer 13,0 mm
-   (Plattenmitte). Eingearbeitet – das Lichtfenster hat 1,55 mm Rand zum
-   Hohlraumende und 18,90 mm Abstand zum Anzeigefenster.
-5. **Lage der Sensoröffnung** ist vorläufig (längs 36, quer 18). Fenster und
-   Taster stehen jetzt auf den Werten der Übergabe des Platinen-Strangs.
-6. **Ferritfolie**: Dicke 0,3–0,5 mm angenommen, Material offen (offener Punkt 3
-   der Layout-Vorgaben). ±0,2 mm Gesamtdicke.
-7. **Platz für die umgelegte FPC-Fahne der Anzeige** ist nicht bemaßt – der
-   Hohlraum ist 2,35 mm hoch, ob das reicht, sagt erst das Layout.
-8. **Freihaltezone um die Chipantenne des Moduls** (offener Punkt 1 der
-   Layout-Vorgaben) – davon hängt ab, ob die Seitenwand dort wegbleiben muss.
-9. **Welcher 3D-Drucker** – die Druckerwerte sind Annahmen für einen
-   gewöhnlichen Schmelzdrucker.
+   Freistellung ist mit 5,6 mm so gewählt, dass **beide Lesarten passen**.
+   Sollte am Footprint auffallen, welche stimmt: Bescheid sagen.
+4. **Lage der Sensoröffnung längs** – steht vorläufig auf 36,0 mm.
+5. **Ob die Zelle außermittig liegt** – der Platinen-Strang rechnet das neu,
+   seit die Zelle 12 statt 19,75 mm breit ist. Vom Gehäuse aus geht beides,
+   solange die Zelle **nicht vor 1,20 mm** beginnt: davor liegt der Klemmkragen.
+6. **Ferritfolie**: Dicke 0,3–0,5 mm angenommen, Material offen. ±0,2 mm
+   Gesamtdicke.
+7. **Platz für die umgelegte FPC-Fahne der Anzeige** – der Hohlraum ist 2,35 mm
+   hoch, ob das reicht, sagt erst das Layout.
+8. **Freihaltezone um die Chipantenne des Moduls** – davon hängt ab, ob die
+   Seitenwand dort wegbleiben muss.
+9. **Welcher 3D-Drucker** – die Druckerwerte sind Annahmen.
 10. **Schlüsselring aus Stahl neben der NFC-Antenne** – nur messbar, nicht
     rechenbar.
-11. **Buchse oder Stecker vorn?** Noch nicht entschieden. Kommt der Stecker
-    statt der Buchse, ragt die Platine vorn als Zunge heraus und das Gehäuse
-    muss dort **enden statt zu umschließen** – die ganze Frontpartie wird dann
-    anders. Der Hohlraumkonflikt aus Befund 3 entfiele dabei. **Bis das
-    entschieden ist, wird die Frontpartie nicht festgezogen.**
-12. **Breitentoleranz der Zelle** – steht in `../docs/parts.md` nicht. Sie ist
-    das, was über 26 oder 27 mm entscheidet, siehe Befund 2.
+
+**Geschlossen am 24.10.2026:** *Buchse oder Stecker vorn.* Thomas hat die
+**Buchse** entschieden. Verworfen wurden die geätzte Zunge (ohne Metallhülle
+nicht spezifikationsfähig, keine Quelle zur Konformität gefunden), der
+Randstecker (14 Wochen Lieferzeit, mechanisch schwächer) und der Mid-Mount
+(hätte 1,21 mm gespart, kostet aber Teiletausch und einen Platinenausschnitt).
+Die vollständige Liste des Verworfenen steht in [masse.md](masse.md),
+Abschnitt 9.
