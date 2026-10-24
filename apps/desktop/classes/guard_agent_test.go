@@ -179,17 +179,32 @@ func TestAgentLicense(t *testing.T) {
 
 	answer := agentTestLine(t, agent.Address(), "license "+
 		hex.EncodeToString([]byte("mein-programm")))
-	if got := agentTestValue(t, answer, "seats"); got != "5" {
-		t.Fatalf("Plaetze: %q", got)
+	raw, err := hex.DecodeString(agentTestValue(t, answer, "lic"))
+	if err != nil {
+		t.Fatalf("Block: %v", err)
 	}
-	if got := agentTestValue(t, answer, "expires"); got != "1800000000" {
-		t.Fatalf("Ablauf: %q", got)
+	// Der Dienst gibt den unterschriebenen Block heraus, keine fertig
+	// gelesenen Felder. Geprueft wird hier - genau wie es eine Bibliothek
+	// in C, PHP, Python oder .NET tun muss.
+	license, err := LicenseVerify(issuerPublic, raw)
+	if err != nil {
+		t.Fatalf("der Block haelt der Pruefung nicht: %v", err)
 	}
-	tiers := agentTestValue(t, answer, "tiers")
-	want := hex.EncodeToString([]byte("basis")) + "," +
-		hex.EncodeToString([]byte("berichte"))
-	if tiers != want {
-		t.Fatalf("Ausbaustufen: %q", tiers)
+	if license.Seats != 5 || license.ExpiresUTC != 1800000000 ||
+		!license.HasTier("berichte") {
+		t.Fatalf("falsche Lizenz: %+v", license)
+	}
+	// Und gegen einen fremden Herstellerschluessel haelt er nicht.
+	stranger, _ := licenseTestIssuer(t, "irgendwer-sonst")
+	if _, err := LicenseVerify(stranger, raw); err == nil {
+		t.Fatal("der Block galt auch unter fremdem Herstellerschluessel")
+	}
+	// Und es gibt keinen Weg mehr, der ungepruefte Felder liefert.
+	for _, gone := range []string{"seats", "expires", "tiers", "product"} {
+		if strings.Contains(answer, " "+gone+"=") {
+			t.Fatalf("die Antwort traegt wieder %s - ungepruefte Felder "+
+				"sind der Weg, den es nicht geben soll", gone)
+		}
 	}
 	// Ein Produkt, das nicht darauf liegt, wird genannt.
 	missing := agentTestLine(t, agent.Address(), "license "+

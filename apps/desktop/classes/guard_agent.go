@@ -220,6 +220,12 @@ func (a *GuardAgent) answerSeal(args []string, closing bool) string {
 	return "OK plain=" + hex.EncodeToString(plain)
 }
 
+// answerLicense gibt den unterschriebenen Block heraus, nicht die fertig
+// gelesenen Felder. Die Bibliothek prueft die Unterschrift selbst und
+// liest die Felder erst aus der geprueften Nutzlast - sonst waere ein
+// falscher Dienst auf der Rueckschleife eine niedrigere Huerde als ein
+// Disassembler. Gefunden von der Python-Fassung, bevor es jemand benutzt
+// hat.
 func (a *GuardAgent) answerLicense(args []string) string {
 	if len(args) != 1 {
 		return guardAgentErr(Fail("error.guard.request"))
@@ -228,35 +234,11 @@ func (a *GuardAgent) answerLicense(args []string) string {
 	if err != nil {
 		return guardAgentErr(err)
 	}
-	license, err := a.guard.License(product)
+	_, blob, err := a.guard.LicenseBlob(product)
 	if err != nil {
 		return guardAgentErr(err)
 	}
-	tiers := make([]string, 0, len(license.Tiers))
-	for _, tier := range license.Tiers {
-		tiers = append(tiers, hex.EncodeToString([]byte(tier)))
-	}
-	joined := strings.Join(tiers, ",")
-	if joined == "" {
-		joined = "-"
-	}
-	return "OK product=" + hex.EncodeToString([]byte(license.Product)) +
-		" holder=" + guardAgentOptional(license.Holder) +
-		" number=" + guardAgentOptional(license.Number) +
-		" tiers=" + joined +
-		" seats=" + strconv.FormatUint(uint64(license.Seats), 10) +
-		" issued=" + strconv.FormatInt(license.IssuedUTC, 10) +
-		" expires=" + strconv.FormatInt(license.ExpiresUTC, 10)
-}
-
-// guardAgentOptional schreibt einen Bindestrich fuer "nicht gesetzt" - ein
-// leerer Wert hinter einem Gleichheitszeichen waere in einer Zeile mit
-// Leerzeichen als Trenner nicht zu lesen.
-func guardAgentOptional(text string) string {
-	if text == "" {
-		return "-"
-	}
-	return hex.EncodeToString([]byte(text))
+	return "OK lic=" + hex.EncodeToString(blob)
 }
 
 func (a *GuardAgent) answerNodePub(args []string) string {

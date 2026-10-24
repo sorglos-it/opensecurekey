@@ -63,10 +63,15 @@ type GuardConfig struct {
 	// eingeht. Leer: die laufende Datei.
 	BinaryPath string
 
-	// BindBinary schaltet die Bindung an die Programmdatei ein. Vorgabe ist
-	// an; aus ist nur fuer Faelle gedacht, in denen die Datei zur Laufzeit
-	// nicht lesbar ist (manche Paketformate).
-	BindBinary bool
+	// NoBinaryBinding schaltet die Bindung an die Programmdatei AUS.
+	//
+	// Die Frage steht hier bewusst verneint, damit der leere Wert der
+	// sichere ist: wer GuardConfig selbst zusammensetzt und dieses Feld
+	// vergisst, bekommt die Bindung - nicht umgekehrt. Aus ist nur fuer
+	// Faelle gedacht, in denen die Programmdatei zur Laufzeit nicht
+	// lesbar ist (manche Paketformate) oder in denen ein Dienst fuer
+	// fremde Programme antwortet und die Pruefsumme von dort mitkommt.
+	NoBinaryBinding bool
 
 	// Interval ist der Abstand zwischen zwei Fragen in Watch.
 	Interval time.Duration
@@ -75,7 +80,7 @@ type GuardConfig struct {
 // DefaultGuardConfig gibt die Vorgaben: Bindung an die Programmdatei an,
 // alle zwei Sekunden eine neue Frage.
 func DefaultGuardConfig() GuardConfig {
-	return GuardConfig{BindBinary: true, Interval: 2 * time.Second}
+	return GuardConfig{Interval: 2 * time.Second}
 }
 
 // Guard ist der Dongle-Schutz auf einer bestehenden Verbindung.
@@ -102,14 +107,14 @@ func NewGuard(client *Client, cfg GuardConfig) (*Guard, error) {
 		cfg.Interval = DefaultGuardConfig().Interval
 	}
 	g := &Guard{client: client, cfg: cfg}
-	if cfg.BindBinary {
+	if cfg.NoBinaryBinding {
+		g.binHash = make([]byte, GuardHashLen)
+	} else {
 		hash, err := guardBinaryHash(cfg.BinaryPath)
 		if err != nil {
 			return nil, err
 		}
 		g.binHash = hash
-	} else {
-		g.binHash = make([]byte, GuardHashLen)
 	}
 	return g, nil
 }

@@ -13,6 +13,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/OskGuardLicenseReader.php';
+
 // Ein Fehler des Dongle-Schutzes. getCode() gibt es schon, darum heisst der
 // Schluessel hier $errorKey - derselbe Schluessel wie in den anderen vier
 // Bibliotheken, und in lang/<sprache>.json steht der Satz dazu.
@@ -86,19 +88,26 @@ final class OskGuard
 
     private string $address;
     private string $devicePublicKey;
+    private string $issuerPublicKey;
     private int $timeout;
 
-    private function __construct(string $address, string $devicePublicKey, int $timeout)
+    private function __construct(string $address, string $devicePublicKey,
+                                 string $issuerPublicKey, int $timeout)
     {
         $this->address = $address;
         $this->devicePublicKey = $devicePublicKey;
+        $this->issuerPublicKey = $issuerPublicKey;
         $this->timeout = $timeout;
     }
 
     // open prueft die Angaben und sieht nach, ob der Dienst antwortet.
+    //
     // $devicePublicKey sind die 32 rohen Byte, die der Hersteller einmal mit
     // `osk guard-key` aus seinem Stick gelesen und eingetragen hat.
+    // $issuerPublicKey prueft Lizenzen und darf leer sein - dann scheitert
+    // license() mit error.guard.issuer, statt etwas Ungeprueftes zu liefern.
     public static function open(string $address, string $devicePublicKey,
+                               string $issuerPublicKey = '',
                                int $timeout = 30): self
     {
         if (!extension_loaded('sodium')) {
@@ -108,6 +117,9 @@ final class OskGuard
         }
         if (strlen($devicePublicKey) !== self::KEY_LEN) {
             throw new OskGuardError('error.guard.key');
+        }
+        if ($issuerPublicKey !== '' && strlen($issuerPublicKey) !== self::KEY_LEN) {
+            throw new OskGuardError('error.guard.issuer');
         }
         $at = strrpos($address, ':');
         if ($at === false || $at === strlen($address) - 1) {
@@ -119,7 +131,8 @@ final class OskGuard
             && $host !== '[::1]') {
             throw new OskGuardError('error.guard.request');
         }
-        $guard = new self($address, $devicePublicKey, max(1, $timeout));
+        $guard = new self($address, $devicePublicKey, $issuerPublicKey,
+                          max(1, $timeout));
         $guard->ask('ping');
         return $guard;
     }
@@ -287,26 +300,18 @@ final class OskGuard
         return self::value($answer, 'plain', 0);
     }
 
-    // license holt die Lizenz fuer ein Produkt und prueft ihre Unterschrift.
+    // license holt die Lizenz fuer ein Produkt und prueft ihre
+    // Unterschrift SELBST - siehe OskGuardLicenseReader. Der Dienst gibt
+    // nur den unterschriebenen Block heraus; was darin steht, entscheidet
+    // diese Bibliothek.
     public function license(string $product): OskGuardLicense
     {
-        $answer = $this->ask('license ' . bin2hex($product));
-        $tiers = [];
-        $list = $answer['tiers'] ?? '-';
-        if ($list !== '' && $list !== '-') {
-            foreach (explode(',', $list) as $part) {
-                $tiers[] = self::fromHex($part);
-            }
+        if (strlen($this->issuerPublicKey) !== self::KEY_LEN) {
+            throw new OskGuardError('error.guard.issuer');
         }
-        return new OskGuardLicense(
-            self::value($answer, 'product', 0),
-            self::optional($answer['holder'] ?? '-'),
-            self::optional($answer['number'] ?? '-'),
-            $tiers,
-            self::number($answer, 'seats'),
-            self::number($answer, 'issued'),
-            self::number($answer, 'expires'),
-        );
+        $answer = $this->ask('license ' . bin2hex($product));
+        $blob = self::value($answer, 'lic', 0);
+        return OskGuardLicenseReader::verify($this->issuerPublicKey, $blob);
     }
 
     // nodePublic holt den oeffentlichen Teil eines Knotenschluessels.
@@ -354,26 +359,8 @@ final class OskGuard
         return self::value($answer, 'sec', self::SECRET_LEN);
     }
 
-    /** @param array<string,string> $answer */
-    private static function number(array $answer, string $key): int
-    {
-        $text = $answer[$key] ?? '';
-        if (preg_match('/\A-?[0-9]{1,19}\z/', $text) !== 1) {
-            throw new OskGuardError('error.guard.answer');
-        }
-        return (int) $text;
-    }
-
     private static function hexOrDash(string $raw): string
     {
         return $raw === '' ? '-' : bin2hex($raw);
-    }
-
-    private static function optional(string $text): string
-    {
-        if ($text === '' || $text === '-') {
-            return '';
-        }
-        return self::fromHex($text);
     }
 }

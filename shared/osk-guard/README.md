@@ -39,7 +39,7 @@ anything that matters.
 3. Call the library. Go, for example:
 
    ```go
-   guard, err := oskguard.Open("127.0.0.1:8300", devicePublicKey)
+   guard, err := oskguard.Open("127.0.0.1:8300", devicePublicKey, issuerPublicKey)
    if err != nil { os.Exit(1) }            // no key: do not start
    if err := guard.Present(""); err != nil { os.Exit(1) }
    ```
@@ -48,7 +48,7 @@ anything that matters.
 
 | Call | Does |
 | --- | --- |
-| `Open(address, devicePublicKey)` | connect to the local service, check it answers |
+| `Open(address, devicePublicKey, issuerPublicKey)` | connect to the local service, check it answers; the issuer key may be empty, and then `License` refuses rather than returning something unchecked |
 | `Present(binaryPath)` | one round of question and answer, verified **here**; empty path = the running file |
 | `Seal(label, extra, plain)` | close data with a key that never leaves the chip |
 | `Unseal(label, extra, blob)` | open it again; impossible without the key |
@@ -57,6 +57,7 @@ anything that matters.
 | `NodeSign(label, job)` | sign a job with the key inside the chip |
 | `NodeVerify(pub, label, job, sig)` | check another node's job — needs no key |
 | `NodeAgree(label, peerPub)` | shared secret; may report `error.guard.noecdh` |
+| `Watch(every, binaryPath, lost)` | keep asking; calls `lost` the moment a round fails |
 
 Every call fails with an **error code**, the same string in all five
 languages, for example `error.guard.wrongdevice` or `error.guard.noecdh`.
@@ -93,8 +94,7 @@ ping                                   -> OK v=1
 attest <nonce32> <binhash32>           -> OK sig=<64> pub=<32>
 seal <label> <extra|-> <plain>         -> OK blob=<...>
 unseal <label> <extra|-> <blob>        -> OK plain=<...>
-license <product>                      -> OK product=<hex> holder=<hex|-> number=<hex|->
-                                             tiers=<hex,hex|-> seats=<n> issued=<n> expires=<n>
+license <product>                      -> OK lic=<the whole signed OSKLIC1 block>
 nodepub <label> <curve>                -> OK pub=<32> curve=<hex>
 nodesign <label> <job>                 -> OK sig=<64>
 nodeagree <label> <peerpub32>          -> OK sec=<32>
@@ -129,6 +129,25 @@ comes out of the chip for that `label` and nothing else. `extra` goes in as
 additional authenticated data. Two files never share a key, because the salt
 is fresh every time.
 
+### Why `license` hands over the signed block and not the fields
+
+It used to hand over the fields, already read. That was wrong, and the Python
+binding caught it before anyone relied on it: a program would then have to
+believe the service — and a fake service on the loopback could mint licences
+without touching the protected program at all. That is a *lower* bar than a
+disassembler.
+
+So the service returns the signed block, every binding verifies the signature
+against an issuer key compiled into the program, and reads the fields only out
+of the payload it just verified. There is deliberately no call left that
+returns unchecked fields.
+
+Each binding therefore carries a small CBOR reader for this one payload shape:
+major types 0 (unsigned), 3 (text), 4 (array) and 5 (map), in shortest form
+only, with every length checked against the end of the buffer. Note that the
+timestamps need the 4-byte form — the first version of these readers only went
+up to 2 bytes and rejected every real licence.
+
 ### Licence format
 
 ```
@@ -143,11 +162,11 @@ are `p` product, `h` holder, `nr` number, `t` tiers, `s` seats, `i` issued,
 
 | Folder | Contents |
 | --- | --- |
-| `c/` | `osk_guard.h`, `osk_guard.c`, SHA-2 and Ed25519 verification, `example.c`, `Makefile` |
-| `go/` | `osk_guard.go`, `example/` |
-| `php/` | `OskGuard.php`, `example.php` |
-| `dotnet/` | `OskGuard.cs`, `example/` |
-| `python/` | `osk_guard.py`, `example.py` |
+| `c/` | `osk_guard.h`, `osk_guard.c`, SHA-2 and Ed25519 verification, `test_guard.c`, `example.c`, `Makefile` |
+| `go/` | `osk_guard.go`, `license.go`, `cbor.go`, `example/` |
+| `php/` | `OskGuard.php`, `OskGuardLicenseReader.php`, `example.php` |
+| `dotnet/` | `OskGuard.cs`, `Ed25519Verify.cs`, `tests/`, `example/` |
+| `python/` | `osk_guard.py`, `ed25519_verify.py`, `test_guard.py`, `example.py` |
 | `lang/` | the five language files |
 | `tests/` | `guard-sim` (device simulator + service) and `run.py` (runs every example) |
 

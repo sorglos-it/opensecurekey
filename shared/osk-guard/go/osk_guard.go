@@ -21,7 +21,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -70,15 +69,22 @@ func NoECDH(err error) bool { return Code(err) == "error.guard.noecdh" }
 type Guard struct {
 	address   string
 	devicePub []byte
+	issuerPub []byte
 	timeout   time.Duration
 }
 
 // Open prueft die Angaben und sieht nach, ob der Dienst antwortet.
+//
 // devicePublicKey sind die 32 Byte, die der Hersteller einmal mit
 // `osk guard-key` aus seinem Stick gelesen und ins Programm eingetragen hat.
-func Open(address string, devicePublicKey []byte) (*Guard, error) {
+// issuerPublicKey prueft Lizenzen und darf leer sein - dann scheitert
+// License mit error.guard.issuer, statt etwas Ungeprueftes zu liefern.
+func Open(address string, devicePublicKey, issuerPublicKey []byte) (*Guard, error) {
 	if len(devicePublicKey) != KeyLen {
 		return nil, fail("error.guard.key")
+	}
+	if len(issuerPublicKey) != 0 && len(issuerPublicKey) != KeyLen {
+		return nil, fail("error.guard.issuer")
 	}
 	host, port, err := net.SplitHostPort(address)
 	if err != nil || port == "" {
@@ -91,6 +97,10 @@ func Open(address string, devicePublicKey []byte) (*Guard, error) {
 	guard := &Guard{address: address, timeout: 30 * time.Second}
 	guard.devicePub = make([]byte, KeyLen)
 	copy(guard.devicePub, devicePublicKey)
+	if len(issuerPublicKey) == KeyLen {
+		guard.issuerPub = make([]byte, KeyLen)
+		copy(guard.issuerPub, issuerPublicKey)
+	}
 	if _, err := guard.ask("ping"); err != nil {
 		return nil, err
 	}
@@ -308,67 +318,22 @@ func (g *Guard) Unseal(label string, extra, blob []byte) ([]byte, error) {
 	return value(answer, "plain", 0)
 }
 
-// License ist eine gepruefte Lizenz aus dem Tresor.
-type License struct {
-	Product    string
-	Holder     string
-	Number     string
-	Tiers      []string
-	Seats      uint32
-	IssuedUTC  int64
-	ExpiresUTC int64
-}
-
-// Expired sagt, ob die Lizenz jetzt abgelaufen ist.
-func (l License) Expired() bool {
-	return l.ExpiresUTC != 0 && time.Now().UTC().Unix() > l.ExpiresUTC
-}
-
-// HasTier sagt, ob eine Ausbaustufe enthalten ist.
-func (l License) HasTier(name string) bool {
-	for _, have := range l.Tiers {
-		if strings.EqualFold(have, name) {
-			return true
-		}
-	}
-	return false
-}
-
-// License holt die Lizenz fuer ein Produkt und prueft ihre Unterschrift.
+// License holt die Lizenz fuer ein Produkt und prueft ihre Unterschrift
+// SELBST - siehe license.go. Der Dienst gibt nur den unterschriebenen Block
+// heraus; was darin steht, entscheidet diese Bibliothek.
 func (g *Guard) License(product string) (License, error) {
+	if len(g.issuerPub) != KeyLen {
+		return License{}, fail("error.guard.issuer")
+	}
 	answer, err := g.ask("license " + hexText(product))
 	if err != nil {
 		return License{}, err
 	}
-	out := License{}
-	name, err := value(answer, "product", 0)
+	blob, err := value(answer, "lic", 0)
 	if err != nil {
 		return License{}, err
 	}
-	out.Product = string(name)
-	out.Holder = optional(answer["holder"])
-	out.Number = optional(answer["number"])
-	if list := answer["tiers"]; list != "" && list != "-" {
-		for _, part := range strings.Split(list, ",") {
-			raw, decodeErr := hex.DecodeString(part)
-			if decodeErr != nil {
-				return License{}, fail("error.guard.answer")
-			}
-			out.Tiers = append(out.Tiers, string(raw))
-		}
-	}
-	seats, err := strconv.ParseUint(answer["seats"], 10, 32)
-	if err != nil {
-		return License{}, fail("error.guard.answer")
-	}
-	out.Seats = uint32(seats)
-	if out.IssuedUTC, err = strconv.ParseInt(answer["issued"], 10, 64); err != nil {
-		return License{}, fail("error.guard.answer")
-	}
-	if out.ExpiresUTC, err = strconv.ParseInt(answer["expires"], 10, 64); err != nil {
-		return License{}, fail("error.guard.answer")
-	}
-	return out, nil
+	return LicenseVerify(g.issuerPub, blob)
 }
 
 // NodePublic holt den oeffentlichen Teil eines Knotenschluessels. curve ist
@@ -440,15 +405,4 @@ func hexOrDash(raw []byte) string {
 		return "-"
 	}
 	return hex.EncodeToString(raw)
-}
-
-func optional(text string) string {
-	if text == "" || text == "-" {
-		return ""
-	}
-	raw, err := hex.DecodeString(text)
-	if err != nil {
-		return ""
-	}
-	return string(raw)
 }

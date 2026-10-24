@@ -79,7 +79,7 @@ func main() {
 		classes.GuardConfig{
 			DevicePublicKey: device.PublicKey(),
 			IssuerPublicKey: issuer.Public().(ed25519.PublicKey),
-			BindBinary:      false,
+			NoBinaryBinding: true,
 			Interval:        time.Second,
 		})
 	if err != nil {

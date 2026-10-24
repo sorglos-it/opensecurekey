@@ -300,3 +300,40 @@ func TestGuardDomainsCannotBeMixedUp(t *testing.T) {
 		t.Fatal("eine Praesenz-Antwort gilt als Auftragsunterschrift")
 	}
 }
+
+// Der leere Wert von GuardConfig muss der sichere sein: wer das Feld
+// vergisst, bekommt die Bindung an die Programmdatei - nicht umgekehrt.
+// Vorher hiess das Feld BindBinary, und ein vergessenes Feld hiess: keine
+// Bindung, und niemand haette es gemerkt.
+func TestBinaryBindingIsOnByDefault(t *testing.T) {
+	device, err := NewGuardFakeDevice(GuardFakeOptions{Seed: []byte("vorgabe")})
+	if err != nil {
+		t.Fatalf("Attrappe: %v", err)
+	}
+	content := []byte("das ausgelieferte Programm")
+	want := sha256.Sum256(content)
+
+	// Eine Einstellung, die NUR den Schluessel setzt - alles andere leer.
+	guard, err := NewGuard(device.GuardFakeClient("test"), GuardConfig{
+		DevicePublicKey: device.PublicKey(),
+		BinaryPath:      guardTestBinary(t, "programm", content),
+	})
+	if err != nil {
+		t.Fatalf("Guard: %v", err)
+	}
+	if !bytes.Equal(guard.BinaryHash(), want[:]) {
+		t.Fatal("ohne Zutun wurde die Programmdatei nicht gebunden")
+	}
+
+	// Und ausschalten geht nur ausdruecklich.
+	loose, err := NewGuard(device.GuardFakeClient("test"), GuardConfig{
+		DevicePublicKey: device.PublicKey(),
+		NoBinaryBinding: true,
+	})
+	if err != nil {
+		t.Fatalf("Guard ohne Bindung: %v", err)
+	}
+	if !bytes.Equal(loose.BinaryHash(), make([]byte, GuardHashLen)) {
+		t.Fatal("ausgeschaltet und trotzdem gebunden")
+	}
+}

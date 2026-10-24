@@ -248,3 +248,142 @@ func TestLicenseSignRejectsBadIssuerKey(t *testing.T) {
 		t.Fatalf("erwartet error.license.issuerkey, bekommen %v", err)
 	}
 }
+
+// Eine kaputte Lizenz eines ANDEREN Produkts darf dieses hier nicht
+// blockieren. Vorher tat sie es: der erste Fehler im Tresor beendete die
+// Suche, und wer zwei Produkte auf einem Stick hat, war verloren.
+func TestBrokenLicenseOfAnotherProductDoesNotBlock(t *testing.T) {
+	issuerPublic, issuerPrivate := licenseTestIssuer(t, "hersteller-1")
+	device, err := NewGuardFakeDevice(GuardFakeOptions{Seed: []byte("zwei-produkte")})
+	if err != nil {
+		t.Fatalf("Attrappe: %v", err)
+	}
+	// Zuerst eine kaputte Lizenz eines fremden Produkts ...
+	device.AddItem(Item{Type: ItemLicense, Name: "fremdes-programm"},
+		[]byte("das ist keine Lizenz"))
+	// ... dann die gute.
+	good, err := LicenseSign(licenseTestSample(), issuerPrivate)
+	if err != nil {
+		t.Fatalf("unterschreiben: %v", err)
+	}
+	device.AddItem(Item{Type: ItemLicense, Name: "mein-programm"}, good)
+
+	cfg := DefaultGuardConfig()
+	cfg.DevicePublicKey = device.PublicKey()
+	cfg.IssuerPublicKey = issuerPublic
+	cfg.BinaryPath = guardTestBinary(t, "programm", []byte("egal"))
+	guard, err := NewGuard(device.GuardFakeClient("test"), cfg)
+	if err != nil {
+		t.Fatalf("Guard: %v", err)
+	}
+	license, err := guard.License("mein-programm")
+	if err != nil {
+		t.Fatalf("die gute Lizenz wurde von der kaputten verdeckt: %v", err)
+	}
+	if license.Seats != 5 {
+		t.Fatalf("falsche Lizenz: %+v", license)
+	}
+
+	// Und sie wurde gefunden, OHNE die fremde aufzudecken - jedes
+	// Aufdecken kostet am echten Geraet einen Tastendruck.
+	var revealed int
+	for _, line := range device.Log() {
+		if line.Event == "reveal" {
+			revealed++
+		}
+	}
+	if revealed != 1 {
+		t.Fatalf("%d Lizenzen aufgedeckt, erwartet genau 1", revealed)
+	}
+}
+
+// Ist die Lizenz DES GESUCHTEN Produkts kaputt, ist das die Antwort - nicht
+// "nicht gefunden". Sonst sucht der Anwender an der falschen Stelle.
+func TestBrokenLicenseOfTheWantedProductIsTheAnswer(t *testing.T) {
+	issuerPublic, _ := licenseTestIssuer(t, "hersteller-1")
+	device, err := NewGuardFakeDevice(GuardFakeOptions{Seed: []byte("kaputt")})
+	if err != nil {
+		t.Fatalf("Attrappe: %v", err)
+	}
+	device.AddItem(Item{Type: ItemLicense, Name: "mein-programm"},
+		[]byte("das ist keine Lizenz"))
+	cfg := DefaultGuardConfig()
+	cfg.DevicePublicKey = device.PublicKey()
+	cfg.IssuerPublicKey = issuerPublic
+	cfg.BinaryPath = guardTestBinary(t, "programm", []byte("egal"))
+	guard, err := NewGuard(device.GuardFakeClient("test"), cfg)
+	if err != nil {
+		t.Fatalf("Guard: %v", err)
+	}
+	_, err = guard.License("mein-programm")
+	var problem *Problem
+	if !errors.As(err, &problem) || problem.Key != "error.license.format" {
+		t.Fatalf("erwartet error.license.format, bekommen %v", err)
+	}
+}
+
+// Der Name des Eintrags im Tresor ist freier Text und kann vom Produkt
+// abweichen - verbindlich ist, was in der unterschriebenen Nutzlast steht.
+// Also muss die Suche auch dann finden, wenn kein Name passt, und eine
+// kaputte Lizenz davor darf sie nicht beenden.
+//
+// Dieser Fall ist nachgetragen, weil ein Mutant ueberlebt hat: der erste
+// Fall traf immer schon den passenden Namen und kam an dieser Stelle nie
+// vorbei.
+func TestLicenseIsFoundEvenWhenTheItemNameDiffers(t *testing.T) {
+	issuerPublic, issuerPrivate := licenseTestIssuer(t, "hersteller-1")
+	device, err := NewGuardFakeDevice(GuardFakeOptions{Seed: []byte("namen")})
+	if err != nil {
+		t.Fatalf("Attrappe: %v", err)
+	}
+	// Beide Namen passen NICHT zum gesuchten Produkt.
+	device.AddItem(Item{Type: ItemLicense, Name: "irgendwas"},
+		[]byte("das ist keine Lizenz"))
+	good, err := LicenseSign(licenseTestSample(), issuerPrivate)
+	if err != nil {
+		t.Fatalf("unterschreiben: %v", err)
+	}
+	device.AddItem(Item{Type: ItemLicense, Name: "umbenannt-vom-anwender"}, good)
+
+	cfg := DefaultGuardConfig()
+	cfg.DevicePublicKey = device.PublicKey()
+	cfg.IssuerPublicKey = issuerPublic
+	cfg.BinaryPath = guardTestBinary(t, "programm", []byte("egal"))
+	guard, err := NewGuard(device.GuardFakeClient("test"), cfg)
+	if err != nil {
+		t.Fatalf("Guard: %v", err)
+	}
+	license, err := guard.License("mein-programm")
+	if err != nil {
+		t.Fatalf("die Lizenz wurde nicht gefunden: %v", err)
+	}
+	if license.Product != "mein-programm" || license.Seats != 5 {
+		t.Fatalf("falsche Lizenz: %+v", license)
+	}
+}
+
+// Liegt gar nichts Passendes darauf, aber eine kaputte Lizenz, dann wird
+// die kaputte genannt - nicht "nicht gefunden". Sonst sucht der Anwender
+// an der falschen Stelle.
+func TestBrokenLicenseIsNamedWhenNothingElseFits(t *testing.T) {
+	issuerPublic, _ := licenseTestIssuer(t, "hersteller-1")
+	device, err := NewGuardFakeDevice(GuardFakeOptions{Seed: []byte("nurkaputt")})
+	if err != nil {
+		t.Fatalf("Attrappe: %v", err)
+	}
+	device.AddItem(Item{Type: ItemLicense, Name: "irgendwas"},
+		[]byte("das ist keine Lizenz"))
+	cfg := DefaultGuardConfig()
+	cfg.DevicePublicKey = device.PublicKey()
+	cfg.IssuerPublicKey = issuerPublic
+	cfg.BinaryPath = guardTestBinary(t, "programm", []byte("egal"))
+	guard, err := NewGuard(device.GuardFakeClient("test"), cfg)
+	if err != nil {
+		t.Fatalf("Guard: %v", err)
+	}
+	_, err = guard.License("mein-programm")
+	var problem *Problem
+	if !errors.As(err, &problem) || problem.Key != "error.license.format" {
+		t.Fatalf("erwartet error.license.format, bekommen %v", err)
+	}
+}

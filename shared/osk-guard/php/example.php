@@ -36,14 +36,16 @@ function main(array $argv): int
         return 1;
     }
     $deviceKey = hex2bin((string) $stand['deviceKey']);
-    if ($deviceKey === false) {
-        fwrite(STDERR, "FEHLER: deviceKey ist kein Hex\n");
+    $issuerKey = hex2bin((string) $stand['issuerKey']);
+    if ($deviceKey === false || $issuerKey === false) {
+        fwrite(STDERR, "FEHLER: deviceKey oder issuerKey ist kein Hex\n");
         return 1;
     }
 
     try {
         // 1. Ohne Stick laeuft das Programm nicht los.
-        $guard = OskGuard::open((string) $stand['address'], $deviceKey);
+        $guard = OskGuard::open((string) $stand['address'], $deviceKey,
+            $issuerKey);
         $guard->present(__FILE__);
         echo "ergebnis: praesenz ok\n";
 

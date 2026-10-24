@@ -191,34 +191,82 @@ func licenseDecode(load []byte) (License, error) {
 // Dafuer muss der Tresor offen sein, und das Geraet protokolliert den
 // Zugriff wie jedes andere Geheimnis.
 func (g *Guard) License(product string) (License, error) {
+	license, _, err := g.LicenseBlob(product)
+	return license, err
+}
+
+// LicenseBlob gibt zusaetzlich den unterschriebenen Block heraus, so wie er
+// im Tresor liegt.
+//
+// Das braucht der lokale Dienst: eine Bibliothek, die nur die fertig
+// gelesenen Felder bekaeme, muesste dem Dienst glauben - und ein falscher
+// Dienst auf der Rueckschleife koennte Lizenzen erfinden, ohne das
+// geschuetzte Programm anzufassen. Das waere eine niedrigere Huerde als
+// ein Disassembler. Also geht der Block hinaus, und jede Bibliothek prueft
+// die Unterschrift selbst.
+func (g *Guard) LicenseBlob(product string) (License, []byte, error) {
 	if len(g.cfg.IssuerPublicKey) != GuardKeyLen {
-		return License{}, Fail("error.guard.issuer")
+		return License{}, nil, Fail("error.guard.issuer")
 	}
 	if product == "" || len(product) > MaxNameLen {
-		return License{}, Fail("error.license.product")
+		return License{}, nil, Fail("error.license.product")
 	}
 	items, err := g.client.List(0, "")
 	if err != nil {
-		return License{}, err
+		return License{}, nil, err
 	}
-	for _, item := range items {
-		if item.Type != ItemLicense {
-			continue
+	// Erst die Eintraege, deren Name zum Produkt passt. Das ist kein
+	// Beiwerk: jedes Aufdecken verlangt am echten Geraet einen
+	// Tastendruck und steht im Protokoll. Wer der Reihe nach alle
+	// Lizenzen aufdeckt, laesst den Anwender fuenfmal druecken, um eine
+	// zu lesen.
+	var broken error
+	for _, round := range []bool{true, false} {
+		for _, item := range items {
+			if item.Type != ItemLicense {
+				continue
+			}
+			if strings.EqualFold(item.Name, product) != round {
+				continue
+			}
+			license, blob, readErr := g.readLicense(item.ID)
+			if readErr != nil {
+				if round {
+					// Der Name passt, die Lizenz ist kaputt: das ist die
+					// Antwort auf die Frage, nicht ein Fund am Rand.
+					return License{}, nil, readErr
+				}
+				// Eine kaputte Lizenz eines ANDEREN Produkts darf dieses
+				// hier nicht blockieren - aber verschwiegen wird sie auch
+				// nicht, falls am Ende nichts gefunden wird.
+				if broken == nil {
+					broken = readErr
+				}
+				continue
+			}
+			if strings.EqualFold(license.Product, product) {
+				return license, blob, nil
+			}
 		}
-		blob, revealErr := g.client.Reveal(item.ID)
-		if revealErr != nil {
-			return License{}, revealErr
-		}
-		license, verifyErr := LicenseVerify(g.cfg.IssuerPublicKey, blob)
+	}
+	if broken != nil {
+		return License{}, nil, broken
+	}
+	return License{}, nil, Fail("error.license.missing", product)
+}
+
+// readLicense holt eine Lizenz und prueft sie. Der Block kommt mit heraus,
+// damit der lokale Dienst ihn weitergeben kann - eine Lizenz ist kein
+// Geheimnis, sie ist eine unterschriebene Aussage ueber den Kunden.
+func (g *Guard) readLicense(id uint32) (License, []byte, error) {
+	blob, err := g.client.Reveal(id)
+	if err != nil {
+		return License{}, nil, err
+	}
+	license, err := LicenseVerify(g.cfg.IssuerPublicKey, blob)
+	if err != nil {
 		Wipe(blob)
-		if verifyErr != nil {
-			// Eine kaputte Lizenz im Tresor wird genannt, nicht uebergangen:
-			// sonst sucht der Anwender an der falschen Stelle.
-			return License{}, verifyErr
-		}
-		if strings.EqualFold(license.Product, product) {
-			return license, nil
-		}
+		return License{}, nil, err
 	}
-	return License{}, Fail("error.license.missing", product)
+	return license, blob, nil
 }

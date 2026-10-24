@@ -110,7 +110,12 @@ it (`OSK_ITEM_LICENSE`).
           | Ed25519 signature over "OSKLIC1" 0x00 payload
 ```
 
-- **It cannot be forged**, because the maker's private key is not shipped.
+- **It cannot be forged**, because the maker's private key is not shipped, and
+  because every binding verifies the signature itself. The local service hands
+  over the signed block, not the fields — it used to hand over the fields, and
+  then a fake service on the loopback could have minted licences without
+  touching the program. That hole was found by one of the language bindings
+  before anything relied on it.
 - **It cannot be copied to another machine**, because it lives on the key, and
   a key is a thing, not a file.
 - **It can be ignored**, by the same disassembler as in stage 1. Checking a
