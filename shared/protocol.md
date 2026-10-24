@@ -57,7 +57,9 @@ it is handed breaks that separation no matter how careful the host is.
 
 `hello` reports `factory: true` while a profile holds nothing. That is the only
 state in which `setup` is accepted, and `setup` is what makes the choice:
-`mode` 0 for mirrored, 1 for this-device-only, together with the first PIN.
+`mode` **1** for mirrored, **2** for this-device-only, together with the first
+PIN. Zero and an absent field are errors — see below for why the numbering does
+not start at zero.
 
 The device refuses a second `setup` for the same profile — not because the
 program should not send one, but because a secret born inside the chip can
