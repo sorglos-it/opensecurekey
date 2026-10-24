@@ -111,8 +111,10 @@ Questo progetto è al **livello 2, più prove sul computer con dispositivi di pr
 
 **Nuovo:** questa sezione è nuova. Qui arriveranno altre regole di montaggio, appena l'hardware sarà sul tavolo.
 
-- La pellicola di ferrite sotto la batteria deve essere larga **esattamente 19,75 mm**, **non più larga, nemmeno un poco.**
+- La pellicola di ferrite sotto la batteria è larga **12,0 mm**, **al massimo 12,5 mm.** Non più larga, nemmeno un poco.
+- Finisce **a filo del bordo esterno della cella.** Non deve essere nemmeno più stretta: deve coprire la cella.
 - Altrimenti la cella si inclina.
+- Le misure sono scritte solo in `hardware/layout-notes.md`. Se lì c'è scritto altro, vale quel file.
 
 ## Partecipare
 

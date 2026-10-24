@@ -111,8 +111,10 @@ Dieses Projekt steht bei **Stufe 2, dazu Läufe am Rechner mit Attrappen.** Stuf
 
 **Neu:** Dieser Abschnitt ist neu. Hier kommen weitere Auflagen für den Zusammenbau hin, sobald die Hardware auf dem Tisch liegt.
 
-- Die Ferritfolie unter dem Akku muss **genau 19,75 mm** breit sein, **nicht breiter, auch nicht ein bisschen.**
+- Die Ferritfolie unter dem Akku ist **12,0 mm** breit, **höchstens 12,5 mm.** Nicht breiter, auch nicht ein bisschen.
+- Sie schließt **bündig mit der Außenkante der Zelle** ab. Schmaler darf sie auch nicht sein: Sie soll die Zellfläche überdecken.
 - Sonst kippt die Zelle.
+- Die Maße stehen nur in `hardware/layout-notes.md`. Gilt dort etwas anderes, gilt das dort.
 
 ## Mitmachen
 

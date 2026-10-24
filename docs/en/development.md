@@ -111,8 +111,10 @@ This project is at **level 2, plus runs on the computer with test devices.** Lev
 
 **New:** This section is new. More rules for assembly will be added here once the hardware is on the table.
 
-- The ferrite foil under the battery must be **exactly 19.75 mm** wide, **not wider, not even a little.**
+- The ferrite foil under the battery is **12.0 mm** wide, **12.5 mm at most.** Not wider, not even a little.
+- It ends **flush with the outer edge of the cell.** It must not be narrower either: it has to cover the cell.
 - Otherwise the cell tilts.
+- The measurements are kept only in `hardware/layout-notes.md`. If it says something different, that file is right.
 
 ## Taking part
 
