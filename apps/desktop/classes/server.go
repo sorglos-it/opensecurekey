@@ -48,6 +48,15 @@ var uiPages = []page{
 	{"/settings", "settings", "page.settings"},
 }
 
+// setupPages sind die Seiten des Assistenten. Sie stehen nicht in der
+// Navigation: der Assistent ist ein Ablauf, kein Ort, den man nebenbei
+// besucht. Der Notfallzettel bleibt danach erreichbar - wer ihn verliert,
+// soll ihn neu drucken koennen.
+var setupPages = []page{
+	{"/setup", "setup", "page.setup"},
+	{"/sheet", "sheet", "page.sheet"},
+}
+
 // NewServer bindet den ersten freien Port ab dem eingestellten.
 func NewServer(app *App) (*Server, error) {
 	templates, err := template.New("osk").ParseFS(app.Files,
@@ -86,11 +95,20 @@ func (s *Server) Address() string {
 // Serve bedient Anfragen, bis der Lauscher geschlossen wird.
 func (s *Server) Serve() error {
 	mux := http.NewServeMux()
-	for _, p := range s.pages {
+	for _, p := range append(append([]page{}, s.pages...), setupPages...) {
 		current := p
 		mux.HandleFunc(current.Path, func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path != current.Path {
 				s.notFound(w)
+				return
+			}
+			// Der Assistent laesst sich nicht ueberspringen: solange das
+			// Geraet im Werkszustand ist, fuehrt jede andere Seite dorthin
+			// zurueck. Ein Lesezeichen auf die Uebersicht hilft nicht
+			// weiter, und das ist Absicht - die erste Frage muss gestellt
+			// werden, bevor ein Geheimnis entsteht.
+			if current.Path != "/setup" && s.setupPending() {
+				http.Redirect(w, r, "/setup", http.StatusSeeOther)
 				return
 			}
 			s.renderPage(w, current)
@@ -161,6 +179,22 @@ func (s *Server) guard(next http.Handler) http.Handler {
 	})
 }
 
+// setupPending sagt, ob der Assistent noch laufen muss. Ohne Geraet ist er
+// es nicht: dann gibt es nichts einzurichten, und die Oberflaeche bleibt
+// bedienbar. Antwortet das Geraet nicht oder sagt es nichts zum
+// Werkszustand, gilt es als eingerichtet.
+func (s *Server) setupPending() bool {
+	client, err := s.app.Client()
+	if err != nil {
+		return false
+	}
+	info, err := client.Hello()
+	if err != nil {
+		return false
+	}
+	return info.Fresh && info.Mode == ""
+}
+
 // pageData ist das, was eine Seite zu sehen bekommt.
 type pageData struct {
 	Title     string
@@ -173,6 +207,16 @@ type pageData struct {
 	Languages []string
 	Config    Config
 	WipeMs    int
+	// Info ist der Zustand des Geraets, soweit hello ihn nennt. Der
+	// Notfallzettel braucht Seriennummer und Betriebsart gedruckt, und ein
+	// Zettel mit leeren Feldern waere wertlos.
+	Info DeviceInfo
+	// ModeOnly ist wahr, wenn das Profil als "nur dieser Stick" laeuft.
+	// Dann bringt die Sicherung nicht zurueck, was im Sicherheitschip
+	// liegt, und der Zettel muss das sagen.
+	ModeOnly bool
+	// Today ist der Tag, der auf dem Zettel steht.
+	Today string
 }
 
 func (s *Server) renderPage(w http.ResponseWriter, p page) {
@@ -187,6 +231,13 @@ func (s *Server) renderPage(w http.ResponseWriter, p page) {
 		Languages: Languages(s.app.Files),
 		Config:    s.app.Config(),
 		WipeMs:    ClipboardWipeMs,
+		Today:     time.Now().UTC().Format("2006-01-02"),
+	}
+	if client, err := s.app.Client(); err == nil {
+		if info, infoErr := client.Hello(); infoErr == nil {
+			data.Info = info
+			data.ModeOnly = info.Mode == ModeOnly
+		}
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := s.templates.ExecuteTemplate(w, p.View+".html", data); err != nil {

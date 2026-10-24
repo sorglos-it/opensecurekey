@@ -1,0 +1,89 @@
+{{template "head" .}}
+<p>{{.Texts.Get "setup.intro"}}</p>
+
+<nav class="steps" aria-label="{{.Texts.Get "setup.progress"}}">
+  <ol>
+    <li id="tab-mode" aria-current="step">{{.Texts.Get "setup.step.mode"}}</li>
+    <li id="tab-pin">{{.Texts.Get "setup.step.pin"}}</li>
+    <li id="tab-backup">{{.Texts.Get "setup.step.backup"}}</li>
+    <li id="tab-sheet">{{.Texts.Get "setup.step.sheet"}}</li>
+  </ol>
+</nav>
+
+<section id="step-mode" class="step" aria-labelledby="head-mode">
+  <h2 id="head-mode" tabindex="-1">{{.Texts.Get "setup.question"}}</h2>
+  <p class="final">{{.Texts.Get "setup.final"}}</p>
+  <form id="mode-form">
+    <fieldset>
+      <legend>{{.Texts.Get "setup.choose"}}</legend>
+      <div class="way">
+        <p class="check">
+          <input type="radio" id="mode-mirrored" name="mode" value="mirrored">
+          <label for="mode-mirrored"><strong>{{.Texts.Get "setup.mirrored.title"}}</strong></label>
+        </p>
+        <p>{{.Texts.Get "setup.mirrored.text"}}</p>
+        <p class="cost"><strong>{{.Texts.Get "setup.cost"}}:</strong> {{.Texts.Get "setup.mirrored.cost"}}</p>
+      </div>
+      <div class="way">
+        <p class="check">
+          <input type="radio" id="mode-only" name="mode" value="only">
+          <label for="mode-only"><strong>{{.Texts.Get "setup.only.title"}}</strong></label>
+        </p>
+        <p>{{.Texts.Get "setup.only.text"}}</p>
+        <p class="cost"><strong>{{.Texts.Get "setup.cost"}}:</strong> {{.Texts.Get "setup.only.cost"}}</p>
+      </div>
+    </fieldset>
+    <aside class="advice">
+      <h3>{{.Texts.Get "setup.recommend.title"}}</h3>
+      <p>{{.Texts.Get "setup.recommend"}}</p>
+    </aside>
+    <p class="check">
+      <input type="checkbox" id="mode-confirm" name="confirm">
+      <label for="mode-confirm">{{.Texts.Get "setup.confirm"}}</label>
+    </p>
+    <button type="submit" id="mode-next" disabled>{{.Texts.Get "action.next"}}</button>
+  </form>
+</section>
+
+<section id="step-pin" class="step" aria-labelledby="head-pin" hidden>
+  <h2 id="head-pin" tabindex="-1">{{.Texts.Get "setup.pin.title"}}</h2>
+  <p>{{.Texts.Get "setup.pin.text"}}</p>
+  <p id="pin-mode" class="chosen"></p>
+  <form id="pin-form">
+    <p>
+      <label for="pin-new">{{.Texts.Get "field.pin"}}</label>
+      <input type="password" id="pin-new" name="pin" autocomplete="new-password"
+             inputmode="numeric" minlength="6" maxlength="64" required>
+    </p>
+    <p>
+      <label for="pin-again">{{.Texts.Get "field.pin.again"}}</label>
+      <input type="password" id="pin-again" name="again" autocomplete="new-password"
+             inputmode="numeric" minlength="6" maxlength="64" required>
+    </p>
+    <p class="hint">{{.Texts.Get "setup.pin.rule"}}</p>
+    <button type="submit">{{.Texts.Get "action.next"}}</button>
+  </form>
+</section>
+
+<section id="step-backup" class="step" aria-labelledby="head-backup" hidden>
+  <h2 id="head-backup" tabindex="-1">{{.Texts.Get "setup.backup.title"}}</h2>
+  <p>{{.Texts.Get "setup.backup.text"}}</p>
+  <form id="backup-form">
+    <p><button type="button" id="backup-now">{{.Texts.Get "action.backup.save"}}</button></p>
+    <p class="check">
+      <input type="checkbox" id="backup-done" name="saved">
+      <label for="backup-done">{{.Texts.Get "setup.backup.saved"}}</label>
+    </p>
+    <button type="submit" id="backup-next" disabled>{{.Texts.Get "action.next"}}</button>
+  </form>
+</section>
+
+<section id="step-sheet" class="step" aria-labelledby="head-sheet" hidden>
+  <h2 id="head-sheet" tabindex="-1">{{.Texts.Get "setup.sheet.title"}}</h2>
+  <p>{{.Texts.Get "setup.sheet.text"}}</p>
+  <p><a class="button" href="/sheet" target="_blank" rel="noopener">{{.Texts.Get "action.setup.sheet"}}</a></p>
+  <h3>{{.Texts.Get "setup.done.title"}}</h3>
+  <p>{{.Texts.Get "setup.done.text"}}</p>
+  <p><a class="button" href="/">{{.Texts.Get "action.setup.finish"}}</a></p>
+</section>
+{{template "foot" .}}

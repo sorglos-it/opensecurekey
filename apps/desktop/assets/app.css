@@ -130,3 +130,84 @@ dialog {
 @media (max-width: 40rem) {
   label { min-width: 0; display: block; }
 }
+
+/* Einrichtungsassistent. Die Schritte stehen als Liste oben; der laufende
+   ist fett und bekommt einen Balken - Farbe allein genuegt nicht, wer sie
+   nicht unterscheidet, sieht sonst nichts. */
+.steps ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+.steps li {
+  padding: 4px 0;
+  border-bottom: 3px solid transparent;
+  counter-increment: step;
+}
+.steps li::before { content: counter(step) ". "; }
+.steps li[aria-current="step"] {
+  font-weight: bold;
+  border-bottom-color: var(--accent);
+}
+/* Die erste Frage soll nicht wie eine Nebensache aussehen. */
+.final {
+  padding: 8px;
+  font-weight: bold;
+  border: 2px solid var(--warn);
+  color: var(--warn);
+}
+.way {
+  padding: 8px 12px;
+  margin: 12px 0;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+}
+.way .cost { margin-bottom: 0; }
+.advice {
+  padding: 8px 12px;
+  margin: 16px 0;
+  background: var(--soft);
+  border-left: 4px solid var(--accent);
+}
+.advice h3 { margin: 0 0 4px; font-size: 16px; }
+.advice p { margin: 0; }
+fieldset { margin: 0; padding: 0; border: 0; }
+legend { padding: 0; font-weight: bold; }
+.chosen { font-weight: bold; }
+button[disabled] {
+  cursor: not-allowed;
+  color: var(--ink);
+  background: var(--soft);
+  border-color: var(--line);
+}
+
+/* Notfallzettel. Er wird ausgedruckt, und die offenen Zeilen werden mit der
+   Hand gefuellt - gedruckt wird nie ein Geheimnis. */
+.sheet { max-width: 44rem; }
+.facts { width: auto; }
+.facts th { padding-right: 16px; }
+.warnbox {
+  padding: 8px;
+  border: 2px solid var(--warn);
+  color: var(--warn);
+}
+.byhand .line {
+  display: inline-block;
+  min-width: 18rem;
+  border-bottom: 1px solid var(--ink);
+}
+.byhand .line.short { min-width: 6rem; }
+@media print {
+  /* Auf dem Papier bleibt nur der Zettel: ohne Navigation, ohne Knoepfe,
+     und in Schwarz auf Weiss, damit er auch ohne Farbe lesbar ist. */
+  :root { --page: #ffffff; --ink: #000000; --soft: #ffffff; --line: #000000;
+          --accent: #000000; --warn: #000000; }
+  .bar, nav, .claim, .noprint, .skip { display: none; }
+  main { padding: 0; max-width: none; }
+  .warnbox { border-width: 1px; }
+  a[href]::after { content: ""; }
+}
