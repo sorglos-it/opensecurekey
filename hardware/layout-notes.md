@@ -1408,3 +1408,52 @@ ist die sicherere Lesart:
 
 **Das Band ist symmetrisch um die Plattenmitte** — (1,40 + 25,60)/2 = **13,50**.
 Eine mittige Zelle sitzt also auf `x` 13,50 und spannt 3,625 … 23,375.
+
+## J2: gemessen, und das Ergebnis ist ein anderes Problem als erwartet
+
+**Unser Teil hat keine Bauhöhe, weil es kein Teil ist.** Gemessen am
+24.10.2026 auf drei Wegen, alle erfolglos:
+
+| Weg | Ergebnis |
+| --- | --- |
+| `lib_device_by_lcsc` auf **C9900141337** | **kein Hersteller, keine Herstellernummer, kein Datenblatt.** Als „Manufacturer Part" steht die Beschreibung selbst: „JST Right-Angle Connector - SMD 2-Pin (Black)" |
+| LCSC-Produktseite zu C9900141337 | **„Part not found"** — die Seite existiert nicht |
+| `lib_3dmodel_get` auf das 3D-Modell | nur Name und Klassifikation, **keine Maße** |
+
+**Die `C9900…`-Nummern sind Platzhalter der Bibliothek, keine bestellbaren
+Lagernummern.** Damit ist die Frage „baut J2 höher als 4,45 mm?" nicht
+beantwortbar — **es gibt kein Datenblatt, aus dem eine Höhe käme.**
+
+**Dasselbe gilt für ein zweites Teil, und das ist das wichtigere:**
+
+| Kennung | gewähltes Teil | Nummer | Art |
+| --- | --- | --- | --- |
+| J2 | „JST Right-Angle Connector - SMD 2-Pin" | **C9900141337** | **Platzhalter** |
+| **J4** | FPC-05mm-12P-14241555_2 (Anzeigeanschluss) | **C9900036520** | **Platzhalter** |
+
+**J4 ist der Steckverbinder der Anzeige** — und seine 14 Pole, mit denen ich
+die zwei Haltelaschen an `GND` gelegt habe, stammen aus genau diesem
+Platzhaltersymbol. Die übrigen Steckverbinder sind echte Teile (J1 C7095263,
+J3 C492401, J5 C41434767, J6 C2691448).
+
+> **Was daraus folgt, und es ist mehr als eine Höhenfrage:** **J2 und J4
+> müssen durch bestellbare Teile ersetzt werden**, bevor irgendeine Höhe,
+> Padgröße oder Polzahl belegt ist. Beim Ersetzen kann sich die Polzahl von J4
+> ändern — dann ändert sich der Schaltplan.
+
+**Zur Höhe, was belegt ist und was nicht:** Für die flache seitliche
+SMD-Ausführung der PH-Reihe, **S2B-PH-SM4-TB (C295747)**, nennen DigiKey,
+Arrow und Octopart **≈ 5,5 mm** über der Platine (0,217") — **über der Grenze
+von 4,45 mm.** Das ist ein **verwandtes Teil, nicht unseres**; die PH-Reihe
+gibt es senkrecht und seitlich mit erheblich verschiedenen Maßen. Dieselben
+Händler nennen für die Tiefe **7,6 und 8,6 mm** — ein ganzer Millimeter
+Unterschied bei einem Maß, das über das Platzieren entscheidet. **Beim Setzen
+gilt der Footprint, am Ende das Gerber.**
+
+> **Nicht gelöst, gemeldet.** Wenn ein PH-Stecker über 4,45 mm baut, sind es
+> drei Wege: **flacherer Stecker**, **anderer Platz** (dann nicht neben der
+> Zelle), oder **Akkukabel direkt anlöten** — das macht das Gerät dünner und
+> den Akku **nicht mehr tauschbar.** Der Plan hat diese Frage schon gestellt
+> („tauschbar bauen oder als Verbrauchsteil ansagen"); sie gehört Thomas.
+
+**J2 bleibt unplatziert.**
