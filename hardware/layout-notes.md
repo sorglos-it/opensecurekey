@@ -2506,3 +2506,47 @@ Was fehlte, wäre Kupfer, und das ist da.
 **Mein Messmittel ist jetzt ein anderes:** Der Gerber-Export beantwortet
 „liegt dort Kupfer?" je Lage — besser als jedes Vorschaubild. Die drei
 Kontrollpunkte je Lage gehören zu jeder solchen Messung dazu.
+
+# Berichtigung: die Wandlerschleife ist 10,14 mm, nicht 2,59
+
+Stand 25.10.2026, vor dem Verlegen gemessen.
+
+**Ich hatte gemeldet: „`L1.1` (DCCH) steht jetzt 2,59 mm in `x` von U1s
+DCCH-Pad."** Das war richtig — und als Abstand gelesen falsch. **2,59 ist die
+`x`-Komponente**; in `y` liegen **9,80 mm** dazwischen.
+
+| Netz | von | nach | dx | dy | **Abstand** |
+| --- | --- | --- | ---: | ---: | ---: |
+| `DCCH` | L1.1 | U1.31 | −2,59 | −9,80 | **10,14** |
+| `VSYS` | L1.2 | U1.30 | −4,93 | −9,00 | **10,26** |
+
+**Die Schleife des Abwärtswandlers ist also rund 20 mm lang, hin und zurück.**
+Für „kurz und breit" ist das nicht knapp, sondern das Gegenteil.
+
+> **Das ist dieselbe Falle wie dreimal zuvor, nur von mir ausgelöst:** eine
+> Zahl, die eine Achse misst, als Abstand gemeldet. Bei `R1`↔`U4` hatte ich
+> noch selbst geschrieben, wer nur eine Achse ansieht, halte das für ungelöst —
+> und dann habe ich genau das getan, in der anderen Richtung.
+
+## Der Platz dafür ist da, und er ist derselbe wie bei C3 und C5
+
+Die Unterseite unter U1 ist frei. L1 misst 3,97 × 2,16 mm; bei **16,8 / 14,3**
+stünde `L1.1` **3,60 mm** von U1.31 und `L1.2` 5,94 mm von U1.30 — die Schleife
+fiele von **20,4 auf 9,5 mm**. Luft zu `C5` 0,22 mm, zu `C3` ebenso; beide
+bleiben, wo sie sind.
+
+**Nicht ausgeführt** — L1 steht in der Quarzreihe, und über die Reihe war
+entschieden. Es dort herauszunehmen stört den Quarz nicht, sondern macht Platz;
+aber es ist eine Platzierungsänderung und keine Verlegearbeit.
+
+## Die übrigen kritischen Netze, gemessen
+
+| Netz | Abstand | Bemerkung |
+| --- | ---: | --- |
+| `XL1` X1.1 → U1.17 | 3,71 | mit C8 dazwischen bei 2,62 |
+| `XL2` X1.2 → U1.18 | 4,32 | mit C9 bei 2,67 |
+| `USB_DM` / `USB_DP` | 5,67 / 5,65 | **auf 0,02 mm gleich** — das Paar passt |
+| `USB_DM_CON` / `_DP_CON` | 3,82 / 3,82 | zu J1, exakt gleich |
+| `I2C_SCL` | 10,52 | kommt auf eine Innenlage |
+| `I2C_SDA` | 18,53 | dto.; lang, aber langsam |
+| `SE_ENA` | 19,08 | langsam, unkritisch |
