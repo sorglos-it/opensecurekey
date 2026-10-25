@@ -54,6 +54,27 @@ anders vermerkt. Was nicht belegt ist, steht als `ungeprueft` da.
   Händlerlinks nicht abrufbar, die Herstellerbroschüre bemaßt eine andere
   Variante und nennt die Paddle Card ausdrücklich als nicht enthalten.
   Keine belegte Plattendicke.
+#### Was bei Valcon und JAE konkret fehlt
+
+Falls später doch ein Datenblatt vorliegt: Es sind genau diese sechs Zahlen,
+die der Vergleich braucht, und zwar aus der Zeichnung, nicht aus einer Liste.
+
+1. **Vorgeschriebene Plattendicke** – steht beim GCT unter „Recommended PCB
+   Layout". Nur wenn dort 0,8 mm im Fenster liegt, ist das Teil überhaupt
+   im Rennen. (Beim Same Sky stand dort 0,60 mm – daran ist er gescheitert.)
+2. **Höhe über alles** – zum Vergleich mit den 2,90 mm des GCT.
+3. **Tiefe des Lötbilds ab Platinenkante** – zum Vergleich mit den 2,50 mm.
+4. **Ob die Kante eine Sonderform braucht** – Zunge, Fase oder Aussparung.
+   Der GCT braucht keine; das ist einer seiner Vorteile.
+5. **Gesamtlänge und Einbautiefe**, damit sich der Überstand rechnen lässt.
+6. **Ziehkraft und ob eine Verriegelung verbaut ist.**
+
+Beim **Valcon** liegt das Datenblatt bei Toby hinter einer Anmeldung, und
+Valcon selbst hat keine öffentliche Produktseite dazu; angefragt wurde nichts.
+Beim **JAE** ist das Serienblatt DX07P024xJ1R über die Händlerlinks nicht
+abrufbar, und die öffentliche Herstellerbroschüre bemaßt die Variante MJ1,
+nicht unsere AJ5R – deren Maße gelten also nicht.
+
 - **Wit-area W0029-24-EM1-S3** gibt es nicht. Die Tabelle des Anbieters führt
   die Reihe **W0026**-24-EM1 – und das sind **Buchsen** (female), keine Stecker.
   Für einen Stick unbrauchbar. (W0026-24-EM1-S3 steht dort mit T = 0,8 mm.)
@@ -122,6 +143,18 @@ Kabel genannt. Das wurde geprüft.
   Mindestabnahme und eine Anfrage beim Hersteller – und Anfragen stellt der
   Nutzer selbst, nicht ich. Die Lieferzeit dafür ist `ungeprueft`, liegt aber
   erfahrungsgemäß über den 7 Wochen des GCT.
+
+**Ein Fund, der gegen die billige Variante spricht:** Die Konsumteile werden
+mit **2, 4 oder 6 Adern** verkauft, und die weitaus meisten haben **zwei** –
+rot und schwarz, reine Stromversorgung, ausdrücklich „no data function" [8].
+Die taugen für uns nicht einmal als Muster. Wir brauchen mindestens **sechs**
+Adern: VBUS, GND, D+, D− und **beide CC-Leitungen**, denn die CC-Beschaltung
+muss bis auf unsere Platine durchkommen – am Kabelende sitzt sie nicht.
+Welche Beschaltung dort genau hingehört, ist `ungeprueft`; die Zeichnung des
+GCT nennt A5 und B5 schlicht „Configuration Channel" und sagt nichts darüber.
+Das heißt: Die 6-adrigen Teile wären das Mindeste, und auch bei denen steht
+nirgends, wie die beiden CC-Adern innen aufgelegt sind. Ohne diese Auskunft
+ist keines der Handelsteile verwendbar – auch nicht zum Ausprobieren.
 
 **Was es an Platz kostet, gegenüber dem direkten Stecker:**
 
