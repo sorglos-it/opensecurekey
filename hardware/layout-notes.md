@@ -2695,13 +2695,37 @@ Alle Pads, geparkte Steckverbinder ausgenommen, nach belegten `y`-Bändern:
 | 8,913 | 11,699 | Q1/Q2/Q3, U4, C2 |
 | 11,878 | **24,799** | U1 samt allem darunter, U3, X1, C8/C9, SW1 |
 | 25,599 | **33,870** | SW1-Oberkante, Q4/Q5, R9/R17, C13, C14 |
-| 33,870 | 51,500 | **frei — hier liegt die Zelle** (Unterseite) |
+| 33,870 | 51,500 | ~~**frei — hier liegt die Zelle** (Unterseite)~~ **→ nicht frei, siehe Berichtigung darunter** |
 | 51,500 | 53,499 | J3, Antennenbuchse |
 | 53,499 | 70,000 | Antennenfeld, darin nur R10–R12 und die LED |
 
 > **Die ganze Schaltung endet bei `y` 33,870.** Alles darüber ist Zelle,
 > Antennenbuchse und Antennenfeld. **Zwei Drittel der Platine tragen keine
 > Schaltung** — darin hat der Master recht.
+
+> ## ⚠ BERICHTIGUNG 25.10.2026: „frei" heißt hier nur „keine Pads"
+>
+> **Das Band `y` 33,870 … 51,500 ist nicht frei. Dort liegt die Anzeige.**
+>
+> Die Tabelle darüber zählt **Pads**. Die Anzeige DS1 hat auf dieser Platine
+> keine Pads — sie hängt an `J4`, und `J4` steht neben der Platine geparkt.
+> Das Glas ist trotzdem da: **13,90 × 22,00 mm, auf der Oberseite.** Die
+> Zeile sagt „Unterseite", und genau dort ist das Band wirklich leer; die
+> Oberseite ist es nicht.
+>
+> **Und die Lage der Anzeige ist erzwungen, nicht gewählt.** Neben U1 bleiben
+> quer 27 − 15,5 = **11,50 mm**, das Glas ist **13,90 mm** breit. Es paßt
+> nicht daneben, also muß es dahinter, und U1s Körper endet bei `y`
+> **22,5499**. Daraus folgt **23,05 … 45,05**, ohne Spielraum.
+>
+> **Wer diese Zeile als „frei" liest, rechnet die Platine zu kurz.** Genau so
+> ist die Zahl 52,85 mm weiter unten entstanden.
+>
+> **Die Lehre, und sie ist allgemein:** Ein Messwerkzeug, das Pads zählt,
+> sieht kein Bauteil ohne Pads — kein Glas, keinen Akku, keine Ferritfolie,
+> keinen Sensor, der nur aufliegt. **„Keine Pads" und „kein Bauteil" sind
+> nicht dasselbe.** Vor jedem „frei" gehört die Frage, auf welcher Seite und
+> gegen welche Liste gemessen wurde.
 
 ## Die drei Rechnungen
 
@@ -2720,8 +2744,12 @@ ist, **was weiter reicht: die Zelle oder die Schaltung.**
 
 1. **Unter rund 9 mm Zellenlänge bringt eine kleinere Zelle gar nichts mehr.**
    Dann endet die Schaltung weiter oben als die Zelle, und **die Schaltung ist
-   das Maß.** Die Platine wird nicht kürzer als **52,85 mm**, solange die
+   das Maß.** Die Platine wird nicht kürzer als ~~52,85 mm~~, solange die
    Bauteile stehen, wo sie stehen.
+
+   > **Berichtigt 25.10.2026: die 52,85 mm tragen nicht.** Sie lassen die
+   > Anzeige aus — siehe die Berichtigung bei der Bandtabelle oben. Mit der
+   > Anzeige sind es **59,55 mm**.
 2. **Im Repo gibt es keine kürzere Zelle als 25,0 mm mit belegten Maßen.** Die
    untersuchte Tabelle (`docs/parts.md`) führt fünf Zellen; die kürzeste ist
    die SparkFun mit 25,0 mm. Die 40-mAh-Zelle **PRT-13852 kommt dort nur in
@@ -3329,6 +3357,24 @@ allein der Körper von U1, der bei `y` 22,5499 endet; 0,5 mm Luft darauf ergibt
 > | --- | --- | --- |
 > | 14,50 mm (heutiger Plan, 357 mm² Schleifenfläche) | **59,55 mm** | **−10,45** |
 > | 19,00 mm (Stufe-1-Maß von früher, 448 mm²) | **64,05 mm** | **−5,95** |
+>
+> **Die 59,55 mm sind eine obere Schranke, nicht das Ende.** Diese Zahl
+> gehört immer mitgegeben, sonst wird sie weitergereicht, als wäre nichts
+> mehr drin:
+>
+> | **Möglichkeit, nicht Stand** | Platine wird |
+> | --- | --- |
+> | 59,55 mm, **zusätzlich SW2 aus dem USB-Band heraus** | **56,55 mm** |
+>
+> Woher die 3,00 mm kommen: Abschnitt „Der Steckerwechsel bringt weniger
+> Länge, als die Bänder versprechen". **SW2 ist mit 5,00 mm das höchste Teil
+> in diesem Band — und ein Knopf, keine Schaltung.** Liegt er woanders, wird
+> die Gruppe 2,4 mm flacher und der Gewinn steigt von 0,60 auf 3,00 mm.
+>
+> **Nicht ausgeführt, nicht gemessen am geänderten Stand.** Es ist eine
+> Neuplatzierung der ganzen unteren Partie und braucht eine eigene Runde.
+> Thomas will so kurz wie möglich — bei 59,55 mm sind drei Millimeter keine
+> Kleinigkeit, darum steht die Zeile hier und nicht in einer Fußnote.
 
 **Gegenprobe gegen den alten Plan:** Z3 war 25 … 55,5 = 30,5 mm, gesetzt von
 der Zelle LP-401230-J. Neu ist Z3 23,05 … 45,05 = 22,0 mm. Ersparnis
