@@ -2677,3 +2677,72 @@ dem Senden durchgerechnet werden.
 `D:\claude\working\opensecurekey-platine`; `core.fileMode` ist dort auf `false`
 gesetzt (Regel aus `repo.md`). Dieser Zweig führt **keine** ausführbaren
 Dateien, es war also nichts zu verlieren.
+
+# Was die Platine an Länge verlöre, wenn der Akku kleiner wird
+
+Stand 25.10.2026. **Gerechnet, nicht umgebaut.** Grundlage ist nicht die
+Bandtabelle, sondern eine Messung: **wo liegt auf der Platine überhaupt
+Kupfer?**
+
+## Die Messung zuerst
+
+Alle Pads, geparkte Steckverbinder ausgenommen, nach belegten `y`-Bändern:
+
+| von | bis | was |
+| ---: | ---: | --- |
+| 0,456 | 2,221 | J1, Widerstandsreihe, C10 |
+| 2,616 | 8,600 | U2, U5, J1-Schirm, Ladepfad |
+| 8,913 | 11,699 | Q1/Q2/Q3, U4, C2 |
+| 11,878 | **24,799** | U1 samt allem darunter, U3, X1, C8/C9, SW1 |
+| 25,599 | **33,870** | SW1-Oberkante, Q4/Q5, R9/R17, C13, C14 |
+| 33,870 | 51,500 | **frei — hier liegt die Zelle** (Unterseite) |
+| 51,500 | 53,499 | J3, Antennenbuchse |
+| 53,499 | 70,000 | Antennenfeld, darin nur R10–R12 und die LED |
+
+> **Die ganze Schaltung endet bei `y` 33,870.** Alles darüber ist Zelle,
+> Antennenbuchse und Antennenfeld. **Zwei Drittel der Platine tragen keine
+> Schaltung** — darin hat der Master recht.
+
+## Die drei Rechnungen
+
+Die Zelle beginnt bei `y` 25,0 (die Unterseite ist ab 24,799 frei). Maßgeblich
+ist, **was weiter reicht: die Zelle oder die Schaltung.**
+
+| Zelle | Länge | endet bei | **Platine** bei heutigem Feld | **Feld**, wenn 70 mm bleiben | Quelle der Maße |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Adafruit 1317, 150 mAh **(verbaut)** | 26,02 | 51,02 | **70,00** | 18,98 | Datenblatt |
+| SparkFun PRT-13853, 110 mAh | 25,00 | 50,00 | **68,98** | 20,00 | Datenblatt |
+| *hypothetisch* | 20,00 | 45,00 | **63,98** | 25,00 | **keine** |
+| SparkFun PRT-13852, 40 mAh | ~12,00 | 37,00 | **55,98** | 33,00 | **geschätzt** |
+| Grenzfall | 8,87 | 33,87 | **52,85** | 36,13 | rechnerisch |
+
+**Zwei Dinge, die aus der Tabelle fallen und wichtiger sind als die Zahlen:**
+
+1. **Unter rund 9 mm Zellenlänge bringt eine kleinere Zelle gar nichts mehr.**
+   Dann endet die Schaltung weiter oben als die Zelle, und **die Schaltung ist
+   das Maß.** Die Platine wird nicht kürzer als **52,85 mm**, solange die
+   Bauteile stehen, wo sie stehen.
+2. **Im Repo gibt es keine kürzere Zelle als 25,0 mm mit belegten Maßen.** Die
+   untersuchte Tabelle (`docs/parts.md`) führt fünf Zellen; die kürzeste ist
+   die SparkFun mit 25,0 mm. Die 40-mAh-Zelle **PRT-13852 kommt dort nur in
+   einer Berichtigung vor, ohne ein einziges Maß.** Die Zeile mit 12 mm steht
+   auf einer Schätzung, nicht auf einem Datenblatt — **wer darauf plant, plant
+   auf einer Zahl, die niemand nachgesehen hat.**
+
+## Was das Antennenfeld dabei macht
+
+Es **wächst**, wenn die Platine lang bleibt: von 18,98 auf bis zu 36,13 mm.
+Das ist die bessere Richtung — `layout-notes.md` hält seit dem ersten Entwurf
+fest: **„Fläche schlägt Länge."** Wird die Platine stattdessen kürzer, bleibt
+das Feld bei 18,98 und nichts wird schlechter.
+
+**Beides zugleich geht nicht.** Jeder Millimeter, den die Zelle kürzer wird,
+ist **entweder** ein Millimeter weniger Platine **oder** ein Millimeter mehr
+Antennenfeld.
+
+## Nicht gerechnet, weil offen
+
+**Z1 (0 … 9,5) hängt am Stecker.** Wird aus der Buchse ein Randstecker oder
+wird die Platine selbst zum Stecker, ändert sich dieses Band — nach oben wie
+nach unten. Alle Zahlen oben lassen Z1 unverändert; **sie sind damit die
+obere Schranke für die Länge, nicht die untere.**
