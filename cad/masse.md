@@ -264,8 +264,10 @@ Platinenrand um – genau dort, wo ein seitlich betätigter Taster sitzt.
 - **Die Freistellung ist 5,6 mm lang, der Schlitz nur 4,5 mm.** Panasonic gibt
   den Körper mit 3,5 mm Länge an, DigiKey mit 4,70 mm – beide Lesarten passen
   jetzt hinein (1,05 bzw. 0,45 mm Luft je Seite).
-- Zwei Unterbrechungen von je 5,6 mm bei rund 194 mm Umfang. Die Klemmung trägt
-  das.
+- Drei Unterbrechungen bei 194,0 mm Umfang: 5,6 mm (SW1), 5,6 mm (SW2) und
+  10,5 mm für die USB-Öffnung in der Frontkante. **172,3 mm tragen, 88,8 %** –
+  am Modell abgetastet, siehe [gehaeuse.md](gehaeuse.md). Die USB-Öffnung
+  fehlte in der früheren Zahl „zwei Unterbrechungen bei 192 mm".
 
 ### SW1 bekommt eine Öffnung, SW2 nicht
 

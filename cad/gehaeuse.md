@@ -131,10 +131,28 @@ gezogenen Rand und beginnt erst bei 30,15 mm, also **3,90 mm vom Taster**.
 1,2 mm breit am Platinenrand um – genau dort, wo ein seitlich betätigter Taster
 sitzt. Er ist freigestellt bis auf 1,65 mm Höhe, an der Kante quer 0 über
 **21,70…27,30 mm** (SW1) und an der Kante quer 27 über **5,8412…11,4412**
-(SW2): weiterhin zwei Unterbrechungen von je 5,6 mm bei rund 194 mm Umfang,
-**182,8 von 194 mm tragen** (94,2 %). Der Umzug ändert daran nichts – die
-Unterbrechung ist gleich lang, sie liegt nur woanders. Neu ist nur, dass vor
-ihr ein **5,84 mm langes Kragenstück** bis zur vorderen Ecke stehen bleibt.
+(SW2). Der Umzug ändert an der Klemmung nichts – die Unterbrechung ist gleich
+lang, sie liegt nur woanders.
+
+**Nachgemessen statt gerechnet** (Mittellinie des Kragens abgetastet, 0,6 mm
+innen, Schrittweite 0,1 µm): bei 194,0 mm Umfang **tragen 172,3 mm – 88,8 %**.
+Es sind **drei** Unterbrechungen, nicht zwei:
+
+| Lücke | Länge |
+| --- | --- |
+| SW1-Freistellung, längs 21,70…27,30 | 5,6 mm |
+| SW2-Freistellung, längs 5,841…11,441 | 5,6 mm |
+| **USB-Öffnung in der Frontkante** | **10,5 mm** |
+
+Die dritte stand in keiner früheren Kragenrechnung – die Zahl „zwei
+Unterbrechungen bei rund 192 mm Umfang" hat sie übersehen, auch schon vor dem
+Umzug. Durchgehend bleiben: **128,26 mm** am Stück, dann **14,09 mm** zwischen
+SW2-Freistellung und USB-Öffnung um die vordere Ecke herum, dann **8,25 mm**
+auf der anderen Seite der USB-Öffnung. Das kürzeste Stück ist damit nicht vom
+Umzug verursacht.
+
+**Ob das klemmt, ist damit nicht gezeigt.** Gerechnet ist Geometrie, keine
+Kraft; eine Klemmkraft steht nirgends in den Unterlagen. `offen`
 
 **Kollision mit der Frontpartie: keine.** Nachgerechnet gegen die drei Dinge,
 die am USB-Ende im Weg stehen könnten:
