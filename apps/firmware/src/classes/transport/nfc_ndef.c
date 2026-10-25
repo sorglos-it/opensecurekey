@@ -423,7 +423,7 @@ size_t osk_ndef_apdu(const uint8_t *apdu, size_t len, uint8_t *out, size_t cap)
 		return 0;
 	if (g_cfg.mode == OSK_NDEF_OFF)
 		return osk_apdu_only_status(out, cap, OSK_SW_FILE_NOT_FOUND);
-	if (!osk_apdu_parse(apdu, len, &c))
+	if (!osk_nfc_apdu_parse(apdu, len, &c))
 		return osk_apdu_only_status(out, cap, OSK_SW_WRONG_LENGTH);
 	/* Diese Anwendung kennt nur das Klassenbyte ohne jede Option. */
 	if (c.cla != 0x00u)

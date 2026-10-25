@@ -21,7 +21,7 @@ SAN ?= -fsanitize=address,undefined -fno-omit-frame-pointer
 # Alle Quellen der Geldboerse, ueber ein Muster: so kann keine neue Datei
 # still unter den Tisch fallen. Genau das ist dem CTAP-Pruefsatz einmal
 # passiert, als eine Datei dazukam und in keiner Liste stand.
-CORE := $(wildcard $(SRC)/*.c) $(CTAP)/osk_crypto.c
+CORE := $(wildcard $(SRC)/*.c) $(CTAP)/osk_crypto.c ../../src/osk_mem.c
 
 MOCKS := mocks.c
 

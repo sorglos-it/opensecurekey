@@ -226,7 +226,7 @@ size_t osk_nfc_ctap_apdu(const uint8_t *apdu, size_t len, uint8_t *out, size_t c
 		return 0;
 	if (g_deselected)
 		return osk_apdu_only_status(out, cap, OSK_SW_COND_NOT_SATISFIED);
-	if (!osk_apdu_parse(apdu, len, &c))
+	if (!osk_nfc_apdu_parse(apdu, len, &c))
 		return osk_apdu_only_status(out, cap, OSK_SW_WRONG_LENGTH);
 
 	/* Eine neue Anfrage, obwohl noch eine Antwort bereitliegt: die alte

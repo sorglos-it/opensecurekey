@@ -1,0 +1,97 @@
+/* Was auf dem Entwicklungsbrett wo haengt.
+ *
+ * Das echte Geraet bekommt spaeter sein eigenes Brett; hier wird nur
+ * verdrahtet, was die Quellen namentlich verlangen, damit die Firmware
+ * uebersetzt und sich messen laesst:
+ *
+ *   oled, oled_dc, oled_res, oled_pwr   src/classes/ui/osk_ui_port_nrf.c
+ *   osk_button, osk_led_red/green/blue  dieselbe Datei
+ *   vault_partition                     src/classes/store/osk_flash_qspi.c
+ *
+ * Die Anzeige ist auf dem Brett nicht angeloetet - die Pins sind frei
+ * gewaehlt und am Stiftfeld P1 herausgefuehrt. Taster und LEDs nehmen die,
+ * die das Brett selbst hat. Nichts davon ist am Geraet geprueft.
+ */
+
+/ {
+	/* Die drei Steuerleitungen der Anzeige. Eigene Knoten, weil der
+	 * Treiber in diesem Projekt selbst geschrieben ist (osk_ssd1306.c)
+	 * und nicht der aus Zephyr. */
+	osk-display {
+		compatible = "gpio-leds";
+
+		oled_dc: dc {
+			gpios = <&gpio1 1 GPIO_ACTIVE_HIGH>;
+			label = "OLED D/C";
+		};
+
+		oled_res: res {
+			gpios = <&gpio1 2 GPIO_ACTIVE_LOW>;
+			label = "OLED Reset";
+		};
+
+		oled_pwr: pwr {
+			gpios = <&gpio1 3 GPIO_ACTIVE_HIGH>;
+			label = "OLED Versorgung";
+		};
+	};
+
+	/* Taster und LED des Bretts: Button 1 und LED 1 bis 3. */
+	osk-controls {
+		compatible = "gpio-keys";
+
+		osk_button: taster {
+			gpios = <&gpio0 11 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Freigabe";
+		};
+	};
+
+	osk-leds {
+		compatible = "gpio-leds";
+
+		osk_led_red: rot {
+			gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
+			label = "rot";
+		};
+
+		osk_led_green: gruen {
+			gpios = <&gpio0 14 GPIO_ACTIVE_LOW>;
+			label = "gruen";
+		};
+
+		osk_led_blue: blau {
+			gpios = <&gpio0 15 GPIO_ACTIVE_LOW>;
+			label = "blau";
+		};
+	};
+};
+
+/* Die Anzeige haengt am SPI, das das Brett schon verdrahtet hat. */
+&spi1 {
+	status = "okay";
+
+	oled: oled@0 {
+		compatible = "vnd,spi-device";
+		reg = <0>;
+		spi-max-frequency = <8000000>;
+	};
+};
+
+/* Der Tresor liegt im aeusseren Flash, nicht im Chip - deshalb bleiben
+ * dem Abbild die rund 960 kB im Chip (docs/architecture.md). Der Platz
+ * dahinter ist fuer das Ersatzabbild des Bootladers gedacht.
+ */
+&mx25r64 {
+	status = "okay";
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		vault_partition: partition@0 {
+			label = "vault";
+			reg = <0x00000000 0x00400000>;
+		};
+	};
+};

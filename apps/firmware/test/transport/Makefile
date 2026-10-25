@@ -27,12 +27,12 @@ BLE   := $(SRC)/ble_pair.c $(SRC)/ble_gatt.c
 # zweiter Ort, an dem dieselbe Luege stehen koennte.
 MOCKS := ../ctap/mocks.c
 # Die Attrappen rechnen mit den echten Hashfunktionen des Kerns.
-CRYPTO := $(CTAP)/osk_crypto.c
+CRYPTO := $(CTAP)/osk_crypto.c ../../src/osk_mem.c
 # Der echte CTAP-Kern. Nur der Satz test_nfc nimmt ihn, damit dort wirklich
 # derselbe Kern antwortet wie am USB - und der Tastendruck echt gezaehlt wird.
 CORE  := $(CTAP)/osk_cbor.c $(CTAP)/osk_crypto.c $(CTAP)/osk_credid.c \
          $(CTAP)/osk_ctap_key.c $(CTAP)/osk_ctap_ext.c $(CTAP)/osk_ctap_core.c \
-         $(CTAP)/osk_ctap_u2f.c $(CTAP)/osk_pin.c
+         $(CTAP)/osk_ctap_u2f.c $(CTAP)/osk_pin.c ../../src/osk_mem.c
 
 TESTS   := test_apdu test_isodep test_ndef test_ble test_nfc_chain test_nfc
 FUZZERS := fuzz_isodep fuzz_ndef

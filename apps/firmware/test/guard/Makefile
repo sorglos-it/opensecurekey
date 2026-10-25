@@ -23,7 +23,7 @@ LDFLAGS :=
 SAN ?= -fsanitize=address,undefined -fno-omit-frame-pointer
 
 CORE := $(GUARD)/osk_guard_msg.c $(GUARD)/osk_guard_grant.c $(GUARD)/osk_guard_keys.c \
-        $(GUARD)/osk_guard_fw.c $(CTAP)/osk_cbor.c $(CTAP)/osk_crypto.c
+        $(GUARD)/osk_guard_fw.c $(CTAP)/osk_cbor.c $(CTAP)/osk_crypto.c ../../src/osk_mem.c
 MOCKS := mocks.c
 
 TESTS := test_msg test_guard test_node test_forgery

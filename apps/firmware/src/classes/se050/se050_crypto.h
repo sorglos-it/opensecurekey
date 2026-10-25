@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "osk_result.h"
+#include "osk_mem.h" /* osk_wipe() - liegt gemeinsam */
 
 #define OSK_AES_BLOCK 16u
 #define OSK_AES_KEY_LEN 16u
@@ -52,10 +53,6 @@ osk_result_t osk_aes_cbc_decrypt(const uint8_t key[OSK_AES_KEY_LEN],
  * Der Zufall des SE050 kommt nicht in Frage: wer den Kanal aufbaut, kann
  * dem Gegenueber noch nicht glauben. */
 osk_result_t osk_random(uint8_t *out, size_t len);
-
-/* Puffer sicher leeren. Ein blosses memset() darf der Uebersetzer
- * wegstreichen, wenn danach nicht mehr gelesen wird - diese Fassung nicht. */
-void osk_wipe(void *p, size_t len);
 
 /* Zwei Puffer in gleichbleibender Zeit vergleichen. 0 bei Gleichheit.
  * Pflicht beim Pruefen von MAC und Kryptogramm: ein frueher Abbruch verraet,

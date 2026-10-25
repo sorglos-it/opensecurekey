@@ -130,10 +130,43 @@ If even 960 kB turns out to be too little, the honest answer is a different
 part (the nRF5340 has two cores and real XIP support), not a trick. That
 decision would come before the board is made, not after.
 
-**None of these numbers are measured.** They are the sizes from the data sheets
-and an estimate of our own code. The first real figure arrives with the first
-build for the target, and it goes into `docs/power-budget.md`'s sibling section
-rather than staying a guess.
+### Measured, 25 October 2026: it fits, with room to spare
+
+The first build for the real target is done. Board `nrf52840dk/nrf52840`,
+79 source files, fresh build directory, cross-checked with a second tool:
+
+| | used | region | against the 960 kB |
+| --- | --- | --- | --- |
+| **nRF52840 flash** | **161 124 B** (157 kB) | 1 MB, 15.37 % | **16.4 %** — 802.7 kB free |
+| **nRF52840 RAM** | **97 100 B** (95 kB) | 256 kB, 37.04 % | — |
+
+**And a finding that changes the reasoning above:** at 157 kB the firmware
+would also have fitted into the roughly 496 kB that an update slot *inside*
+the chip would have left. **Moving the slot to the external flash was not
+necessary.** It does no harm and it stays — but the headroom is far larger
+than planned, and the internal flash is not as tight as this section assumed.
+
+What the number is worth, and what it is not:
+
+- **The image does not contain all of our own code.** Read from the ELF
+  symbols: 243 of our 535 functions are in it; the linker discarded 292
+  with `--gc-sections`, because `src/main.c` does not reach them. Our code
+  contributes 30 kB to the image but amounts to 137 kB in total. With all
+  of it reachable the image would be roughly **264 kB — 27.5 % of the
+  960 kB**, still leaving close to 700 kB. The answer stays "it fits"; the
+  margin is simply smaller than 16.4 % suggests.
+- It is a **lower bound** for a second reason: six symbols do not exist on
+  the device yet, and the measurement build substitutes placeholders for
+  them (`apps/firmware/src/messbau.c`). The real implementations are bigger.
+- USB, BLE and NFC on the Zephyr side are not written yet, nor is the
+  bootloader. Those are the large items still to come.
+- It is **stage 2 of 4**: compiled and in the image, **never run on the
+  device**. There is no hardware yet.
+- The other numbers in the table above — QSPI flash and secure element —
+  are still the data-sheet sizes, unmeasured.
+
+How it was measured, every finding, and the traps on the way there:
+`docs/build.md`, section "Der erste Bau für ARM".
 
 ## Folders
 

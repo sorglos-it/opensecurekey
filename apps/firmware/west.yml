@@ -1,0 +1,26 @@
+# Was die Firmware zum Bauen braucht: das nRF Connect SDK und alles, was
+# daran haengt (Zephyr, PSA-Krypto, die Treiber fuer den nRF52840).
+#
+# Diese Datei beschreibt den Arbeitsbereich, nicht den Bau. Angelegt wird
+# er einmal, ausserhalb des Repos (docs/build.md):
+#
+#   west init -m https://github.com/nrfconnect/sdk-nrf --mr v3.4.1 D:\ncs
+#   cd D:\ncs && west update
+#
+# Die Firmware selbst wird dann als Anwendung in diesen Arbeitsbereich
+# hineingebaut - das Repo bleibt, wo es ist.
+manifest:
+  version: "0.13"
+
+  remotes:
+    - name: nrfconnect
+      url-base: https://github.com/nrfconnect
+
+  projects:
+    - name: sdk-nrf
+      remote: nrfconnect
+      revision: v3.4.1
+      import: true
+
+  self:
+    path: opensecurekey
