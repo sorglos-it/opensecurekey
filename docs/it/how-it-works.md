@@ -32,7 +32,7 @@ La chiave non ha una batteria, per scelta. Funziona solo finché è inserita in 
 
 - L'orologio per i codici unici basati sul tempo non ha bisogno di alimentazione continua. Lo imposta il computer quando inserisci la chiave, e il codice nasce solo nel momento in cui lo usi. **Bozza, non ancora costruito.**
 - Per il timestamp di una firma la chiave chiede l'ora a un server di timestamp. Non usa il proprio orologio.
-- Una batteria avrebbe dato solo NFC e Bluetooth senza computer. Contro questo c'erano 4–5 mm di lunghezza in più e un componente soggetto a usura con pochi anni di vita, in una chiave che deve durare decenni.
+- Una batteria avrebbe dato solo NFC e Bluetooth senza computer. Contro questo c'erano più lunghezza (quanta, è scritto in `hardware/layout-notes.md`) e un componente soggetto a usura con pochi anni di vita, in una chiave che deve durare decenni.
 
 **A che cosa rinunci:**
 

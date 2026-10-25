@@ -32,7 +32,7 @@ The key has no battery, on purpose. It runs only while it is plugged into a USB 
 
 - The clock for time-based one-time codes needs no continuous power. The computer sets it when you plug the key in, and the code is made only at the moment you use it. **Draft, not built yet.**
 - For the timestamp on a signature, the key asks a timestamp server. It does not use its own clock.
-- A battery would only have bought NFC and Bluetooth without a computer. Against that stood 4 to 5 mm more length and a part that wears out in a few years, in a key that should last decades.
+- A battery would only have bought NFC and Bluetooth without a computer. Against that stood more length (how much is in `hardware/layout-notes.md`) and a part that wears out in a few years, in a key that should last decades.
 
 **What you give up for this:**
 

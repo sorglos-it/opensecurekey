@@ -32,7 +32,7 @@ Der Stick hat bewusst keinen Akku. Er läuft nur, solange er im USB-Anschluss st
 
 - Die Uhr für zeitbasierte Einmalcodes braucht keine Dauerversorgung. Der Rechner stellt sie beim Einstecken, und der Code entsteht erst im Moment des Benutzens. **Entwurf, noch nicht gebaut.**
 - Den Zeitstempel einer Signatur holt der Stick von einem Zeitstempel-Server, nicht von seiner eigenen Uhr.
-- Ein Akku hätte nur NFC und Bluetooth ohne Rechner gebracht. Dagegen standen 4 bis 5 mm mehr Länge und ein Verbrauchsteil mit wenigen Jahren Lebensdauer, in einem Stick, der Jahrzehnte halten soll.
+- Ein Akku hätte nur NFC und Bluetooth ohne Rechner gebracht. Dagegen standen mehr Länge (wie viel, steht in `hardware/layout-notes.md`) und ein Verbrauchsteil mit wenigen Jahren Lebensdauer, in einem Stick, der Jahrzehnte halten soll.
 
 **Was du dafür aufgibst:**
 

@@ -32,7 +32,7 @@ La clé n’a volontairement pas de batterie. Elle ne fonctionne que tant qu’e
 
 - L’horloge des codes uniques basés sur le temps n’a pas besoin d’alimentation continue. L’ordinateur la règle quand tu branches la clé, et le code ne naît qu’au moment où tu l’utilises. **Ébauche, pas encore construit.**
 - Pour l’horodatage d’une signature, la clé demande l’heure à un serveur d’horodatage. Elle n’utilise pas sa propre horloge.
-- Une batterie n’aurait apporté que le NFC et le Bluetooth sans ordinateur. En face, il y avait 4 à 5 mm de longueur en plus et une pièce d’usure de quelques années, dans une clé censée durer des décennies.
+- Une batterie n’aurait apporté que le NFC et le Bluetooth sans ordinateur. En face, il y avait de la longueur en plus (combien : voir `hardware/layout-notes.md`) et une pièce d’usure de quelques années, dans une clé censée durer des décennies.
 
 **À quoi tu renonces :**
 

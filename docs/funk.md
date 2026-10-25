@@ -3,7 +3,7 @@
 The two wireless ways into the key: NFC (hold it against a phone) and
 Bluetooth LE (talk to the management program without a cable).
 
-**Both exist only while USB powers the stick.** The device has no battery (decided
+**Both exist only while USB powers the stick** — and whether they stay at all is not decided (one strand is checking what a device without NFC and Bluetooth would be; this file treats them neither as settled nor as dropped). The device has no battery (decided
 25 October 2026), and the nRF52840 cannot harvest power from an NFC field. So the
 stick lies in a USB port and the phone comes to it; holding a loose stick against
 a phone, or talking Bluetooth to an own app with the stick on a key ring, does

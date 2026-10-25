@@ -10,7 +10,7 @@
 > keine Dauerversorgung, weil sie beim Einstecken vom Rechner nachgestellt wird
 > und der Code im Moment des Benutzens entsteht. Zeitstempel bei Signaturen holen
 > die Zeit von einem Zeitstempel-Server. Damit kaufte der Akku nur noch NFC und
-> Bluetooth ohne Rechner. Dagegen standen 4 bis 5 mm Länge und ein
+> Bluetooth ohne Rechner. Dagegen standen mehr Länge (wie viel, steht in `hardware/layout-notes.md`) und ein
 > Verbrauchsteil mit wenigen Jahren Lebensdauer in einem Gerät, das Jahrzehnte
 > halten soll. NFC und Bluetooth gibt es nun nur am Rechner — bewusst in Kauf
 > genommen.
