@@ -2352,3 +2352,64 @@ Gehäusemodell. Das ist eine Bauhöhe, sauber gerechnet.
 darüber hinaus — nicht 1,05, nicht die 1,70, die ich gerechnet hatte. Der SH
 mit 2,9 mm bleibt **1,75 mm darunter**. Die Rangfolge der beiden Teile hat
 sich nie geändert, die Zahl dreimal.
+
+# C15/C16 an die NFC-Pins, Reihe an den Rand, C10 nach — und ein Methodenfehler
+
+Stand 25.10.2026. **0 Abstandsfehler.** Verlegt ist nichts.
+
+## Acht weitere versetzt
+
+| Teil | von | nach | Abstand zum Pin |
+| --- | --- | --- | --- |
+| **C15** | 10,50 / 55,50 | **21,50 / 12,60** | 43,46 → **1,02** zu U1.52 |
+| **C16** | 16,50 / 55,50 | **21,50 / 13,50**, 180° | 42,40 → **0,33** zu U1.54 |
+| **C10** | 19,60 / 2,949 | **22,400 / 1,95** | 2,38 → **1,08** zu U2.12 |
+| R3, R4, R5, R13, R14 | `y` 2,000 | **`y` 0,900** | macht den Platz für C10 frei |
+
+Die Widerstandsreihe hält am Rand `y` 0,63 — die Vorschrift sind 0,30. Zu J1s
+Schirm bleiben die 0,2505 mm von gestern, zu U2 jetzt 1,45 mm.
+
+**C15 und C16 standen an der Antennenbuchse, 43 mm von den NFC-Pins.** Jetzt
+stehen sie unter dem Modul an Pin 52 und 54. Die NFC-Leitungen laufen dafür
+die 40 mm zur Buchse — das ist die richtige Richtung: **die Abstimmung gehört
+an den Chip, die Antenne darf weit weg sein.**
+
+## Der Methodenfehler, und er entwertet eine frühere Schlussfolgerung
+
+Ich hatte geschrieben, `U1_2`, `U1_15`, `U1_33` und `U1_55` seien verbunden,
+**weil sie nicht in der Fehlerliste stehen.** Das ist falsch:
+
+> **Die DRC nennt je zusammenhängender Insel genau einen Vertreter, nicht jedes
+> Pad darin.** „Nicht gelistet" heißt also nicht „verbunden" — es kann auch
+> heißen „liegt auf derselben Insel wie der, der genannt ist".
+
+Bewiesen am eigenen Fall: Nach einer Bahn von `U1_1` zu `U1_2` blieb der
+Eintrag `U1_1` stehen. Nach einer zweiten Bahn nach unten **verschwand `U1_1`
+und an seiner Stelle stand `Track e8`** — dieselbe Insel, ein anderer
+Vertreter. Die Zahl 175 ist damit **keine Zahl unverbundener Pads, sondern eine
+Zahl unverbundener Inseln.**
+
+Das erklärt auch, warum 175 über mehrere Reparaturen hinweg gleich blieb:
+gelöste Inseln und neu entstandene hoben sich auf.
+
+## U1_1 bleibt offen, und diesmal weiß ich mehr
+
+Drei Versuche, jeder gemessen: Durchkontaktierung **im** Pad (0,35/0,20),
+Bahn zu `U1_2` auf der Oberseite, Bahn nach unten ins offene Feld. **Keiner
+verbindet.** Der dritte zeigte dafür, woran es liegt:
+
+- **Auf der Oberseite ist unter U1 überhaupt kein Gießkupfer.** Im Bild ist die
+  ganze Modulfläche schwarz. Zwischen Pads im 0,8-mm-Raster bleibt nach allen
+  Freiräumen nichts übrig, was zusammenhängt.
+- **Unten ebenso wenig**, denn meine Bahn von `U1_1` nach `y` 19,5 wurde selbst
+  als unverbunden gemeldet. Dort, wo ich offene Fläche vermutet hatte, ist
+  keine.
+
+**Warum das Kupfer dort fehlt, weiß ich nicht** — ich kann nicht sehen, welche
+Teile einer Gießfläche zusammenhängen, und das Bild zeigt nur die Oberseite.
+Die Bahn nach unten habe ich zurückgebaut; **Durchkontaktierung und die kurze
+Bahn `U1_1`–`U1_2` bleiben**, denn sie sind für sich richtig und Raytac
+verlangt an den Ecken ohnehin Durchkontaktierungen.
+
+**Offen, mit Vertreter:** `U1_1` (Antennenende), `SW2_2'`, `C14_2` sowie die
+Pins der vier geparkten Steckverbinder.
