@@ -16,6 +16,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include "osk_result.h"
+#include "osk_mem.h" /* osk_wipe() - liegt gemeinsam */
 
 #define OSK_SHA256_LEN 32
 #define OSK_AES_BLOCK 16
@@ -53,8 +54,5 @@ osk_result_t osk_aes256_cbc_decrypt(const uint8_t key[32], const uint8_t iv[OSK_
 
 /* Vergleich ohne Zeitverrat - fuer MACs und PIN-Abdruecke Pflicht. */
 bool osk_memeq(const void *a, const void *b, size_t len);
-
-/* Loescht einen Puffer so, dass der Uebersetzer es nicht wegoptimiert. */
-void osk_wipe(void *p, size_t len);
 
 #endif

@@ -20,7 +20,7 @@ SAN ?= -fsanitize=address,undefined -fno-omit-frame-pointer
 
 CORE := $(SRC)/osk_cbor.c $(SRC)/osk_crypto.c $(SRC)/osk_credid.c \
         $(SRC)/osk_ctap_key.c $(SRC)/osk_ctap_ext.c $(SRC)/osk_ctap_core.c \
-        $(SRC)/osk_ctap_u2f.c $(SRC)/osk_pin.c $(TRANS)/usb_hid.c
+        $(SRC)/osk_ctap_u2f.c $(SRC)/osk_pin.c $(TRANS)/usb_hid.c ../../src/osk_mem.c
 MOCKS := mocks.c
 
 TESTS := test_crypto test_cbor test_credid test_pin test_ctap test_u2f test_hid
@@ -35,7 +35,7 @@ $(BUILD):
 	mkdir -p $(BUILD)
 
 # test_crypto und test_cbor brauchen die Attrappen nicht.
-$(BUILD)/test_crypto: test_crypto.c $(SRC)/osk_crypto.c | $(BUILD)
+$(BUILD)/test_crypto: test_crypto.c $(SRC)/osk_crypto.c ../../src/osk_mem.c | $(BUILD)
 	$(CC) $(CFLAGS) $(SAN) -o $@ $^ $(LDFLAGS)
 
 $(BUILD)/test_cbor: test_cbor.c $(SRC)/osk_cbor.c | $(BUILD)
