@@ -3377,3 +3377,44 @@ also **länger als heute**, nicht kürzer.
   und stammen nicht aus einer Abstimmungsrechnung.
 - **Nichts davon ist im Editor geändert.** Weder gelöscht noch verschoben noch
   der Umriss angefasst.
+
+### Abgeglichen mit der Längenrechnung der Platinen-Sitzung
+
+Zwei Abschnitte weiter oben stehen zwei Rechnungen derselben Nacht, die ich
+beim Messen noch nicht kannte — mein Zweig lag auf `main`, diese Arbeit lag
+auf `akku-raus`. **Beide sind sorgfältiger gemessen als meine Untergrenze,
+und in einem Punkt kommen sie trotzdem zu kurz.**
+
+**1. „Was die Platine an Länge verlöre, wenn der Akku kleiner wird" nennt als
+Grenzfall 52,85 mm** — Schaltung endet bei `y` 33,870, Antennenfeld 18,98.
+
+> **Diese 52,85 mm tragen nicht.** Die Rechnung setzt die Zelle auf null, läßt
+> aber **die Anzeige außer Acht**: das Glas ist 13,90 × 22,00 mm und liegt auf
+> der Oberseite. Im Band 33,870 … 51,500, das dort als „frei — hier liegt die
+> Zelle (Unterseite)" steht, liegt auf der **Oberseite** die Anzeige. Sie
+> verschwindet mit dem Akku nicht.
+
+**Die Anzeige kann auch nicht neben U1.** Quer bleibt neben dem Modul
+27 − 15,5 = **11,50 mm**; das Glas ist **13,90 mm** breit. Sie muß also
+dahinter, und U1s Körper endet bei `y` 22,5499. **Damit ist 23,05 … 45,05
+erzwungen, nicht gewählt.**
+
+Die Bandmessung dort bestätigt im übrigen meine Zahlen und ist genauer als
+sie: Unterseite belegt bis **24,799** (ich hatte 23,899 aus Pad-Mitten, also
+eine Untergrenze, wie angesagt), darüber nur noch die sechs verschiebbaren
+Teile bis 33,870. **In 24,8 … 45 ist die Unterseite frei** — die sechs passen
+dorthin.
+
+**2. „Der Steckerwechsel bringt weniger Länge, als die Bänder versprechen"**
+zeigt, daß Z1 noch bis zu **3,00 mm** hergibt, und nur dann, wenn SW2
+woanders hinkommt. Meine 59,55 mm lassen Z1 unverändert.
+
+> **Damit ist 59,55 mm eine obere Schranke, keine untere.** Mit der
+> Steckerrunde wären rund **56,55 mm** erreichbar. Das ist eine eigene
+> Neuplatzierung der unteren Partie und gehört nicht in diese Runde.
+
+**Und der Satz, der aus beiden Abschnitten zusammen folgt:** „Jeder
+Millimeter, den die Zelle kürzer wird, ist entweder ein Millimeter weniger
+Platine oder ein Millimeter mehr Antennenfeld." Mit dem Wegfall des Akkus ist
+das keine Abwägung zwischen Zelle und Feld mehr, sondern **nur noch zwischen
+Länge und Antennenfläche**. Die Zelle steht auf keiner Seite mehr.
