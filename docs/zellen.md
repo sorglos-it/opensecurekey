@@ -11,6 +11,11 @@ Fahnenende und verlängert die Zelle um **2 bis 3 mm**. Für den Einbau zählt
 allein das **Fertigmaß mit PCM** — und das ist die Zahl, die hier in der Tabelle
 steht.
 
+**Das gilt auch für die Zellenmaße in `docs/parts.md`.** Jede Zahl dort ist
+eine nackte Zelle und damit für den Einbau **2 bis 3 mm zu kurz angesetzt**.
+Wer mit Zellenlängen rechnet, nimmt die Zahlen aus dieser Datei, nicht die aus
+`parts.md`.
+
 ## Die Tabelle
 
 | Zelle | Kapazität | Länge × Breite × Dicke **mit PCM** | Anschluss | Schutz | Passt? |
