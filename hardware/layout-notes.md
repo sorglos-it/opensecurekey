@@ -1628,7 +1628,7 @@ Entwurfs" ist damit gezählt, nicht gefühlt.
 | Grundfläche | 7,9 × 8,6 mm | **4,0 × 4,32 mm** |
 | Strom | 2 A | 1 A |
 
-**Die Grenze ist 4,45 mm.** Der PH liegt **1,05 mm darüber**, der SH **1,55 mm
+**Die Grenze ist 4,45 mm.** [**Falsch — siehe die Berichtigung am Ende dieser Datei: die 4,45 sind eine Breite, keine Höhe.**] Der PH liegt **1,05 mm darüber**, der SH **1,55 mm
 darunter** — und braucht nur ein Viertel der Fläche. 1 A gegen 100 mA
 Ladestrom ist reichlich.
 
@@ -2208,3 +2208,108 @@ hat sich bei C3 und C5 bereits als der richtige Platz erwiesen.
 **Erst danach verlegen**, mit den vier Auflagen: J2/J4/J5/J6 auslassen, I2C auf
 eine Innenlage zwischen die Masseflächen, Wandlerschleife L1 → DCCH kurz und
 breit, und nach jedem Schritt messen.
+
+# Alle Kondensatoren gegen ihren Pin gemessen
+
+Stand 25.10.2026. Zuordnung **aus `schematic.md` gelesen**, nicht geraten;
+die Zeilennummer steht bei jedem. Gemessen ist das **nicht-Masse-Pad** des
+Kondensators gegen das Zielpad, Mitte zu Mitte.
+
+| Kond | gehört an | Quelle | vorher | **jetzt** |
+| --- | --- | --- | ---: | ---: |
+| C17 | U1.20 `VBAT_SENSE` | Z. 696 | 14,88 | **0,00** |
+| C4 | U1.30 `VSYS` | Z. 165 | 11,10 | **0,12** |
+| C5 | U1.28 U1 VDD | Z. 166 | 0,75 | 0,75 |
+| C11 | U2.18 `SE_VOUT` | Z. 233 | 2,51 | **0,83** |
+| C12 | U3.8 `VDD3V3` | Z. 313 | 9,77 | **0,98** |
+| C2 | U4.3 `VBAT_RAW` | Z. 101 | 1,28 | 1,28 |
+| C3 | U1.30 `VSYS` | Z. 165 | 1,29 | 1,29 |
+| C1 | U4.4 `VBUS` | Z. 99 | 18,59 | **1,47** |
+| C8 | X1.1 | Z. 188 | 3,43 | **1,65** |
+| C9 | X1.2 | Z. 189 | 4,34 | **1,65** |
+| C10 | U2.12 `VDD3V3` | Z. 232 | 5,24 | **2,38** |
+| C13 | Q4.3 `VDD_OLED` | Z. 357 | 2,97 | 2,97 |
+| C14 | Q4.3 `VDD_OLED` | Z. 357 | 3,97 | 3,97 |
+| C16 | U1.54 `NFC2` | Z. 556 | 42,40 | 42,40 |
+| C15 | U1.52 `NFC1` | Z. 555 | 43,46 | 43,46 |
+
+**Acht versetzt, in einem Zug, vorher durchgerechnet und danach gemessen:**
+0 Paare unter 0,152 mm, 0 Pads am Rand, Freihaltezone frei, **0
+Abstandsfehler**. C1, C4, C8, C9, C10, C11, C12, C17.
+
+**Nur drei standen nah genug. Zwölf nicht.** Dass C3 und C5 zwölf Millimeter
+danebenlagen, haben wir durch einen Taster erfahren; dass C1 **18,59 mm** von
+U4 stand, hätte so niemand bemerkt.
+
+## Drei bleiben stehen, jeder aus einem anderen Grund
+
+**C10 mit 2,38 mm — geometrisch, nicht aus Nachlässigkeit.** Pin 12 liegt an
+U2s **unterer** Kante (`y` 2,949), und 0,35 mm darunter beginnt die
+Widerstandsreihe bei `y` 2,0. Dort passt kein 0402 (0,541 hoch). C10 steht
+jetzt links neben U2 statt rechts unten. **Näher ginge nur, wenn die
+Widerstandsreihe zum Rand rückt** — das ist Platz, der da wäre (`y` 0,9 statt
+2,0), aber eine eigene Änderung.
+
+**C13 und C14 mit 2,97 und 3,97 — das Ziel ist geparkt.** Sie blocken
+`VDD_OLED` ab, und der Verbraucher ist die Anzeige an **J4**, das neben der
+Platine steht. Gemessen ist gegen Q4, die Quelle. **Die Zahl wird erst
+belastbar, wenn J4 einen Platz hat**; vorher zu verschieben hieße, auf einen
+Punkt zu optimieren, der sich noch bewegt.
+
+**C15 und C16 mit 42 und 43 mm — das ist eine Schaltungsfrage, keine
+Platzierung.** Sie stehen neben der Antennenbuchse J3 (`y` 52,5), U1s
+NFC-Pins liegen bei `y` 13,5. Nordics Vorgabe setzt die Abstimm­kondensatoren
+**an die NFC-Pins des Chips**. Wo sie stehen, entscheidet über die ganze
+Abstimmung — und `schematic.md` nennt sie ohnehin `TBD`, weil die Abstimmung
+eine Messung ist. **Nicht bewegt, gemeldet.**
+
+# Berichtigung: die 4,45 mm sind eine Breite, keine Bauhöhe
+
+**Gesucht war ein Platz für einen 5,5 mm hohen Akkustecker. Gefunden wurde ein
+Fehler in der Grenze selbst.**
+
+Die Zahl 4,45 kommt in dieser Datei sechsmal vor. **Hergeleitet wird sie genau
+einmal**, in der Tabelle zur Zellenbreite:
+
+> `| Adafruit mittig (19,75) | 19,75 | ja | **4,45 mm**, je Seite 2,225 |`
+
+Das ist die **seitliche Restbreite** neben einer 19,75 mm breiten Zelle in
+einem nutzbaren Band von 24,20 mm. 24,20 − 19,75 = 4,45, aufgeteilt auf zwei
+Seiten zu je 2,225 mm. **Eine Breite.**
+
+An fünf weiteren Stellen steht dieselbe Zahl als **Bauhöhe** — „jedes Bauteil
+neben der Zelle, das höher als 4,45 mm baut", „baut J2 höher als 4,45 mm?",
+„Grenze 4,45 mm", und zuletzt von mir selbst: „Die Grenze ist 4,45 mm. Der PH
+liegt 1,05 mm darüber."
+
+> **Keine dieser Stellen leitet eine Höhe her. Die Breite ist zur Höhe
+> geworden, weil beide dieselbe Zahl tragen.**
+
+**Was wirklich belegt ist:** Die Bauhöhe unten richtet sich nach der **Zelle
+mit 3,8 mm** (Z. 100). Damit liegt der PH-Stecker nicht 1,05 mm über der
+Grenze, sondern **1,70 mm über der Zelle** — und der SH mit 2,9 mm bleibt
+**0,90 mm darunter**. Die Rangfolge der beiden Teile ändert sich nicht, die
+Zahlen schon.
+
+**Und die Frage nach einem Platz für 5,5 mm ist mit dem Repo nicht zu
+beantworten.** Was die Hohlraumtiefe je Zone ist, steht nirgends — nur die
+3,8 mm der Zelle. Ob das Gehäuse in Z1, Z2 oder Z4 unten tiefer ist als in Z3,
+weiß nur der Gehäuse-Strang, und der ist archiviert. **Ich kann sagen, dass
+5,5 mm die Zelle um 1,7 mm überragen. Ich kann nicht sagen, wo das erlaubt
+ist.**
+
+Daneben: `4,4501 mm` steht in dieser Datei noch einmal, als Band zwischen
+U1-Körper und Anzeigeglas. **Das ist dieselbe Zahl für etwas drittes** und hat
+mit der Zelle nichts zu tun.
+
+# Drei weitere Masse-Inseln
+
+Nach dem Versetzen hängen `R14_2` (26,4 / 2,0), `U1_1` (22,95 / 21,95) und
+`C14_2` (21,52 / 33,6) ohne Verbindung zur Gießfläche. **`C17_2` hängt nicht
+mehr** — das Versetzen hat es gelöst, wie vorhergesagt.
+
+`U1_1` ist der interessante Fall: Es liegt bei `x` 22,75 … 23,15, und die
+Freihaltezone beginnt bei **23,1484**. Das Kupfer endet also genau an der
+Padkante. Es ist eines der beiden Massepads am Antennenende — **das muss an
+Masse**, und Raytac verlangt dort ausdrücklich Durchkontaktierungen.
+Nächster Arbeitsgang.
