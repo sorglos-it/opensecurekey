@@ -3561,3 +3561,70 @@ und alles, was schlicht noch nicht verlegt ist.
 Stand 26.10.2026. SD-NAND (8,00 × 6,20 mm) wie microSD-Schacht (13,85 × 15,95 mm)
 passen auf die Unterseite `y` 25 … 45. **Länge bleibt 59,55 mm.** Maße,
 Belegung und Quellen: `datentraeger.md`.
+
+# J1 gesetzt und nachgemessen — und eine Zahl stimmt nicht
+
+Stand 25.10.2026. **0 Abstandsfehler, kein Netzlistenfehler mehr** — der Import
+ist vollständig.
+
+`J1` steht auf **13,50 / 1,55**, mittig an der Platinenkante.
+
+| | gemessen |
+| --- | --- |
+| **B-Reihe** (B1 … B12) | `y` **0,303 … 1,103** — 0,303 mm von der Kante, Vorschrift 0,300 |
+| **A-Reihe** (A1 … A12) | `y` 1,804 … 2,604 |
+| **Schirmstifte 26, 27** | `y` 1,502 … **3,303**, `x` 9,353 … 10,252 und 16,752 … 17,651 |
+
+> **Die Haltestifte bleiben diesmal auf der Platine** — beide liegen mit über
+> 9 mm Abstand zu beiden Rändern mitten drin. Beim letzten Stecker lagen sie
+> 0,195 mm im Nichts und haben dem Gehäuse eine Mulde gekostet.
+
+## Die Zahl, die nicht stimmt
+
+**Das Lötbild braucht 3,303 mm Platine, nicht 2,50.**
+
+Die 2,50 aus der GCT-Zeichnung sind die **Platinentiefe des Gehäuses**, nicht
+die Tiefe des Lötbilds — die Schirmstifte reichen 0,80 mm weiter hinein als
+die Kontaktreihen. **Alle bisherigen Längenrechnungen, die mit 2,50 gerechnet
+haben, sind um 0,80 mm zu günstig.**
+
+# Die drei Möglichkeiten für SW2
+
+## a) Ein kleinerer, seitlich betätigter Taster — gibt es nicht
+
+Die Bibliothek führt **zehn** Teile der Reihe EVQ-P7. Alle seitlich betätigten
+(`Right Angle`) messen **3,5 × 3,55 mm** — dieselbe Größe wie der verbaute
+`EVQP7C01P`. **Kein einziger ist kleiner.**
+
+Kleiner sind nur zwei, und beide sind **senkrecht** betätigt
+(`Surface Mount, Vertical`), Lötbild **3,5 × 2,9 mm**:
+`EVQ-P7M01P` (C7275646) und `EVQ-P7K01P` (C5736840).
+
+> **Senkrecht statt seitlich ist keine Teiländerung, sondern eine
+> Gehäuseänderung** — der Druckpunkt wandert von der Seitenwand auf den Deckel.
+>
+> **Und die 3,5 × 2,9 ist eine Katalogangabe zum Lötbild, nicht die gemessene
+> Padspanne.** Beim verbauten Taster steht dort 3,5 × 3,6 — gemessen sind die
+> Pads **2,60 × 5,00**. Die Spanne ist **1,4 mm größer als die Katalogzahl**.
+> Was der kleinere wirklich spannt, weiß ich erst, wenn er auf der Platine
+> liegt. **Nicht geraten.**
+
+## b) und c) — beide nehmen 5,00 mm aus dem Band
+
+| | Bandhöhe unter U1 | Unterschied |
+| --- | ---: | ---: |
+| heute, mit SW2 (5,00 + 3,77 in zwei Reihen) | **9,02** | — |
+| SW2 weg (3,77 + 2,60) | **6,62** | **−2,40 mm** |
+
+**b) SW2 auf die Unterseite:** nimmt dieselben 2,40 mm aus dem oberen Band —
+**aber die Unterseite dort ist dicht** (U4, Q1 … Q3, C2, U5, C12). Ob 2,60 ×
+5,00 dort hineinpassen, ist eine eigene Packfrage, nicht geprüft.
+
+**c) Kein Taster, zwei Kontakte zum Kurzschließen:** dieselben 2,40 mm,
+**ohne** die Packfrage — zwei Pads von etwa 1 × 1 mm passen überall hin, auch
+nebeneinander in eine Lücke. **Und es passt zur Vorgabe**, dass der Reset von
+außen nicht einfach erreichbar sein soll: Das Gehäuse hat dafür ohnehin nur
+eine Blindtasche.
+
+> **Von den dreien ist c) die einzige, die den Gewinn ohne neue Frage bringt.**
+> a) existiert nicht, b) verschiebt die Frage nur auf die andere Seite.
