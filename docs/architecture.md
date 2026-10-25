@@ -148,9 +148,16 @@ than planned, and the internal flash is not as tight as this section assumed.
 
 What the number is worth, and what it is not:
 
-- It is a **lower bound**. Six symbols do not exist on the device yet, and
-  the measurement build substitutes placeholders for them
-  (`apps/firmware/src/messbau.c`). The real implementations are bigger.
+- **The image does not contain all of our own code.** Read from the ELF
+  symbols: 243 of our 535 functions are in it; the linker discarded 292
+  with `--gc-sections`, because `src/main.c` does not reach them. Our code
+  contributes 30 kB to the image but amounts to 137 kB in total. With all
+  of it reachable the image would be roughly **264 kB — 27.5 % of the
+  960 kB**, still leaving close to 700 kB. The answer stays "it fits"; the
+  margin is simply smaller than 16.4 % suggests.
+- It is a **lower bound** for a second reason: six symbols do not exist on
+  the device yet, and the measurement build substitutes placeholders for
+  them (`apps/firmware/src/messbau.c`). The real implementations are bigger.
 - USB, BLE and NFC on the Zephyr side are not written yet, nor is the
   bootloader. Those are the large items still to come.
 - It is **stage 2 of 4**: compiled and in the image, **never run on the

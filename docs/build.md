@@ -121,6 +121,35 @@ die Abschnitte zufällig lückenlos. Eine Gegenprobe, die einmal genau passt
 und dann nicht mehr, ist kein Fehler der Messung - sie misst etwas leicht
 anderes.
 
+**Das Abbild enthält nicht allen eigenen Code.** Nachgesehen an den
+Symbolen des ELF: von **535** eigenen Funktionen stecken nur **243** im
+Abbild; **292** hat der Binder mit `--gc-sections` verworfen, weil
+`src/main.c` sie nicht erreicht. In Byte:
+
+| | Byte | |
+| --- | --- | --- |
+| eigener Code **im Abbild** | 30.758 B | 30 kB |
+| eigener Code **insgesamt** (alle 80 Objektdateien) | 140.261 B | 137 kB |
+| vom Binder verworfen | 109.503 B | 107 kB |
+
+Daraus die ehrliche Hochrechnung: wäre **aller** eigene Code erreichbar,
+läge das Abbild bei rund **270.600 B (264 kB)** — **27,5 % der 960 kB**,
+also immer noch knapp 700 kB Luft. **Die Antwort „es passt“ bleibt, der
+Abstand ist nur kleiner als die 16,4 % vermuten lassen.**
+
+Das ist keine Schwäche der Messung, sondern ihre Grenze: ein Geräteabbild
+enthält immer nur, was von `main()` aus erreichbar ist, und die Transporte,
+die den großen Rest erreichen würden, sind noch nicht geschrieben. Wer die
+Zahl später wieder misst, prüft **beide**: die Größe und wieviele der
+eigenen Funktionen drin sind.
+
+**Welcher Krypto-Unterbau drin ist, ist ebenfalls nachgesehen** und nicht
+hergeleitet: `psa_generate_random` und `psa_import_key` stehen im Abbild,
+`BCryptGenRandom` (Windows) und `RAND_bytes`/`EVP_CIPHER_CTX_new` (OpenSSL)
+nicht. Die Krypto läuft also über PSA, wie gedacht — aber siehe die kaputte
+Weiche weiter unten: sie hält nur, weil die `CMakeLists.txt`
+`OSK_CRYPTO_PSA` setzt.
+
 **Was die Zahl wert ist — und was nicht:**
 
 - Sie ist eine **Untergrenze**. Sechs Namen gibt es auf dem Gerät noch
