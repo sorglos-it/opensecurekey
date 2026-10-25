@@ -3263,3 +3263,117 @@ real weniger als 4,7 µF, die Grenze ist also eher komfortabler als gerechnet.
    Sicherheitschip über LA/LB) wird durch diese Entscheidung **wichtiger**,
    nicht unwichtiger: er ist jetzt der einzige Weg, bei dem das Gerät ohne
    Rechner überhaupt etwas tun könnte. Bleibt offen.
+
+## Wie kurz die Platine wird — gemessen am 25.10.2026
+
+**Antwort: etwa 59,6 mm, wenn die NFC-Zone bleibt, wie sie ist; etwa 64,1 mm,
+wenn sie auf ihr altes Maß zurückgeht.** Das sind **10,4 bzw. 5,9 mm weniger**
+als die heutigen 70 mm. Wie die Zahl zustande kommt, steht darunter — sie ist
+aus dem Editor gemessen, nicht aus einer Schätzung gerechnet.
+
+### Erst: was das Messwerkzeug misst
+
+`pcb_layout_boxes` liefert **Hüllen über Pad-Mitten, nicht über Kupfer und
+nicht über Körper.** Das ist hier nachgewiesen, nicht angenommen: für U1 meldet
+es `y` 12,499 … 22,101 = 9,602 mm; die Padhülle aus `extent_mm` ist
+`y` 12,2998 … 22,3000 = 10,0002 mm. Die Differenz ist **0,40 mm = eine
+Padbreite**, je 0,20 an jedem Ende. **Jede Zahl aus diesem Werkzeug ist also
+eine Untergrenze.**
+
+Darum sind unten für die beiden Teile, die die Länge bestimmen, die
+**Körpermaße** eingesetzt, die weiter oben aus den Pads nachgebaut und gegen
+das Datenblatt geprüft wurden.
+
+### Die Bänder, neu — gemessen, Teil für Teil
+
+Gemessen wurden alle 54 platzierten Teile. **Fünf stehen neben der Platine**
+(J2, J4, J5, J6 bei `x` 29 … 39, JP1 bei `y` = −18,7) und zählen nicht mit.
+
+| Was | gemessene Grenze in `y` | Quelle der Zahl |
+| --- | --- | --- |
+| J1 USB, erste Pads | 0,701 | Pad-Mitte |
+| U1 **Körper** | 12,0499 … **22,5499** | aus 61 Pads nachgebaut, trifft 15,5 × 10,5 auf vier Stellen |
+| X1 Quarz, unten | 23,899 (Pad-Mitten) → Körper ≈ **24,65** | 3215, 3,2 × 1,5 |
+| SW1 Taster, oben | 22,7 … 26,299 (Pad-Mitten) → ≈ **26,5** | am Rand bei `x` 2,75 … 4,25 |
+| höchstes Teil auf der **Unterseite** | **23,899** (X1) | — |
+| Q4, Q5, R9, R17, C13, C14, oben | 28,699 … 33,599 | **verschiebbar**, siehe unten |
+| J3 NFC-Anschluss | 52,499 | wandert mit der Schleife |
+| R10–R12, D1 (LED) | 63,0 … 66,759 | sitzen an der Spitze, wandern mit |
+
+**Der Kern endet bei `y` ≈ 26,5** — gesetzt von SW1, dahinter U1 mit 22,55 und
+X1 mit 24,65. Alles andere liegt davor.
+
+**Die sechs Teile bei 28,7 … 33,6 müssen nicht dort liegen.** Es sind die
+Lastschalter für Anzeige und Sensor samt Widerständen und Kondensatoren; sie
+stehen oben, weil dort das Zellfeld war. Nach unten verschoben finden sie in
+`y` 24,7 … 45 Platz: **die Unterseite ist dort heute vollständig leer**, das
+höchste Teil unten ist X1 bei 23,899.
+
+### Daraus die neue Länge
+
+| Band | von … bis | Länge | wodurch gesetzt |
+| --- | --- | --- | --- |
+| Kern (USB, Funkteil, Flash, Sicherheitschip, Quarz, Taster) | 0 … **26,5** | 26,5 | SW1, gemessen |
+| Anzeige DS1, Oberseite | **23,05 … 45,05** | 22,00 | Glasmaß 13,90 × 22,00 aus `../docs/parts.md`; liegt neben SW1, nicht dahinter |
+| NFC-Schleife | **45,05 … Ende** | 14,50 oder 19,00 | **offen, gehört nicht mir** |
+
+Die Anzeige beginnt bei 23,05, nicht bei 26,5: SW1 steht bei `x` 2,75 … 4,25 am
+Rand, das Glas liegt mittig bei `x` 6,55 … 20,45 — **die beiden stehen
+nebeneinander, nicht hintereinander.** Nach hinten begrenzt die Anzeige
+allein der Körper von U1, der bei `y` 22,5499 endet; 0,5 mm Luft darauf ergibt
+23,05.
+
+> **Länge = 45,05 + NFC-Zone.**
+>
+> | NFC-Zone | Platine wird | gegenüber 70 mm |
+> | --- | --- | --- |
+> | 14,50 mm (heutiger Plan, 357 mm² Schleifenfläche) | **59,55 mm** | **−10,45** |
+> | 19,00 mm (Stufe-1-Maß von früher, 448 mm²) | **64,05 mm** | **−5,95** |
+
+**Gegenprobe gegen den alten Plan:** Z3 war 25 … 55,5 = 30,5 mm, gesetzt von
+der Zelle LP-401230-J. Neu ist Z3 23,05 … 45,05 = 22,0 mm. Ersparnis
+30,5 − 22,0 = 8,5 mm, dazu rückt der Anfang von 25 auf 23,05 = 1,95 mm.
+Zusammen **10,45 mm** — dieselbe Zahl wie oben, auf einem anderen Weg.
+
+**Die Länge hängt jetzt allein an der NFC-Schleife.** Vorher war sie die Summe
+aus Zelle und Trennabstand; beides ist weg. Wer die Platine kürzer will als
+59,55 mm, nimmt es der Antennenfläche weg, nicht mehr dem Akku.
+
+### Stufe 2: der Sensor passt nicht neben die Anzeige — das ist neu
+
+Der Fingerabdrucksensor ist inzwischen der **FPC2534, Ø 11 × 0,83 mm**
+(`../docs/fingerprint.md`), nicht mehr das 15 × 15 mm große BM-Lite. Er wird
+berührt, muss also auf **dieselbe Seite wie die Anzeige**.
+
+Quer nutzbar sind **24,20 mm** (Band 1,40 … 25,60, Abschnitt „Bauteile beginnen
+quer bei 1,40"). Nebeneinander bräuchten Anzeige und Sensor
+
+> 13,90 + 0,50 + 11,00 = **25,40 mm**
+
+**Das sind 1,20 mm zu viel.** Die alte Rechnung ging auf, weil dort die
+**12,0 mm breite Zelle** neben dem Sensor stand, nicht die 13,90 mm breite
+Anzeige. Mit dem Wegfall der Zelle rückt die Anzeige in diese Spur — und sie
+ist breiter.
+
+**Folge:** In Stufe 2 braucht der Sensor **eigene 11 mm in der Länge**. Z3 wird
+dann 22,0 + 0,5 + 11,0 = **33,5 mm**, die Platine **70,55 bzw. 75,05 mm** —
+also **länger als heute**, nicht kürzer.
+
+> **Das ist keine Entscheidung dieses Strangs.** Zur Wahl stehen: Stufe 2 wird
+> länger als Stufe 1; oder die Platine bleibt gleich bei rund 70 mm und Stufe 1
+> verschenkt die 10 mm; oder das Querband wird neu verhandelt (es fehlen
+> 1,20 mm, und die 0,20 mm am hinteren Rand sind laut dem Abschnitt oben
+> ohnehin „zu bestätigen"). **Gefragt über die Mastersitzung.**
+
+### Was an dieser Messung `ungeprueft` ist
+
+- Die Körpermaße von X1 und SW1 sind aus Pad-Mitten plus Datenblattmaß
+  **gerechnet**, nicht wie bei U1 aus den Pads nachgebaut und gegengeprüft.
+- Die **Lage der Anzeige ist nicht gezeichnet** — DS1 ist kein Bauteil auf der
+  Platine, sie hängt an J4, und J4 steht neben der Platine. Die 22,00 mm sind
+  das Glasmaß aus `../docs/parts.md`.
+- Die **Schleifenfläche der NFC-Antenne ist nicht gerechnet**. Dass 14,50 mm
+  reichen, ist nicht gezeigt; die Zahlen 357 mm² und 448 mm² stehen weiter oben
+  und stammen nicht aus einer Abstimmungsrechnung.
+- **Nichts davon ist im Editor geändert.** Weder gelöscht noch verschoben noch
+  der Umriss angefasst.
