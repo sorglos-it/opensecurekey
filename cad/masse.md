@@ -221,14 +221,24 @@ Drucker des Nutzers gemessen – welcher es ist, steht nicht in den Unterlagen,
 
 ## 8. Die beiden Taster
 
-Lage aus der Übergabe des Platinen-Strangs: beide bei **längs 22,75…26,25 mm**,
-an den Längskanten, seitlich betätigt.
+Lage aus der Übergabe des Platinen-Strangs. **SW1** steht neben der Anzeige,
+**SW2** seit dem 24.10.2026 am USB-Ende – zwischen Funkmodul und Anzeigeglas
+fehlten dem Reset 0,5491 mm, gerechnet vom Platinen-Strang. Beide an den
+Längskanten, seitlich betätigt.
 
-| Maß | Wert |
-| --- | --- |
-| Taster belegt längs | 22,75 … 26,25 mm |
-| Anzeigeglas beginnt | 27,00 mm → 0,75 mm Luft |
-| Funkmodul endet | 21,50 mm → 1,25 mm Luft |
+| Maß | SW1 | SW2 (seit 24.10.2026) |
+| --- | --- | --- |
+| Mitte längs | 24,50 mm | **8,6412 mm** |
+| Körper belegt längs | 22,75 … 26,25 mm | **6,8912 … 10,3912 mm** |
+| Pads längs | – | 6,1402 … 11,1419 mm |
+| Mitte quer | 3,50 mm | 23,500001 mm |
+| Nachbar oben | Anzeigeglas ab 27,00 → 0,75 mm | Funkmodul-Körper ab 12,0499 → **0,9080 mm** |
+| Nachbar unten | Funkmodul endet 21,50 → 1,25 mm | Steckerstreifen J1 bis 5,9892 → 0,1510 mm |
+
+**Das Gehäuse stand der neuen Lage nicht im Weg** – nachgerechnet gegen Mulde,
+Steckerüberstand und Nase, alle Zahlen in [gehaeuse.md](gehaeuse.md),
+Abschnitt „Die beiden Taster". Der kleinste Abstand ist 0,5588 mm zum ersten
+Schnappwulst, der kleinste quer 1,2250 mm zur Mulde.
 
 **Die 0,75 mm sind nicht die Grenze des Rahmens, weil der Rahmen dort nichts
 hat.** Das Anzeigefenster ist ein glatter Durchbruch im 1,0 mm dicken Dach, ohne
@@ -248,8 +258,9 @@ Quer liegt das Glas 6,55 mm vom Platinenrand, der Klemmkragen belegt davon
 **Der Klemmkragen war das Problem, nicht das Fenster.** Er läuft 1,2 mm breit am
 Platinenrand um – genau dort, wo ein seitlich betätigter Taster sitzt.
 
-- Der Kragen ist an **beiden** Längskanten über **21,70…27,30 mm** bis auf
-  1,65 mm Höhe freigestellt (1,35 Bauhöhe + 0,3 Luft).
+- Der Kragen ist an der Kante quer 0 über **21,70…27,30 mm** (SW1) und an der
+  Kante quer 27 über **5,8412…11,4412 mm** (SW2) bis auf 1,65 mm Höhe
+  freigestellt (1,35 Bauhöhe + 0,3 Luft).
 - **Die Freistellung ist 5,6 mm lang, der Schlitz nur 4,5 mm.** Panasonic gibt
   den Körper mit 3,5 mm Länge an, DigiKey mit 4,70 mm – beide Lesarten passen
   jetzt hinein (1,05 bzw. 0,45 mm Luft je Seite).
@@ -263,14 +274,21 @@ erreichbar ist:
 
 | Taster | Kante | Was das Gehäuse macht |
 | --- | --- | --- |
-| SW1 (Bestätigen) | quer 0 | **Schlitz durch die Seitenwand**, 4,5 × 2,4 mm |
-| SW2 (Reset) | quer 27 | **Blindtasche 0,8 mm tief**, Wand bleibt 0,8 mm stehen |
+| SW1 (Bestätigen) | quer 0, längs 24,5 | **Schlitz durch die Seitenwand**, 4,5 × 2,4 mm |
+| SW2 (Reset) | quer 27, längs 8,6412 | **Blindtasche 0,8 mm tief**, Wand bleibt 0,8 mm stehen |
 
 Ganz zumachen geht nicht: eine geschlossene Wand stünde 0,3 mm vor dem Stößel
 und könnte ihn dauerhaft gedrückt halten. Panasonic gibt „dimensions excluding
 the push plate: 2,9 mm" an, der Stößel ragt also **3,55 − 2,9 = 0,65 mm**
 heraus, Hub 0,2 mm, zusammen **0,85 mm**. Das Gehäuse gibt **1,10 mm** –
 **0,25 mm Reserve**.
+
+Diese 1,10 mm rechnen damit, dass die Stößelspitze mit der Platinenkante
+abschließt. Nach der Übergabe steht die Tastermitte quer 3,50 mm von der Kante,
+der Körper ist 3,55 mm tief, die Spitze läge also 1,075 mm **vor** der Kante
+und die Reserve wäre größer. Welche der beiden Lesarten stimmt, ist am Bauteil
+zu messen und **nicht gemessen** – beide sind auf der sicheren Seite. Der Umzug
+von SW2 ändert quer nichts, SW1 und SW2 stehen weiter 3,50 mm von ihrer Kante.
 
 Bestätigt ist damit auch die Grundannahme des ganzen Rahmens: Panasonic nennt
 das Teil **„side-push SMD"**.
@@ -366,8 +384,8 @@ Das sind **Vorgaben ans Layout**, keine Wünsche:
    (Ferritfolie mitgerechnet).
 5. **Aufteilung quer wie in Abschnitt 4**: Zelle 1,20…13,20, Sensorfeld
    13,70…24,70. Der Sensor bleibt **neben** der Zelle, nie über ihr.
-6. **Die beiden Taster bei längs 22,75…26,25 mm** an den Längskanten, Mitte der
-   Betätigungsfläche 0,7 mm über der Platinenoberseite.
+6. **SW1 bei längs 22,75…26,25 mm, SW2 bei längs 6,8912…10,3912 mm** an den
+   Längskanten, Mitte der Betätigungsfläche 0,7 mm über der Platinenoberseite.
 7. **Die Vorderkante der USB-Buchse bündig mit der Gehäusefront** (± 0,3 mm),
    mittig auf der kurzen Kante.
 8. **D1 auf längs 66,0 / quer 13,5 mm**, Oberseite – so übergeben.

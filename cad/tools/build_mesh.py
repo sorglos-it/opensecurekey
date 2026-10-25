@@ -291,6 +291,7 @@ def check_openings(p, d):
     top = geometry.shell_top(p, d)
     bot = geometry.shell_bottom(p, d)
     bx = p["btn_cx"]
+    sx = p["sw2_cx"]
     lip_mid = p["lip_h"] / 2.0          # in der Schnappstufe
     wall_mid = (d["ot_y0"] + d["pk_y0"] - p["lip_t"]) / 2.0   # aeussere Wandhaelfte
     front_mid = (d["ot_x0"] + d["pk_x0"] - p["lip_t"]) / 2.0
@@ -300,11 +301,19 @@ def check_openings(p, d):
         ("Falz vor der USB-Oeffnung", bot, (front_mid, p["usb_cy"], lip_mid), False),
         ("Falz neben der USB-Oeffnung", bot, (front_mid, 3.0, lip_mid), True),
         ("Kragen ueber SW1", top, (bx, d["pk_y0"] + 0.5, p["btn_relief_z"] - 0.5), False),
-        ("Kragen ueber SW2", top, (bx, d["pk_y1"] - 0.5, p["btn_relief_z"] - 0.5), False),
+        ("Kragen ueber SW2", top, (sx, d["pk_y1"] - 0.5, p["btn_relief_z"] - 0.5), False),
         ("Kragen neben den Tastern", top, (bx + 15.0, d["pk_y0"] + 0.5, 0.8), True),
+        # Gegenprobe zum Umzug: an der alten SW2-Stelle muss der Kragen wieder
+        # voll stehen, sonst ist die alte Freistellung stehen geblieben
+        ("Kragen an der alten SW2-Stelle", top,
+         (bx, d["pk_y1"] - 0.5, p["btn_relief_z"] - 0.5), True),
         ("SW1-Wand ist durchbrochen", top, (bx, wall_mid, p["btn_z"]), False),
         ("SW2-Wand bleibt stehen", top,
-         (bx, d["ot_y1"] - p["lip_t"] / 2.0, d["z_cav_top"] - 0.2), True),
+         (sx, d["ot_y1"] - p["lip_t"] / 2.0, d["z_cav_top"] - 0.2), True),
+        # Der Falz der unteren Schale darf auch an der neuen SW2-Stelle nicht
+        # im Weg sein - dort steht er aussen, die Blindtasche liegt innen
+        ("Falz an der SW2-Blindtasche", bot,
+         (sx, d["ot_y1"] - p["lip_t"] / 2.0, lip_mid), True),
         ("Dach ueber dem Hohlraum", top,
          (bx, p["pcb_wid"] / 2.0 + 5.0, d["z_roof"] - 0.2), True),
     ]

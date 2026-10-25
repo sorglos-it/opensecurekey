@@ -108,7 +108,7 @@ steigt 1,0 mm über die Trennebene und **stand damit mitten vor der
 Tasteröffnung und vor der USB-Öffnung.** Der Taster wäre nicht zu drücken, das
 Kabel nicht zu stecken gewesen.
 
-Behoben und belegt: der Falz ist an beiden Stellen unterbrochen, und zehn
+Behoben und belegt: der Falz ist an beiden Stellen unterbrochen, und zwölf
 Proben im Körper prüfen das bei jedem Bau nach.
 
 **Das war kein Rechenfehler, sondern ein Loch in der Form** – keine
@@ -117,7 +117,11 @@ Platinen-Strang nach den Tastern gefragt hat.
 
 ## Die beiden Taster
 
-Beide bei **längs 22,75…26,25 mm** an den Längskanten, seitlich betätigt.
+**SW1** bei **längs 22,75…26,25 mm** neben der Anzeige, **SW2** seit dem
+24.10.2026 am USB-Ende bei **längs 6,8912…10,3912** (Pads 6,1402…11,1419,
+Mitte 8,6412) – beide an den Längskanten, seitlich betätigt. Der Reset ist
+umgezogen, weil ihm zwischen Funkmodul und Anzeigeglas **0,5491 mm** fehlten;
+das hat der Platinen-Strang gerechnet, nicht das Gehäuse.
 
 Der enge Punkt der Übergabe – 0,75 mm zum Anzeigeglas – ist **nicht die Grenze
 des Rahmens**: das Fenster ist ein glatter Durchbruch im Dach ohne nach unten
@@ -125,13 +129,35 @@ gezogenen Rand und beginnt erst bei 30,15 mm, also **3,90 mm vom Taster**.
 
 **Was der Rahmen wirklich brauchte, war etwas anderes:** der Klemmkragen läuft
 1,2 mm breit am Platinenrand um – genau dort, wo ein seitlich betätigter Taster
-sitzt. Er ist jetzt an beiden Längskanten über 21,70…27,30 mm bis auf 1,65 mm
-Höhe freigestellt: zwei Unterbrechungen von je 5,6 mm bei rund 194 mm Umfang.
+sitzt. Er ist freigestellt bis auf 1,65 mm Höhe, an der Kante quer 0 über
+**21,70…27,30 mm** (SW1) und an der Kante quer 27 über **5,8412…11,4412**
+(SW2): weiterhin zwei Unterbrechungen von je 5,6 mm bei rund 194 mm Umfang,
+**182,8 von 194 mm tragen** (94,2 %). Der Umzug ändert daran nichts – die
+Unterbrechung ist gleich lang, sie liegt nur woanders. Neu ist nur, dass vor
+ihr ein **5,84 mm langes Kragenstück** bis zur vorderen Ecke stehen bleibt.
+
+**Kollision mit der Frontpartie: keine.** Nachgerechnet gegen die drei Dinge,
+die am USB-Ende im Weg stehen könnten:
+
+| Geprüft | Zahl |
+| --- | --- |
+| Freistellung zur Mulde (endet an der Platinenkante 0,0) | **5,8412 mm** |
+| Steckerkörper quer 9,03…17,97 zum Tasterkörper quer 21,725…25,275 | **3,7550 mm** |
+| Mulde quer 6,50…20,50 zum Tasterkörper | **1,2250 mm** |
+| Freistellung zum Funkmodul-Körper (ab längs 12,0499) | **0,6087 mm** |
+| Freistellung zum ersten Schnappwulst (ab längs 12,0) | **0,5588 mm** |
+| Pads 6,1402…11,1419 in der 5,6 mm langen Freistellung | **0,2990 / 0,2993 mm** |
+
+Der Steckerkörper reicht längs bis 7,27 mm und überschneidet den Taster in
+Längsrichtung um 0,3788 mm – **quer liegen sie 3,755 mm auseinander**, sie
+treffen sich also nicht. Die Nase über dem Stecker beginnt erst bei 2,35 mm
+Höhe, die Freistellung endet bei 1,65 mm; sie liegen übereinander, nicht
+ineinander.
 
 | Taster | Kante | Gehäuse |
 | --- | --- | --- |
-| SW1 (Bestätigen) | quer 0 | **Schlitz durch die Wand**, 4,5 × 2,4 mm |
-| SW2 (Reset) | quer 27 | **Blindtasche 0,8 mm**, von außen nicht erreichbar |
+| SW1 (Bestätigen) | quer 0, längs 24,5 | **Schlitz durch die Wand**, 4,5 × 2,4 mm |
+| SW2 (Reset) | quer 27, längs 8,6412 | **Blindtasche 0,8 mm**, von außen nicht erreichbar |
 
 SW2 bekommt keine durchgehende Öffnung, weil `../hardware/layout-notes.md` das
 verlangt. Ganz zumachen geht aber auch nicht – eine geschlossene Wand stünde
@@ -233,7 +259,7 @@ die drei Teile und schreibt STEP, STL und `housing.f3d` nach `export/`.
 | --- | --- |
 | Maße gerechnet | **ja** – [masse.md](masse.md), jede Zahl mit Quelle |
 | Netz dicht und Volumen positiv | **ja** – Selbstprüfung in `build_mesh.py`, `check: ok` |
-| Jede Öffnung wirklich offen | **ja** – 10 Proben im Körper (`frei` in der Öffnung, `voll` daneben). Gegenprobe gemacht: schiebt man den Falz wieder davor, fallen sie – die Probe ist also nicht hohl |
+| Jede Öffnung wirklich offen | **ja** – 12 Proben im Körper (`frei` in der Öffnung, `voll` daneben). Gegenprobe gemacht: schiebt man den Falz wieder davor, fallen sie – die Probe ist also nicht hohl |
 | STL erzeugt | **ja** – 3 Dateien in `export/` |
 | STEP erzeugt | **ja**, aber **in keinem CAD geöffnet** – auf diesem Rechner ist keines vorhanden. Das Skript prüft nur, dass jede benutzte Nummer vergeben ist. **`ungeprueft`** |
 | Fusion-Datei `housing.f3d` | **nein** – Fusion läuft hier nicht |
