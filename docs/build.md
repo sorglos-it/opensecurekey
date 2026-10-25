@@ -337,6 +337,60 @@ nachgetragen werden: die `CMakeLists.txt` der Firmware und fünf
 `transport` reicht die `CORE`-Liste nicht — dort haben einzelne Ziele eigene
 Dateilisten (`test_crypto`, und alles was `$(CRYPTO)` benutzt).
 
+#### Die kaputte Weiche der drei Krypto-Unterbauten
+
+Die sechs Namen `osk_random`, `osk_crypto_init`, `osk_aes_cmac`,
+`osk_aes_cbc_encrypt`, `osk_aes_cbc_decrypt` und
+`osk_aes_ecb_encrypt_block` sind je dreimal geschrieben — einmal je
+Unterbau (CNG für Windows, OpenSSL für Unix, PSA für das Gerät). **Das
+ist Absicht und kein Fehler:** alle sechs sind in **genau einem** Kopf
+deklariert (`se050_crypto.h`), den alle drei Dateien einbinden — Signatur
+und Rückgabetyp sind damit vom Übersetzer erzwungen gleich. Das ist der
+strukturelle Gegensatz zu `osk_apdu_parse`, wo zwei Köpfe zwei Verträge
+behaupteten und nichts sie verglich.
+
+**Der Fehler liegt in der Bedingung, die sie trennen soll.**
+`se050_crypto_psa.c` fragte `CONFIG_PSA_CRYPTO_CLIENT` ab — **ein Symbol,
+das es im nRF Connect SDK nicht gibt.** Belegt von beiden Seiten:
+
+- In der erzeugten `.config` des gemessenen Baus kommt
+  `PSA_CRYPTO_CLIENT` in **keiner** Form vor — auch nicht als
+  `# CONFIG_... is not set`, was ein vorhandenes, abgeschaltetes Symbol
+  hinterlassen würde. Vorhanden ist `CONFIG_MBEDTLS_PSA_CRYPTO_CLIENT=y`.
+- In der Kconfig des SDK selbst, geholt aus der festgelegten Fassung
+  (`sdk-zephyr`, Marke `ncs-v3.4.1`, `modules/mbedtls/Kconfig.tf-psa-crypto`):
+
+  ```
+  config MBEDTLS_PSA_CRYPTO_CLIENT
+  	def_bool y
+  	depends on PSA_CRYPTO
+  ```
+
+Der Name ist berichtigt. **Dass im gemessenen Abbild trotzdem die
+richtige Fassung steckt, war Zufall:** der PSA-Zweig hing allein an
+unserem eigenen `OSK_CRYPTO_PSA`, das die `CMakeLists.txt` setzt.
+
+**Halb behoben — die drei schließen sich weiter nicht aus.** Die anderen
+zwei Weichen kennen die PSA-Bedingung nicht:
+
+| | Bedingung |
+| --- | --- |
+| CNG | `_WIN32 && !OSK_CRYPTO_PSA` |
+| OpenSSL | `!_WIN32 && !OSK_CRYPTO_PSA` |
+| PSA | `CONFIG_MBEDTLS_PSA_CRYPTO_CLIENT \|\| OSK_CRYPTO_PSA` |
+
+Auf dem Gerät (nicht `_WIN32`, `CONFIG_MBEDTLS_PSA_CRYPTO_CLIENT=y`) sind
+damit **ohne** `OSK_CRYPTO_PSA` gleichzeitig OpenSSL **und** PSA aktiv —
+also sechs doppelte Definitionen. Vorher scheiterte derselbe Fall an
+einem fehlenden `openssl/...`-Kopf; beide Male bricht der Bau laut ab,
+nichts wird still falsch. Weil `apps/firmware/CMakeLists.txt`
+`OSK_CRYPTO_PSA` immer setzt, tritt der Fall heute nicht ein.
+
+**Zum vollständigen Ausschluss fehlen zwei Zeilen** — je
+`&& !defined(CONFIG_MBEDTLS_PSA_CRYPTO_CLIENT)` in `se050_crypto_cng.c`
+und `se050_crypto_openssl.c`. Offen, weil das zwei weitere Dateien eines
+anderen Strangs berührt.
+
 **Noch offen, ein dritter Name: `osk_apdu_t`.** Der Typ ist ebenfalls
 zweimal definiert, mit **verschiedenem Aufbau** — das elfte Feld ist in
 `transport/nfc_apdu.h` ein `bool chaining_cla`, in `applets/osk_apdu.h` ein
