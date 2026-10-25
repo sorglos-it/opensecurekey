@@ -292,6 +292,11 @@ def check_firmware_symbols(root):
     ersten Gesamtbau gleich zweimal (osk_wipe, osk_apdu_parse). Diese Pruefung
     liest die Namen aus dem Quelltext statt zu binden: so laeuft sie auch auf
     einem Rechner ohne Werkzeugkette, und das ist hier die Mehrheit.
+
+    Worauf sich niemand verlassen darf: Kollisionen mit fremdem Code (libc,
+    Zephyr, PSA, OpenSSL), Namen aus Makros und aus Assembler findet sie
+    nicht. Die ganze Liste der blinden Flecken steht im Kopf von
+    tools/symbols.py - sie gehoert neben jeden gruenen Haken hier.
     """
     part, step = 'firmware', 'symbole'
     folder = common.part_dir(part, root)

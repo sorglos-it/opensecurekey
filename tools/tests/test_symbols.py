@@ -160,3 +160,63 @@ class Schritt(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class BlindeFlecken(unittest.TestCase):
+    """Was die Pruefung NICHT findet - festgenagelt, damit es im Kopf von
+    symbols.py nicht irgendwann eine Behauptung ohne Messung ist."""
+
+    def scan(self, **files):
+        root = firmware(**files)
+        return symbols.scan(os.path.join(root, 'apps', 'firmware'))
+
+    def test_kollision_mit_fremdem_code_faellt_nicht_auf(self):
+        doubles, clashes, _, _, _ = self.scan(**{
+            'src/classes/ctap/a.c': 'void *memcpy(void *a, const void *b, unsigned long n)\n{\n\treturn a;\n}\n'})
+        self.assertEqual((doubles, clashes), ([], []))
+
+    def test_name_aus_einem_makro_faellt_nicht_auf(self):
+        text = '#define MACHE(n) void osk_##n(void) { }\nMACHE(tu)\n'
+        doubles, _, hints, _, _ = self.scan(**{'src/classes/ctap/a.c': text,
+                                               'src/classes/store/b.c': text})
+        self.assertEqual((doubles, hints), ([], []))
+
+    def test_zweimal_in_einer_datei_faellt_nicht_auf(self):
+        doubles, _, _, _, _ = self.scan(**{
+            'src/classes/ctap/a.c': 'void osk_x(void)\n{\n}\nvoid osk_x(void)\n{\n}\n'})
+        self.assertEqual(doubles, [])
+
+    def test_ausgeknipster_code_wird_trotzdem_gelesen(self):
+        """'#if 0' nimmt die Definition aus dem Bau - gemeldet wird sie als
+        Hinweis, nicht als Fehler."""
+        doubles, _, hints, _, _ = self.scan(**{
+            'src/classes/ctap/a.c': '#if 0\nvoid osk_tu(void)\n{\n}\n#endif\n',
+            'src/classes/store/b.c': 'void osk_tu(void)\n{\n}\n'})
+        self.assertEqual(doubles, [])
+        self.assertEqual([n for n, _ in hints], ['osk_tu'])
+
+
+class Zusaetze(unittest.TestCase):
+    def scan(self, **files):
+        root = firmware(**files)
+        return symbols.scan(os.path.join(root, 'apps', 'firmware'))
+
+    def test_attribute_verdeckt_die_definition_nicht(self):
+        """'__attribute__((aligned(4))) void osk_tu(void)' sah vorher aus wie
+        ein Aufruf von __attribute__ - die Definition wurde gar nicht gelesen."""
+        doubles, _, _, _, names = self.scan(**{
+            'src/classes/ctap/a.c': '__attribute__((aligned(4))) void osk_tu(void)\n{\n}\n',
+            'src/classes/store/b.c': 'void osk_tu(void)\n{\n}\n'})
+        self.assertEqual([n for n, _, _ in doubles], ['osk_tu'])
+
+    def test_schwaches_symbol_ist_nur_ein_hinweis(self):
+        """Ein weak-Symbol darf ein starkes doppeln: der Binder nimmt das starke."""
+        doubles, _, hints, _, _ = self.scan(**{
+            'src/classes/ctap/a.c': '__attribute__((weak)) void osk_tu(void)\n{\n}\n',
+            'src/classes/store/b.c': 'void osk_tu(void)\n{\n}\n'})
+        self.assertEqual(doubles, [])
+        self.assertEqual([n for n, _ in hints], ['osk_tu'])
+
+    def test_weak_kurzform(self):
+        self.assertTrue(symbols.is_weak('__weak void osk_tu(void)'))
+        self.assertFalse(symbols.is_weak('void osk_tu(void)'))

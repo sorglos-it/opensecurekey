@@ -15,9 +15,32 @@ Linux, in der CI wie am Arbeitsplatz. Ein Binder waere genauer; er ist hier
 aber nur an einem von zwei Rechnern vorhanden, und eine Pruefung, die meistens
 uebersprungen wird, findet nichts.
 
-Grenzen, ehrlich gesagt: gelesen wird der Text, nicht der uebersetzte Code.
-Namen, die erst ein Makro zusammensetzt, und Dateien, die #if ausknipst,
-sieht diese Pruefung nicht. Was sie meldet, steht aber wirklich so im Quelltext.
+WAS SIE FINDET (je gemessen, siehe tools/tests/test_symbols.py):
+  - dieselbe nicht-statische Funktion mit Rumpf in zwei .c-Dateien
+  - dieselbe globale Variable in zwei .c-Dateien
+  - denselben Namen mit verschiedenen Rueckgabetypen (osk_result_t gegen bool)
+
+WAS SIE NICHT FINDET - darauf darf sich niemand verlassen. Gelesen wird der
+Text, nicht der uebersetzte Code. Alles hier ist nachgemessen, nicht vermutet:
+  - Kollisionen mit fremdem Code: libc, Zephyr, PSA, OpenSSL, MCUboot. Es
+    werden nur die .c-Dateien unter apps/firmware gelesen. Ein eigenes
+    'memcpy' faellt hier NICHT auf (gemessen), der Binder sieht es.
+  - Namen, die erst ein Makro zusammensetzt ('MACHE(tu)' -> osk_tu).
+  - Namen aus Assembler (.S/.s) - diese Dateien werden nicht gelesen; im
+    heutigen Baum gibt es keine.
+  - zweimal derselbe Name in EINER Datei (das faengt der Uebersetzer).
+  - ob sich zwei #if-Bedingungen wirklich ausschliessen. Steht eine der
+    Stellen in einem #if, ist es darum ein Hinweis und kein Fehler - sonst
+    waeren die drei se050-Krypto-Unterbauten dauerhaft rot. Umgekehrt wird
+    auch gelesen, was ein #if gerade ausknipst.
+  - Doppelungen, an denen ein schwaches Symbol (weak) beteiligt ist: der
+    Binder nimmt dann das starke. Auch das ist nur ein Hinweis.
+  - welcher Teil am Ende wirklich ins Abbild gebunden wird. Wer eine
+    Uebersetzungseinheit aus dem Bau nimmt, hat die Kollision nicht mehr -
+    diese Pruefung meldet sie trotzdem.
+Ein Gesamt-Bindelauf bleibt die genauere Messung. Er ist hier nur nicht zu
+haben: auf diesem Rechner gibt es kein nRF Connect SDK, und eine Pruefung,
+die meistens uebersprungen wird, findet nichts.
 
 Nur Standardbibliothek.
 """
@@ -38,6 +61,12 @@ QUALIFIERS = frozenset((
     'unsigned', 'short', 'long', 'struct', 'union', 'enum', '_Noreturn',
 ))
 NAME_RE = re.compile(r'[A-Za-z_]\w*')
+# Zusaetze, die vor dem Rueckgabetyp stehen und den Deklarator verdecken:
+# '__attribute__((weak)) void osk_tu(void)' sieht sonst aus wie ein Aufruf von
+# __attribute__, und die Definition wird gar nicht gelesen. Im heutigen Baum
+# kommt keiner vor; Zephyr-Code traegt sie aber oft.
+ATTRIBUTE_RE = re.compile(r'__attribute__\s*\(\(')
+WEAK_RE = re.compile(r'\b(weak|__weak)\b')
 # Zephyr-Makros erzeugen Namen, die hier nicht abzulesen sind - solche
 # Stuecke werden uebergangen statt falsch geraten.
 MACRO_DEFINITION_RE = re.compile(r'^[A-Z][A-Z0-9_]*\s*\(')
@@ -181,6 +210,32 @@ def top_level_call(piece):
     return None
 
 
+def strip_attributes(piece):
+    """'__attribute__((...))' herausnehmen, Klammern mitgezaehlt."""
+    while True:
+        match = ATTRIBUTE_RE.search(piece)
+        if not match:
+            return piece
+        depth, i = 0, match.end() - 2
+        while i < len(piece):
+            if piece[i] == '(':
+                depth += 1
+            elif piece[i] == ')':
+                depth -= 1
+                if depth == 0:
+                    break
+            i += 1
+        piece = piece[:match.start()] + ' ' + piece[i + 1:]
+
+
+def is_weak(piece):
+    """Ein schwaches Symbol darf ein starkes doppeln - der Binder nimmt das
+    starke. Darum ist so eine Doppelung ein Hinweis, kein Fehler."""
+    match = ATTRIBUTE_RE.search(piece)
+    return bool(WEAK_RE.search(piece[:match.end() + 40])) if match else bool(
+        re.search(r'(^|\s)__weak(\s|$)', piece))
+
+
 def first_word(piece):
     match = NAME_RE.search(piece)
     return match.group(0) if match else ''
@@ -205,7 +260,9 @@ def definitions(text):
     'bedingt' heisst: steht in einem #if-Block.
     """
     found, depths = [], conditional_depths(text)
-    for piece, line, closer in chunks(strip_c(text)):
+    for roh, line, closer in chunks(strip_c(text)):
+        schwach = is_weak(roh)
+        piece = strip_attributes(roh)
         words = set(NAME_RE.findall(piece))
         head = first_word(piece)
         if head in NO_SYMBOL or 'static' in words or 'typedef' in words:
@@ -215,21 +272,25 @@ def definitions(text):
         call = top_level_call(piece)
         if closer == '{':
             if call and call[0] not in NO_SYMBOL and call[1].strip():
-                found.append((call[0], line, 'funktion', depth_at(depths, line) > 0))
+                found.append((call[0], line, 'funktion',
+                              depth_at(depths, line) > 0 or schwach))
             continue
         # ';' - Prototyp (hat Klammern) zaehlt nicht, eine Variable schon.
         if call:
             continue
         name = variable_name(piece)
         if name and name not in NO_SYMBOL:
-            found.append((name, line, 'variable', depth_at(depths, line) > 0))
+            found.append((name, line, 'variable',
+                          depth_at(depths, line) > 0 or schwach))
     return found
 
 
 def prototypes(text):
     """Angekuendigte Funktionen: [(Name, Zeile, Rueckgabetyp, bedingt)]."""
     found, depths = [], conditional_depths(text)
-    for piece, line, closer in chunks(strip_c(text)):
+    for roh, line, closer in chunks(strip_c(text)):
+        schwach = is_weak(roh)
+        piece = strip_attributes(roh)
         words = set(NAME_RE.findall(piece))
         if first_word(piece) in NO_SYMBOL or 'typedef' in words:
             continue
@@ -242,7 +303,8 @@ def prototypes(text):
             continue
         if closer == '{' and 'static' not in words:
             continue            # Rumpf: die Definition zaehlt woanders
-        found.append((name, line, kind, depth_at(depths, line) > 0))
+        found.append((name, line, kind,
+                      depth_at(depths, line) > 0 or is_weak(roh)))
     return found
 
 
