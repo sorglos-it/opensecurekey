@@ -752,3 +752,57 @@ Entschieden werden muss zuerst der Sensor; danach ist J5 entweder richtig
 (BM-Lite) oder er wird gegen einen 12-poligen FPC-Steckverbinder getauscht,
 samt der Netzliste dazu. **Was dann an Signalen über die zwölf Pole läuft,
 ist aus dem Datenblatt zu holen und nicht aus der Zahl 12 zu erraten.**
+
+## J1 getauscht: aus der Buchse wird ein Stecker (25.10.2026)
+
+Das Gerät wird **gesteckt, nicht angekabelt**. `J1` ist deshalb keine Buchse
+mehr, sondern ein Platinenrand-Stecker.
+
+| | |
+| --- | --- |
+| Teil | **GCT `USB4155-03-C`** |
+| Nummer | **`C5183853`** |
+| Bauart | USB3.2 Gen2 Type-C **Plug**, horizontal, SMT |
+| Plattendicke | **0,8 – 1,0 mm** (Zeichnung Blatt 1) |
+| Platinentiefe | **2,50 mm** ab Platinenkante |
+| Pins | **26**: A1 … A12, B1 … B12 und **zwei Schirmpins 26, 27** |
+| Schirm | **SHELL = GND** laut Zeichnung |
+
+> **Beim Nachbestellen aufpassen:** Die Bibliothekssuche nach „USB4155" liefert
+> drei Treffer, davon **zwei Platzhalter** — `C9900282109` und `C9900245240`
+> („USB4155-03**C**", ohne Bindestrich). **Nur `C5183853` hat Hersteller,
+> Datenblatt und Maße.**
+
+**Belegung, Pin für Pin gegengelesen:**
+
+| Netz | Pins |
+| --- | --- |
+| `GND` | A1, A12, B1, B12, **26, 27** |
+| `VBUS` | A4, A9, B4, B9 |
+| `CC1` | A5 |
+| `CC2` | B5 |
+| `USB_DP_CON` | A6, B6 |
+| `USB_DM_CON` | A7, B7 |
+| **nicht angeschlossen** | A2, A3, A8, A10, A11, B2, B3, B8, B10, B11 (SuperSpeed und SBU) |
+
+Gezählt nach dem Tausch: **54 Bauteile, 59 Netze, 220 Verbindungen**, DRC
+**0 Fehler** (eine Warnung: `FP_IRQ` als gewollter Testpunkt).
+
+### `R16` wird nicht bestückt — und warum der Platz bleibt
+
+**Ein Stecker braucht nur einen Rd.** Zwei Rd an einem festen Stecker lassen
+das Gerät als **Debug-Zubehör** erscheinen; es würde nicht normal erkannt.
+
+- **`R15` = 5,1 kΩ von `CC1` nach `GND` — bestückt.**
+- **`R16` = 5,1 kΩ von `CC2` nach `GND` — `DNP`, nicht bestückt.**
+
+> **Der Platz bleibt mit Absicht auf der Platine.** Die Zuordnung „A5 führt die
+> CC-Leitung, B5 ist VCONN" ist **Konvention und steht nicht in der
+> GCT-Zeichnung** — dort heißen beide „Configuration Channel", das Wort VCONN
+> kommt nicht vor. Wäre es umgekehrt, läge der Widerstand auf VCONN, die
+> CC-Leitung bliebe offen und **das Gerät bekäme keinen Strom**.
+>
+> Mit dem unbestückten Platz ist das ein Lötpunkt statt einer neuen Fertigung:
+> `R16` bestücken, `R15` auslöten. **Pads und Leitung bleiben, der Widerstand
+> nicht.** Wer die Platine später liest: hier fehlt nichts, hier ist etwas
+> vorbereitet.
