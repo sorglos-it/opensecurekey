@@ -2811,3 +2811,85 @@ geschaffen haben, sind für eine Bahn zu wenig.
 
 **Das ist eine Abwägung zwischen Abblockung und Schaltschleife**, und sie
 gehört nicht ans Ende einer Runde. Gemeldet, nicht entschieden.
+
+# Der Steckerwechsel bringt weniger Länge, als die Bänder versprechen
+
+Stand 25.10.2026. **Gerechnet gegen die Messung, nicht gegen die Bandtabelle.**
+
+## Die naive Rechnung und warum sie nicht stimmt
+
+> Z1 war 9,5 mm, der Stecker greift nur 2,50 mm auf die Platine → 7,00 mm
+> Gewinn, Platine 63,00.
+
+**So ist es nicht.** `J1` war nie allein in Z1. Gemessen liegt **alles unter
+dem Modul**, ohne J1, zwischen `y` **0,629 und 12,419 — 11,790 mm**, und die
+Widerstandsreihe steht schon bei 0,629, also **unterhalb** von J1s Pads.
+
+| | |
+| --- | --- |
+| J1 belegte | `x` 8,725 … 18,275, `y` 0,456 … 5,989 |
+| Gruppe darunter/daneben (ohne J1) | `y` 0,629 … 12,419 |
+| Summe der Hüllflächen | 84,48 mm² |
+| untere Schranke bei 26,4 mm Breite | **3,20 mm** |
+| höchstes Einzelteil | **SW2 mit 5,00** — zweithöchstes U2 mit 3,77 |
+
+**J1 saß mitten in dieser Gruppe.** Es verschwinden zu lassen gibt einen
+Streifen von 9,55 × 5,53 mm frei, **aber die Gruppe muss neu gepackt werden,
+damit daraus Länge wird** — und sie muss hinter den Stecker, der die ersten
+2,50 mm der Platine für sich braucht.
+
+## Was dabei herauskommt
+
+| Annahme | Gruppe liegt dann | **Gewinn** | **Platine** |
+| --- | --- | ---: | ---: |
+| zwei Reihen, SW2 bleibt unten (5,00 + 3,77) | `y` 2,80 … 11,82 | **+0,60** | **69,40** |
+| zwei Reihen, **SW2 woanders** (3,77 + 2,60) | `y` 2,80 … 9,42 | **+3,00** | **67,00** |
+| *naive Rechnung* | — | *+7,00* | *63,00* |
+
+In einer Reihe geht es nicht: die Teile brauchen nebeneinander rund **52 mm**,
+die Platine ist 27 breit.
+
+> **Der Hebel ist nicht der Stecker, sondern `SW2`.** Der Reset-Taster ist mit
+> **5,00 mm das höchste Teil** in diesem Band — und er ist ein Knopf, keine
+> Schaltung. Liegt er woanders, wird die Gruppe 2,4 mm flacher, und **der
+> Gewinn verfünffacht sich von 0,60 auf 3,00 mm.**
+
+**Nicht ausgeführt.** Das ist eine Neuplatzierung der ganzen unteren Partie und
+gehört in eine eigene Runde — zumal die Lage des Steckers auf der Platine noch
+nicht feststeht.
+
+## Der Stecker selbst: Pins ausgelesen, nicht geschlossen
+
+**GCT `USB4155-03-C`, LCSC `C5183853`** — mit Hersteller, Datenblatt,
+„Gender: Male", 24P.
+
+> **Von drei Treffern der Bibliothekssuche sind zwei `C9900`-Platzhalter**
+> (`C9900282109`, `C9900245240`). Nur der dritte ist ein echtes Teil. Wer den
+> ersten Treffer nimmt, baut wieder einen Platzhalter ein.
+
+**26 Pins:** A1 … A12, B1 … B12 und **zwei Schirmpins 26 und 27** (die Buchse
+hatte dafür ein `S1` mit vier Pads).
+
+| Signal | Buchse J1 | **Stecker** |
+| --- | --- | --- |
+| VBUS | A4, A9, B4, B9 | gleich |
+| GND | A1, A12, B1, B12 | gleich |
+| D+ | A6, B6 | **A6 `DP1`, B6 `DP2`** |
+| D− | A7, B7 | **A7 `DN1`, B7 `DN2`** |
+| CC | A5 `CC1`, B5 `CC2` | gleich benannt |
+| Schirm | S1 (4 Pads) | **26, 27** |
+
+## Eine Schaltungsfrage, die der Tausch aufwirft
+
+**`R15` und `R16` sind je 5,1 kΩ von CC1 und CC2 nach Masse.** Das ist die
+Beschaltung einer **Buchse**: beide CC-Leitungen brauchen Rd, weil das Kabel
+gedreht eingesteckt werden kann.
+
+**Beim Stecker ist das nicht dasselbe.** Ein Gerät mit festem Stecker ist in
+der mating-Verbindung nur über **eine** CC-Leitung verbunden; die zweite ist
+`VCONN`. Zwei Rd an einem Stecker ist nicht die Beschaltung, die die
+Spezifikation dafür vorsieht.
+
+> **Das ist eine Schaltplanfrage, keine Layoutfrage** — dieselbe Art wie die
+> Polzahl bei J4. **Ich habe nichts geändert**, bevor das entschieden ist:
+> ob Rd nur auf CC1 bleibt, was aus `R16` wird, und ob `VCONN` offen bleibt.
