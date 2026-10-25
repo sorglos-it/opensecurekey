@@ -3628,3 +3628,85 @@ eine Blindtasche.
 
 > **Von den dreien ist c) die einzige, die den Gewinn ohne neue Frage bringt.**
 > a) existiert nicht, b) verschiebt die Frage nur auf die andere Seite.
+
+# Der Reset wird zur Lötbrücke — c) gebaut
+
+## Was im Schaltplan steht
+
+`SW2` (`EVQP7C01P`, C388883) ist **gelöscht**. An seiner Stelle sitzt `JP1`:
+`0805W8F0000T5E` / **C17477**, 0 Ω, Basic Part, Landfläche **R0805**.
+Pin 1 auf `NRESET`, Pin 2 auf `GND` — **die beiden Netze, die SW2 hatte**
+(SW2 hatte vier Pins: 1/1` auf `NRESET`, 2/2` auf `GND`).
+
+`sch_apply` hat beide Pins hinterher gegen EasyEDAs Netzliste nachgelesen:
+**2 geprüft, 0 Abweichungen**. Schaltplan-DRC **bestanden**, 1 Warnung
+(`FP_IRQ` einpolig — bestand vorher, J5 bleibt ausgelassen).
+
+## Warum ein 0-Ω-Platz und nicht zwei gezeichnete Pads
+
+Zwei selbst gezeichnete Pads wären meine eigene Erfindung. `R0805` ist ein
+**dokumentiertes Lötbild**, und es bringt eine zweite Möglichkeit mit: die
+Brücke lässt sich mit einer Büroklammer legen **oder** mit einem 0-Ω-Teil
+festlöten. Das Kupfer ist in beiden Fällen dasselbe.
+
+> **`JP1` darf nicht bestückt werden.** Ein eingelötetes 0 Ω zieht `NRESET`
+> dauerhaft auf Masse — der Chip käme nie aus dem Reset. Deshalb steht
+> `Add into BOM` auf `no` und der Wert auf `DNP (RST-Bruecke)`.
+> **Noch nicht nachgemessen:** `sch_component_update` gab die alten Werte
+> zurück. Beweis kommt aus `pcb_export_bom`, nicht aus diesem Satz.
+
+## Padspanne — noch nicht gemessen
+
+Die Katalogzahl zu `R0805` ist **2,0 × 1,3** (Teilkörper), die Padspanne steht
+dort nicht. Beim Taster lag die gemessene Spanne **1,4 mm über** der
+Katalogzahl. **Die Zahl für `JP1` kommt aus `pcb_pads_list`, sobald das Teil
+auf der Platine liegt** — nicht aus diesem Absatz.
+
+## Wo es hängt
+
+`pcb_import_changes` hat den Unterschied richtig erkannt — genau vier Zeilen,
+nichts weiter:
+
+| Art | Gegenstand | Schaltplan | Platine |
+| --- | --- | --- | --- |
+| Netz | `GND` | `JP1.2` | `SW2.2`, `SW2.2`` |
+| Netz | `NRESET` | `JP1.1` | `SW2.1`, `SW2.1`` |
+| Teil | `R0805` | `JP1` | — |
+| Teil | `SW-SMD_EVQP7C01P` | — | `SW2` |
+
+**EasyEDA öffnet dafür nur seinen Dialog „Import Changes".** Nichts wandert in
+die Platine, bevor jemand dort auf **„Apply Changes"** klickt. Das kann die
+Brücke nicht: zwei Läufe, 54 Teile vorher, 54 Teile nachher.
+**Der Dialog steht jetzt offen** und blockiert damit auch die anderen
+Sitzungen, die sich dieselbe Brücke teilen.
+
+Danach gehört hierher: `JP1` auf SW2s alten Platz (**23,5000 / 8,6412**, Oberseite),
+Padspanne messen, `RST` in den Bestückungsdruck, Gießflächen neu aufbauen,
+DRC.
+
+# Zwei Zahlen zum Stecker, die nicht übersehen werden dürfen
+
+## 3,303 mm ist die maßgebliche Tiefe, nicht 2,50
+
+| Zahl | Was sie meint |
+| ---: | --- |
+| 2,50 | **Gehäusetiefe** des Steckers: so weit reicht sein Kunststoffkörper auf die Platine |
+| **3,303** | **Lötbildtiefe**: so weit reicht das Kupfer, das er braucht |
+
+Der Unterschied sind die beiden **Haltestifte** (Pins 26/27) der Metallhülle.
+Sie sitzen **hinter** dem Gehäusekörper und reichen **0,80 mm tiefer**.
+Gemessen an `J1` auf 13,50 / 1,55: `y` **1,502 … 3,303**.
+
+> **Jede Längenrechnung, die mit 2,50 arbeitet, ist um 0,80 mm zu günstig.**
+> Für die Platinenlänge zählt 3,303.
+
+## 0,303 mm ist die engste Stelle zum Rand
+
+Die **B-Reihe** (B1 … B12) liegt bei `y` **0,303 … 1,103**.
+Die Vorschrift *Board Outline ↔ SMD Pad* lautet **0,29999940 mm**.
+
+**0,303 gegen 0,300 — eingehalten, mit 0,003 mm Luft.**
+
+> Das ist kein Spielraum, das ist ein Haar. **Wer `J1` später um auch nur ein
+> Hundertstel nach unten schiebt oder den Umriss nachzieht, reißt diese Regel.**
+> Bei jeder Änderung an `J1` oder am Umriss zuerst hier nachsehen.

@@ -27,7 +27,7 @@ steht als `ungeprueft` dabei.
 | J5 | Stiftfeld 1 × 6, 1,27 mm | Fingerabdrucksensor, Stufe 2 |
 | J6 | Stiftfeld 1 × 4 oder Testpunkte | SWD |
 | SW1 | Panasonic EVQP7A01P | SMD, 1,35 mm hoch |
-| SW2 | Panasonic EVQP7A01P | Reset, optional |
+| JP1 | 0805W8F0000T5E (C17477), 0 Ω, **DNP** | Reset-Brücke, zwei Pads statt Taster |
 | D1 | Everlight 19-337C/RSBHGHC-A88/4T | 1,6 × 1,6 × 0,5 mm, RGB |
 | D2 | Nexperia PESD5V0X1BCL | DFN1006, TVS auf VBUS |
 | ~~Q1~~ | ~~Verpol- und NFC-Rückstromschutz~~ | **entfällt 25.10.2026 — kein Akku** |
@@ -400,8 +400,8 @@ Anzeige darf mit ihren bis zu 25 mA nicht gleichzeitig mit dem Flash laufen.
 | --- | --- | --- |
 | SW1 Pin 1 | `P1.01` | Taster |
 | SW1 Pin 2 | `GND` | — |
-| SW2 Pin 1 | U1 `P0.18` (nRESET) | Reset-Taster, optional |
-| SW2 Pin 2 | `GND` | — |
+| JP1 Pin 1 | U1 `P0.18` (nRESET) | Reset-Brücke, **nicht bestückt** |
+| JP1 Pin 2 | `GND` | — |
 
 **Kein externer Pull-up am Taster** — der interne genügt: `R_PU` = 11/13/16 kΩ
 (nRF52840 PS v1.1, GPIO-Elektrik S. 157). **Kein Entprellkondensator** — er
@@ -788,3 +788,22 @@ das Gerät als **Debug-Zubehör** erscheinen; es würde nicht normal erkannt.
 > `R16` bestücken, `R15` auslöten. **Pads und Leitung bleiben, der Widerstand
 > nicht.** Wer die Platine später liest: hier fehlt nichts, hier ist etwas
 > vorbereitet.
+
+## Der Reset: `JP1` statt `SW2`
+
+Der Taster `SW2` ist aus dem Schaltplan heraus. An seinem Platz liegt `JP1`:
+eine **0805-Landfläche** mit Pin 1 auf `NRESET` und Pin 2 auf `GND` — dieselben
+zwei Netze, die der Taster hatte.
+
+Der Reset wird gelegt, indem man die beiden Pads kurzschließt: eine
+Büroklammer oder Pinzette genügt, wer es dauerhaft will, lötet ein 0-Ω-Teil
+darauf. Im Gehäuse braucht es dafür ein Loch statt einer Tasteröffnung in der
+Seitenwand — **und genau das ist gewollt**: der Reset soll von außen nicht
+einfach erreichbar sein.
+
+> **`JP1` wird nicht bestückt** (`Add into BOM: no`, Wert `DNP (RST-Bruecke)`).
+> Ein eingelötetes 0 Ω hält `NRESET` dauerhaft auf Masse; der Chip käme nie aus
+> dem Reset. Im Bestückungsdruck steht an den Pads `RST`.
+>
+> Wer die Platine später liest: **hier fehlt kein Taster, hier sind zwei
+> Kontakte gewollt.**
