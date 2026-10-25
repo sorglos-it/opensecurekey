@@ -3126,3 +3126,140 @@ Kondensatoren gemeinsam, nicht einzeln.
 Wenn die Funkleistung oder das Rauschen auf `VSYS` auffällt, ist diese Schleife
 der erste Verdächtige. **Wer sie verkürzen will, muss die Partie neu ordnen,
 nicht den Draht anders ziehen.**
+# Der Akku entfällt — Entscheidung von Thomas, 25.10.2026
+
+**Thomas hat am 25.10.2026 entschieden: der Akku entfällt vollständig.** Keine
+Zelle, kein Laderegler, keine Schutzschaltung, keine Lastumschaltung. Das Gerät
+läuft ausschließlich aus USB. **NFC und Bluetooth gibt es damit nur am
+Rechner** — das ist bewusst in Kauf genommen.
+
+Diese Datei ist die Quelle, aus der die anderen Stränge lesen. Darum steht die
+Entscheidung hier, bevor etwas gezeichnet wird.
+
+## Die Begründung, wie sie getroffen wurde
+
+Die Uhr für die Einmalcodes braucht keine Dauerversorgung: sie wird beim
+Einstecken vom Rechner nachgestellt, und der Code entsteht im Moment des
+Benutzens. Damit kaufte der Akku nur noch NFC und BLE **ohne** Rechner.
+
+Dagegen standen drei Dinge: 4–5 mm Bauhöhe, ein Verbrauchsteil mit wenigen
+Jahren Lebensdauer in einem Gerät, das Jahrzehnte halten soll, und die
+Dämpfung der NFC-Antenne durch die Aluminiumhülle der Zelle.
+
+## Welche bisherigen Begründungen damit hinfällig sind
+
+**Befund und Begründung sind hier getrennt:** Dass eine Begründung wegfällt,
+heißt nicht, dass das damit begründete Maß fällt. Die Maße selbst sind eine
+eigene Frage und werden weiter unten gemessen, nicht hier entschieden.
+
+| Was | Begründung bisher | Stand jetzt |
+| --- | --- | --- |
+| **Länge 70 mm** (statt 62) | räumliche Trennung von Akku und NFC-Antenne, Abschnitt „Akku gegen NFC-Antenne" | **Begründung hinfällig.** Es gibt nichts mehr zu trennen. Ob die 70 mm fallen, ist gemessen zu beantworten — siehe unten |
+| **Breite 26 mm** (statt 24) | Fingerabdrucksensor passt nicht neben die Zelle, es fehlten 1,40 mm | **Begründung hinfällig.** Der Sensor hat die ganze Breite |
+| **Breite 27 mm** (statt 26) | Klemmkragen plus Zelle plus Sensorfeld nebeneinander, Gehäuse-Strang | **Begründung teilweise hinfällig.** Der Zellanteil fällt weg, der Klemmkragen bleibt. Gehört dem Gehäuse-Strang, nicht mir |
+| **Ferritfolie** unter der Zelle | Zelle dämpft die NFC-Antenne (Taoglas) | **entfällt ersatzlos** — es liegt kein leitfähiger Untergrund mehr hinter der Antenne |
+| **Zelle außermittig / mittig** | Platz für U2 im Streifen daneben | **gegenstandslos** |
+| **Bauhöhe 3,8 mm vom Akku** | dickstes Teil | **hinfällig.** Dickstes Teil ist jetzt das Modul U1 mit 2,05 mm — in Stufe 2 der Sensor |
+| **Zone Z3 = 30,5 mm** | Länge der Zelle LP-401230-J | **hinfällig.** Z3 richtet sich jetzt nach Anzeige und Sensorfeld |
+| **„NFC in Stufe 1 weglassen kommt nicht in Frage"** (Zeile 66) | der Akku sei überhaupt nur wegen NFC/BLE ohne Rechner im Gerät | **Die Voraussetzung ist weg.** NFC bleibt trotzdem, arbeitet aber nur am Rechner. Der Satz ist nicht mehr gültig, wie er dasteht |
+
+## Was elektrisch verwaist — gemessen, nicht geschätzt
+
+Gemessen am 25.10.2026 an der **Netzliste des Schaltplans im Editor**
+(`sch_net_list`, 59 Netze), nicht an `schematic.md`. Ein Bauteil steht hier,
+wenn **jedes** seiner Netze zum Akkupfad gehört.
+
+**Bauteile, die ersatzlos entfallen — 14 Stück:**
+
+| Teil | Funktion | Netze, an denen es hängt |
+| --- | --- | --- |
+| U4 | Laderegler MCP73832 | `VBUS`, `VBAT_RAW`, `CHG_STAT`, `PROG`, `GND` |
+| J2 | Akkustecker JST-PH | `VBAT_RAW`, `GND` (Pins 2–4) |
+| Q1 | Verpolschutz / NFC-Rückstromsperre | `VBAT_RAW`, `VBAT_SW`, `Q1_G` |
+| Q2 | Lastumschaltung USB | `VBUS`, `VSYS`, `Q2_G` |
+| Q3 | Lastumschaltung Akku | `VBAT_SW`, `VSYS`, `Q3_G` |
+| R1 | PROG, 10 kΩ → 100 mA Ladestrom | `PROG`, `GND` |
+| R2 | Pull-up STAT, 100 kΩ | `CHG_STAT`, `VDD3V3` |
+| R3 | Gate Q1, 100 kΩ | `Q1_G`, `GND` |
+| R4 | Gate Q2, 100 kΩ | `Q2_G`, `VBAT_SW` |
+| R5 | Gate Q3, 100 kΩ | `Q3_G`, `VBUS` |
+| R13 | Teiler oben, 2,2 MΩ | `VBAT_SW`, `VBAT_SENSE` |
+| R14 | Teiler unten, 2,2 MΩ | `VBAT_SENSE`, `GND` |
+| C17 | 10 nF an der Akkumessung | `VBAT_SENSE`, `GND` |
+| C2 | 4,7 µF an `VBAT_RAW` | `VBAT_RAW`, `GND` |
+
+> **Sieben davon standen nicht in der Vorgabe an diesen Strang**: R2, R3, R4,
+> R5, R14, C17 und C2. Sie sind über die Netzliste gefunden, nicht über die
+> Liste im Auftrag.
+
+**Netze, die ersatzlos verschwinden — 8 Stück:** `VBAT_RAW`, `VBAT_SW`,
+`VBAT_SENSE`, `CHG_STAT`, `PROG`, `Q1_G`, `Q2_G`, `Q3_G`.
+
+**Zwei Anschlüsse des Rechenkerns werden frei:**
+
+| Pin am Modul | Port | war | ist jetzt |
+| --- | --- | --- | --- |
+| U1.20 | `P0.04` / AIN2 | `VBAT_SENSE`, Spannungsmessung | **frei** — einziger belegter Analogeingang, also sind jetzt alle acht frei |
+| U1.50 | `P1.02` | `CHG_STAT`, Ladezustand vom STAT-Pin | **frei** |
+
+Eine eigene Ladezustandsanzeige gibt es nicht und gab es nicht: der STAT-Pin
+ging auf `P1.02`, die Anzeige lief über die RGB-LED D1 in Software. **D1 bleibt**
+— sie zeigt weiter Betrieb und Fehler.
+
+**Was ausdrücklich bleibt**, obwohl es im Ladepfad stand:
+
+- **C1 = 4,7 µF an `VBUS`.** Es war der Eingangskondensator des Ladereglers und
+  ist jetzt der Vorrat am Stecker. Begründung unten bei der Versorgung.
+- **D2**, der TVS auf `VBUS`. Der Stecker wird weiter gesteckt.
+- **C3, C4, C5, C7** am Rechenkern, unverändert.
+
+## Die Versorgung: `VBUS` geht direkt an `VDDH`
+
+Bisher gingen zwei Quellen über Q2/Q3 auf `VSYS` und von dort an `VDDH`
+(`schematic.md` ab Zeile 45 und ab Zeile 143). **Jetzt gibt es eine Quelle.**
+
+**Entschieden: `VSYS` und `VBUS` werden ein Netz. Kein Ersatzbauteil.**
+
+Die Begründung steht schon in `schematic.md` Zeile 45 und wird von dieser
+Änderung nicht berührt: `VDDH` reicht von **2,5 bis 5,5 V** (nRF52840 PS v1.1,
+Tab. 172 und 173), der Chip erzeugt sein `VDD` selbst in der REG0-Stufe, ein
+externer Spannungsregler ist nicht nötig. USB liefert am Anschluss höchstens
+**5,25 V**; zu den 5,5 V bleiben **0,25 V**, und `D2` begrenzt die Spitzen.
+Es fällt nur die zweite Quelle weg, nicht die Wahl von `VDDH`.
+
+Der `VBUS`-Pin des Rechenkerns (U1.32) und `VDDH` (U1.30) liegen danach auf
+**demselben Netz**. Das ist Nordics eigene Anordnung für ein USB-gespeistes
+Gerät.
+
+> `ungeprueft`: Nordic führt diesen Fall in der Referenzschaltung als
+> „Configuration 1 — USB (VDDH = VBUS)". **Die Seite selbst war nicht
+> erreichbar** (Cloudflare), die Angabe stammt aus einer Suchzusammenfassung.
+> Die Entscheidung hängt nicht daran: sie trägt schon über die 2,5–5,5 V aus
+> Tab. 172/173, die im Projekt belegt sind.
+
+### Ein Fund, der aus dem Zusammenlegen kommt: die Kapazität am Stecker
+
+Bisher saßen `C3` (4,7 µF) und `C4` (100 nF) hinter Q2 auf `VSYS`. Werden die
+Netze eins, hängen sie **unmittelbar am Steckkontakt**, zusammen mit `C1`:
+
+> 4,7 + 4,7 + 0,1 = **9,5 µF**
+
+**USB 2.0 erlaubt höchstens 10 µF** unmittelbar an `VBUS` (Einschaltstrom beim
+Stecken). 9,5 µF liegt darunter, aber nur um 0,5 µF. `C7` (DECUSB, 4,7 µF)
+zählt nicht mit, es hängt an `DECUSB`, nicht an `VBUS`.
+
+**Folge für das Zeichnen:** Es darf **kein weiterer Kondensator** an dieses
+Netz, ohne dass neu gerechnet wird. Wer C1 oder C3 vergrößert, reißt die
+Grenze. `ungeprueft` ist die Toleranz der Teile — 4,7 µF X5R bei 5 V liefern
+real weniger als 4,7 µF, die Grenze ist also eher komfortabler als gerechnet.
+
+### Zwei Punkte, die nicht mir gehören
+
+1. **Die Firmware verliert die Versorgung im Moment des Ziehens.** Es gibt
+   keinen Puffer mehr. Ein angefangener Schreibvorgang in den Flash oder in
+   den Sicherheitschip muss das überleben. Das ist eine Firmware-Auflage und
+   gehört in `docs/`, nicht hierher.
+2. **Der passive NFC-Pfad** (offener Punkt 5 weiter oben, NFC direkt am
+   Sicherheitschip über LA/LB) wird durch diese Entscheidung **wichtiger**,
+   nicht unwichtiger: er ist jetzt der einzige Weg, bei dem das Gerät ohne
+   Rechner überhaupt etwas tun könnte. Bleibt offen.
