@@ -3375,8 +3375,26 @@ also **länger als heute**, nicht kürzer.
 - Die **Schleifenfläche der NFC-Antenne ist nicht gerechnet**. Dass 14,50 mm
   reichen, ist nicht gezeigt; die Zahlen 357 mm² und 448 mm² stehen weiter oben
   und stammen nicht aus einer Abstimmungsrechnung.
-- **Nichts davon ist im Editor geändert.** Weder gelöscht noch verschoben noch
-  der Umriss angefasst.
+- **Die Platine ist nicht angefaßt** — nichts verschoben, der Umriss
+  unverändert, `pcb_import_changes` nicht gelaufen. Die Messung oben gilt für
+  den Stand vor der Schaltplanänderung.
+
+### Nachtrag am selben Abend: der Schaltplan ist geändert
+
+Nach dem Go über die Mastersitzung ausgeführt und nachgemessen:
+
+| | |
+| --- | --- |
+| Bauteile gelöscht | **14** (U4, J2, Q1, Q2, Q3, R1–R5, R13, R14, C17, C2) |
+| verwaiste Leitungen weggeräumt | **27** |
+| verwaiste Netzfahnen weggeräumt | **11** |
+| `VSYS` in `VBUS` zusammengelegt | 4 Fahnen ersetzt (C3.1, C4.1, L1.2, U1.30), **jede einzeln an der Netzliste nachgeprüft** |
+| Netze | **59 → 50**, `VBUS` hat jetzt 12 Pins |
+| sch-DRC | **2 Warnungen**, beide gewollt: `U1.20` (P0.04) und `U1.50` (P1.02) sind frei; `FP_IRQ` war schon vorher ein Ein-Pin-Netz |
+
+**`Apply Changes` auf die Platine ist nicht gelaufen** — das klickt Thomas.
+Solange das nicht geschehen ist, stehen die 14 Teile noch auf der Platine, und
+jede Messung an ihr zeigt den alten Stand.
 
 ### Abgeglichen mit der Längenrechnung der Platinen-Sitzung
 
