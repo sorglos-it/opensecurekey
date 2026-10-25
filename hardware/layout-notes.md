@@ -2440,3 +2440,69 @@ die Frage in einem Blick beantworten.**
 
 **Nicht blockiert ist der Rest:** Die Signalnetze hängen an dieser Frage nicht.
 `GND` hat die Flächen; was fehlt, sind drei Inseln.
+
+# Am Gerber gemessen: die Masse unter dem Modul ist da
+
+Stand 25.10.2026. **Berichtigung einer Behauptung von mir**, und diesmal einer,
+die ich aus einem Bild abgelesen hatte.
+
+## Was ich behauptet hatte, und warum es falsch war
+
+> „Auf der Oberseite ist unter U1 überhaupt kein Gießkupfer. Im Bild ist die
+> ganze Modulfläche schwarz."
+
+**Das Schwarze im Bild ist die Footprint-Zeichnung von U1, nicht fehlendes
+Kupfer.** Ich habe aus einer Darstellung auf einen Zustand geschlossen — genau
+der Fehler, den ich seit zwei Tagen bei fremden Zahlen anstreiche. Ein Bild
+zeigt, was gezeichnet wird, nicht was gefertigt wird.
+
+## Die Quelle, die zählt
+
+**Gerber-Export** — das ist, was der Fertiger bekommt. Je Lage **eine** gefüllte
+Region (`G36`…`G37`), bei BOTTOM 1575 Stützpunkte über 1576 Zeilen, mit genau
+**einem** `D02`: eine einzige geschlossene Kontur, die sich um jede Aussparung
+herumwebt. Bögen (`G02`/`G03`) habe ich mit je acht Sehnen angenähert.
+
+**Erst den Test geprüft, dann ihm geglaubt.** Je Lage fünf Kontrollpunkte,
+deren Antwort vorher feststand:
+
+| Kontrolle | erwartet | TOP | BOTTOM |
+| --- | --- | --- | --- |
+| Pad fremden Netzes (`U1_3` / `R1_1`) | frei | frei ✓ | frei ✓ |
+| zweites Pad fremden Netzes (`U1_31` / `C4_1`) | frei | frei ✓ | frei ✓ |
+| **Freihaltezone 25,0 / 17,0** | **frei** | **frei ✓** | **frei ✓** |
+| offenes Feld 5,0 / 40,0 | Kupfer | Kupfer ✓ | Kupfer ✓ |
+| Massepad (`R1_2`) | Kupfer | – | Kupfer ✓ |
+
+Eine erste Fassung des Tests schlug auf BOTTOM fehl — weil ich als Kontrolle
+`U1_3` genommen hatte, ein **Oberseiten**-Pad. Unten darf dort Kupfer sein.
+**Die Kontrolle war falsch, nicht der Test.**
+
+## Das Ergebnis
+
+| Punkt | TOP | INNER_1 | INNER_2 | BOTTOM |
+| --- | --- | --- | --- | --- |
+| unter U1, links (13 / 20) | Kupfer | Kupfer | Kupfer | Kupfer |
+| unter U1, rechts (22 / 16) | Kupfer | Kupfer | Kupfer | Kupfer |
+| `U1_1` Padmitte (22,949 / 21,951) | **Kupfer** | Kupfer | Kupfer | Kupfer |
+| 22,8 / 20,5 | Kupfer | Kupfer | Kupfer | Kupfer |
+| **Freihaltezone (25 / 17)** | **frei** | **frei** | **frei** | **frei** |
+
+> **Raytacs Vorschrift ist erfüllt: unter dem Modul liegt auf allen vier Lagen
+> Masse, und die Antennenzone ist auf allen vier Lagen frei.** Das war die
+> Sorge, und sie ist ausgeräumt — an der Datei, die der Fertiger bekommt.
+
+## Was damit offen bleibt
+
+**Die DRC nennt `U1_1` weiter unverbunden, obwohl auf seinem Pad Kupfer liegt.**
+Die beiden widersprechen sich. Möglich ist beides: eine haarfeine Trennung, die
+mein Test mit acht Sehnen je Bogen nicht auflöst — oder ein Modellfehler in
+EasyEDAs Verbindungsprüfung.
+
+**Für die Fertigung ist die Lage gut**, für die Prüfung nicht geklärt. Ich
+würde daraus **keinen** Anlass machen, vor dem Verlegen noch etwas umzubauen:
+Was fehlte, wäre Kupfer, und das ist da.
+
+**Mein Messmittel ist jetzt ein anderes:** Der Gerber-Export beantwortet
+„liegt dort Kupfer?" je Lage — besser als jedes Vorschaubild. Die drei
+Kontrollpunkte je Lage gehören zu jeder solchen Messung dazu.
