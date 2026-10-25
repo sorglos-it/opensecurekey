@@ -2604,3 +2604,76 @@ dabei näher an ihrem Pin als vorher.** Die Schleife bleibt bei 9,536 mm.
 
 Die Quarzreihe verliert L1 und gewinnt dadurch Platz; X1, C8 und C9 stehen
 unverändert.
+
+# Verlegt: das USB-Paar vom Schutzbaustein zum Modul
+
+Stand 25.10.2026. **0 Abstandsfehler, Verbindungsfehler 175 → 171.**
+
+## Erst ein Befund: das Paar kreuzte sich
+
+| | links | rechts |
+| --- | --- | --- |
+| U5 (vorher) | `USB_DP` | `USB_DM` |
+| U1 Pads 34/35 | **`USB_DM`** | **`USB_DP`** |
+| J1 A-Reihe (A6/A7) | `USB_DP` | `USB_DM` |
+| J1 B-Reihe (B6/B7) | **`USB_DM`** | **`USB_DP`** |
+
+**U5 war gegenüber dem Modul spiegelverkehrt.** Ein gekreuztes Differenzpaar
+ist keine Verlegefrage, sondern eine Drehung: **U5 um 180° gedreht**, Lage
+unverändert 13,500 / 8,300. Danach liegt `DM` auf beiden Seiten links und `DP`
+rechts — **keine Kreuzung mehr zwischen U5 und U1.**
+
+> **Zur Steckerseite bleibt eine Kreuzung, und die ist nicht wegzudrehen:**
+> J1s A-Reihe ist spiegelverkehrt zur B-Reihe — so ist USB-C gebaut, damit der
+> Stecker in beiden Lagen passt. `A6`↔`B6` und `A7`↔`B7` müssen beide
+> verbunden werden, und die zwei Diagonalen kreuzen sich zwangsläufig.
+> **Das gehört auf zwei Lagen**, eine Diagonale oben, eine unten. Steht noch
+> aus.
+>
+> Zwischen den Pads der A-Reihe ist kein Weg: Raster 0,8484 mm, Pad 0,65 →
+> **0,201 mm Lücke**, eine 0,2er Bahn bräuchte mit Abständen 0,504.
+
+## Gelegt
+
+| Netz | Weg | Breite |
+| --- | --- | --- |
+| `USB_DM` | U5.4 (12,5499/9,4499) → unten → Durchkontaktierung 13,0505/11,60 → oben → U1.34 | 0,20 |
+| `USB_DP` | U5.6 (14,4499/9,4499) → unten → Durchkontaktierung 13,8506/11,60 → oben → U1.35 | 0,20 |
+
+**Beide gleich aufgebaut**, damit das Paar gleich lang bleibt: gleiche
+Lagenfolge, je eine Durchkontaktierung (0,50/0,25) auf gleicher Höhe, Abstand
+der beiden 0,80 mm (Luft 0,30). Nach den Durchkontaktierungen `doc_reload`,
+dann Flächen neu aufgebaut, dann gemessen.
+
+# Das Messwerkzeug: wo es liegt und wie es läuft
+
+**`D:\claude\working\opensecurekey-platine-werkzeuge\`**, mit `LIESMICH.md`.
+
+```
+python gerber-kupfer.py <Gerberdatei> <x> <y> [<x> <y> ...]
+```
+
+Beantwortet **„liegt an dieser Stelle Kupfer?"** am Gerber-Export — der Datei,
+die der Fertiger bekommt. Je Lage eine Datei (`Gerber_TopLayer.GTL`,
+`Gerber_InnerLayer1.G1`, `…2.G2`, `Gerber_BottomLayer.GBL`), zu holen mit
+`pcb_export_gerber` und auspacken.
+
+**Immer mit Kontrollpunkten aufrufen, deren Antwort vorher feststeht** — einer,
+der „frei" ergeben muss (ein Pad fremden Netzes), und einer, der „KUPFER"
+ergeben muss (offenes Feld). Ohne diese zwei Zahlen ist das Ergebnis keine
+Messung. Beispiel für diese Platine:
+
+```
+python gerber-kupfer.py Gerber_TopLayer.GTL  25.0 17.0   5.0 40.0
+   25,0000 / 17,0000  ->  frei     (Freihaltezone - muss frei sein)
+    5,0000 / 40,0000  ->  KUPFER   (offenes Feld - muss Kupfer sein)
+```
+
+Daneben liegen `pruef.py` (Pad gegen Pad, MULTI auf beiden Lagen), `kond.py`
+(Kondensator zu seinem Pin) und die Skripte, mit denen Verschiebungen **vor**
+dem Senden durchgerechnet werden.
+
+**Arbeitskopie:** Der Worktree liegt seit dem 25.10. in
+`D:\claude\working\opensecurekey-platine`; `core.fileMode` ist dort auf `false`
+gesetzt (Regel aus `repo.md`). Dieser Zweig führt **keine** ausführbaren
+Dateien, es war also nichts zu verlieren.
