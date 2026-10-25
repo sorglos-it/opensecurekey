@@ -3482,3 +3482,76 @@ Millimeter, den die Zelle kürzer wird, ist entweder ein Millimeter weniger
 Platine oder ein Millimeter mehr Antennenfeld." Mit dem Wegfall des Akkus ist
 das keine Abwägung zwischen Zelle und Feld mehr, sondern **nur noch zwischen
 Länge und Antennenfläche**. Die Zelle steht auf keiner Seite mehr.
+
+# Nach dem Apply Changes: die Platine, gemessen
+
+Stand 25.10.2026, nachdem Thomas `Apply Changes` geklickt hat. **Der Umriss
+ist nicht angefaßt** — die Länge steht erst fest, wenn die NFC-Zone
+entschieden ist.
+
+## Zuerst: hat der Import wirklich getan, was er sollte?
+
+Nicht die Erfolgsmeldung, sondern der Zustand:
+
+| | vorher | jetzt | |
+| --- | ---: | ---: | --- |
+| Bauteile auf der Platine | 54 | **40** | 54 − 14 ✔ |
+| Pads | 251 | **219** | −32 |
+| Netze auf der Platine | 59 | **50** | ✔ |
+
+Nachgesehen, nicht geschlossen: **keines der 14 gelöschten Teile hat noch ein
+Pad**, und **kein Pad hängt an einem der neun verschwundenen Netze**
+(`VSYS`, `VBAT_RAW`, `VBAT_SW`, `VBAT_SENSE`, `CHG_STAT`, `PROG`, `Q1_G`,
+`Q2_G`, `Q3_G`). Die 39 Pads ohne Netz sind die mechanischen — Schirm- und
+Haltestifte, unverändert und nicht meine.
+
+## Die erwarteten Leichen gibt es nicht — und so ist das geprüft
+
+Gesucht wurde nach vier Sorten. **Gefunden: keine.** Damit das nachprüfbar
+ist, hier womit:
+
+| gesucht | Werkzeug | Befund |
+| --- | --- | --- |
+| verwaiste Leiterbahnen | `pcb_lines_list` ohne Filter | **24 Bahnen, alle auf lebenden Netzen** (GND, USB_DM/DP, XL1/XL2, DCCH, VBUS) |
+| Durchkontaktierungen im Nichts | `pcb_vias_list` | **9, alle auf lebenden Netzen** |
+| Beschriftungen gelöschter Teile | `pcb_designators_list` | **40 Einträge, genau die 40 verbliebenen Teile** |
+| freie Texte im Bestückungsdruck | `pcb_texts_list` | **0** |
+
+**Ein Fund, der zählt, auch wenn er unauffällig aussieht:** Die
+Wandlerschleife von `L1` zu `U1` VDDH trug `VSYS`. Sie trägt jetzt **`VBUS`**
+— vier Bahnsegmente und eine Durchkontaktierung. Der Import hat die
+Zusammenlegung also bis ins Kupfer durchgezogen, nicht nur in die Netzliste.
+
+## Gießflächen und DRC
+
+Alle **vier** Flächen neu aufgebaut (TOP, INNER_1, INNER_2, BOTTOM), zweimal:
+einmal direkt, dann nach einem `doc_reload`, weil EasyEDA auf einer
+Vier-Lagen-Platine erst nach erneutem Öffnen richtig verbindet.
+
+> **Abstandsfehler: 0.** `countByType` nennt ausschließlich
+> `Connection Error`.
+
+**131 Verbindungsfehler bleiben — das sind die unverlegten Netze, kein
+Schaden aus dem Import.** Belegt dadurch, daß die Zahl über **drei**
+DRC-Läufe hinweg gleich bleibt: vor dem Flächenaufbau, danach, und nach dem
+`doc_reload` mit erneutem Aufbau. Hätte der Import etwas hinterlassen, hätte
+sich mindestens eine der drei Zahlen bewegt.
+
+Was die 131 sind: die Pads der vier **geparkten** Steckverbinder (J4, J5, J6)
+und von JP1, die außerhalb der Platine stehen und die keine Fläche erreichen
+kann; die feinrasterigen Massepads, die schon vorher eigene Bahnen brauchten;
+und alles, was schlicht noch nicht verlegt ist.
+
+> **Was ich hier ausdrücklich nicht behaupte:** daß 131 gegenüber dem Stand
+> unmittelbar vor dem Import eine bestimmte Verbesserung ist. Die zuletzt in
+> dieser Datei genannte Zahl (175) stammt aus einer früheren Nacht, und die
+> Platinen-Sitzung hat seither verlegt. **Ich kenne die Zahl von kurz vor dem
+> Klick nicht** und rechne deshalb keine Differenz aus.
+
+## Was als nächstes fehlt
+
+1. **Die NFC-Zone entscheiden.** Erst dann der Umriss. Länge = 45,05 mm +
+   Zone.
+2. Dann **Umriss kürzen**, Flächen wieder aufbauen, DRC.
+3. Die sechs Teile bei `y` 28,7 … 33,6 auf die Unterseite, damit die Anzeige
+   ihren Platz bekommt (siehe oben, die Unterseite ist dort leer).
