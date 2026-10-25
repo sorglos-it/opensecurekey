@@ -12,7 +12,10 @@
  * Hardware. Siehe docs/se050.md. */
 #include "se050_crypto.h"
 
-#if defined(CONFIG_PSA_CRYPTO_CLIENT) || defined(OSK_CRYPTO_PSA)
+/* CONFIG_MBEDTLS_PSA_CRYPTO_CLIENT, nicht CONFIG_PSA_CRYPTO_CLIENT: so
+ * heisst das Symbol im nRF Connect SDK. Den alten Namen gibt es dort
+ * nicht - siehe docs/build.md, "Die kaputte Weiche". */
+#if defined(CONFIG_MBEDTLS_PSA_CRYPTO_CLIENT) || defined(OSK_CRYPTO_PSA)
 
 #include <psa/crypto.h>
 #include <string.h>

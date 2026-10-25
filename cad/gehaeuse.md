@@ -3,6 +3,13 @@
 Stand 24.10.2026. **Gezeichnet, nichts gedruckt, nichts angepasst.** Die
 Rechnung dahinter steht in [masse.md](masse.md).
 
+> **Dieses Modell passt zu einer Platine, die es so nicht mehr geben wird.**
+> Das Gerät wird ein Stick zum direkten Einstecken, die USB-Buchse ist schon
+> gegen einen Platinenrand-Stecker getauscht. Was das für das Gehäuse heißt,
+> steht am Ende unter
+> [Was sich durch den Steckerumbau ändert](#was-sich-durch-den-steckerumbau-ändert).
+> Wer hier etwas ändert, liest das zuerst.
+
 ## Was es ist
 
 Zwei gedruckte Schalen, die Platine dazwischen geklemmt, **ohne eine einzige
@@ -356,6 +363,11 @@ sind symmetrisch, die Folie wieder 19,75 mm breit.
 Sensoröffnung des Gehäuses sitzt seit dem ersten Entwurf im Boden, also auf
 derselben Seite. Befund 4 sagt, was dabei zusätzlich herauskam.
 
+**Wieder offen seit dem 24.10.2026, abends** – *Buchse oder Stecker vorn.*
+Thomas hat zum **Platinenrand-Stecker** gewechselt, siehe den letzten
+Abschnitt. Der Eintrag darunter ist der Stand davor und bleibt stehen, weil er
+sagt, was damals gegeneinander stand:
+
 **Geschlossen am 24.10.2026:** *Buchse oder Stecker vorn.* Thomas hat die
 **Buchse** entschieden. Verworfen wurden die geätzte Zunge (ohne Metallhülle
 nicht spezifikationsfähig, keine Quelle zur Konformität gefunden), der
@@ -363,3 +375,34 @@ Randstecker (14 Wochen Lieferzeit, mechanisch schwächer) und der Mid-Mount
 (hätte 1,21 mm gespart, kostet aber Teiletausch und einen Platinenausschnitt).
 Die vollständige Liste des Verworfenen steht in [masse.md](masse.md),
 Abschnitt 9.
+
+## Was sich durch den Steckerumbau ändert
+
+**Nicht von mir gerechnet.** Diese Liste kommt aus der Übergabe des
+Master-Strangs vom 24.10.2026, abends, nachdem dieses Modell fertig war. Sie
+steht hier als **Vorwarnung**, nicht als Maß: keine der Zahlen unten ist von
+mir nachgerechnet, und das Modell in `export/` ist unverändert das alte.
+
+Thomas hat entschieden, dass das Gerät ein **Stick** wird, den man direkt
+einsteckt – keine Buchse, kein Kabel. Der Platinen-Strang hat die Buchse
+bereits gegen einen **Platinenrand-Stecker** getauscht, der nur **2,50 mm**
+auf die Platine greift statt 9,5.
+
+| Was am Gehäuse | Warum |
+| --- | --- |
+| **Die Nase vorn entfällt** | Der Randstecker trägt nicht auf, er ragt hinaus. Damit fallen die **11,01 mm** vorn weg; es bliebe durchgehend 9,80 mm – wenn sonst nichts dazukommt |
+| **Die Mulde entfällt** | Sie war allein für die Haltestifte der Buchse da (Befund in [masse.md](masse.md), Abschnitt 15) |
+| **Die Frontpartie wird offen statt umschließend** | Die Platine ragt vorn als Steckerzunge heraus, die Front ist kein geschlossener Rahmen mehr |
+| **Der Kragen verliert die 10,5-mm-Lücke** | Die Unterbrechung der Frontkante gehörte zur USB-Öffnung. Der Punkt, den ich oben als nie gerechnet gemeldet habe, **löst sich damit vielleicht von selbst** – nachrechnen muss ihn trotzdem jemand, denn eine offene Front kann den Kragen auch ganz anders schneiden |
+| **Das Gerät wird kürzer** | Sobald die Akkufrage entschieden ist. Um wie viel, steht nirgends |
+
+**Was davon unberührt bleibt**, soweit es von vorn abhängt: der Umzug von SW2
+ans USB-Ende. Der Taster sitzt bei längs 6,8912…10,3912 mm, der Randstecker
+greift nur 2,50 mm auf die Platine – der Grund, aus dem der Platinen-Strang
+SW2 nicht an den unteren Rand gesetzt hat, fällt mit der Buchse weg, die Lage
+selbst bleibt aber gültig und kollidiert mit dem kürzeren Stecker erst recht
+nicht. **Auch das ist gerechnet, nicht gemessen.**
+
+Wer das Gehäuse umbaut: `usb_nose_x`, `usb_recess_*`, `usb_body_h` und
+`usb_open_*` in [parameters.csv](parameters.csv) sind die Zahlen, die dann
+keine Grundlage mehr haben.

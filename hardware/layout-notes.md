@@ -1628,7 +1628,7 @@ Entwurfs" ist damit gezählt, nicht gefühlt.
 | Grundfläche | 7,9 × 8,6 mm | **4,0 × 4,32 mm** |
 | Strom | 2 A | 1 A |
 
-**Die Grenze ist 4,45 mm.** Der PH liegt **1,05 mm darüber**, der SH **1,55 mm
+**Die Grenze ist 4,45 mm.** [**Zur Zahl 4,45 siehe die Berichtigung am Ende dieser Datei: es gibt sie zweimal. Hier ist die Höhe gemeint und das ist richtig — maßgeblich für J2 ist aber die Hohlraumtiefe 4,65.**] Der PH liegt **1,05 mm darüber**, der SH **1,55 mm
 darunter** — und braucht nur ein Viertel der Fläche. 1 A gegen 100 mA
 Ladestrom ist reichlich.
 
@@ -2208,3 +2208,921 @@ hat sich bei C3 und C5 bereits als der richtige Platz erwiesen.
 **Erst danach verlegen**, mit den vier Auflagen: J2/J4/J5/J6 auslassen, I2C auf
 eine Innenlage zwischen die Masseflächen, Wandlerschleife L1 → DCCH kurz und
 breit, und nach jedem Schritt messen.
+
+# Alle Kondensatoren gegen ihren Pin gemessen
+
+Stand 25.10.2026. Zuordnung **aus `schematic.md` gelesen**, nicht geraten;
+die Zeilennummer steht bei jedem. Gemessen ist das **nicht-Masse-Pad** des
+Kondensators gegen das Zielpad, Mitte zu Mitte.
+
+| Kond | gehört an | Quelle | vorher | **jetzt** |
+| --- | --- | --- | ---: | ---: |
+| C17 | U1.20 `VBAT_SENSE` | Z. 696 | 14,88 | **0,00** |
+| C4 | U1.30 `VSYS` | Z. 165 | 11,10 | **0,12** |
+| C5 | U1.28 U1 VDD | Z. 166 | 0,75 | 0,75 |
+| C11 | U2.18 `SE_VOUT` | Z. 233 | 2,51 | **0,83** |
+| C12 | U3.8 `VDD3V3` | Z. 313 | 9,77 | **0,98** |
+| C2 | U4.3 `VBAT_RAW` | Z. 101 | 1,28 | 1,28 |
+| C3 | U1.30 `VSYS` | Z. 165 | 1,29 | 1,29 |
+| C1 | U4.4 `VBUS` | Z. 99 | 18,59 | **1,47** |
+| C8 | X1.1 | Z. 188 | 3,43 | **1,65** |
+| C9 | X1.2 | Z. 189 | 4,34 | **1,65** |
+| C10 | U2.12 `VDD3V3` | Z. 232 | 5,24 | **2,38** |
+| C13 | Q4.3 `VDD_OLED` | Z. 357 | 2,97 | 2,97 |
+| C14 | Q4.3 `VDD_OLED` | Z. 357 | 3,97 | 3,97 |
+| C16 | U1.54 `NFC2` | Z. 556 | 42,40 | 42,40 |
+| C15 | U1.52 `NFC1` | Z. 555 | 43,46 | 43,46 |
+
+**Acht versetzt, in einem Zug, vorher durchgerechnet und danach gemessen:**
+0 Paare unter 0,152 mm, 0 Pads am Rand, Freihaltezone frei, **0
+Abstandsfehler**. C1, C4, C8, C9, C10, C11, C12, C17.
+
+**Nur drei standen nah genug. Zwölf nicht.** Dass C3 und C5 zwölf Millimeter
+danebenlagen, haben wir durch einen Taster erfahren; dass C1 **18,59 mm** von
+U4 stand, hätte so niemand bemerkt.
+
+## Drei bleiben stehen, jeder aus einem anderen Grund
+
+**C10 mit 2,38 mm — geometrisch, nicht aus Nachlässigkeit.** Pin 12 liegt an
+U2s **unterer** Kante (`y` 2,949), und 0,35 mm darunter beginnt die
+Widerstandsreihe bei `y` 2,0. Dort passt kein 0402 (0,541 hoch). C10 steht
+jetzt links neben U2 statt rechts unten. **Näher ginge nur, wenn die
+Widerstandsreihe zum Rand rückt** — das ist Platz, der da wäre (`y` 0,9 statt
+2,0), aber eine eigene Änderung.
+
+**C13 und C14 mit 2,97 und 3,97 — das Ziel ist geparkt.** Sie blocken
+`VDD_OLED` ab, und der Verbraucher ist die Anzeige an **J4**, das neben der
+Platine steht. Gemessen ist gegen Q4, die Quelle. **Die Zahl wird erst
+belastbar, wenn J4 einen Platz hat**; vorher zu verschieben hieße, auf einen
+Punkt zu optimieren, der sich noch bewegt.
+
+**C15 und C16 mit 42 und 43 mm — das ist eine Schaltungsfrage, keine
+Platzierung.** Sie stehen neben der Antennenbuchse J3 (`y` 52,5), U1s
+NFC-Pins liegen bei `y` 13,5. Nordics Vorgabe setzt die Abstimm­kondensatoren
+**an die NFC-Pins des Chips**. Wo sie stehen, entscheidet über die ganze
+Abstimmung — und `schematic.md` nennt sie ohnehin `TBD`, weil die Abstimmung
+eine Messung ist. **Nicht bewegt, gemeldet.**
+
+# Die Zahl 4,45 gibt es zweimal — eine Breite und eine Höhe
+
+**Gesucht war ein Platz für einen 5,5 mm hohen Akkustecker. Gefunden wurde ein
+Fehler in der Grenze selbst.**
+
+Die Zahl 4,45 kommt in dieser Datei sechsmal vor. **Hergeleitet wird sie genau
+einmal**, in der Tabelle zur Zellenbreite:
+
+> `| Adafruit mittig (19,75) | 19,75 | ja | **4,45 mm**, je Seite 2,225 |`
+
+Das ist die **seitliche Restbreite** neben einer 19,75 mm breiten Zelle in
+einem nutzbaren Band von 24,20 mm. 24,20 − 19,75 = 4,45, aufgeteilt auf zwei
+Seiten zu je 2,225 mm. **Eine Breite.**
+
+An fünf weiteren Stellen steht dieselbe Zahl als **Bauhöhe** — „jedes Bauteil
+neben der Zelle, das höher als 4,45 mm baut", „baut J2 höher als 4,45 mm?",
+„Grenze 4,45 mm", und zuletzt von mir selbst: „Die Grenze ist 4,45 mm. Der PH
+liegt 1,05 mm darüber."
+
+> **Keine dieser Stellen leitet eine Höhe her. Die Breite ist zur Höhe
+> geworden, weil beide dieselbe Zahl tragen.**
+
+**Was wirklich belegt ist:** Die Bauhöhe unten richtet sich nach der **Zelle
+mit 3,8 mm** (Z. 100). Damit liegt der PH-Stecker nicht 1,05 mm über der
+Grenze, sondern **1,70 mm über der Zelle** — und der SH mit 2,9 mm bleibt
+**0,90 mm darunter**. Die Rangfolge der beiden Teile ändert sich nicht, die
+Zahlen schon.
+
+**Und die Frage nach einem Platz für 5,5 mm ist mit dem Repo nicht zu
+beantworten.** Was die Hohlraumtiefe je Zone ist, steht nirgends — nur die
+3,8 mm der Zelle. Ob das Gehäuse in Z1, Z2 oder Z4 unten tiefer ist als in Z3,
+weiß nur der Gehäuse-Strang, und der ist archiviert. **Ich kann sagen, dass
+5,5 mm die Zelle um 1,7 mm überragen. Ich kann nicht sagen, wo das erlaubt
+ist.**
+
+Daneben: `4,4501 mm` steht in dieser Datei noch einmal, als Band zwischen
+U1-Körper und Anzeigeglas. **Das ist dieselbe Zahl für etwas drittes** und hat
+mit der Zelle nichts zu tun.
+
+# Drei weitere Masse-Inseln
+
+Nach dem Versetzen hängen `R14_2` (26,4 / 2,0), `U1_1` (22,95 / 21,95) und
+`C14_2` (21,52 / 33,6) ohne Verbindung zur Gießfläche. **`C17_2` hängt nicht
+mehr** — das Versetzen hat es gelöst, wie vorhergesagt.
+
+`U1_1` ist der interessante Fall: Es liegt bei `x` 22,75 … 23,15, und die
+Freihaltezone beginnt bei **23,1484**. Das Kupfer endet also genau an der
+Padkante. Es ist eines der beiden Massepads am Antennenende — **das muss an
+Masse**, und Raytac verlangt dort ausdrücklich Durchkontaktierungen.
+Nächster Arbeitsgang.
+
+## Berichtigung meiner Berichtigung, 25.10.2026
+
+**Der Abschnitt darüber war zur Hälfte falsch, und zwar in der Hälfte, die
+zählt.** Ich hatte geschlossen, die 4,45 mm seien *nur* eine Breite und als
+Bauhöhe nirgends hergeleitet. **Sie ist hergeleitet — in `cad/masse.md`:**
+
+> Zeile 43: `| Unten | Ferritfolie 0,4 + Zellenreserve 4,05 · U2 0,32 · U3 Flash | 4,45 mm |`
+> Zeile 88: `Wer die 9,55 mm will, ändert eine Zeile (h_bot_part von 4,45 auf 4,20)`
+
+**0,4 + 4,05 = 4,45**, und `h_bot_part` ist ein Höhenparameter im
+Gehäusemodell. Das ist eine Bauhöhe, sauber gerechnet.
+
+| Zahl | bedeutet | hergeleitet in |
+| --- | --- | --- |
+| 4,45 mm | **Bauhöhe** der Unterseite: Ferritfolie 0,40 + Zellenreserve 4,05 | `cad/masse.md`, Z. 43 |
+| 4,45 mm | **Restbreite** neben der Zelle: 24,20 − 19,75, je Seite 2,225 | `layout-notes.md` |
+| 4,65 mm | **Hohlraumtiefe**: 0,2 Luft + 0,4 Folie + 4,05 Zelle | `cad/masse.md`, Z. 398 |
+| 4,4501 mm | Band zwischen U1-Körper und Anzeigeglas | `layout-notes.md` |
+
+**Viermal fast dieselbe Zahl für vier verschiedene Größen.** Dreimal exakt
+4,45 — und zwei davon sind unabhängig voneinander richtig.
+
+> **Warum ich die Höhe nicht gefunden habe:** `cad/` liegt **nicht auf dem
+> Zweig `platine`**. Mein Arbeitsbaum hat die Datei nicht; ein `grep` über
+> alles, was ich sehe, findet sie nie. **Ich habe „kommt in dieser Datei nicht
+> vor" mit „ist nirgends hergeleitet" verwechselt** — und genau davor warne ich
+> seit zwei Tagen bei fremden Zahlen.
+>
+> Die Lehre ist nicht „besser suchen", sondern: **Wenn eine Zahl aus einem
+> anderen Strang stammt, liegt ihre Herleitung wahrscheinlich auch dort.**
+> Dateien, die ich nicht im Arbeitsbaum habe, erreiche ich mit
+> `git show origin/main:cad/masse.md` — so habe ich sie am Ende auch gelesen.
+
+**Für J2 gilt eine dritte Zahl, keine der beiden:** Maßgeblich ist die
+**Hohlraumtiefe von 4,65 mm**. Der JST-PH mit 5,5 mm ragt also **0,85 mm**
+darüber hinaus — nicht 1,05, nicht die 1,70, die ich gerechnet hatte. Der SH
+mit 2,9 mm bleibt **1,75 mm darunter**. Die Rangfolge der beiden Teile hat
+sich nie geändert, die Zahl dreimal.
+
+# C15/C16 an die NFC-Pins, Reihe an den Rand, C10 nach — und ein Methodenfehler
+
+Stand 25.10.2026. **0 Abstandsfehler.** Verlegt ist nichts.
+
+## Acht weitere versetzt
+
+| Teil | von | nach | Abstand zum Pin |
+| --- | --- | --- | --- |
+| **C15** | 10,50 / 55,50 | **21,50 / 12,60** | 43,46 → **1,02** zu U1.52 |
+| **C16** | 16,50 / 55,50 | **21,50 / 13,50**, 180° | 42,40 → **0,33** zu U1.54 |
+| **C10** | 19,60 / 2,949 | **22,400 / 1,95** | 2,38 → **1,08** zu U2.12 |
+| R3, R4, R5, R13, R14 | `y` 2,000 | **`y` 0,900** | macht den Platz für C10 frei |
+
+Die Widerstandsreihe hält am Rand `y` 0,63 — die Vorschrift sind 0,30. Zu J1s
+Schirm bleiben die 0,2505 mm von gestern, zu U2 jetzt 1,45 mm.
+
+**C15 und C16 standen an der Antennenbuchse, 43 mm von den NFC-Pins.** Jetzt
+stehen sie unter dem Modul an Pin 52 und 54. Die NFC-Leitungen laufen dafür
+die 40 mm zur Buchse — das ist die richtige Richtung: **die Abstimmung gehört
+an den Chip, die Antenne darf weit weg sein.**
+
+## Der Methodenfehler, und er entwertet eine frühere Schlussfolgerung
+
+Ich hatte geschrieben, `U1_2`, `U1_15`, `U1_33` und `U1_55` seien verbunden,
+**weil sie nicht in der Fehlerliste stehen.** Das ist falsch:
+
+> **Die DRC nennt je zusammenhängender Insel genau einen Vertreter, nicht jedes
+> Pad darin.** „Nicht gelistet" heißt also nicht „verbunden" — es kann auch
+> heißen „liegt auf derselben Insel wie der, der genannt ist".
+
+Bewiesen am eigenen Fall: Nach einer Bahn von `U1_1` zu `U1_2` blieb der
+Eintrag `U1_1` stehen. Nach einer zweiten Bahn nach unten **verschwand `U1_1`
+und an seiner Stelle stand `Track e8`** — dieselbe Insel, ein anderer
+Vertreter. Die Zahl 175 ist damit **keine Zahl unverbundener Pads, sondern eine
+Zahl unverbundener Inseln.**
+
+Das erklärt auch, warum 175 über mehrere Reparaturen hinweg gleich blieb:
+gelöste Inseln und neu entstandene hoben sich auf.
+
+## U1_1 bleibt offen, und diesmal weiß ich mehr
+
+Drei Versuche, jeder gemessen: Durchkontaktierung **im** Pad (0,35/0,20),
+Bahn zu `U1_2` auf der Oberseite, Bahn nach unten ins offene Feld. **Keiner
+verbindet.** Der dritte zeigte dafür, woran es liegt:
+
+- **Auf der Oberseite ist unter U1 überhaupt kein Gießkupfer.** Im Bild ist die
+  ganze Modulfläche schwarz. Zwischen Pads im 0,8-mm-Raster bleibt nach allen
+  Freiräumen nichts übrig, was zusammenhängt.
+- **Unten ebenso wenig**, denn meine Bahn von `U1_1` nach `y` 19,5 wurde selbst
+  als unverbunden gemeldet. Dort, wo ich offene Fläche vermutet hatte, ist
+  keine.
+
+**Warum das Kupfer dort fehlt, weiß ich nicht** — ich kann nicht sehen, welche
+Teile einer Gießfläche zusammenhängen, und das Bild zeigt nur die Oberseite.
+Die Bahn nach unten habe ich zurückgebaut; **Durchkontaktierung und die kurze
+Bahn `U1_1`–`U1_2` bleiben**, denn sie sind für sich richtig und Raytac
+verlangt an den Ecken ohnehin Durchkontaktierungen.
+
+**Offen, mit Vertreter:** `U1_1` (Antennenende), `SW2_2'`, `C14_2` sowie die
+Pins der vier geparkten Steckverbinder.
+
+## Vier Versuche an `U1_1`, und was jeder gezeigt hat
+
+Masse zuerst — und sie geht an derselben Stelle nicht weiter. Alle vier
+Versuche gemessen, keiner verbindet; **zurückgebaut ist alles bis auf die
+Durchkontaktierung im Pad und die kurze Bahn `U1_1`–`U1_2`.**
+
+| Versuch | Ergebnis | was es ausschließt |
+| --- | --- | --- |
+| Durchkontaktierung **im** Pad, 0,35/0,20 | keine Verbindung | nicht die Lage „daneben" |
+| Bahn `U1_1` → `U1_2` (oben) | Eintrag blieb `U1_1` | die Insel wuchs nur |
+| Bahn `U1_1` → `y` 19,5 (unten) | Eintrag wurde **`Track e8`** | unten ist dort kein Kupfer |
+| Durchkontaktierung bei 22,8 / 20,5 im offenen Feld + Bahn dorthin | keine Verbindung | auch die Innenlagen nicht |
+
+**Gegenbeweis, der das Rätsel schärft statt es zu lösen:** `C17` hängt nicht
+mehr, seit es bei **11,63 / 18,90** steht — und das ist **ebenfalls unter U1**
+(der Modulkörper reicht von `x` 11,5 bis 27). Die Fläche trägt dort also. Bei
+`x` 22,8 im selben Band trägt sie nicht.
+
+**Was fehlt, ist kein Einfall, sondern ein Messmittel:** Ich kann nicht sehen,
+welches Kupfer auf welcher Lage zusammenhängt. Das Vorschaubild zeigt nur die
+Oberseite, `pcb_pours_list` nur Umrisse, und die DRC nennt je Insel einen
+Vertreter — **ein Werkzeug, das mir die gefüllten Flächen je Lage zeigt, würde
+die Frage in einem Blick beantworten.**
+
+**Nicht blockiert ist der Rest:** Die Signalnetze hängen an dieser Frage nicht.
+`GND` hat die Flächen; was fehlt, sind drei Inseln.
+
+# Am Gerber gemessen: die Masse unter dem Modul ist da
+
+Stand 25.10.2026. **Berichtigung einer Behauptung von mir**, und diesmal einer,
+die ich aus einem Bild abgelesen hatte.
+
+## Was ich behauptet hatte, und warum es falsch war
+
+> „Auf der Oberseite ist unter U1 überhaupt kein Gießkupfer. Im Bild ist die
+> ganze Modulfläche schwarz."
+
+**Das Schwarze im Bild ist die Footprint-Zeichnung von U1, nicht fehlendes
+Kupfer.** Ich habe aus einer Darstellung auf einen Zustand geschlossen — genau
+der Fehler, den ich seit zwei Tagen bei fremden Zahlen anstreiche. Ein Bild
+zeigt, was gezeichnet wird, nicht was gefertigt wird.
+
+## Die Quelle, die zählt
+
+**Gerber-Export** — das ist, was der Fertiger bekommt. Je Lage **eine** gefüllte
+Region (`G36`…`G37`), bei BOTTOM 1575 Stützpunkte über 1576 Zeilen, mit genau
+**einem** `D02`: eine einzige geschlossene Kontur, die sich um jede Aussparung
+herumwebt. Bögen (`G02`/`G03`) habe ich mit je acht Sehnen angenähert.
+
+**Erst den Test geprüft, dann ihm geglaubt.** Je Lage fünf Kontrollpunkte,
+deren Antwort vorher feststand:
+
+| Kontrolle | erwartet | TOP | BOTTOM |
+| --- | --- | --- | --- |
+| Pad fremden Netzes (`U1_3` / `R1_1`) | frei | frei ✓ | frei ✓ |
+| zweites Pad fremden Netzes (`U1_31` / `C4_1`) | frei | frei ✓ | frei ✓ |
+| **Freihaltezone 25,0 / 17,0** | **frei** | **frei ✓** | **frei ✓** |
+| offenes Feld 5,0 / 40,0 | Kupfer | Kupfer ✓ | Kupfer ✓ |
+| Massepad (`R1_2`) | Kupfer | – | Kupfer ✓ |
+
+Eine erste Fassung des Tests schlug auf BOTTOM fehl — weil ich als Kontrolle
+`U1_3` genommen hatte, ein **Oberseiten**-Pad. Unten darf dort Kupfer sein.
+**Die Kontrolle war falsch, nicht der Test.**
+
+## Das Ergebnis
+
+| Punkt | TOP | INNER_1 | INNER_2 | BOTTOM |
+| --- | --- | --- | --- | --- |
+| unter U1, links (13 / 20) | Kupfer | Kupfer | Kupfer | Kupfer |
+| unter U1, rechts (22 / 16) | Kupfer | Kupfer | Kupfer | Kupfer |
+| `U1_1` Padmitte (22,949 / 21,951) | **Kupfer** | Kupfer | Kupfer | Kupfer |
+| 22,8 / 20,5 | Kupfer | Kupfer | Kupfer | Kupfer |
+| **Freihaltezone (25 / 17)** | **frei** | **frei** | **frei** | **frei** |
+
+> **Raytacs Vorschrift ist erfüllt: unter dem Modul liegt auf allen vier Lagen
+> Masse, und die Antennenzone ist auf allen vier Lagen frei.** Das war die
+> Sorge, und sie ist ausgeräumt — an der Datei, die der Fertiger bekommt.
+
+## Was damit offen bleibt
+
+**Die DRC nennt `U1_1` weiter unverbunden, obwohl auf seinem Pad Kupfer liegt.**
+Die beiden widersprechen sich. Möglich ist beides: eine haarfeine Trennung, die
+mein Test mit acht Sehnen je Bogen nicht auflöst — oder ein Modellfehler in
+EasyEDAs Verbindungsprüfung.
+
+**Für die Fertigung ist die Lage gut**, für die Prüfung nicht geklärt. Ich
+würde daraus **keinen** Anlass machen, vor dem Verlegen noch etwas umzubauen:
+Was fehlte, wäre Kupfer, und das ist da.
+
+**Mein Messmittel ist jetzt ein anderes:** Der Gerber-Export beantwortet
+„liegt dort Kupfer?" je Lage — besser als jedes Vorschaubild. Die drei
+Kontrollpunkte je Lage gehören zu jeder solchen Messung dazu.
+
+# Berichtigung: die Wandlerschleife ist 10,14 mm, nicht 2,59
+
+Stand 25.10.2026, vor dem Verlegen gemessen.
+
+**Ich hatte gemeldet: „`L1.1` (DCCH) steht jetzt 2,59 mm in `x` von U1s
+DCCH-Pad."** Das war richtig — und als Abstand gelesen falsch. **2,59 ist die
+`x`-Komponente**; in `y` liegen **9,80 mm** dazwischen.
+
+| Netz | von | nach | dx | dy | **Abstand** |
+| --- | --- | --- | ---: | ---: | ---: |
+| `DCCH` | L1.1 | U1.31 | −2,59 | −9,80 | **10,14** |
+| `VSYS` | L1.2 | U1.30 | −4,93 | −9,00 | **10,26** |
+
+**Die Schleife des Abwärtswandlers ist also rund 20 mm lang, hin und zurück.**
+Für „kurz und breit" ist das nicht knapp, sondern das Gegenteil.
+
+> **Das ist dieselbe Falle wie dreimal zuvor, nur von mir ausgelöst:** eine
+> Zahl, die eine Achse misst, als Abstand gemeldet. Bei `R1`↔`U4` hatte ich
+> noch selbst geschrieben, wer nur eine Achse ansieht, halte das für ungelöst —
+> und dann habe ich genau das getan, in der anderen Richtung.
+
+## Der Platz dafür ist da, und er ist derselbe wie bei C3 und C5
+
+Die Unterseite unter U1 ist frei. L1 misst 3,97 × 2,16 mm; bei **16,8 / 14,3**
+stünde `L1.1` **3,60 mm** von U1.31 und `L1.2` 5,94 mm von U1.30 — die Schleife
+fiele von **20,4 auf 9,5 mm**. Luft zu `C5` 0,22 mm, zu `C3` ebenso; beide
+bleiben, wo sie sind.
+
+**Nicht ausgeführt** — L1 steht in der Quarzreihe, und über die Reihe war
+entschieden. Es dort herauszunehmen stört den Quarz nicht, sondern macht Platz;
+aber es ist eine Platzierungsänderung und keine Verlegearbeit.
+
+## Die übrigen kritischen Netze, gemessen
+
+| Netz | Abstand | Bemerkung |
+| --- | ---: | --- |
+| `XL1` X1.1 → U1.17 | 3,71 | mit C8 dazwischen bei 2,62 |
+| `XL2` X1.2 → U1.18 | 4,32 | mit C9 bei 2,67 |
+| `USB_DM` / `USB_DP` | 5,67 / 5,65 | **auf 0,02 mm gleich** — das Paar passt |
+| `USB_DM_CON` / `_DP_CON` | 3,82 / 3,82 | zu J1, exakt gleich |
+| `I2C_SCL` | 10,52 | kommt auf eine Innenlage |
+| `I2C_SDA` | 18,53 | dto.; lang, aber langsam |
+| `SE_ENA` | 19,08 | langsam, unkritisch |
+
+# L1 unter U1: Schleife von 20,4 auf 9,54 mm
+
+Stand 25.10.2026. **0 Abstandsfehler.** Vorher durchgerechnet, danach gemessen.
+
+| Teil | von | nach |
+| --- | --- | --- |
+| **L1** | 15,8089 / 23,90 | **16,80 / 14,30** |
+| **C3** | 13,50 / 13,85 | **13,30 / 13,85** |
+| **C5** | 13,50 / 15,70 | **13,30 / 15,70** |
+
+| Weg | vorher | **nachher** |
+| --- | ---: | ---: |
+| `DCCH` L1.1 → U1.31 | 10,14 | **3,587** |
+| `VSYS` L1.2 → U1.30 | 10,26 | **5,949** |
+| **Schleife zusammen** | **20,40** | **9,536** |
+
+## Auflage 1: der Abstand zur Antennenzone, und wie er gemessen ist
+
+**Gemessen von L1s äußerster Kupferkante zur Kante der Freihaltezone**, nicht
+von Mitte zu Mitte:
+
+> L1s rechtes Pad endet bei `x` **18,7865**. Die Zone beginnt bei `x`
+> **23,1484**. → **4,3619 mm.**
+
+Das ist der knappste Weg in der Plattenebene. Dazu, als Tatsache und nicht als
+Beruhigung: **L1 liegt unten, die Antenne oben, dazwischen 0,8 mm Platte und
+die beiden Innenlagen** — und dass dort auf allen vier Lagen Kupfer liegt, ist
+am Gerber belegt, nicht angenommen.
+
+**Dass L1 ungeschirmt ist, bleibt `ungeprueft`** (TDKs Seite antwortet mit
+HTTP 403). Genau deshalb steht die Zahl hier.
+
+## Auflage 2: mehr Luft — und zwar ohne Preis
+
+**Die Frage war, ob L1 ein Zehntel weiter weg kann, ohne die Schleife zu
+verlängern. Die Antwort ist: L1 nicht, C3 und C5 schon.**
+
+Bei L1 ist die Luft allein von `x` bestimmt: weiter nach links geht nicht an
+C3/C5 vorbei, weiter nach rechts kostet Schleife — **0,2 mm Schleife je 0,1 mm
+Luft.** Also habe ich die Kondensatoren bewegt statt der Spule:
+
+| | vorher | **nachher** |
+| --- | ---: | ---: |
+| Luft L1 ↔ C3 | 0,2125 | **0,4125** |
+| Luft L1 ↔ C5 | 0,2125 | **0,4125** |
+| C3.1 → U1.30 | 1,29 | **1,184** |
+| C5.1 → U1.28 | 0,75 | **0,549** |
+
+**Fast das Dreifache der Vorschrift (0,152), und beide Kondensatoren stehen
+dabei näher an ihrem Pin als vorher.** Die Schleife bleibt bei 9,536 mm.
+
+Die Quarzreihe verliert L1 und gewinnt dadurch Platz; X1, C8 und C9 stehen
+unverändert.
+
+# Verlegt: das USB-Paar vom Schutzbaustein zum Modul
+
+Stand 25.10.2026. **0 Abstandsfehler, Verbindungsfehler 175 → 171.**
+
+## Erst ein Befund: das Paar kreuzte sich
+
+| | links | rechts |
+| --- | --- | --- |
+| U5 (vorher) | `USB_DP` | `USB_DM` |
+| U1 Pads 34/35 | **`USB_DM`** | **`USB_DP`** |
+| J1 A-Reihe (A6/A7) | `USB_DP` | `USB_DM` |
+| J1 B-Reihe (B6/B7) | **`USB_DM`** | **`USB_DP`** |
+
+**U5 war gegenüber dem Modul spiegelverkehrt.** Ein gekreuztes Differenzpaar
+ist keine Verlegefrage, sondern eine Drehung: **U5 um 180° gedreht**, Lage
+unverändert 13,500 / 8,300. Danach liegt `DM` auf beiden Seiten links und `DP`
+rechts — **keine Kreuzung mehr zwischen U5 und U1.**
+
+> **Zur Steckerseite bleibt eine Kreuzung, und die ist nicht wegzudrehen:**
+> J1s A-Reihe ist spiegelverkehrt zur B-Reihe — so ist USB-C gebaut, damit der
+> Stecker in beiden Lagen passt. `A6`↔`B6` und `A7`↔`B7` müssen beide
+> verbunden werden, und die zwei Diagonalen kreuzen sich zwangsläufig.
+> **Das gehört auf zwei Lagen**, eine Diagonale oben, eine unten. Steht noch
+> aus.
+>
+> Zwischen den Pads der A-Reihe ist kein Weg: Raster 0,8484 mm, Pad 0,65 →
+> **0,201 mm Lücke**, eine 0,2er Bahn bräuchte mit Abständen 0,504.
+
+## Gelegt
+
+| Netz | Weg | Breite |
+| --- | --- | --- |
+| `USB_DM` | U5.4 (12,5499/9,4499) → unten → Durchkontaktierung 13,0505/11,60 → oben → U1.34 | 0,20 |
+| `USB_DP` | U5.6 (14,4499/9,4499) → unten → Durchkontaktierung 13,8506/11,60 → oben → U1.35 | 0,20 |
+
+**Beide gleich aufgebaut**, damit das Paar gleich lang bleibt: gleiche
+Lagenfolge, je eine Durchkontaktierung (0,50/0,25) auf gleicher Höhe, Abstand
+der beiden 0,80 mm (Luft 0,30). Nach den Durchkontaktierungen `doc_reload`,
+dann Flächen neu aufgebaut, dann gemessen.
+
+# Das Messwerkzeug: wo es liegt und wie es läuft
+
+**`D:\claude\working\opensecurekey-platine-werkzeuge\`**, mit `LIESMICH.md`.
+
+```
+python gerber-kupfer.py <Gerberdatei> <x> <y> [<x> <y> ...]
+```
+
+Beantwortet **„liegt an dieser Stelle Kupfer?"** am Gerber-Export — der Datei,
+die der Fertiger bekommt. Je Lage eine Datei (`Gerber_TopLayer.GTL`,
+`Gerber_InnerLayer1.G1`, `…2.G2`, `Gerber_BottomLayer.GBL`), zu holen mit
+`pcb_export_gerber` und auspacken.
+
+**Immer mit Kontrollpunkten aufrufen, deren Antwort vorher feststeht** — einer,
+der „frei" ergeben muss (ein Pad fremden Netzes), und einer, der „KUPFER"
+ergeben muss (offenes Feld). Ohne diese zwei Zahlen ist das Ergebnis keine
+Messung. Beispiel für diese Platine:
+
+```
+python gerber-kupfer.py Gerber_TopLayer.GTL  25.0 17.0   5.0 40.0
+   25,0000 / 17,0000  ->  frei     (Freihaltezone - muss frei sein)
+    5,0000 / 40,0000  ->  KUPFER   (offenes Feld - muss Kupfer sein)
+```
+
+Daneben liegen `pruef.py` (Pad gegen Pad, MULTI auf beiden Lagen), `kond.py`
+(Kondensator zu seinem Pin) und die Skripte, mit denen Verschiebungen **vor**
+dem Senden durchgerechnet werden.
+
+**Arbeitskopie:** Der Worktree liegt seit dem 25.10. in
+`D:\claude\working\opensecurekey-platine`; `core.fileMode` ist dort auf `false`
+gesetzt (Regel aus `repo.md`). Dieser Zweig führt **keine** ausführbaren
+Dateien, es war also nichts zu verlieren.
+
+# Was die Platine an Länge verlöre, wenn der Akku kleiner wird
+
+Stand 25.10.2026. **Gerechnet, nicht umgebaut.** Grundlage ist nicht die
+Bandtabelle, sondern eine Messung: **wo liegt auf der Platine überhaupt
+Kupfer?**
+
+## Die Messung zuerst
+
+Alle Pads, geparkte Steckverbinder ausgenommen, nach belegten `y`-Bändern:
+
+| von | bis | was |
+| ---: | ---: | --- |
+| 0,456 | 2,221 | J1, Widerstandsreihe, C10 |
+| 2,616 | 8,600 | U2, U5, J1-Schirm, Ladepfad |
+| 8,913 | 11,699 | Q1/Q2/Q3, U4, C2 |
+| 11,878 | **24,799** | U1 samt allem darunter, U3, X1, C8/C9, SW1 |
+| 25,599 | **33,870** | SW1-Oberkante, Q4/Q5, R9/R17, C13, C14 |
+| 33,870 | 51,500 | **frei — hier liegt die Zelle** (Unterseite) |
+| 51,500 | 53,499 | J3, Antennenbuchse |
+| 53,499 | 70,000 | Antennenfeld, darin nur R10–R12 und die LED |
+
+> **Die ganze Schaltung endet bei `y` 33,870.** Alles darüber ist Zelle,
+> Antennenbuchse und Antennenfeld. **Zwei Drittel der Platine tragen keine
+> Schaltung** — darin hat der Master recht.
+
+## Die drei Rechnungen
+
+Die Zelle beginnt bei `y` 25,0 (die Unterseite ist ab 24,799 frei). Maßgeblich
+ist, **was weiter reicht: die Zelle oder die Schaltung.**
+
+| Zelle | Länge | endet bei | **Platine** bei heutigem Feld | **Feld**, wenn 70 mm bleiben | Quelle der Maße |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Adafruit 1317, 150 mAh **(verbaut)** | 26,02 | 51,02 | **70,00** | 18,98 | Datenblatt |
+| SparkFun PRT-13853, 110 mAh | 25,00 | 50,00 | **68,98** | 20,00 | Datenblatt |
+| *hypothetisch* | 20,00 | 45,00 | **63,98** | 25,00 | **keine** |
+| SparkFun PRT-13852, 40 mAh | ~12,00 | 37,00 | **55,98** | 33,00 | **geschätzt** |
+| Grenzfall | 8,87 | 33,87 | **52,85** | 36,13 | rechnerisch |
+
+**Zwei Dinge, die aus der Tabelle fallen und wichtiger sind als die Zahlen:**
+
+1. **Unter rund 9 mm Zellenlänge bringt eine kleinere Zelle gar nichts mehr.**
+   Dann endet die Schaltung weiter oben als die Zelle, und **die Schaltung ist
+   das Maß.** Die Platine wird nicht kürzer als **52,85 mm**, solange die
+   Bauteile stehen, wo sie stehen.
+2. **Im Repo gibt es keine kürzere Zelle als 25,0 mm mit belegten Maßen.** Die
+   untersuchte Tabelle (`docs/parts.md`) führt fünf Zellen; die kürzeste ist
+   die SparkFun mit 25,0 mm. Die 40-mAh-Zelle **PRT-13852 kommt dort nur in
+   einer Berichtigung vor, ohne ein einziges Maß.** Die Zeile mit 12 mm steht
+   auf einer Schätzung, nicht auf einem Datenblatt — **wer darauf plant, plant
+   auf einer Zahl, die niemand nachgesehen hat.**
+
+## Was das Antennenfeld dabei macht
+
+Es **wächst**, wenn die Platine lang bleibt: von 18,98 auf bis zu 36,13 mm.
+Das ist die bessere Richtung — `layout-notes.md` hält seit dem ersten Entwurf
+fest: **„Fläche schlägt Länge."** Wird die Platine stattdessen kürzer, bleibt
+das Feld bei 18,98 und nichts wird schlechter.
+
+**Beides zugleich geht nicht.** Jeder Millimeter, den die Zelle kürzer wird,
+ist **entweder** ein Millimeter weniger Platine **oder** ein Millimeter mehr
+Antennenfeld.
+
+## Nicht gerechnet, weil offen
+
+**Z1 (0 … 9,5) hängt am Stecker.** Wird aus der Buchse ein Randstecker oder
+wird die Platine selbst zum Stecker, ändert sich dieses Band — nach oben wie
+nach unten. Alle Zahlen oben lassen Z1 unverändert; **sie sind damit die
+obere Schranke für die Länge, nicht die untere.**
+
+# Quarz verlegt — und die Wandlerschleife geht so nicht
+
+Stand 25.10.2026. **0 Abstandsfehler, Verbindungsfehler 171 → 165.**
+
+## Quarz: liegt, beide Netze vollständig
+
+| Netz | Weg |
+| --- | --- |
+| `XL1` | X1.1 → C8.1 → unten links herum → Durchkontaktierung **11,20 / 20,50** → oben → U1.17 |
+| `XL2` | X1.2 → C9.1 → unten → Durchkontaktierung **11,20 / 19,70** → oben → U1.18 |
+
+**Warum die Durchkontaktierungen links neben dem Modul sitzen und nicht am
+Pad:** U1s linke Padspalte läuft bei `x` 12,05 im **0,8-mm-Raster
+ununterbrochen** von `y` 12,5 bis 22,1 durch. Dort ist für eine
+Durchkontaktierung kein Platz; sie muss links daneben, ab `x` ≤ 11,45.
+Sechs Einträge weniger — genau die sechs Pads der beiden Netze.
+
+## Wandlerschleife: Versuch, Fehler, Rückbau
+
+Ich hatte die Durchkontaktierungen **in L1s eigene Pads** gesetzt und oben
+geradeaus zu U1.31 und U1.30 gezogen — der kürzeste denkbare Weg. **Ergebnis:
+14 Abstandsfehler.**
+
+> **Der Grund ist eine Padreihe, die ich nicht aufgelistet hatte.** U1 hat am
+> unteren Rand **zwei versetzte Reihen**: `y` 12,6492 **und `y` 13,5509**.
+> Ich hatte die Spalten geprüft und „der Modulinnenraum ist leer" geschlossen —
+> für die zweite Reihe hatte ich nie nachgesehen. Meine Bahnen liefen mitten
+> hindurch.
+
+**Gemessen, nachdem es schiefging** — die Korridore auf der Oberseite links am
+Modul:
+
+| von | bis | frei |
+| --- | --- | ---: |
+| versetzte Reihe (Oberkante 13,8504) → Pad 31 (13,9000) | | **0,0496** |
+| Pad 31 (14,2995) → Pad 30 (14,7001) | | **0,4006** |
+| zwischen zwei Pads der versetzten Reihe | | **0,401** |
+
+**Keiner davon trägt eine brauchbare Bahn:** 0,4 mm Lücke erlaubt mit zweimal
+0,152 Abstand eine Bahn von **0,09 mm**. Die Oberseite ist dort dicht.
+
+**Alles zurückgebaut**, beide Bahnen und beide Durchkontaktierungen. Stand
+wieder 0 Abstandsfehler.
+
+## Was daraus folgt
+
+**An U1s linke Spalte kommt man nur von links.** Genau so liegt der Quarz
+jetzt. L1 steht aber rechts (`x` 14,8 … 18,8), und der Weg nach links ist unten
+durch C3, C4 und C5 versperrt — die 0,4125 mm Luft, die wir mit Absicht
+geschaffen haben, sind für eine Bahn zu wenig.
+
+**Zwei Wege, beide mit Preis, keiner ausgeführt:**
+
+1. **Unter C3 herum**, bei `y` ≈ 13,0 nach links bis `x` 11,2, dort
+   Durchkontaktierung, oben ins Pad. Rechnerisch **rund 7 mm statt 3,59** —
+   immer noch deutlich besser als die 10,14 von gestern, aber es gibt die
+   Hälfte des Gewinns zurück.
+2. **C3 und C5 noch einmal versetzen**, damit bei `y` ≈ 14,1 ein Korridor
+   entsteht. Dann bleibt die Schleife kurz, aber die beiden Kondensatoren
+   rücken wieder von ihren Pins weg — genau das, was wir heute früh behoben
+   haben.
+
+**Das ist eine Abwägung zwischen Abblockung und Schaltschleife**, und sie
+gehört nicht ans Ende einer Runde. Gemeldet, nicht entschieden.
+
+# Der Steckerwechsel bringt weniger Länge, als die Bänder versprechen
+
+Stand 25.10.2026. **Gerechnet gegen die Messung, nicht gegen die Bandtabelle.**
+
+## Die naive Rechnung und warum sie nicht stimmt
+
+> Z1 war 9,5 mm, der Stecker greift nur 2,50 mm auf die Platine → 7,00 mm
+> Gewinn, Platine 63,00.
+
+**So ist es nicht.** `J1` war nie allein in Z1. Gemessen liegt **alles unter
+dem Modul**, ohne J1, zwischen `y` **0,629 und 12,419 — 11,790 mm**, und die
+Widerstandsreihe steht schon bei 0,629, also **unterhalb** von J1s Pads.
+
+| | |
+| --- | --- |
+| J1 belegte | `x` 8,725 … 18,275, `y` 0,456 … 5,989 |
+| Gruppe darunter/daneben (ohne J1) | `y` 0,629 … 12,419 |
+| Summe der Hüllflächen | 84,48 mm² |
+| untere Schranke bei 26,4 mm Breite | **3,20 mm** |
+| höchstes Einzelteil | **SW2 mit 5,00** — zweithöchstes U2 mit 3,77 |
+
+**J1 saß mitten in dieser Gruppe.** Es verschwinden zu lassen gibt einen
+Streifen von 9,55 × 5,53 mm frei, **aber die Gruppe muss neu gepackt werden,
+damit daraus Länge wird** — und sie muss hinter den Stecker, der die ersten
+2,50 mm der Platine für sich braucht.
+
+## Was dabei herauskommt
+
+| Annahme | Gruppe liegt dann | **Gewinn** | **Platine** |
+| --- | --- | ---: | ---: |
+| zwei Reihen, SW2 bleibt unten (5,00 + 3,77) | `y` 2,80 … 11,82 | **+0,60** | **69,40** |
+| zwei Reihen, **SW2 woanders** (3,77 + 2,60) | `y` 2,80 … 9,42 | **+3,00** | **67,00** |
+| *naive Rechnung* | — | *+7,00* | *63,00* |
+
+In einer Reihe geht es nicht: die Teile brauchen nebeneinander rund **52 mm**,
+die Platine ist 27 breit.
+
+> **Der Hebel ist nicht der Stecker, sondern `SW2`.** Der Reset-Taster ist mit
+> **5,00 mm das höchste Teil** in diesem Band — und er ist ein Knopf, keine
+> Schaltung. Liegt er woanders, wird die Gruppe 2,4 mm flacher, und **der
+> Gewinn verfünffacht sich von 0,60 auf 3,00 mm.**
+
+**Nicht ausgeführt.** Das ist eine Neuplatzierung der ganzen unteren Partie und
+gehört in eine eigene Runde — zumal die Lage des Steckers auf der Platine noch
+nicht feststeht.
+
+## Der Stecker selbst: Pins ausgelesen, nicht geschlossen
+
+**GCT `USB4155-03-C`, LCSC `C5183853`** — mit Hersteller, Datenblatt,
+„Gender: Male", 24P.
+
+> **Von drei Treffern der Bibliothekssuche sind zwei `C9900`-Platzhalter**
+> (`C9900282109`, `C9900245240`). Nur der dritte ist ein echtes Teil. Wer den
+> ersten Treffer nimmt, baut wieder einen Platzhalter ein.
+
+**26 Pins:** A1 … A12, B1 … B12 und **zwei Schirmpins 26 und 27** (die Buchse
+hatte dafür ein `S1` mit vier Pads).
+
+| Signal | Buchse J1 | **Stecker** |
+| --- | --- | --- |
+| VBUS | A4, A9, B4, B9 | gleich |
+| GND | A1, A12, B1, B12 | gleich |
+| D+ | A6, B6 | **A6 `DP1`, B6 `DP2`** |
+| D− | A7, B7 | **A7 `DN1`, B7 `DN2`** |
+| CC | A5 `CC1`, B5 `CC2` | gleich benannt |
+| Schirm | S1 (4 Pads) | **26, 27** |
+
+## Eine Schaltungsfrage, die der Tausch aufwirft
+
+**`R15` und `R16` sind je 5,1 kΩ von CC1 und CC2 nach Masse.** Das ist die
+Beschaltung einer **Buchse**: beide CC-Leitungen brauchen Rd, weil das Kabel
+gedreht eingesteckt werden kann.
+
+**Beim Stecker ist das nicht dasselbe.** Ein Gerät mit festem Stecker ist in
+der mating-Verbindung nur über **eine** CC-Leitung verbunden; die zweite ist
+`VCONN`. Zwei Rd an einem Stecker ist nicht die Beschaltung, die die
+Spezifikation dafür vorsieht.
+
+> **Das ist eine Schaltplanfrage, keine Layoutfrage** — dieselbe Art wie die
+> Polzahl bei J4. **Ich habe nichts geändert**, bevor das entschieden ist:
+> ob Rd nur auf CC1 bleibt, was aus `R16` wird, und ob `VCONN` offen bleibt.
+
+# Zwei Eigenheiten von U1, die jeden Fehlversuch kosten
+
+Stand 25.10.2026. Beide am eigenen Fehlschlag gelernt, beide gemessen.
+
+## 1. U1 hat am unteren Rand zwei versetzte Padreihen
+
+| Reihe | `y` der Mitten | Kupfer von … bis |
+| --- | --- | --- |
+| vordere | **12,6492** | 12,3498 … 12,9486 |
+| **hintere** | **13,5509** | **13,2514 … 13,8504** |
+
+**Wer nur die Spalten prüft, hält den Modulinnenraum für leer.** Genau das
+habe ich getan und zwei Bahnen mitten durch die hintere Reihe gezogen —
+**14 Abstandsfehler.**
+
+Zwischen zwei Pads derselben Reihe sind **0,401 mm**. Mit zweimal 0,152 mm
+Abstand trägt das eine Bahn von **0,09 mm**. **Da geht nichts durch.**
+
+## 2. An U1s linke Padspalte kommt man nur von links
+
+Die Spalte steht bei `x` 12,05 im **0,8-mm-Raster ununterbrochen** von `y` 12,5
+bis 22,1. Dazwischen ist kein Platz für eine Durchkontaktierung, und oberhalb
+wie unterhalb der einzelnen Pads bleiben nur:
+
+| zwischen | frei |
+| --- | ---: |
+| hinterer Reihe (13,8504) und Pad 31 (13,9000) | **0,0496** |
+| Pad 31 (14,2995) und Pad 30 (14,7001) | **0,4006** |
+
+**Die Durchkontaktierung muss also links neben die Spalte**, bei `x` ≤ 11,45 —
+so liegen jetzt die beiden Quarznetze (Durchkontaktierungen bei `x` 11,20).
+
+# Weg 1 für die Wandlerschleife ist versperrt — von C12
+
+**Entschieden war: unter C3 herum, rund 7 mm.** Beim Durchrechnen des Wegs
+stellt sich heraus, dass er so nicht existiert.
+
+Die Durchkontaktierung müsste bei **11,20 / 14,30** liegen (links neben der
+Spalte, auf Höhe von Pad 31). Sie selbst passt dorthin — **aber von unten
+kommt man nicht heran:**
+
+| Weg zur Durchkontaktierung | versperrt durch | Lücke |
+| --- | --- | ---: |
+| rechts an C12 vorbei | C12 (bis `x` 11,52) gegen C4 (ab 11,798) | **0,278** |
+| links an C12 vorbei | U3 (bis 9,9493) gegen C12 (ab 10,18) | **0,231** |
+
+Beide zu schmal: eine 0,2er Bahn braucht mit Abständen **0,504 mm**.
+
+**Der einzige freie Weg führt oben herum** — von L1 nach Norden auf `y` ≈ 17,
+nach links auf `x` 11,2, dann hinunter zur Durchkontaktierung. Gerechnet
+**rund 10,7 mm** statt der veranschlagten 7 — **schlechter als beide
+Schätzungen und kaum besser als die 10,14 vom Anfang.**
+
+> **Nicht verlegt.** Eine Schleife, die nach dem Umweg so lang ist wie vorher,
+> ist den Umweg nicht wert. **Der Blockierer ist `C12`**, der 100-nF-Kondensator
+> an U3 Pin 8 — er steht bei 10,85 / 13,594 genau im einzigen Durchgang.
+>
+> Ihn zu verschieben hieße, ihn von U3 Pin 8 wegzurücken (heute 0,98 mm).
+> **Das ist dieselbe Abwägung wie bei C3 und C5, nur mit einem anderen
+> Kondensator** — und diesmal nenne ich den Preis vorher, statt „rückt weg"
+> zu schreiben: **jede Verschiebung von C12 nach unten oder oben kostet
+> genau diesen Abstand**, und zu messen ist er erst, wenn ein Zielpunkt
+> feststeht.
+
+# Der Stecker: Datenblatt gelesen, und es sagt zu CC nicht, was wir wissen wollten
+
+Stand 25.10.2026. Quelle: **GCT-Zeichnung USB4155, Blatt 1 und 2 von 4**,
+Ausgabe 12.04.2021, Rev. A4 — als PDF geholt und selbst angesehen, nicht über
+eine Beschreibung.
+
+## Was belegt ist
+
+| | |
+| --- | --- |
+| Produkt | „USB3.2 Gen2 **Type C Plug**, Horizontal, SMT" |
+| **Plattendicke** | **0,8 bis 1,0 mm** — passt auf unsere 0,8 |
+| Platinentiefe im Lötbild | **2,50 mm** ab „PCB Edge" |
+| Strom | 5,00 A für VBUS zusammen, 6,25 A für GND, **1,25 A für A5/B5** |
+| Spannung | 48 V DC |
+| **SHELL** | **GND** — die beiden Schirmpins liegen auf Masse |
+| Lebensdauer | 10 000 Steckzyklen |
+
+## Was das Datenblatt **nicht** sagt
+
+Die Pintabelle führt:
+
+| Pin | Signal | Description |
+| --- | --- | --- |
+| **A5** | **CC1** | Configuration Channel |
+| **B5** | **CC2** | Configuration Channel |
+
+> **Beide heißen „Configuration Channel". Das Wort `VCONN` kommt in der
+> Zeichnung nicht vor.** Welcher der beiden Pins beim Stecken die CC-Leitung
+> führt und welcher VCONN wird, **steht dort nicht.**
+
+**Das ist genau der Fall, für den die Ansage galt: melden, statt zu wählen.**
+
+## Die Entscheidung und was sie trägt
+
+**Thomas hat entschieden: Rd 5,1 kΩ nur auf `CC1` (A5), `R16` entfällt, `CC2`
+bleibt offen.**
+
+Dazu, was ich dazu sagen kann und was nicht:
+
+- **Stützend:** Die übliche Festlegung für Stecker ist CC auf **A5**, VCONN auf
+  B5. Die Entscheidung stimmt damit überein.
+- **Nicht belegt:** Diese Festlegung steht **nicht in dieser Zeichnung**. Sie
+  ist Konvention, nicht Herstellerangabe.
+
+> **Was schiefginge, wenn es umgekehrt wäre:** Der Rd läge auf VCONN, die
+> CC-Leitung bliebe offen — das Gerät würde vom Host **gar nicht erkannt** und
+> bekäme keinen Strom. Das merkt man erst am fertigen Brett.
+>
+> **Bleibt als offener Punkt stehen**, bis es aus einer Quelle kommt, die den
+> Pin benennt — Steckerbelegung aus der USB-C-Spezifikation oder eine Auskunft
+> von GCT. Die Zeichnung allein reicht nicht.
+
+## Für die Stückliste
+
+**GCT `USB4155-03-C`, LCSC `C5183853`.**
+
+> **Achtung beim Nachbestellen:** Die Bibliothekssuche nach „USB4155" liefert
+> **drei** Treffer, davon **zwei Platzhalter** — `C9900282109`
+> („TYPEC-24PIN L=15.5MM") und `C9900245240` („USB4155-03C", ohne Bindestrich
+> vor dem C). **Nur `C5183853` hat Hersteller, Datenblatt und Maße.**
+
+# Berichtigung: die 9,54 mm Schleife sind eine Luftlinie, kein Weg
+
+Stand 25.10.2026. **Nichts bewegt.**
+
+Beim Suchen eines Zielpunkts für C12 fällt die wichtigere Zahl auf: **Was ich
+als „Schleife 9,536 mm" gemeldet habe, ist der Abstand von Pad zu Pad — nicht
+die Länge des Kupfers, das dort liegen wird.**
+
+Beide Netze müssen um C3, C4 und C5 herum und von links an U1s Padspalte
+heran. Gerechnet mit C12 auf **10,85 / 12,15** (Korridor 0,98 mm breit, trägt
+zwei Bahnen):
+
+| | Luftlinie | **verlegt** |
+| --- | ---: | ---: |
+| `DCCH` L1.1 → U1.31 | 3,59 | **7,07** |
+| `VSYS` L1.2 → U1.30 | 5,95 | **12,58** |
+| **Schleife zusammen** | **9,54** | **19,65** |
+
+> **Es ist derselbe Fehler wie bei den 2,59 mm**, nur eine Stufe höher: Damals
+> habe ich eine Achse für einen Abstand ausgegeben, jetzt einen Abstand für
+> einen Weg. **Eine Schleife ist Kupfer, keine Strecke zwischen zwei Punkten.**
+
+## Was das für C12 heißt
+
+Die Zielpunkte halten die Grenze von 2,0 mm mühelos ein:
+
+| C12 auf | Abstand zu U3 Pin 8 |
+| --- | ---: |
+| heute 10,85 / 13,59 | 0,982 |
+| 10,85 / **12,60** | **1,397** |
+| 10,85 / **12,30** | 1,625 |
+| 10,85 / **12,15** | 1,746 |
+
+**Aber die Auflage lautete: unter 7 mm, sonst lassen.** `DCCH` käme auf
+**7,07** — nicht darunter, sondern genau darauf. **Also nicht bewegt.**
+
+## Der ehrliche Vergleich
+
+| Variante | Schleife verlegt |
+| --- | ---: |
+| L1 unter U1, C12 weicht | **19,65** |
+| L1 unter U1, oben herum (nichts bewegt) | **≈ 23** |
+| L1 in der Quarzreihe (Stand von gestern) | Luftlinie 20,40, verlegt **mehr** |
+
+**Der Umzug von L1 unter das Modul hat sich also gelohnt** — aber um ein
+Drittel, nicht um die Hälfte, die die Luftlinien versprachen. Und C12 zu
+verschieben brächte **3,4 mm Kupfer** für **0,76 mm** schlechtere Abblockung am
+Flash.
+
+> **Das ist eine Abwägung, die ich nicht allein treffe**, weil sie auf einer
+> Zahl steht, die ich eben erst berichtigt habe. **Alles steht, wo es steht.**
+
+# C12 gewichen, Wandlerschleife verlegt — und sie bleibt lang
+
+Stand 25.10.2026. **0 Abstandsfehler.**
+
+## C12 steht jetzt links unter U3
+
+Beim Suchen des besten Verhältnisses fiel ein Punkt auf, der in keiner meiner
+ersten drei Varianten vorkam: **C12 kann nach links unter U3 wandern.** U3
+belegt `y` 12,8996 … 18,0986 — C12 liegt mit `y` 11,98 … 12,52 **darunter**,
+die beiden sind in `y` getrennt. Damit spielt U3s `x` keine Rolle mehr, und
+C12 kommt seinem Pin wieder näher.
+
+| | |
+| --- | --- |
+| C12 von | 10,850 / 13,594 |
+| **auf** | **9,868 / 12,250** |
+| Abstand C12.1 → U3 Pin 8 | 0,982 → **1,344 mm** |
+| Korridor über C12 (bis C3 bei 13,4005) | **0,880 mm** — trägt zwei Bahnen (0,856 nötig) |
+
+**Die erste Wahl wäre 1,746 gewesen** (C12 nur nach unten). Der Weg unter U3
+kostet **0,36 mm statt 0,76**.
+
+## Die Schleife, von EasyEDA gemessen
+
+Zwei Bahnen im Korridor, 0,2 mm breit, Mitten bei `y` 12,7845 und 13,1365;
+Durchkontaktierungen links neben U1s Padspalte bei 11,20 / 13,40 und
+10,60 / 14,90, dann oben ins Pad.
+
+| Netz | **gemessen** | gerechnet | Luftlinie |
+| --- | ---: | ---: | ---: |
+| `DCCH` L1.1 → U1.31 | **6,960** | 6,98 | 3,59 |
+| `VSYS` L1.2 → U1.30 | **12,449** | 12,47 | 5,95 |
+| **Schleife** | **19,409** | 19,45 | 9,54 |
+
+Gemessen mit `pcb_net_inspect` an der Platine, nicht aus meinen Stützpunkten
+addiert — die Rechnung lag 0,04 mm daneben.
+
+## Die unbequeme Zahl, ausdrücklich
+
+> **Die Schaltreglerschleife misst verlegt rund 20 mm. Für einen Schaltregler
+> ist das viel.** Sie ist besser als die rund 23 mm des Wegs oben herum und
+> besser als alles, was L1 in der Quarzreihe ergeben hätte — **gut ist sie
+> nicht.**
+
+**Am Weg lässt sich nichts mehr nachbessern.** Die Länge entsteht nicht durch
+Umwege, sondern dadurch, dass L1 rechts steht und U1s Anschlüsse nur **von
+links** erreichbar sind; dazwischen liegen C3, C4 und C5. Eine deutliche
+Verbesserung ginge **nur über eine andere Platzierung** — L1 und die drei
+Kondensatoren gemeinsam, nicht einzeln.
+
+**Das ist ein Messpunkt für das fertige Gerät, kein erledigter Posten:**
+Wenn die Funkleistung oder das Rauschen auf `VSYS` auffällt, ist diese Schleife
+der erste Verdächtige. **Wer sie verkürzen will, muss die Partie neu ordnen,
+nicht den Draht anders ziehen.**

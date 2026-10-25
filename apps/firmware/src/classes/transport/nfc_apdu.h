@@ -42,7 +42,7 @@ typedef struct {
 } osk_apdu_t;
 
 /* Zerlegt eine APDU. Liefert true nur, wenn alle Felder stimmig sind. */
-bool osk_apdu_parse(const uint8_t *buf, size_t len, osk_apdu_t *out);
+bool osk_nfc_apdu_parse(const uint8_t *buf, size_t len, osk_apdu_t *out);
 
 /* Schreibt ein Statuswort an das Ende einer Antwort. Liefert die neue
  * Gesamtlaenge, oder 0, wenn der Platz nicht reicht. */

@@ -10,7 +10,7 @@
  * anderer Wert (CTAP 2.1, Abschnitt 11.3.5.1). */
 #define APDU_CLA_CTAP_CHAINING 0x90u
 
-bool osk_apdu_parse(const uint8_t *buf, size_t len, osk_apdu_t *out)
+bool osk_nfc_apdu_parse(const uint8_t *buf, size_t len, osk_apdu_t *out)
 {
 	if (!buf || !out)
 		return false;

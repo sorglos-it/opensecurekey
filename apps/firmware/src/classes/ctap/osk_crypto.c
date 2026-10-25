@@ -450,10 +450,3 @@ bool osk_memeq(const void *a, const void *b, size_t len)
 		diff |= (uint8_t)(x[i] ^ y[i]);
 	return diff == 0;
 }
-
-void osk_wipe(void *p, size_t len)
-{
-	volatile uint8_t *q = (volatile uint8_t *)p;
-	while (len--)
-		*q++ = 0;
-}

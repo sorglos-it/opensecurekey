@@ -70,7 +70,7 @@ static size_t route(const uint8_t *apdu, size_t len, uint8_t *out, size_t cap, v
 
 	/* Die Anwendungsauswahl beantwortet die Weiche selbst - alles andere
 	 * geht an die gewaehlte Anwendung. */
-	if (osk_apdu_parse(apdu, len, &c) && c.cla == 0x00u && c.ins == INS_SELECT &&
+	if (osk_nfc_apdu_parse(apdu, len, &c) && c.cla == 0x00u && c.ins == INS_SELECT &&
 	    c.p1 == SELECT_P1_BY_NAME)
 		return select_by_name(&c, out, cap);
 
