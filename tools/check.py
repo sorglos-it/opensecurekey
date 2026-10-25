@@ -4,7 +4,8 @@
     python tools/check.py
     python tools/check.py --report dist/check-report.json
 
-Schritte: Versionsdateien, Werkzeug-Tests, Uebersetzen/Syntax und Tests je Teilprogramm
+Schritte: Versionsdateien, Werkzeug-Tests, Uebersetzen/Syntax und Tests je Teilprogramm,
+Namenskollisionen zwischen den Teilen der Firmware (firmware/symbole),
 (Firmware: Bau nur mit nRF Connect SDK, die Pruefungen laufen am PC mit gcc und make),
 Sprachdateien (gleiche Schluessel in de, en, fr, it, es),
 Formatierung. Jeder Schritt ist 'ok', 'uebersprungen' (mit Grund) oder 'FEHLER'.
@@ -25,6 +26,7 @@ if HERE not in sys.path:
 import build
 import common
 import set_version
+import symbols
 from common import OK, SKIPPED, FAILED, Result
 
 LANGUAGES = ('de', 'en', 'fr', 'it', 'es')
@@ -281,6 +283,41 @@ def check_firmware_tests(root):
     return results
 
 
+def check_firmware_symbols(root):
+    """Namenskollisionen zwischen den Teilen der Firmware.
+
+    Der Pruefsatz baut und bindet jeden Teil einzeln (ctap, se050, applets, ...),
+    darum sieht er nicht, wenn zwei Teile denselben Namen vergeben. Erst der
+    Binder des Gesamtbaus sagt "multiple definition" - am 25.10.2026 beim
+    ersten Gesamtbau gleich zweimal (osk_wipe, osk_apdu_parse). Diese Pruefung
+    liest die Namen aus dem Quelltext statt zu binden: so laeuft sie auch auf
+    einem Rechner ohne Werkzeugkette, und das ist hier die Mehrheit.
+    """
+    part, step = 'firmware', 'symbole'
+    folder = common.part_dir(part, root)
+    if not common.has_sources(part, root):
+        return Result(part, step, SKIPPED, 'apps/firmware ist noch leer')
+    if not symbols.sources(folder, '.c'):
+        return Result(part, step, SKIPPED, 'keine .c-Dateien in apps/firmware')
+    doubles, clashes, hints, files, names = symbols.scan(folder)
+    problems = []
+    for name, kind, places in doubles:
+        problems.append('%s (%s) doppelt definiert: %s' % (name, kind, ', '.join(places)))
+    for name, places in clashes:
+        problems.append('%s mit verschiedenen Rueckgabetypen: %s'
+                        % (name, ', '.join('%s %s' % (kind, where) for where, kind in places)))
+    extra = ''
+    if hints:
+        # Kein Fehler: mindestens eine Stelle steht in einem #if, und ob sich
+        # zwei Bedingungen ausschliessen, ist am Text nicht zu entscheiden.
+        extra = '; %d doppelt, aber bedingt (#if): %s' % (
+            len(hints), ', '.join(name for name, _ in hints))
+    if problems:
+        return Result(part, step, FAILED, '; '.join(problems) + extra)
+    return Result(part, step, OK, '%d Dateien, %d globale Namen, keine Kollision%s'
+                  % (files, names, extra))
+
+
 def check_firmware(root):
     part = 'firmware'
     results = []
@@ -292,7 +329,7 @@ def check_firmware(root):
         built = build.build_firmware(common.read_version(part, root), root)
         built.step = 'build'
         results.append(built)
-    return results + check_firmware_tests(root)
+    return results + [check_firmware_symbols(root)] + check_firmware_tests(root)
 
 
 # --- Sprachdateien -----------------------------------------------------------------

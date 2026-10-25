@@ -8,7 +8,13 @@
     python tools/build.py all
 
 Die Version kommt aus apps/<typ>/VERSION und wird beim Bauen eingestempelt:
-  firmware  cmake-Variable OSK_VERSION  (CMakeLists.txt der Firmware muss sie auswerten)
+  firmware  OSK_VERSION - als Umgebungsvariable UND als cmake-Variable (die
+            CMakeLists.txt der Firmware muss sie auswerten). Warum beides: bei
+            einem Sysbuild laeuft cmake zweimal, und alles hinter '--' landet
+            nur im aeusseren Lauf, nicht im Abbild. Nach dem Bau wird darum
+            nachgesehen, ob die Version wirklich im Abbild steht; steht sie
+            nicht drin, ist der Schritt FEHLER - ein Abbild ohne Versions-
+            nummer gilt nicht als gebaut.
   desktop   Go-Variable main.version    (-ldflags -X, wird still ignoriert, wenn sie fehlt)
   web       "version" in der manifest.json der Kopie im ZIP, nie im Quellbaum
 
@@ -45,13 +51,14 @@ def dist_dir(root):
 
 # --- Firmware -----------------------------------------------------------------
 
-def find_sdk(environ=None, which=common.which):
+def find_sdk(environ=None, which=None):
     """Wie startet man 'west'? Gibt (Vorsatz, Beschreibung) oder (None, Grund).
 
     1. Eine nRF-Connect-Shell: 'west' im PATH und ZEPHYR_BASE gesetzt.
     2. nrfutil toolchain-manager, wenn OSK_NCS (z. B. v3.0.0) die Version nennt.
     """
     env = os.environ if environ is None else environ
+    which = common.which if which is None else which
     if which('west') and env.get('ZEPHYR_BASE'):
         return ['west'], 'west mit ZEPHYR_BASE=%s' % env['ZEPHYR_BASE']
     if which('nrfutil') and env.get('OSK_NCS'):
@@ -73,6 +80,58 @@ def firmware_outputs(build_dir):
     return found
 
 
+def cmake_caches(build_dir):
+    """Alle CMakeCache.txt im Bauordner, der aeussere zuerst."""
+    found = []
+    for base, dirs, files in os.walk(build_dir):
+        dirs[:] = [d for d in dirs if d != 'CMakeFiles']
+        if 'CMakeCache.txt' in files:
+            found.append(os.path.join(base, 'CMakeCache.txt'))
+    return sorted(found, key=lambda p: (p.count(os.sep), p))
+
+
+def cache_value(path, name):
+    """Wert eines Eintrags im Zwischenspeicher, oder None."""
+    try:
+        with io.open(path, encoding='utf-8', errors='replace') as handle:
+            for line in handle:
+                left, _, value = line.partition('=')
+                if left.split(':')[0].strip() == name:
+                    return value.strip()
+    except OSError:
+        return None
+    return None
+
+
+def version_arrived(build_dir, version, name='OSK_VERSION'):
+    """Steht die Version im Abbild - oder nur im aeusseren Bau? (ok, Text)
+
+    Bei einem Sysbuild laeuft CMake zweimal: einmal aussen, einmal je Abbild.
+    Alles hinter '--' landet nur im aeusseren Lauf; das Abbild sah die Version
+    deshalb nie, und niemand merkte es, weil west trotzdem Erfolg meldete.
+    Darum wird hier nachgesehen statt geglaubt. Gemessen am 25.10.2026 mit
+    zwei geschachtelten CMake-Laeufen: '-DOSK_VERSION=' und
+    '-Dfirmware_OSK_VERSION=' stehen nur im aeusseren Zwischenspeicher, die
+    Umgebungsvariable OSK_VERSION kommt im inneren Lauf an.
+    """
+    caches = cmake_caches(build_dir)
+    if not caches:
+        return False, 'kein CMakeCache.txt in ' + build_dir
+    inner = caches[1:]
+    if not inner:
+        # Ein einziger CMake-Lauf (kein Sysbuild): der aeussere IST das Abbild.
+        got = cache_value(caches[0], name)
+        where = os.path.relpath(caches[0], build_dir)
+        return (got == version), '%s=%s in %s' % (name, got, where)
+    good = [os.path.relpath(p, build_dir) for p in inner if cache_value(p, name) == version]
+    if good:
+        return True, '%s=%s in %s' % (name, version, ', '.join(good))
+    return False, ('%s steht nicht im Abbild: %s hat sie%s, %s nicht'
+                   % (name, os.path.relpath(caches[0], build_dir),
+                      '' if cache_value(caches[0], name) else ' auch nicht',
+                      ', '.join(os.path.relpath(p, build_dir) for p in inner)))
+
+
 def build_firmware(version, root=common.ROOT, board=DEFAULT_BOARD, environ=None, runner=common.run):
     part = 'firmware'
     if not common.has_sources(part, root):
@@ -84,16 +143,31 @@ def build_firmware(version, root=common.ROOT, board=DEFAULT_BOARD, environ=None,
     if prefix is None:
         return Result(part, 'build', SKIPPED, info)
     build_dir = os.path.join(root, 'build', 'firmware-' + board.replace('/', '-'))
+    # Die Version wird auf drei Wegen mitgegeben, weil nur einer gemessen
+    # ankommt: '-DOSK_VERSION' erreicht den aeusseren Lauf (und bei
+    # --no-sysbuild ist der aeussere der einzige), '-Dfirmware_OSK_VERSION'
+    # ist die Schreibweise fuer ein einzelnes Abbild, und die
+    # Umgebungsvariable erbt jeder geschachtelte CMake-Lauf - das ist der
+    # Weg, der im inneren Lauf gemessen ankommt. Die CMakeLists.txt der
+    # Firmware liest sie so:
+    #   if(NOT OSK_VERSION AND DEFINED ENV{OSK_VERSION})
+    #     set(OSK_VERSION "$ENV{OSK_VERSION}" CACHE STRING "")
+    #   endif()
     args = prefix + ['build', '-b', board, '-d', build_dir, source, '--pristine=auto',
-                     '--', '-DOSK_VERSION=' + version]
-    common.say('Firmware: ' + ' '.join(args))
-    code, _ = runner(args, cwd=root)
+                     '--', '-DOSK_VERSION=' + version, '-Dfirmware_OSK_VERSION=' + version]
+    env = dict(os.environ if environ is None else environ, OSK_VERSION=version)
+    common.say('Firmware: OSK_VERSION=%s ' % version + ' '.join(args))
+    code, _ = runner(args, cwd=root, env=env)
     if code != 0:
         return Result(part, 'build', FAILED, 'west build endete mit Code %d (%s)' % (code, info))
     outputs = firmware_outputs(build_dir)
     wanted = [n for n in ('merged.hex', 'zephyr.hex') if n in outputs]
     if not wanted:
         return Result(part, 'build', FAILED, 'west meldet Erfolg, aber kein .hex in ' + build_dir)
+    arrived, how = version_arrived(build_dir, version)
+    if not arrived:
+        return Result(part, 'build', FAILED,
+                      'west meldet Erfolg, aber die Version kam im Abbild nicht an: ' + how)
     tag = board.split('/')[0]
     copied = []
     for name, path in outputs.items():
