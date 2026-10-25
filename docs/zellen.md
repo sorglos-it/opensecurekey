@@ -17,8 +17,8 @@
 >
 > **Was diese Arbeit ergeben hat, falls die Frage je wieder kommt:**
 >
-> - Die kürzeste passende Zelle (22 mm mit Schutzplatine) sparte nur etwa 4 mm
->   Platine; unter rund 9 mm Zellenlänge bestimmt die Schaltung das Maß.
+> - Die kürzeste passende Zelle (22 mm mit Schutzplatine) sparte nach damaliger Rechnung nur wenige mm
+>   Platine (nachgemessen hat später der Hardware-Strang, siehe `../hardware/layout-notes.md`); unter rund 9 mm Zellenlänge bestimmt die Schaltung das Maß.
 > - 100 mAh waren nach der Rechnung die kleinste Kapazität, die alle drei
 >   Betriebsfälle trug. Der Sprung auf 150 mAh kaufte im ungünstigen Satz nur
 >   7 Tage.
