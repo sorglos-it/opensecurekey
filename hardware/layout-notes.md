@@ -2413,3 +2413,30 @@ verlangt an den Ecken ohnehin Durchkontaktierungen.
 
 **Offen, mit Vertreter:** `U1_1` (Antennenende), `SW2_2'`, `C14_2` sowie die
 Pins der vier geparkten Steckverbinder.
+
+## Vier Versuche an `U1_1`, und was jeder gezeigt hat
+
+Masse zuerst — und sie geht an derselben Stelle nicht weiter. Alle vier
+Versuche gemessen, keiner verbindet; **zurückgebaut ist alles bis auf die
+Durchkontaktierung im Pad und die kurze Bahn `U1_1`–`U1_2`.**
+
+| Versuch | Ergebnis | was es ausschließt |
+| --- | --- | --- |
+| Durchkontaktierung **im** Pad, 0,35/0,20 | keine Verbindung | nicht die Lage „daneben" |
+| Bahn `U1_1` → `U1_2` (oben) | Eintrag blieb `U1_1` | die Insel wuchs nur |
+| Bahn `U1_1` → `y` 19,5 (unten) | Eintrag wurde **`Track e8`** | unten ist dort kein Kupfer |
+| Durchkontaktierung bei 22,8 / 20,5 im offenen Feld + Bahn dorthin | keine Verbindung | auch die Innenlagen nicht |
+
+**Gegenbeweis, der das Rätsel schärft statt es zu lösen:** `C17` hängt nicht
+mehr, seit es bei **11,63 / 18,90** steht — und das ist **ebenfalls unter U1**
+(der Modulkörper reicht von `x` 11,5 bis 27). Die Fläche trägt dort also. Bei
+`x` 22,8 im selben Band trägt sie nicht.
+
+**Was fehlt, ist kein Einfall, sondern ein Messmittel:** Ich kann nicht sehen,
+welches Kupfer auf welcher Lage zusammenhängt. Das Vorschaubild zeigt nur die
+Oberseite, `pcb_pours_list` nur Umrisse, und die DRC nennt je Insel einen
+Vertreter — **ein Werkzeug, das mir die gefüllten Flächen je Lage zeigt, würde
+die Frage in einem Blick beantworten.**
+
+**Nicht blockiert ist der Rest:** Die Signalnetze hängen an dieser Frage nicht.
+`GND` hat die Flächen; was fehlt, sind drei Inseln.
