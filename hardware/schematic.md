@@ -17,11 +17,11 @@ steht als `ungeprueft` dabei.
 | U1 | Raytac MDBT50Q-1MV2 (nRF52840) | Modul 15,5 × 10,5 × 2,05 mm |
 | U2 | NXP SE051C2HQ1/Z01XDZ | HX2QFN20, 3 × 3 mm |
 | U3 | Winbond W25Q512JVEIQ | WSON8 |
-| U4 | Microchip MCP73832T-2ACI/OT | SOT-23-5 |
+| ~~U4~~ | ~~Microchip MCP73832T-2ACI/OT~~ | **entfällt 25.10.2026 — kein Akku** |
 | U5 | ST USBLC6-2SC6 | SOT-23-6 |
 | DS1 | Crystalfontz CFAL4864A-071BW (SSD1306) | FPC, 12-polig, 0,5 mm |
 | J1 | GCT USB4085-GF-A | USB-C, Durchsteck |
-| J2 | JST-PH 2.0, 2-polig, liegend | Akku |
+| ~~J2~~ | ~~JST-PH 2.0, 2-polig, liegend~~ | **entfällt 25.10.2026 — kein Akku** |
 | J3 | Abstimmbare NFC-Antenne, 2-polig | Flex oder Leiterbahn |
 | J4 | FPC-ZIF 12-polig, 0,5 mm | Anzeige |
 | J5 | Stiftfeld 1 × 6, 1,27 mm | Fingerabdrucksensor, Stufe 2 |
@@ -30,9 +30,9 @@ steht als `ungeprueft` dabei.
 | SW2 | Panasonic EVQP7A01P | Reset, optional |
 | D1 | Everlight 19-337C/RSBHGHC-A88/4T | 1,6 × 1,6 × 0,5 mm, RGB |
 | D2 | Nexperia PESD5V0X1BCL | DFN1006, TVS auf VBUS |
-| Q1 | P-Kanal-MOSFET, Verpol- und NFC-Rückstromschutz | SOT-23 |
-| Q2 | P-Kanal-MOSFET, Lastumschaltung USB | SOT-23 |
-| Q3 | P-Kanal-MOSFET, Lastumschaltung Akku | SOT-23 |
+| ~~Q1~~ | ~~Verpol- und NFC-Rückstromschutz~~ | **entfällt 25.10.2026 — kein Akku** |
+| ~~Q2~~ | ~~Lastumschaltung USB~~ | **entfällt 25.10.2026 — nur eine Quelle** |
+| ~~Q3~~ | ~~Lastumschaltung Akku~~ | **entfällt 25.10.2026 — kein Akku** |
 | Q4 | P-Kanal-Lastschalter Anzeige | SOT-23 |
 | Q5 | P-Kanal-Lastschalter Sensor | SOT-23 |
 | X1 | Quarz 32,768 kHz | 3215 oder 2012 |
@@ -42,11 +42,17 @@ steht als `ungeprueft` dabei.
 
 ### Die Grundentscheidung
 
-**Der Akku und die USB-5 V gehen beide an `VDDH` des Rechenkerns, nicht an
-`VDD`.** `VDD` endet bei 3,6 V (absolute Grenze 3,9 V), ein voller LiPo hat
-4,2 V. `VDDH` reicht von 2,5 bis 5,5 V (nRF52840 PS v1.1, Tab. 172 und 173).
-Der Chip erzeugt sein `VDD` selbst in der REG0-Stufe; **ein externer
-Spannungsregler ist nicht nötig.**
+> **Berichtigt 25.10.2026: es gibt nur noch eine Quelle.** Thomas hat den
+> Akku gestrichen. `VBUS` geht **direkt** an `VDDH`; `VSYS` ist kein eigenes
+> Netz mehr, sondern mit `VBUS` zusammengelegt. Der Rest dieses Absatzes gilt
+> unverändert — er begründet die Wahl von `VDDH`, nicht die zweite Quelle.
+
+**Die USB-5 V gehen an `VDDH` des Rechenkerns, nicht an `VDD`.** `VDD` endet
+bei 3,6 V (absolute Grenze 3,9 V). `VDDH` reicht von 2,5 bis 5,5 V (nRF52840
+PS v1.1, Tab. 172 und 173); USB liefert am Anschluss höchstens **5,25 V**, es
+bleiben **0,25 V** Luft, und `D2` begrenzt die Spitzen. Der Chip erzeugt sein
+`VDD` selbst in der REG0-Stufe; **ein externer Spannungsregler ist nicht
+nötig.**
 
 Die 3,3-V-Schiene für Sicherheitschip, Flash und Anzeige kommt aus dem
 **`VDD`-Ausgang** des Rechenkerns. **Damit gilt die Grenze `IEXT,HIGH` = 25 mA
@@ -81,92 +87,73 @@ stehen in `../docs/power-budget.md`.
 
 | Netz | Bedeutung |
 | --- | --- |
-| `VBUS` | 5 V vom USB-Stecker |
-| `VBAT` | Akku, 3,0–4,2 V, hinter Q1 |
-| `VSYS` | gemeinsame Systemschiene an `VDDH`, 3,0–5,5 V |
+| `VBUS` | 5 V vom USB-Stecker, **zugleich die Systemschiene an `VDDH`** |
+| ~~`VSYS`~~ | **entfällt** — mit `VBUS` zusammengelegt, 25.10.2026 |
 | `VDD3V3` | `VDD`-Ausgang des Rechenkerns, 3,3 V |
 | `VDD_OLED` | geschaltete 3,3 V für die Anzeige, hinter Q4 |
 | `VDD_FP` | geschaltete 3,3 V für den Sensor, hinter Q5 |
 | `SE_VOUT` | `Vout` des Sicherheitschips |
 | `GND` | Masse |
 
-### Ladepfad und Lastumschaltung
+### Ladepfad, Lastumschaltung, Akkupfad — alles entfallen
 
-| von | nach | Bauteil / Wert |
-| --- | --- | --- |
-| J1 A4/B4/A9/B9 (VBUS) | `VBUS` | — |
-| `VBUS` | U4 Pin 4 (VDD) | — |
-| U4 Pin 4 | `GND` | C1 = 4,7 µF |
-| U4 Pin 3 (VBAT) | `VBAT_RAW` | — |
-| U4 Pin 3 | `GND` | C2 = 4,7 µF |
-| U4 Pin 5 (PROG) | `GND` | **R1 = 10 kΩ → 100 mA Ladestrom** |
-| U4 Pin 1 (STAT) | `P1.02` (CHG_STAT) | — |
-| U4 Pin 1 | `VDD3V3` | R2 = 100 kΩ Pull-up |
-| U4 Pin 2 (VSS) | `GND` | — |
-| `VBAT_RAW` | J2 Pin 1 | Akku plus |
-| J2 Pin 2 | `GND` | Akku minus |
+**Gestrichen am 25.10.2026 von Thomas: der Akku entfällt vollständig.** Damit
+fallen drei Abschnitte weg, die hier standen: der Ladepfad um U4, der
+Verpolschutz Q1 mit seiner NFC-Rückstromsperre, und die Lastumschaltung
+Q2/Q3.
 
-Ladestrom nach `I = 1000 V / R_PROG` (Microchip DS20001984H, Abschn. 5.1.2).
-Die Kondensatoren C1 und C2 sind mit **mindestens 4,7 µF** vorgeschrieben
-(ebd., Abschn. 3.3/3.4). Die Typnummer `-2` liefert **4,20 V**
-Ladeschlussspannung — `-3`, `-4` und `-5` würden eine normale LiPo überladen.
+**Diese 14 Bauteile gibt es nicht mehr** — gelöscht im Schaltplan am
+25.10.2026, nachgemessen an der Netzliste:
 
-### Q1: Verpolschutz und NFC-Rückstromsperre in einem
+> U4, J2, Q1, Q2, Q3, R1, R2, R3, R4, R5, R13, R14, C17, C2
 
-| von | nach | Bauteil |
-| --- | --- | --- |
-| `VBAT_RAW` | `VBAT` | Q1, P-Kanal, Source an `VBAT_RAW`, Drain an `VBAT` |
-| Q1 Gate | `GND` | R3 = 100 kΩ |
+**Diese 8 Netze gibt es nicht mehr:** `VBAT_RAW`, `VBAT_SW`, `VBAT_SENSE`,
+`CHG_STAT`, `PROG`, `Q1_G`, `Q2_G`, `Q3_G`. Dazu ist `VSYS` in `VBUS`
+aufgegangen. Netze vorher 59, nachher **50**.
 
-**Q1 hat zwei Aufgaben, und beide sind Pflicht:**
+**Zwei Anschlüsse des Rechenkerns sind frei:** `P0.04`/AIN2 (war die
+Spannungsmessung — damit sind alle acht Analogeingänge frei) und `P1.02` (war
+der STAT-Pin des Ladereglers).
 
-1. **Verpolschutz.** Die Schutzschaltung der Zelle schützt die Zelle, nicht die
-   Platine. Eine verpolt angelötete Zelle legt die Spannung direkt auf den
-   Laderegler und den Sicherheitschip.
-2. **NFC-Rückstromsperre.** Das ist der Punkt, den man ohne Datenblatt nicht
-   findet. nRF52840 PS v1.1, **Abschn. 6.14.11**: In einem starken NFC-Feld
-   kann über parasitäre Dioden und ESD-Strukturen Strom **in die Versorgung
-   zurückfließen**. Wörtlich: *„If the battery used does not tolerate return
-   current, a series diode must be placed between the battery and the device in
-   order to protect the battery."* **Ein LiPo verträgt Rückstrom nicht.**
+**Was davon bleibt und warum:**
 
-Ein P-Kanal-MOSFET erfüllt beides mit deutlich weniger Spannungsabfall als eine
-Diode — bei 3,0 V Zellspannung zählt jedes Millivolt.
+| Teil | bleibt, weil |
+| --- | --- |
+| **C1 = 4,7 µF** | war der Eingangskondensator von U4, ist jetzt der Vorrat am Stecker |
+| **D2** | der TVS auf `VBUS`. Der Stecker wird weiter gesteckt |
+| **D1** | die RGB-LED zeigt weiter Betrieb und Fehler, auch ohne Ladezustand |
 
-> **`ungeprueft` und offen:** Die Bauteilauswahl für Q1 bis Q3 ist **nicht
-> gerechnet**. Zu klären sind: Durchgangswiderstand bei 3,0 V
-> Gate-Source-Spannung, Schwellenspannung (muss deutlich unter 3,0 V liegen),
-> Rückwärts-Leckstrom im Ruhezustand (geht direkt ins 9,5-µA-Budget) und ob der
-> Lastsprung beim Umschalten die Brownout-Erkennung auslöst. `VPOF,HV` ist im
-> High-voltage-Betrieb zwischen 2,7 und 4,2 V einstellbar, ±5 %.
-
-### Q2/Q3: am USB laufen, ohne den Akku zu belasten
-
-| von | nach | Bauteil |
-| --- | --- | --- |
-| `VBUS` | `VSYS` | Q2, P-Kanal |
-| `VBAT` | `VSYS` | Q3, P-Kanal |
-| Q2/Q3 Gate | Kreuzsteuerung | R4, R5 = je 100 kΩ |
-
-Liegt `VBUS` an, leitet Q2 und Q3 sperrt — die Last hängt am USB, der Akku wird
-nur geladen. Ohne `VBUS` leitet Q3.
-
-Diese diskrete Lösung ist bewusst gewählt: **alle vier geprüften
-Power-Path-Lade-ICs brauchen Reflow** (Wärmepad muss Kontakt haben), und zwei
-von ihnen (BQ24040, BQ25100) haben laut eigenem Datenblatt überhaupt keinen
-Power-Path. Begründung in `../docs/parts.md`. Wenn es doch ein IC sein soll:
-BQ24075.
+**Die NFC-Rückstromsperre entfällt mit, und das ist belegt, nicht übersehen.**
+nRF52840 PS v1.1, Abschn. 6.14.11 verlangt die Serien-Diode, *„if the battery
+used does not tolerate return current"*. **Es gibt keine Zelle mehr.** Am
+Rechner fließt der Rückstrom in die 5-V-Schiene des Wirts, die ihn verträgt;
+ohne Rechner ist das Gerät stromlos.
 
 ### Entkopplung des Rechenkerns
 
+> ## ⚠ WARNUNG: an `VBUS` darf kein Kondensator mehr dazu
+>
+> **Es hängen bereits 9,5 µF unmittelbar am Steckkontakt** — C1 (4,7 µF) +
+> C3 (4,7 µF) + C4 (100 nF). **USB 2.0 erlaubt höchstens 10 µF** an `VBUS`,
+> wegen des Einschaltstroms beim Stecken.
+>
+> **Es bleiben 0,5 µF Luft.** Wer hier einen Kondensator ergänzt oder C1 bzw.
+> C3 vergrößert, reißt die Grenze — und das fällt erst am echten Gerät auf,
+> an einem Anschluss, der abschaltet.
+>
+> Grund, warum das neu ist: Seit dem Wegfall des Akkus (25.10.2026) sind
+> `VSYS` und `VBUS` **ein Netz**. C3 und C4 saßen vorher hinter Q2 auf `VSYS`
+> und zählten nicht mit. `C7` (4,7 µF) zählt weiterhin **nicht** mit, es hängt
+> an `DECUSB`, nicht an `VBUS`.
+
 | von | nach | Wert | Quelle |
 | --- | --- | --- | --- |
-| `VSYS` | U1 VDDH | — | — |
-| `VSYS` | `GND` | C3 = 4,7 µF + C4 = 100 nF | — |
+| `VBUS` | U1 VDDH | — | `VDDH` 2,5–5,5 V, PS v1.1 Tab. 172/173 |
+| `VBUS` | `GND` | C3 = 4,7 µF + C4 = 100 nF | **zählt zur 10-µF-Grenze, siehe Warnung** |
 | U1 VDD | `GND` | **C5 = 4,7 µF** | `C_VDD` = 2,7/4,7/5,5 µF, Abschn. 5.3.8.1 |
 | U1 DEC4 | `GND` | **C6 = 1 µF** | `C_DEC4` = 0,7/1/1,3 µF, ebd. |
 | U1 DECUSB | `GND` | **C7 = 4,7 µF** | `C_DECUSB` = 2,35/4,7/5,5 µF, Abschn. 5.3.8.7 |
-| U1 DCCH | L1 (10 µH) → U1 VDDH | **10 µH, 0603, ≥ 80 mA** | Raytac Ver. L, Kap. 8 |
+| U1 DCCH | L1 (10 µH) → U1 VDDH (`VBUS`) | **10 µH, 0603, ≥ 80 mA** | Raytac Ver. L, Kap. 8 |
 | U1 VBUS | `VBUS` | — | — |
 
 **L1 ist Pflicht, wenn der DC-DC-Wandler der REG0-Stufe genutzt werden soll** —
@@ -395,7 +382,7 @@ Elektrische Daten aus demselben Datenblatt:
 | Betriebstemperatur | −40 … +80 °C |
 
 Die absolute Grenze von **4 V** auf `VDD` ist zu beachten: die Anzeige darf
-**nicht** an `VSYS` (bis 5,5 V) hängen, sondern nur an der geregelten
+**nicht** an `VBUS` (bis 5,25 V) hängen, sondern nur an der geregelten
 3,3-V-Schiene. Das ist im Entwurf so, aber es ist eine Grenze, die man nicht
 ausprobieren will.
 
@@ -459,19 +446,11 @@ entschieden ist, wie viele Zustände die LED zeigen muss.
 **Beim Löten:** Der ESD-Schutz ist bei grün und blau nur **150 V** (rot
 2000 V). Handlöten höchstens 350 °C für 3 s.
 
-### Spannungsmessung am Akku
+### Spannungsmessung am Akku — entfällt
 
-| von | nach | Wert |
-| --- | --- | --- |
-| `VBAT` | `P0.04` (AIN2) | R13 |
-| `P0.04` | `GND` | R14 |
-
-Der Teiler muss 4,2 V in den Messbereich des Analogwandlers bringen. **Noch
-nicht gerechnet**, weil die Referenz und die Verstärkung noch nicht gewählt
-sind. Wichtig: der Teiler zieht dauernd Strom. Bei 2 × 1 MΩ sind es 2,1 µA —
-**fast ein Viertel des Ruhebudgets**. Darum entweder sehr hochohmig (dann
-leidet die Genauigkeit) oder über einen eigenen Lastschalter nur zum Messen
-einschalten. **Zu entscheiden.**
+**Gestrichen am 25.10.2026.** R13, R14 und C17 sind gelöscht, `VBAT_SENSE`
+gibt es nicht mehr, und **`P0.04` (AIN2) ist frei**. Ohne Zelle gibt es keinen
+Ladezustand zu messen; die Versorgung ist entweder da oder das Gerät ist aus.
 
 ## Netzliste: USB-C
 
@@ -507,7 +486,7 @@ seinem R79 —, bekommt mit einem e-marked Kabel (SuperSpeed oder 5 A)
 
 Das Gerät verhandelt kein Power Delivery. Ein reiner Rd-Sink darf nur ziehen,
 was die Quelle per Rp anbietet; ohne Messung der CC-Spannung gilt
-„Default USB Power". Bei 100 mA Ladestrom plus einigen Milliampere Systemstrom
+„Default USB Power". (Die 100 mA Ladestrom entfallen seit 25.10.2026.) Bei 100 mA Ladestrom plus einigen Milliampere Systemstrom
 bleiben wir deutlich darunter.
 
 **`22 Ω in D+/D− sind nicht nötig`** — keine Quelle fordert sie für USB 2.0.
@@ -572,8 +551,11 @@ Chip und wird über `NFCPINS.PROTECT = NFC` eingeschaltet (schließt die Pins be
 etwa 2 V Differenz kurz). Grenzwerte: Strom in die NFC-Pins **max. 80 mA**
 (absolute Grenze), Erkennungsschwelle `Vsense` = 1,2 V Spitze.
 
-**Was dagegen Pflicht ist: die Serien-Diode bzw. Q1 im Akkupfad** gegen den
-Rückstrom aus dem Feld (Abschn. 6.14.11) — siehe oben.
+~~**Was dagegen Pflicht ist: die Serien-Diode bzw. Q1 im Akkupfad** gegen den
+Rückstrom aus dem Feld (Abschn. 6.14.11) — siehe oben.~~
+
+> **Hinfällig seit 25.10.2026:** keine Zelle, kein Rückstromschutz nötig.
+> Begründung im Abschnitt „Ladepfad, Lastumschaltung, Akkupfad — alles entfallen".
 
 ### Die Abstimmung gehört gemessen, nicht gerechnet
 
@@ -667,9 +649,9 @@ wird.
 In der Reihenfolge, in der es das Zeichnen behindert:
 
 1. **Die Vorwiderstände der LED** und ob blau überhaupt sinnvoll ist.
-2. **Die Bauteilauswahl für Q1 bis Q5** samt Leckstrom im Ruhezustand und dem
+2. **Die Bauteilauswahl für Q4 und Q5** samt Leckstrom im Ruhezustand und dem
    Nachweis, dass die Lastumschaltung keinen Brownout auslöst.
-3. **Der Spannungsteiler für die Akkumessung** und ob er geschaltet wird.
+3. ~~Der Spannungsteiler für die Akkumessung~~ — **erledigt: entfällt mit dem Akku, 25.10.2026.**
 4. **Die Lastkapazität des Uhrenquarzes** — Quarz noch nicht ausgewählt.
 5. **Das ESD-Konzept für die CC-Leitungen** und die Schirmanbindung.
 6. **Die Raytac-Modulpinnummern** für die Signale, die in `pinout.md` noch
@@ -690,18 +672,18 @@ ebenfalls. Damit ist der Schaltplan zeichenbar.
 
 | Punkt | Festlegung | Begründung |
 | --- | --- | --- |
-| Q1–Q5 | **Diodes DMG2305UX**, SOT-23, P-Kanal, −20 V, −3,8 A, Schwelle ab −0,9 V | logiktauglich an 3,0 V Gate-Source, gut lieferbar, billig |
+| Q4, Q5 | **Diodes DMG2305UX**, SOT-23, P-Kanal, −20 V, −3,8 A, Schwelle ab −0,9 V | logiktauglich an 3,0 V Gate-Source, gut lieferbar, billig |
 | R10 (rot) | **1 kΩ** `vorlaeufig` | am Muster feinabstimmen; LED leuchtet am Schlüsselbund, nicht im Serverschrank |
 | R11 (grün), R12 (blau) | **je 470 Ω** `vorlaeufig` | dto.; alle drei Farben werden gezeichnet, die 19-337C hat sie ohnehin im Gehäuse |
-| R13, R14 | **je 2,2 MΩ**, dazu **C17 = 10 nF** von `VBAT_SENSE` nach `GND` | 0,95 µA Dauerstrom statt 2,1 µA bei 2 × 1 MΩ; C17 lädt den Abtast-Kondensator des Wandlers trotz hoher Quellimpedanz |
+| ~~R13, R14, C17~~ | **entfallen 25.10.2026** — kein Akku, nichts zu messen |
 | Lastschalter für den Teiler | **entfällt** | spart die letzte µA, kostet aber Bauteil, Leitung und Fehlerquelle an einer Stelle, die nur Komfort liefert |
-| Q2/Q3-Kreuzsteuerung | Q2-Gate über R4 an `VBAT`, Q3-Gate über R5 an `VBUS` | übliche Lastumschaltung; in der vorigen Fassung nur „Kreuzsteuerung" genannt, nicht gezeichnet |
+| ~~Q2/Q3-Kreuzsteuerung~~ | **entfällt 25.10.2026** — es gibt nur noch eine Quelle |
 | FP_IRQ (`P1.03`) | **Testpunkt**, nicht an J5 | J5 hat 6 Pins, alle belegt |
 | CC1/CC2 | **kein eigener ESD-Schutz** | der USBLC6 deckt die Datenleitungen ab; CC führt keine schnellen Signale |
 | Schirm von J1 | direkt an `GND` | RC-Anbindung bleibt eine Layout-Frage |
 | C8/C9, C15/C16 | als `TBD` gezeichnet | Quarz nicht ausgewählt, NFC-Abstimmung ist eine Messung |
 
-Nachtrag zur Bauteilliste: **C17 = 10 nF** kommt hinzu (Akkumessung).
+~~Nachtrag zur Bauteilliste: C17 = 10 nF kommt hinzu (Akkumessung).~~ **Hinfällig seit 25.10.2026.**
 
 ## Offene Punkte an den Steckverbindern (24.10.2026)
 
