@@ -3019,3 +3019,55 @@ Dazu, was ich dazu sagen kann und was nicht:
 > **drei** Treffer, davon **zwei Platzhalter** — `C9900282109`
 > („TYPEC-24PIN L=15.5MM") und `C9900245240` („USB4155-03C", ohne Bindestrich
 > vor dem C). **Nur `C5183853` hat Hersteller, Datenblatt und Maße.**
+
+# Berichtigung: die 9,54 mm Schleife sind eine Luftlinie, kein Weg
+
+Stand 25.10.2026. **Nichts bewegt.**
+
+Beim Suchen eines Zielpunkts für C12 fällt die wichtigere Zahl auf: **Was ich
+als „Schleife 9,536 mm" gemeldet habe, ist der Abstand von Pad zu Pad — nicht
+die Länge des Kupfers, das dort liegen wird.**
+
+Beide Netze müssen um C3, C4 und C5 herum und von links an U1s Padspalte
+heran. Gerechnet mit C12 auf **10,85 / 12,15** (Korridor 0,98 mm breit, trägt
+zwei Bahnen):
+
+| | Luftlinie | **verlegt** |
+| --- | ---: | ---: |
+| `DCCH` L1.1 → U1.31 | 3,59 | **7,07** |
+| `VSYS` L1.2 → U1.30 | 5,95 | **12,58** |
+| **Schleife zusammen** | **9,54** | **19,65** |
+
+> **Es ist derselbe Fehler wie bei den 2,59 mm**, nur eine Stufe höher: Damals
+> habe ich eine Achse für einen Abstand ausgegeben, jetzt einen Abstand für
+> einen Weg. **Eine Schleife ist Kupfer, keine Strecke zwischen zwei Punkten.**
+
+## Was das für C12 heißt
+
+Die Zielpunkte halten die Grenze von 2,0 mm mühelos ein:
+
+| C12 auf | Abstand zu U3 Pin 8 |
+| --- | ---: |
+| heute 10,85 / 13,59 | 0,982 |
+| 10,85 / **12,60** | **1,397** |
+| 10,85 / **12,30** | 1,625 |
+| 10,85 / **12,15** | 1,746 |
+
+**Aber die Auflage lautete: unter 7 mm, sonst lassen.** `DCCH` käme auf
+**7,07** — nicht darunter, sondern genau darauf. **Also nicht bewegt.**
+
+## Der ehrliche Vergleich
+
+| Variante | Schleife verlegt |
+| --- | ---: |
+| L1 unter U1, C12 weicht | **19,65** |
+| L1 unter U1, oben herum (nichts bewegt) | **≈ 23** |
+| L1 in der Quarzreihe (Stand von gestern) | Luftlinie 20,40, verlegt **mehr** |
+
+**Der Umzug von L1 unter das Modul hat sich also gelohnt** — aber um ein
+Drittel, nicht um die Hälfte, die die Luftlinien versprachen. Und C12 zu
+verschieben brächte **3,4 mm Kupfer** für **0,76 mm** schlechtere Abblockung am
+Flash.
+
+> **Das ist eine Abwägung, die ich nicht allein treffe**, weil sie auf einer
+> Zahl steht, die ich eben erst berichtigt habe. **Alles steht, wo es steht.**
