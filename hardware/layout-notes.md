@@ -3071,3 +3071,58 @@ Flash.
 
 > **Das ist eine Abwägung, die ich nicht allein treffe**, weil sie auf einer
 > Zahl steht, die ich eben erst berichtigt habe. **Alles steht, wo es steht.**
+
+# C12 gewichen, Wandlerschleife verlegt — und sie bleibt lang
+
+Stand 25.10.2026. **0 Abstandsfehler.**
+
+## C12 steht jetzt links unter U3
+
+Beim Suchen des besten Verhältnisses fiel ein Punkt auf, der in keiner meiner
+ersten drei Varianten vorkam: **C12 kann nach links unter U3 wandern.** U3
+belegt `y` 12,8996 … 18,0986 — C12 liegt mit `y` 11,98 … 12,52 **darunter**,
+die beiden sind in `y` getrennt. Damit spielt U3s `x` keine Rolle mehr, und
+C12 kommt seinem Pin wieder näher.
+
+| | |
+| --- | --- |
+| C12 von | 10,850 / 13,594 |
+| **auf** | **9,868 / 12,250** |
+| Abstand C12.1 → U3 Pin 8 | 0,982 → **1,344 mm** |
+| Korridor über C12 (bis C3 bei 13,4005) | **0,880 mm** — trägt zwei Bahnen (0,856 nötig) |
+
+**Die erste Wahl wäre 1,746 gewesen** (C12 nur nach unten). Der Weg unter U3
+kostet **0,36 mm statt 0,76**.
+
+## Die Schleife, von EasyEDA gemessen
+
+Zwei Bahnen im Korridor, 0,2 mm breit, Mitten bei `y` 12,7845 und 13,1365;
+Durchkontaktierungen links neben U1s Padspalte bei 11,20 / 13,40 und
+10,60 / 14,90, dann oben ins Pad.
+
+| Netz | **gemessen** | gerechnet | Luftlinie |
+| --- | ---: | ---: | ---: |
+| `DCCH` L1.1 → U1.31 | **6,960** | 6,98 | 3,59 |
+| `VSYS` L1.2 → U1.30 | **12,449** | 12,47 | 5,95 |
+| **Schleife** | **19,409** | 19,45 | 9,54 |
+
+Gemessen mit `pcb_net_inspect` an der Platine, nicht aus meinen Stützpunkten
+addiert — die Rechnung lag 0,04 mm daneben.
+
+## Die unbequeme Zahl, ausdrücklich
+
+> **Die Schaltreglerschleife misst verlegt rund 20 mm. Für einen Schaltregler
+> ist das viel.** Sie ist besser als die rund 23 mm des Wegs oben herum und
+> besser als alles, was L1 in der Quarzreihe ergeben hätte — **gut ist sie
+> nicht.**
+
+**Am Weg lässt sich nichts mehr nachbessern.** Die Länge entsteht nicht durch
+Umwege, sondern dadurch, dass L1 rechts steht und U1s Anschlüsse nur **von
+links** erreichbar sind; dazwischen liegen C3, C4 und C5. Eine deutliche
+Verbesserung ginge **nur über eine andere Platzierung** — L1 und die drei
+Kondensatoren gemeinsam, nicht einzeln.
+
+**Das ist ein Messpunkt für das fertige Gerät, kein erledigter Posten:**
+Wenn die Funkleistung oder das Rauschen auf `VSYS` auffällt, ist diese Schleife
+der erste Verdächtige. **Wer sie verkürzen will, muss die Partie neu ordnen,
+nicht den Draht anders ziehen.**
