@@ -2893,3 +2893,67 @@ Spezifikation dafür vorsieht.
 > **Das ist eine Schaltplanfrage, keine Layoutfrage** — dieselbe Art wie die
 > Polzahl bei J4. **Ich habe nichts geändert**, bevor das entschieden ist:
 > ob Rd nur auf CC1 bleibt, was aus `R16` wird, und ob `VCONN` offen bleibt.
+
+# Zwei Eigenheiten von U1, die jeden Fehlversuch kosten
+
+Stand 25.10.2026. Beide am eigenen Fehlschlag gelernt, beide gemessen.
+
+## 1. U1 hat am unteren Rand zwei versetzte Padreihen
+
+| Reihe | `y` der Mitten | Kupfer von … bis |
+| --- | --- | --- |
+| vordere | **12,6492** | 12,3498 … 12,9486 |
+| **hintere** | **13,5509** | **13,2514 … 13,8504** |
+
+**Wer nur die Spalten prüft, hält den Modulinnenraum für leer.** Genau das
+habe ich getan und zwei Bahnen mitten durch die hintere Reihe gezogen —
+**14 Abstandsfehler.**
+
+Zwischen zwei Pads derselben Reihe sind **0,401 mm**. Mit zweimal 0,152 mm
+Abstand trägt das eine Bahn von **0,09 mm**. **Da geht nichts durch.**
+
+## 2. An U1s linke Padspalte kommt man nur von links
+
+Die Spalte steht bei `x` 12,05 im **0,8-mm-Raster ununterbrochen** von `y` 12,5
+bis 22,1. Dazwischen ist kein Platz für eine Durchkontaktierung, und oberhalb
+wie unterhalb der einzelnen Pads bleiben nur:
+
+| zwischen | frei |
+| --- | ---: |
+| hinterer Reihe (13,8504) und Pad 31 (13,9000) | **0,0496** |
+| Pad 31 (14,2995) und Pad 30 (14,7001) | **0,4006** |
+
+**Die Durchkontaktierung muss also links neben die Spalte**, bei `x` ≤ 11,45 —
+so liegen jetzt die beiden Quarznetze (Durchkontaktierungen bei `x` 11,20).
+
+# Weg 1 für die Wandlerschleife ist versperrt — von C12
+
+**Entschieden war: unter C3 herum, rund 7 mm.** Beim Durchrechnen des Wegs
+stellt sich heraus, dass er so nicht existiert.
+
+Die Durchkontaktierung müsste bei **11,20 / 14,30** liegen (links neben der
+Spalte, auf Höhe von Pad 31). Sie selbst passt dorthin — **aber von unten
+kommt man nicht heran:**
+
+| Weg zur Durchkontaktierung | versperrt durch | Lücke |
+| --- | --- | ---: |
+| rechts an C12 vorbei | C12 (bis `x` 11,52) gegen C4 (ab 11,798) | **0,278** |
+| links an C12 vorbei | U3 (bis 9,9493) gegen C12 (ab 10,18) | **0,231** |
+
+Beide zu schmal: eine 0,2er Bahn braucht mit Abständen **0,504 mm**.
+
+**Der einzige freie Weg führt oben herum** — von L1 nach Norden auf `y` ≈ 17,
+nach links auf `x` 11,2, dann hinunter zur Durchkontaktierung. Gerechnet
+**rund 10,7 mm** statt der veranschlagten 7 — **schlechter als beide
+Schätzungen und kaum besser als die 10,14 vom Anfang.**
+
+> **Nicht verlegt.** Eine Schleife, die nach dem Umweg so lang ist wie vorher,
+> ist den Umweg nicht wert. **Der Blockierer ist `C12`**, der 100-nF-Kondensator
+> an U3 Pin 8 — er steht bei 10,85 / 13,594 genau im einzigen Durchgang.
+>
+> Ihn zu verschieben hieße, ihn von U3 Pin 8 wegzurücken (heute 0,98 mm).
+> **Das ist dieselbe Abwägung wie bei C3 und C5, nur mit einem anderen
+> Kondensator** — und diesmal nenne ich den Preis vorher, statt „rückt weg"
+> zu schreiben: **jede Verschiebung von C12 nach unten oder oben kostet
+> genau diesen Abstand**, und zu messen ist er erst, wenn ein Zielpunkt
+> feststeht.
