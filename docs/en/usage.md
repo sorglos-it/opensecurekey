@@ -52,6 +52,8 @@ Good to know:
 
 ## Tapping with a phone (NFC)
 
+**Only with USB power.** The key has no battery. NFC works only while it is plugged into a USB port: the phone comes to the key, not the other way round. Holding the key loose against a phone no longer works. Whether a plain USB charger without a computer is enough has not been checked.
+
 **Status:** Never tried with a real phone. The range has not been measured.
 
 - Hold the key **closer to the reader than you would hold a card.**
@@ -106,7 +108,7 @@ The **public** part of an SSH key, certificate or PGP key comes **without** a pr
 **Status: open.**
 
 - The key can store the starting value for one-time codes, as an entry "One-time code (time)" or "One-time code (counter)".
-- The battery keeps the clock running. Time-based codes need the time of day.
+- The key has no battery. The computer sets the clock when you plug the key in (**planned, not built yet**). If the computer's clock is wrong, the codes are wrong too. Time-based codes need the time of day.
 - **How the finished six-digit code is shown in the interface or on the key is not described in the technical documentation.** I write nothing about it here.
 - The command `osk codes` does **not** show these codes, but the list of exit numbers for scripts.
 - KeePassXC and VeraCrypt work with a Yubico method. That is still missing: **Neither program works with the current state.**

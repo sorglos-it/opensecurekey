@@ -71,7 +71,7 @@ Consigli generali (non provati sulla chiave):
 1. Prova un'altra porta USB.
 2. Un altro cavo, oppure direttamente sul computer, senza hub.
 3. Scollega la chiave, ricollegala, riavvia il programma.
-4. La batteria è forse scarica? Lasciala caricare.
+4. La chiave non ha batteria e prende tutta la corrente dalla porta USB. Se lo schermo resta buio, non riceve corrente: prova un'altra porta (punto 1).
 
 Che cos'altro conta:
 
@@ -122,6 +122,7 @@ In caso di emergenza si può reimpostare la parte di accesso (FIDO).
 - La chiave si presenta come **FIDO 2.0 e 2.1.** Comandi per gestire le passkey (elencare, cancellare) e per registrare impronte digitali nel browser **non esistono.**
 - La chiave dichiara **nessuna verifica utente integrata** (`uv`), finché non c'è un sensore. È giusto così. Il PIN viene dichiarato a parte.
 - Tramite **Bluetooth** **non** c'è accesso nel browser. I browser non supportano FIDO via Bluetooth in modo affidabile. Usa USB o NFC.
+- NFC e Bluetooth funzionano solo finché la chiave è inserita in una porta USB. Tenuta libera accanto al telefono, non funziona nulla.
 - Il **contatore di firme** riparte da zero a ogni accensione. Un sito che insiste su contatori crescenti potrebbe scambiare la chiave per una copia.
 - L'**identificativo del produttore** (AAGUID) è provvisorio.
 

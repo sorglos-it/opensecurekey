@@ -58,6 +58,7 @@ Bon à savoir :
 - **Tout ce qui est risqué est désactivé** jusqu’à ce que tu l’actives en connaissance de cause.
 - **Le NFC demande toujours le bouton.** Même quand le NFC dure peu. Cela protège contre une attaque depuis la poche, où quelqu’un fait suivre la liaison radio.
 - L’adresse radio du Bluetooth change, pour qu’on ne puisse pas te suivre.
+- Le NFC et le Bluetooth ne marchent que tant que la clé est branchée sur un port USB. Elle n’a pas de batterie.
 
 ## Langue sur la clé
 

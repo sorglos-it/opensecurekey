@@ -14,7 +14,7 @@ Además hay:
 - **Memoria (64 MB):** la caja fuerte, cifrada, y el registro.
 - **Pantalla:** muestra lo que autorizas.
 - **Un botón:** esa es tu autorización.
-- **Batería:** para NFC y Bluetooth sin ordenador, y para que el reloj siga funcionando.
+- **Sin batería:** la llave funciona solo con corriente USB. El ordenador pone en hora el reloj de los códigos únicos cuando la enchufas.
 
 ## Vías hacia el ordenador
 
@@ -23,16 +23,25 @@ Además hay:
 - USB como teclado (**previsto, todavía no construido**)
 - Canal USB para el programa de administración
 - Unidad USB, solo de lectura, con los programas dentro (**previsto**)
-- NFC
-- Bluetooth, solo para el programa de administración
+- NFC (solo mientras el USB alimenta la llave)
+- Bluetooth, solo para el programa de administración (solo mientras el USB alimenta la llave)
 
-## ¿Por qué una batería?
+## ¿Por qué sin batería?
 
-El chip de radio no puede sacar corriente del campo NFC. Otra llave sí puede, porque ahí responde un chip de tarjeta sencillo. Aquí responde el firmware. Por eso la llave necesita corriente propia.
+La llave no tiene batería, a propósito. Funciona solo mientras está enchufada a un puerto USB.
 
-- La batería se carga por USB.
-- **Duración:** Sobre el papel, unos **7 meses** con diez usos al día. El cálculo está lleno de suposiciones, por ejemplo sobre la autodescarga. **No se ha medido nada.**
-- Si la batería aguanta una sesión NFC, está abierto.
+- El reloj de los códigos únicos basados en el tiempo no necesita alimentación continua. Lo pone en hora el ordenador al enchufar la llave, y el código nace solo en el momento de usarlo. **Borrador, todavía no construido.**
+- Para la marca de tiempo de una firma, la llave pide la hora a un servidor de marcas de tiempo. No usa su propio reloj.
+- Una batería solo habría dado NFC y Bluetooth sin ordenador. En contra había 4 a 5 mm más de longitud y una pieza de desgaste con pocos años de vida, en una llave que debe durar décadas.
+
+**A qué renuncias:**
+
+- El chip de radio no puede sacar corriente del campo NFC. Por eso NFC y Bluetooth existen solo mientras la llave está enchufada a un ordenador.
+- Acercar la llave suelta al teléfono ya no funciona.
+- Bluetooth hacia tu propia aplicación solo funciona mientras la llave está enchufada a un ordenador. Con la llave en el llavero ya no funciona.
+- Una segunda llave se empareja solo por USB en el ordenador. Para eso ambas llaves están enchufadas al mismo ordenador.
+
+Es una decisión tomada a propósito. La técnica está en `docs/architecture.md`.
 
 ## Los dos caminos de la configuración
 

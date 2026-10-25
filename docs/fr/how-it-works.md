@@ -14,7 +14,7 @@ Pourquoi deux ? La protection de la puce radio a déjà été contournée par le
 - **Mémoire (64 Mo) :** le coffre, chiffré, et le journal.
 - **Écran :** montre ce que tu autorises.
 - **Un bouton :** c’est ton autorisation.
-- **Batterie :** pour le NFC et le Bluetooth sans ordinateur, et pour que l’horloge continue de tourner.
+- **Pas de batterie :** la clé ne fonctionne que sur le courant USB. L’ordinateur règle l’horloge des codes uniques quand tu la branches.
 
 ## Chemins vers l’ordinateur
 
@@ -23,16 +23,25 @@ Pourquoi deux ? La protection de la puce radio a déjà été contournée par le
 - USB comme clavier (**prévu, pas encore construit**)
 - Canal USB pour le programme de gestion
 - Lecteur USB, en lecture seule, avec les programmes dessus (**prévu**)
-- NFC
-- Bluetooth, seulement pour le programme de gestion
+- NFC (seulement tant que l’USB alimente la clé)
+- Bluetooth, seulement pour le programme de gestion (seulement tant que l’USB alimente la clé)
 
-## Pourquoi une batterie ?
+## Pourquoi pas de batterie ?
 
-La puce radio ne peut pas tirer son courant du champ NFC. Une autre clé le peut, parce que là une simple puce de carte répond. Ici, c’est le micrologiciel qui répond. La clé a donc besoin de son propre courant.
+La clé n’a volontairement pas de batterie. Elle ne fonctionne que tant qu’elle est branchée sur un port USB.
 
-- La batterie se recharge par USB.
-- **Autonomie :** Sur le papier, environ **7 mois** à dix utilisations par jour. Le calcul est plein d’hypothèses, par exemple pour l’autodécharge. **Rien n’est mesuré.**
-- On ne sait pas encore si la batterie tient une session NFC.
+- L’horloge des codes uniques basés sur le temps n’a pas besoin d’alimentation continue. L’ordinateur la règle quand tu branches la clé, et le code ne naît qu’au moment où tu l’utilises. **Ébauche, pas encore construit.**
+- Pour l’horodatage d’une signature, la clé demande l’heure à un serveur d’horodatage. Elle n’utilise pas sa propre horloge.
+- Une batterie n’aurait apporté que le NFC et le Bluetooth sans ordinateur. En face, il y avait 4 à 5 mm de longueur en plus et une pièce d’usure de quelques années, dans une clé censée durer des décennies.
+
+**À quoi tu renonces :**
+
+- La puce radio ne peut pas tirer son courant du champ NFC. Le NFC et le Bluetooth n’existent donc que tant que la clé est branchée sur un ordinateur.
+- Tenir la clé libre contre un téléphone ne marche plus.
+- Le Bluetooth vers ta propre application ne marche que tant que la clé est branchée sur un ordinateur. Avec la clé au porte-clés, cela ne marche plus.
+- Une deuxième clé ne s’appaire que par USB sur l’ordinateur. Pour cela, les deux clés sont branchées sur le même ordinateur.
+
+C’est un choix voulu. La technique est dans `docs/architecture.md`.
 
 ## Les deux voies de configuration
 

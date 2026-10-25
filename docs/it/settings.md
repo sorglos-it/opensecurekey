@@ -58,6 +58,7 @@ Buono a sapersi:
 - **Tutto ciò che è rischioso è disattivato** finché non lo attivi di proposito.
 - **L'NFC richiede sempre il pulsante.** Anche quando l'NFC dura poco. Questo protegge da un attacco dalla tasca, in cui qualcuno inoltra il collegamento radio.
 - L'indirizzo radio del Bluetooth cambia, in modo che non si possa seguirti.
+- NFC e Bluetooth funzionano solo finché la chiave è inserita in una porta USB. Non ha batteria.
 
 ## Lingua sulla chiave
 

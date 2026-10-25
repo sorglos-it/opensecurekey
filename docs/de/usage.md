@@ -52,6 +52,8 @@ Gut zu wissen:
 
 ## Mit dem Telefon antippen (NFC)
 
+**Nur mit USB-Strom.** Der Stick hat keinen Akku. NFC geht nur, solange er im USB-Anschluss steckt: Das Telefon kommt zum Stick, nicht umgekehrt. Den Stick lose ans Handy halten geht nicht mehr. Ob ein reines USB-Ladegerät ohne Rechner genügt, ist nicht geprüft.
+
 **Stand:** Nie mit einem echten Telefon ausprobiert. Die Reichweite ist nicht gemessen.
 
 - Halte den Stick **näher ans Lesegerät als eine Karte.**
@@ -106,7 +108,7 @@ Der **öffentliche** Teil eines SSH-Schlüssels, Zertifikats oder PGP-Schlüssel
 **Stand: offen.**
 
 - Der Stick kann den Startwert für Einmalcodes speichern, als Eintrag „Einmalcode (Zeit)“ oder „Einmalcode (Zähler)“.
-- Der Akku hält die Uhr am Laufen. Zeitbasierte Codes brauchen die Uhrzeit.
+- Der Stick hat keinen Akku. Der Rechner stellt die Uhr beim Einstecken (**geplant, noch nicht gebaut**). Geht die Uhr des Rechners falsch, stimmen auch die Codes nicht. Zeitbasierte Codes brauchen die Uhrzeit.
 - **Wie der fertige sechsstellige Code in der Oberfläche oder am Stick angezeigt wird, ist in der Technik-Doku nicht beschrieben.** Dazu schreibe ich hier nichts.
 - Der Befehl `osk codes` zeigt **nicht** diese Codes, sondern die Liste der Ausstiegszahlen für Skripte.
 - KeePassXC und VeraCrypt arbeiten mit einem Yubico-Verfahren. Das fehlt noch: **Beide Programme gehen mit dem jetzigen Stand nicht.**

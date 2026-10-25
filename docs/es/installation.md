@@ -96,7 +96,9 @@ Lo que **no** se transmite:
 - todo lo demás
 - una frase de cartera: se crea de forma que no se copie a una segunda llave
 
-El ordenador y el enlace por radio entre las llaves solo ven datos cifrados.
+El emparejamiento se hace solo por USB en el ordenador. Ambas llaves están enchufadas a la vez. No existe una transferencia por radio de llave a llave, porque la llave no tiene batería.
+
+El ordenador al que están enchufadas las dos llaves solo ve datos cifrados.
 
 **Laguna conocida:** La parte pública de las claves SSH, de los certificados y de las claves PGP por ahora **no** pasa a la segunda llave y no está en la copia de seguridad. La clave funciona allí, pero un programa solo puede listarla cuando la parte pública se ha vuelto a guardar.
 

@@ -111,10 +111,8 @@ Ce projet en est au **niveau 2, plus des essais sur l’ordinateur avec des appa
 
 **Nouveau :** cette section est nouvelle. D'autres consignes d'assemblage viendront ici dès que le matériel sera sur la table.
 
-- Le film de ferrite sous la batterie mesure **12,0 mm** de large, **12,5 mm au maximum.** Pas plus large, même pas un peu.
-- Il finit **au ras du bord extérieur de la cellule.** Il ne doit pas être plus étroit non plus : il doit couvrir la cellule.
-- Sinon la cellule bascule.
-- Les cotes ne sont écrites que dans `hardware/layout-notes.md`. Si ce fichier dit autre chose, c'est lui qui a raison.
+- Il n'y a pas encore de consigne contraignante pour l'assemblage. L'ancienne consigne sur le film de ferrite sous la batterie tombe avec la batterie.
+- Les cotes et les consignes ne sont écrites que dans `hardware/layout-notes.md`. Ici, volontairement, aucun chiffre, pour qu'il ne se périme pas de nouveau.
 
 ## Participer
 

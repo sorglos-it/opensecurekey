@@ -96,7 +96,9 @@ Was **nicht** übertragen wird:
 - alles andere
 - ein Krypto-Wallet-Satz: Er wird so angelegt, dass er nicht auf einen zweiten Stick kopiert wird
 
-Der Rechner und die Funkstrecke dazwischen sehen nur verschlüsselte Daten.
+Gekoppelt wird nur über USB am Rechner. Beide Sticks stecken gleichzeitig. Eine Übertragung von Stick zu Stick über Funk gibt es nicht, weil der Stick keinen Akku hat.
+
+Der Rechner, an dem beide Sticks stecken, sieht nur verschlüsselte Daten.
 
 **Bekannte Lücke:** Der öffentliche Teil von SSH-Schlüsseln, Zertifikaten und PGP-Schlüsseln geht bisher **nicht** mit auf den Zweitstick und steht nicht in der Sicherung. Der Schlüssel funktioniert dort, aber ein Programm kann ihn erst auflisten, wenn der öffentliche Teil neu gespeichert wurde.
 
