@@ -2550,3 +2550,57 @@ aber es ist eine Platzierungsänderung und keine Verlegearbeit.
 | `I2C_SCL` | 10,52 | kommt auf eine Innenlage |
 | `I2C_SDA` | 18,53 | dto.; lang, aber langsam |
 | `SE_ENA` | 19,08 | langsam, unkritisch |
+
+# L1 unter U1: Schleife von 20,4 auf 9,54 mm
+
+Stand 25.10.2026. **0 Abstandsfehler.** Vorher durchgerechnet, danach gemessen.
+
+| Teil | von | nach |
+| --- | --- | --- |
+| **L1** | 15,8089 / 23,90 | **16,80 / 14,30** |
+| **C3** | 13,50 / 13,85 | **13,30 / 13,85** |
+| **C5** | 13,50 / 15,70 | **13,30 / 15,70** |
+
+| Weg | vorher | **nachher** |
+| --- | ---: | ---: |
+| `DCCH` L1.1 → U1.31 | 10,14 | **3,587** |
+| `VSYS` L1.2 → U1.30 | 10,26 | **5,949** |
+| **Schleife zusammen** | **20,40** | **9,536** |
+
+## Auflage 1: der Abstand zur Antennenzone, und wie er gemessen ist
+
+**Gemessen von L1s äußerster Kupferkante zur Kante der Freihaltezone**, nicht
+von Mitte zu Mitte:
+
+> L1s rechtes Pad endet bei `x` **18,7865**. Die Zone beginnt bei `x`
+> **23,1484**. → **4,3619 mm.**
+
+Das ist der knappste Weg in der Plattenebene. Dazu, als Tatsache und nicht als
+Beruhigung: **L1 liegt unten, die Antenne oben, dazwischen 0,8 mm Platte und
+die beiden Innenlagen** — und dass dort auf allen vier Lagen Kupfer liegt, ist
+am Gerber belegt, nicht angenommen.
+
+**Dass L1 ungeschirmt ist, bleibt `ungeprueft`** (TDKs Seite antwortet mit
+HTTP 403). Genau deshalb steht die Zahl hier.
+
+## Auflage 2: mehr Luft — und zwar ohne Preis
+
+**Die Frage war, ob L1 ein Zehntel weiter weg kann, ohne die Schleife zu
+verlängern. Die Antwort ist: L1 nicht, C3 und C5 schon.**
+
+Bei L1 ist die Luft allein von `x` bestimmt: weiter nach links geht nicht an
+C3/C5 vorbei, weiter nach rechts kostet Schleife — **0,2 mm Schleife je 0,1 mm
+Luft.** Also habe ich die Kondensatoren bewegt statt der Spule:
+
+| | vorher | **nachher** |
+| --- | ---: | ---: |
+| Luft L1 ↔ C3 | 0,2125 | **0,4125** |
+| Luft L1 ↔ C5 | 0,2125 | **0,4125** |
+| C3.1 → U1.30 | 1,29 | **1,184** |
+| C5.1 → U1.28 | 0,75 | **0,549** |
+
+**Fast das Dreifache der Vorschrift (0,152), und beide Kondensatoren stehen
+dabei näher an ihrem Pin als vorher.** Die Schleife bleibt bei 9,536 mm.
+
+Die Quarzreihe verliert L1 und gewinnt dadurch Platz; X1, C8 und C9 stehen
+unverändert.
