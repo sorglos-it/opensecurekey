@@ -10,15 +10,15 @@
 > keine Dauerversorgung, weil sie beim Einstecken vom Rechner nachgestellt wird
 > und der Code im Moment des Benutzens entsteht. Zeitstempel bei Signaturen holen
 > die Zeit von einem Zeitstempel-Server. Damit kaufte der Akku nur noch NFC und
-> Bluetooth ohne Rechner. Dagegen standen 4 bis 5 mm Länge und ein
+> Bluetooth ohne Rechner. Dagegen standen mehr Länge (wie viel, steht in `hardware/layout-notes.md`) und ein
 > Verbrauchsteil mit wenigen Jahren Lebensdauer in einem Gerät, das Jahrzehnte
 > halten soll. NFC und Bluetooth gibt es nun nur am Rechner — bewusst in Kauf
 > genommen.
 >
 > **Was diese Arbeit ergeben hat, falls die Frage je wieder kommt:**
 >
-> - Die kürzeste passende Zelle (22 mm mit Schutzplatine) sparte nur etwa 4 mm
->   Platine; unter rund 9 mm Zellenlänge bestimmt die Schaltung das Maß.
+> - Die kürzeste passende Zelle (22 mm mit Schutzplatine) sparte nach damaliger Rechnung nur wenige mm
+>   Platine (nachgemessen hat später der Hardware-Strang, siehe `../hardware/layout-notes.md`); unter rund 9 mm Zellenlänge bestimmt die Schaltung das Maß.
 > - 100 mAh waren nach der Rechnung die kleinste Kapazität, die alle drei
 >   Betriebsfälle trug. Der Sprung auf 150 mAh kaufte im ungünstigen Satz nur
 >   7 Tage.

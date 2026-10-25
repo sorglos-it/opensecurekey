@@ -29,6 +29,8 @@ Schutzplatine, das Laden. Die Entscheidung und ihre Gründe stehen in
 [`zellen.md`](zellen.md). Der volle Wortlaut der alten Rechnung liegt im
 Git-Verlauf dieser Datei (Commit `87a19c1`).
 
+**Offen:** Ob NFC und Bluetooth ganz entfallen, ist nicht entschieden (ein Strang prüft es). Diese Datei behandelt beide weder als gesetzt noch als gestrichen.
+
 **Folge für die Funkwege:** Der nRF52840 kann sich **nicht** aus dem NFC-Feld
 versorgen. NFC und Bluetooth gibt es damit nur, solange USB den Stick versorgt —
 am Rechner. Das ist bewusst in Kauf genommen. Was Nutzer dadurch verlieren,

@@ -32,7 +32,7 @@ La llave no tiene batería, a propósito. Funciona solo mientras está enchufada
 
 - El reloj de los códigos únicos basados en el tiempo no necesita alimentación continua. Lo pone en hora el ordenador al enchufar la llave, y el código nace solo en el momento de usarlo. **Borrador, todavía no construido.**
 - Para la marca de tiempo de una firma, la llave pide la hora a un servidor de marcas de tiempo. No usa su propio reloj.
-- Una batería solo habría dado NFC y Bluetooth sin ordenador. En contra había 4 a 5 mm más de longitud y una pieza de desgaste con pocos años de vida, en una llave que debe durar décadas.
+- Una batería solo habría dado NFC y Bluetooth sin ordenador. En contra había más longitud (cuánto, está en `hardware/layout-notes.md`) y una pieza de desgaste con pocos años de vida, en una llave que debe durar décadas.
 
 **A qué renuncias:**
 

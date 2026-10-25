@@ -46,7 +46,7 @@ The reasons the battery went:
   is made at the moment of use. Timestamps on signatures take the time from a
   timestamp server, not from the device.
 - **What was left to buy** was NFC and BLE without a computer. Against that stood
-  4 to 5 mm of length and a consumable with a few years of life in a device meant
+  more length (how much is in `hardware/layout-notes.md`) and a consumable with a few years of life in a device meant
   to last decades.
 
 **A consequence for the firmware:** the device loses its supply at the moment it
