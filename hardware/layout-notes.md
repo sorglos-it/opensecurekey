@@ -2957,3 +2957,65 @@ Schätzungen und kaum besser als die 10,14 vom Anfang.**
 > zu schreiben: **jede Verschiebung von C12 nach unten oder oben kostet
 > genau diesen Abstand**, und zu messen ist er erst, wenn ein Zielpunkt
 > feststeht.
+
+# Der Stecker: Datenblatt gelesen, und es sagt zu CC nicht, was wir wissen wollten
+
+Stand 25.10.2026. Quelle: **GCT-Zeichnung USB4155, Blatt 1 und 2 von 4**,
+Ausgabe 12.04.2021, Rev. A4 — als PDF geholt und selbst angesehen, nicht über
+eine Beschreibung.
+
+## Was belegt ist
+
+| | |
+| --- | --- |
+| Produkt | „USB3.2 Gen2 **Type C Plug**, Horizontal, SMT" |
+| **Plattendicke** | **0,8 bis 1,0 mm** — passt auf unsere 0,8 |
+| Platinentiefe im Lötbild | **2,50 mm** ab „PCB Edge" |
+| Strom | 5,00 A für VBUS zusammen, 6,25 A für GND, **1,25 A für A5/B5** |
+| Spannung | 48 V DC |
+| **SHELL** | **GND** — die beiden Schirmpins liegen auf Masse |
+| Lebensdauer | 10 000 Steckzyklen |
+
+## Was das Datenblatt **nicht** sagt
+
+Die Pintabelle führt:
+
+| Pin | Signal | Description |
+| --- | --- | --- |
+| **A5** | **CC1** | Configuration Channel |
+| **B5** | **CC2** | Configuration Channel |
+
+> **Beide heißen „Configuration Channel". Das Wort `VCONN` kommt in der
+> Zeichnung nicht vor.** Welcher der beiden Pins beim Stecken die CC-Leitung
+> führt und welcher VCONN wird, **steht dort nicht.**
+
+**Das ist genau der Fall, für den die Ansage galt: melden, statt zu wählen.**
+
+## Die Entscheidung und was sie trägt
+
+**Thomas hat entschieden: Rd 5,1 kΩ nur auf `CC1` (A5), `R16` entfällt, `CC2`
+bleibt offen.**
+
+Dazu, was ich dazu sagen kann und was nicht:
+
+- **Stützend:** Die übliche Festlegung für Stecker ist CC auf **A5**, VCONN auf
+  B5. Die Entscheidung stimmt damit überein.
+- **Nicht belegt:** Diese Festlegung steht **nicht in dieser Zeichnung**. Sie
+  ist Konvention, nicht Herstellerangabe.
+
+> **Was schiefginge, wenn es umgekehrt wäre:** Der Rd läge auf VCONN, die
+> CC-Leitung bliebe offen — das Gerät würde vom Host **gar nicht erkannt** und
+> bekäme keinen Strom. Das merkt man erst am fertigen Brett.
+>
+> **Bleibt als offener Punkt stehen**, bis es aus einer Quelle kommt, die den
+> Pin benennt — Steckerbelegung aus der USB-C-Spezifikation oder eine Auskunft
+> von GCT. Die Zeichnung allein reicht nicht.
+
+## Für die Stückliste
+
+**GCT `USB4155-03-C`, LCSC `C5183853`.**
+
+> **Achtung beim Nachbestellen:** Die Bibliothekssuche nach „USB4155" liefert
+> **drei** Treffer, davon **zwei Platzhalter** — `C9900282109`
+> („TYPEC-24PIN L=15.5MM") und `C9900245240` („USB4155-03C", ohne Bindestrich
+> vor dem C). **Nur `C5183853` hat Hersteller, Datenblatt und Maße.**
