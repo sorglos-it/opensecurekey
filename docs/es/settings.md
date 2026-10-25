@@ -58,6 +58,7 @@ Bueno saber:
 - **Todo lo arriesgado está desactivado** hasta que lo actives a propósito.
 - **NFC siempre necesita el botón.** Incluso cuando NFC dura poco. Eso protege de un ataque desde el bolsillo en el que alguien retransmite la conexión por radio.
 - La dirección de radio de Bluetooth cambia para que no se pueda seguirte.
+- NFC y Bluetooth funcionan solo mientras la llave está enchufada a un puerto USB. No tiene batería.
 
 ## Idioma en la llave
 

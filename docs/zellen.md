@@ -1,4 +1,43 @@
-# Kleine LiPo-Zellen mit Schutzschaltung
+# Kleine LiPo-Zellen mit Schutzschaltung — erledigt, hinfällig
+
+> **Status 25.10.2026: Entscheidung gefallen, die Zellenwahl entfällt.**
+> Thomas hat entschieden, den Akku ganz zu streichen: keine Zelle, kein
+> Laderegler, keine Schutzschaltung; das Gerät läuft nur aus USB. Diese Liste
+> wird nicht mehr gebraucht. Sie bleibt stehen, damit niemand die Arbeit neu
+> macht — **nicht als Einkaufsliste lesen.**
+>
+> **Warum der Akku fiel:** Die Uhr für zeitbasierte Einmalcodes (TOTP) braucht
+> keine Dauerversorgung, weil sie beim Einstecken vom Rechner nachgestellt wird
+> und der Code im Moment des Benutzens entsteht. Zeitstempel bei Signaturen holen
+> die Zeit von einem Zeitstempel-Server. Damit kaufte der Akku nur noch NFC und
+> Bluetooth ohne Rechner. Dagegen standen 4 bis 5 mm Länge und ein
+> Verbrauchsteil mit wenigen Jahren Lebensdauer in einem Gerät, das Jahrzehnte
+> halten soll. NFC und Bluetooth gibt es nun nur am Rechner — bewusst in Kauf
+> genommen.
+>
+> **Was diese Arbeit ergeben hat, falls die Frage je wieder kommt:**
+>
+> - Die kürzeste passende Zelle (22 mm mit Schutzplatine) sparte nur etwa 4 mm
+>   Platine; unter rund 9 mm Zellenlänge bestimmt die Schaltung das Maß.
+> - 100 mAh waren nach der Rechnung die kleinste Kapazität, die alle drei
+>   Betriebsfälle trug. Der Sprung auf 150 mAh kaufte im ungünstigen Satz nur
+>   7 Tage.
+> - Die **Selbstentladung** entschied die Laufzeit stärker als die Kapazität —
+>   und sie war der größte offene Posten: belegt war nur ein Prüfkriterium
+>   („über 80 % nach 28 Tagen"), kein wirklicher Wert; Faktor 10 zur Annahme.
+> - Der **Eigenverbrauch der Schutzplatine** (YDL: bis 7 µA) kostete ein Drittel
+>   der Laufzeit; bei den anderen Zellen stand er nicht im Datenblatt.
+> - Für die beiden passenden Zellen (YDL 402020, LiPol LP302024) gab es keinen
+>   belegten europäischen Händler.
+>
+> Die volle Rechnung steht im Git-Verlauf von `docs/stromaufnahme.md` (damals
+> `docs/energiebudget.md`, Commit `87a19c1`). **Die Stromaufnahmen selbst gelten
+> weiter**, siehe [`stromaufnahme.md`](stromaufnahme.md).
+>
+> **Die Platinenlängen unten sind Geschichte.** Die gültige Platinenlänge steht
+> in `../hardware/`; nicht aus dieser Datei übernehmen.
+
+---
 
 Stand 25.10.2026. Gesucht waren Zellen **kürzer als 25 mm** bei höchstens
 **4,05 mm** Dicke und rund **24 mm** Breite, mit **eingebauter Schutzschaltung**
@@ -77,7 +116,7 @@ bestimmt die Schaltung das Maß, und 22 mm sind weit davon entfernt. Von den
 | **Eigenverbrauch der Schutzplatine** | **1,0 bis 7,0 µA** (Betrieb), max. 1 µA (Power-down) | nicht genannt | nicht genannt |
 
 **Der Eigenverbrauch ist der Haken.** Das Energiebudget des Geräts rechnet mit
-**9,5 µA Ruhestrom insgesamt** (`docs/power-budget.md`, Abschnitt Laufzeit).
+**9,5 µA Ruhestrom insgesamt** (frühere Fassung von `docs/power-budget.md`; die Stromzahlen jetzt in `docs/stromaufnahme.md`).
 Die YDL-Schutzplatine allein zieht laut eigenem Datenblatt **bis zu 7,0 µA im
 Betrieb** — das wäre fast das ganze Ruhebudget. Bei den anderen beiden Zellen
 steht dazu **gar nichts** im Datenblatt. Das ist kein Nebensatz: Diese eine
@@ -87,8 +126,7 @@ Zahl kann die Laufzeit stärker verändern als die Kapazität.
 
 1. **Die Kapazitätswahl steht auf keiner Rechnung, die kleinere Zellen
    abdeckt.** Es gibt zwar ein gerechnetes Energiebudget
-   (`docs/power-budget.md` vom 23.10.2026: 0,577 mAh Tagesverbrauch, 150 mAh →
-   rund 208 Tage), aber es ist **gerechnet, nicht gemessen** — nichts davon lief
+   (frühere Fassung von `docs/power-budget.md` vom 23.10.2026), aber es ist **gerechnet, nicht gemessen** — nichts davon lief
    auf Hardware — und es behandelt nur 150 und 100 mAh. Für 40 mAh ist nichts
    gerechnet. **Hier wird bewusst keine Zelle empfohlen**: ohne zu wissen, wie
    lange sie hält, wäre eine Empfehlung dieselbe Art Fehler, die in diesem
@@ -136,7 +174,7 @@ soll, ein eigenes Risiko und sollte vor jeder Entscheidung geklärt werden.
 | LiPol LP302024: 24 ± 1,0 × 20 ± 0,5 × 3,0 ± 0,3 mm mit PCM, 100 mAh min./110 typ., AWG28-Litzen, Schutzwerte | LiPol Battery Co., Ltd, Zeichnung FD_2024_30, Index 1, „Specification LP302024 100mAh 3.7V with Protection Circuit Module (PCM)" | Zeichnung 12.05.2021, abgerufen 25.10.2026 |
 | PKCELL LP402025: 25 ± 0,3 × 20 ± 0,3 × 4,0 ± 0,3 mit PCM, 150 mAh nom./142 min., S-8261AAJMD + 8814, JST PH-2P | Shenzhen PKCELL Battery Co., Ltd, „Li-Polymer Battery Technology Specification 402025 150mAh 3.7V **with PCM**", Dokument QA.S.0228, Edition A, Form 1 und Abschn. 11 (Pack-Zeichnung) | gültig ab 28.07.2014, abgerufen 25.10.2026 |
 | Adafruit 1317: 19,75 × 26,02 × 3,8 mm | Adafruit-Produktseite 1317 (Händlerangabe, **nicht** Datenblatt — steht hier nur als Gegenprobe) | abgerufen 25.10.2026 |
-| Tagesverbrauch 0,577 mAh, Ruhestrom 9,5 µA, 208 Tage | `docs/power-budget.md` im eigenen Repo | 23.10.2026 |
+| Tagesverbrauch 0,577 mAh, Ruhestrom 9,5 µA, 208 Tage | früherer Stand von `docs/power-budget.md` im eigenen Repo | 23.10.2026 |
 
 Die vier Datenblatt-PDFs lagen zum Lesen im Zwischenspeicher dieser Sitzung und
 sind **nicht** ins Repo gelegt worden; die Fundstellen oben sind so genau

@@ -71,7 +71,7 @@ General tips (not tried on the key):
 1. Try another USB port.
 2. Another cable, or plug straight into the computer, without a hub.
 3. Unplug the key, plug it in, restart the program.
-4. Is the battery perhaps empty? Let it charge.
+4. The key has no battery and takes all its power from the USB port. If the screen stays dark, it gets no power: try another port (point 1).
 
 What else matters:
 
@@ -122,6 +122,7 @@ In an emergency the sign-in part (FIDO) can be reset.
 - The key calls itself **FIDO 2.0 and 2.1.** Commands to manage passkeys (list, delete) and to enrol fingerprints in the browser **do not exist.**
 - The key reports **no built-in user verification** (`uv`) as long as no sensor is inside. That is correct. The PIN is reported separately.
 - Over **Bluetooth** there is **no** sign-in in the browser. Browsers do not support FIDO over Bluetooth reliably. Use USB or NFC.
+- NFC and Bluetooth work only while the key is plugged into a USB port. Held loose against a phone, nothing works.
 - The **signature counter** starts at zero at every power-on. A site that insists on growing counters might take the key for a copy.
 - The **manufacturer ID** (AAGUID) is provisional.
 

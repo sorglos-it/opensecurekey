@@ -179,8 +179,12 @@ biometrics replace the PIN rather than adding a factor.
 | locked | `status.locked` | red |
 | unlocked | `status.unlocked` | green |
 | working | `status.busy` | amber |
-| battery low | `status.battery` | amber |
 | error | `status.error` | red |
+
+There is no "battery low" state any more: the battery was dropped on
+25 October 2026. The text key `status.battery` still exists in
+`apps/firmware/lang/` and in the UI code and has to be removed there; it is
+not part of this change.
 
 The LED repeats what the display says — as an addition, never as a
 replacement. Anyone who cannot tell the colours apart reads the text.
@@ -211,7 +215,7 @@ older firmware suites are.
   It needs a devicetree overlay with the nodes `oled`, `oled_dc`, `oled_res`,
   `oled_pwr`, `osk_button` and `osk_led_*`, which does not exist yet.
 - Contrast, readability, viewing angle, burn-in, current draw: nothing
-  measured. The power budget in `docs/power-budget.md` is on paper.
+  measured. The current draw in `docs/stromaufnahme.md` is on paper.
 - Button timings are checked against a clock that is a number. Whether 800 ms
   feels right in the hand is unknown.
 

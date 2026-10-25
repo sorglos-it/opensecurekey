@@ -1,5 +1,12 @@
 # Fingerabdrucksensor — zweiter Durchgang: es gibt jetzt einen
 
+> **Stand 25.10.2026: Der Akku entfällt.** Die Abschnitte unten, die die Bauhöhe am
+> Akku (3,8 mm) messen, die Zellenbreite oder die Akkukapazität erwähnen, sind
+> Verlauf: Die Höhe bestimmt jetzt nicht mehr die Zelle. Was die Bauhöhe jetzt
+> bestimmt, steht in `../hardware/layout-notes.md`, nicht hier. Die Sensorströme
+> (Ruhe 14 µA, Erkennung 17 mA) gelten weiter, siehe
+> [stromaufnahme.md](stromaufnahme.md).
+
 Der erste Durchgang (siehe [parts.md](parts.md), Abschnitt „Fingerabdrucksensor")
 kam zu dem Ergebnis: **kein geprüfter Kandidat erfüllt alle vier Bedingungen.**
 Daraufhin wurde entschieden: Stufe 1 ohne Sensor, Stiftfeld J5 vorgesehen, nicht

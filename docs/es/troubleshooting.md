@@ -71,7 +71,7 @@ Consejos generales (no probados en la llave):
 1. Probar otro puerto USB.
 2. Otro cable, o directamente al ordenador, sin concentrador.
 3. Desconectar la llave, volver a conectarla, reiniciar el programa.
-4. ¿Quizá la batería está vacía? Dejar que se cargue.
+4. La llave no tiene batería y toma toda su corriente del puerto USB. Si la pantalla sigue oscura, no recibe corriente: prueba otro puerto (punto 1).
 
 Qué más cuenta:
 
@@ -122,6 +122,7 @@ En una emergencia se puede restablecer la parte de inicio de sesión (FIDO).
 - La llave se anuncia como **FIDO 2.0 y 2.1.** Los comandos para administrar passkeys (listar, borrar) y para registrar huellas dactilares en el navegador **no existen.**
 - La llave **no informa de ninguna verificación de usuario integrada** (`uv`) mientras no haya un sensor dentro. Así es correcto. El PIN se informa por separado.
 - Por **Bluetooth** **no** hay inicio de sesión en el navegador. Los navegadores no admiten FIDO por Bluetooth de forma fiable. Usa USB o NFC.
+- NFC y Bluetooth funcionan solo mientras la llave está enchufada a un puerto USB. Suelta junto al teléfono, no funciona nada.
 - El **contador de firmas** empieza en cero cada vez que se enciende. Una página que insista en contadores crecientes podría tomar la llave por una copia.
 - El **identificador del fabricante** (AAGUID) es provisional.
 

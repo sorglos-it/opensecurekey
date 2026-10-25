@@ -96,7 +96,9 @@ Che cosa **non** viene trasferito:
 - tutto il resto
 - una frase del portafoglio di criptovalute: viene creata in modo da non essere copiata su una seconda chiave
 
-Il computer e il collegamento radio in mezzo vedono solo dati cifrati.
+L'accoppiamento avviene solo via USB al computer. Entrambe le chiavi sono inserite nello stesso momento. Non esiste un trasferimento via radio da chiave a chiave, perché la chiave non ha batteria.
+
+Il computer a cui sono inserite entrambe le chiavi vede solo dati cifrati.
 
 **Lacuna nota:** La parte pubblica delle chiavi SSH, dei certificati e delle chiavi PGP per ora **non** passa alla seconda chiave e non è nella copia di sicurezza. La chiave funziona lì, ma un programma può elencarla solo dopo che la parte pubblica è stata salvata di nuovo.
 

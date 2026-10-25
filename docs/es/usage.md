@@ -52,6 +52,8 @@ Bueno saber:
 
 ## Acercar al teléfono (NFC)
 
+**Solo con corriente USB.** La llave no tiene batería. NFC funciona solo mientras está enchufada a un puerto USB: el teléfono va hacia la llave, no al revés. Acercar la llave suelta al teléfono ya no funciona. No se ha comprobado si basta un simple cargador USB sin ordenador.
+
 **Estado:** nunca probado con un teléfono real. El alcance no se ha medido.
 
 - Sostén la llave **más cerca del lector que una tarjeta.**
@@ -106,7 +108,7 @@ La parte **pública** de una clave SSH, de un certificado o de una clave PGP sal
 **Estado: abierto.**
 
 - La llave puede guardar el valor inicial de los códigos de un solo uso, como entrada "Código único (tiempo)" o "Código único (contador)".
-- La batería mantiene el reloj en marcha. Los códigos basados en el tiempo necesitan la hora.
+- La llave no tiene batería. El ordenador pone en hora el reloj al enchufarla (**previsto, todavía no construido**). Si el reloj del ordenador va mal, los códigos también. Los códigos basados en el tiempo necesitan la hora.
 - **Cómo se muestra el código de seis cifras ya terminado en la interfaz o en la llave no está descrito en la documentación técnica.** Sobre eso no escribo nada aquí.
 - El comando `osk codes` **no** muestra estos códigos, sino la lista de los números de salida para scripts.
 - KeePassXC y VeraCrypt trabajan con un procedimiento de Yubico. Eso todavía falta: **Ninguno de los dos programas funciona con el estado actual.**

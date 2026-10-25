@@ -4,6 +4,11 @@ Stand 23.10.2026. Alle Zahlen stammen aus den unten genannten Datenblättern, ni
 aus dem Gedächtnis. Preise und Lagerbestände sind Momentaufnahmen und mit
 `ungeprueft` markiert, wo sie nicht direkt beim Händler bestätigt wurden.
 
+> **Der Akku entfällt (Entscheidung von Thomas, 25.10.2026).** Keine Zelle, kein
+> Laderegler, keine Schutzschaltung; das Gerät läuft nur aus USB. Die Abschnitte
+> „Laden", „Akkuschutz" und „Akku" unten sind erledigt und nur noch Verlauf.
+> Gründe: [`zellen.md`](zellen.md).
+
 Zwei Spalten: **Teststand** ist, was jetzt zu bestellen ist, um die Technik zu
 beweisen. **Zielplatine** ist, was später auf die eigene Platine kommt.
 
@@ -16,9 +21,9 @@ beweisen. **Zielplatine** ist, was später auf die eigene Platine kommt.
 | Flash | auf dem DK vorhanden | **W25Q512JVEIQ** (3 V, 512 Mbit = 64 MByte, WSON8) |
 | OLED | Crystalfontz **CFAL12864N-A-B4** (0,96") | **CFAL4864A-071BW** (0,71", 13,9 × 22 × 1,26 mm) |
 | Fingerabdruck | — | **nicht bestückt** (Stufe 1 ohne Sensor, Stiftfeld J5 vorgesehen) |
-| Laderegler | — (DK läuft am USB) | **MCP73832T-2ACI/OT** + diskrete Lastumschaltung |
-| Akkuschutz | — | **keiner** — Zelle mit PCM + Verpolschutz |
-| Akku | — | **Adafruit 1317** (150 mAh) oder BerryBase **LP-401230-J** (100 mAh) |
+| Laderegler | — | *entfällt* (Akku gestrichen, 25.10.2026) |
+| Akkuschutz | — | *entfällt* |
+| Akku | — | *entfällt* |
 | USB-C | auf dem DK vorhanden | **GCT USB4085-GF-A** + 2 × 5,1 kΩ + USBLC6-2SC6 |
 | NFC-Antenne | **liegt dem DK bei** | als Leiterbahn auf der Platine |
 | Taster | auf dem DK vorhanden | **Panasonic EVQP7A01P** (1,35 mm hoch, 2,2 N) |
@@ -110,8 +115,9 @@ Aus **SE051 Datenblatt Rev. 2.0, Tabelle 11** (VSS = 0 V, −40 °C bis 105 °C)
 | Power-down (Zustand bleibt) | 430 µA | 480 µA |
 | **Deep Power-down (Zustand weg)** | **3 µA** | 5 µA |
 
-Wichtig für das Energiebudget: 430 µA im Power-down sind für ein Gerät am Akku
-**viel zu viel**. Der Chip muss über den ENA-Pin in Deep Power-down (3 µA)
+Wichtig für die Stromaufnahme ([`stromaufnahme.md`](stromaufnahme.md)): Die
+frühere Begründung „430 µA sind für ein Gerät am Akku **viel zu viel**" ist mit
+dem Akku gefallen. Der Befund bleibt; die neue Begründung steht dort. Der Chip soll über den ENA-Pin in Deep Power-down (3 µA)
 gelegt werden, wenn nichts zu tun ist. Dafür muss laut Datenblatt Abschnitt 5.2
 `Vin` versorgt und `VCC` aus `Vout` gespeist werden — das ist eine
 Beschaltungsvorgabe, nicht nur Software. Siehe `hardware/schematic.md`.
@@ -315,7 +321,7 @@ würde eine 1,8-V-Schiene erzwingen, was Sicherheitschip und OLED auf der
 beschaffbar** (Winbond-Seite: „part no. is not available"); alle Ströme des NW
 sind `ungeprueft`.
 
-**Wichtig fürs Energiebudget:** Der QSPI des nRF52840 deckelt bei **32 MHz**
+**Wichtig für die Stromaufnahme:** Der QSPI des nRF52840 deckelt bei **32 MHz**
 (SCK = 32 MHz/(SCKFREQ+1), SCKFREQ 0–15). Die 133 MHz der JV sind also nie das
 Nadelöhr. Einen Datenblattwert für 32 MHz gibt es nicht (`ungeprueft`, nicht
 interpoliert) — gerechnet wird mit den 20 mA der 50-MHz-Spalte.
@@ -333,6 +339,10 @@ Recherche nicht erreichbar, LCSC-Preise nicht abrufbar. **Vor der Bestellung
 klären.** WSON8 hat außerdem **keinen /RESET-Pin**.
 
 ## Laden: MCP73832, nicht MCP73831
+
+> **Entfallen am 25.10.2026:** Der Akku ist gestrichen. Dieser Abschnitt bleibt als
+> Verlauf stehen und ist **keine Einkaufsliste mehr.** Gründe: [`zellen.md`](zellen.md).
+
 
 Quelle: **Microchip DS20001984H**, MCP73831/2, Rev. H.
 
@@ -393,6 +403,10 @@ DPPM, 4,3 µA statt 30 µA, 3 × 3 statt 4 × 4 mm, fast gleicher Preis.
 
 ## Akkuschutz: keiner auf der Platine — aber Verpolschutz
 
+> **Entfallen am 25.10.2026:** Der Akku ist gestrichen. Dieser Abschnitt bleibt als
+> Verlauf stehen und ist **keine Einkaufsliste mehr.** Gründe: [`zellen.md`](zellen.md).
+
+
 Der Entwurf nannte `DW01A` + `FS8205`. Das ist für dieses Gerät die falsche
 Wahl, und zwar aus einem einfachen Grund: **die käufliche Zelle hat den Schutz
 schon eingebaut.**
@@ -432,6 +446,10 @@ Ein Schutz-IC **mit** eingebauten MOSFETs wurde nicht gefunden; S-8261, BQ2970
 und die Ricoh-Teile brauchen alle ein externes Dual-FET.
 
 ## Akku
+
+> **Entfallen am 25.10.2026:** Der Akku ist gestrichen. Dieser Abschnitt bleibt als
+> Verlauf stehen und ist **keine Einkaufsliste mehr.** Gründe: [`zellen.md`](zellen.md).
+
 
 Fünf Angaben des Entwurfs waren falsch und sind berichtigt: Adafruit 4236 hat
 **420 mAh** (nicht 105), Adafruit 3898 ist 7,8 mm **zu dick**, SparkFun
@@ -558,7 +576,7 @@ ein SSD1315 sein).
 **SH1106 nicht nehmen:** 132 statt 128 Spalten heißt Offset-Gefummel im
 Treiber, und er braucht mit VDD1 + VDD2 + VPP eine Schiene mehr.
 
-**Wichtig für das Energiebudget:** Die oft zitierten 50 µA / 430 µA aus dem
+**Wichtig für die Stromaufnahme:** Die oft zitierten 50 µA / 430 µA aus dem
 SSD1306-Datenblatt (Rev 1.1, April 2008, Tab. 12-1) sind die **IC-Ströme bei
 extern angelegten 12 V ohne Panel-Last** — nicht der Modulstrom. Der reale
 Verbrauch entsteht fast vollständig im Ladungspumpen- und Panelzweig.
@@ -566,7 +584,7 @@ Crystalfontz nennt für das 0,96"-Glas 16 mA typisch, für das 0,71" max. 25 mA.
 Sleep ist bei beiden Controllern max. 10 µA.
 
 **Offen:** Der Modulstrom eines 0,71"-Glases bei 3,3 V mit aktiver
-Ladungspumpe ist aus keiner gelesenen Quelle belegt. Das Energiebudget rechnet
+Ladungspumpe ist aus keiner gelesenen Quelle belegt. [`stromaufnahme.md`](stromaufnahme.md) rechnet
 darum mit den 25 mA der Herstellerseite als obere Grenze.
 
 ## Taster und LED
@@ -595,17 +613,20 @@ die Firmware.
 Quelle: Everlight DSE-0021229, Rev. 4, 08.11.2022.
 
 **Keine WS2812B/SK6812.** Grund, belegt aus dem Worldsemi-Datenblatt
-WS2812B-Mini-V3/W: **Ruhestrom < 0,6 mA im Dauerbetrieb** — allein davon wäre
-eine 100-mAh-Zelle in etwa 7 Tagen leer (eigene Rechnung). Dazu braucht sie
-mindestens 3,7 V, was eine halb entladene LiPo nicht mehr liefert, und ihr
-3535-Gehäuse ist fast fünfmal so groß. Die diskrete LED hat **null**
+WS2812B-Mini-V3/W: **Ruhestrom < 0,6 mA im Dauerbetrieb**. Das ist das Achtzigfache des gesamten
+übrigen Ruhestroms (≈ 7,5 µA, [`stromaufnahme.md`](stromaufnahme.md)). Die frühere
+Begründung — damit wäre eine 100-mAh-Zelle in etwa 7 Tagen leer — ist mit dem
+Akku gefallen; der Befund bleibt, und gegen das USB-Suspend-Limit (`ungeprueft`,
+dort beschrieben) wären es ein Viertel. Außerdem braucht sie mindestens 3,7 V,
+und ihr 3535-Gehäuse ist fast fünfmal so groß. Die diskrete LED hat **null**
 Ruhestrom.
 
 **Achtung beim Löten:** Der ESD-Schutz der Everlight ist bei blau und grün nur
 **150 V** (rot 2000 V). Handlöten höchstens 350 °C / 3 s.
 
 **Offen:** Blau und grün haben VF bis 3,2 V — an einer 3,3-V-Schiene ist das
-knapp, mit entladener Zelle (3,0 V) reicht es nicht. Entweder mit reduziertem
+knapp. (Der Fall „entladene Zelle mit 3,0 V" ist mit dem Akku entfallen; die
+Schiene bleibt 3,3 V.) Entweder mit reduziertem
 Strom betreiben, oder rot als Hauptfarbe nutzen, oder einen Aufwärtswandler
 prüfen. **Nicht gerechnet** — gehört in den Schaltplan-Feinschliff.
 Der Einzelstückpreis ist `ungeprueft`.
@@ -622,10 +643,8 @@ Ehrlich gesagt, damit niemand auf einer Zahl aufbaut, die es nicht gibt:
   ckswitches.com, der Download der USB-Type-C-Spezifikation.
 - **W25Q512NW: kein Datenblatt beschaffbar.** Alle Ströme, die WSON8-Belegung
   und die Bestellcode-Auflösung fehlen.
-- **Der diskrete Power-Path ist nicht durchgerechnet.**
-- **Der Pulsstrom ist bei keiner Zelle belegt**, die Selbstentladung bei keiner.
-- **Die thermische Auslegung des MCP73832 ist nicht gerechnet** (~180 mW im
-  SOT-23-5 bei 5 V / 3,2 V / 100 mA).
+- *(Entfallen mit dem Akku: Power-Path, Pulsstrom und Selbstentladung der Zelle,
+  Wärme im MCP73832.)*
 - `SE050C2`-Abkündigung und das „not recommended" für LCSC C424093 stammen von
   Aggregatoren, nicht von den Herstellern.
 

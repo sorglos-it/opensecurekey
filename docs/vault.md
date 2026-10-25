@@ -136,11 +136,14 @@ sealed envelope, one per person.
 
 ## A second device
 
-Two devices can be paired, and then the second one is a real spare.
+Two devices can be paired, and then the second one is a real spare. Both have
+to be plugged into the same computer: the transfer runs over USB at the
+computer only, since the sticks have no battery and no radio of their own without
+USB power.
 
 Both show a six-digit number. If the numbers match, press on both; if they do
 not, somebody is sitting between them and nothing is transferred. The computer
-or the radio link in between only ever sees encrypted data — it can record
+in between only ever sees encrypted data — it can record
 everything and understand nothing.
 
 What goes over: the entries you marked as "may be mirrored". What never goes

@@ -21,20 +21,43 @@ Computer / phone
               keys, certificates, signing            vault: AES-256-GCM
               never hands a key out                  + read-only drive image
 
-              battery (LiPo, charges over USB) → NFC/BLE without a computer,
-                                                  and the clock keeps running
+              no battery: everything runs from USB, NFC and BLE included
+              (they exist only while the stick is plugged in)
 ```
 
 The nRF52840 does the talking; the SE050 holds every secret. This split exists
 because the nRF52840's own read protection has been defeated with voltage glitches
 in the past. A broken nRF52840 leaks nothing on its own.
 
-## Why a battery
+## Why no battery
 
-The nRF52840 cannot harvest power from an NFC field — a YubiKey can, because there
-a plain smart card chip answers. Here the firmware answers, so the device needs
-its own power for NFC and Bluetooth. The battery also keeps the clock running,
-which TOTP and timestamps need.
+On 25 October 2026 the battery was dropped altogether: no cell, no charger, no
+protection circuit. The device runs from USB only.
+
+The nRF52840 cannot harvest power from an NFC field — a YubiKey can, because
+there a plain smart card chip answers. Here the firmware answers, so NFC and
+Bluetooth need the stick to be powered. **They now exist only at the computer.**
+That was accepted on purpose.
+
+The reasons the battery went:
+
+- **The clock needs no continuous supply.** For time-based one-time codes (TOTP)
+  the clock is set from the computer when the stick is plugged in, and the code
+  is made at the moment of use. Timestamps on signatures take the time from a
+  timestamp server, not from the device.
+- **What was left to buy** was NFC and BLE without a computer. Against that stood
+  4 to 5 mm of length and a consumable with a few years of life in a device meant
+  to last decades.
+
+**A consequence for the firmware:** the device loses its supply at the moment it
+is pulled out, and there is no buffer any more. A write to the flash or to the
+security chip that has begun must survive that. Nothing in the code has been
+checked against it yet.
+
+Open: who hands the time to the device when it is plugged in is not decided (see
+`dongle-firmware.md`), and a wrong computer clock sets a wrong device clock. The
+current draw that remains is in `docs/stromaufnahme.md`; the cell study that
+ended with this decision is in `docs/zellen.md`.
 
 ## Two key modes, chosen per profile
 

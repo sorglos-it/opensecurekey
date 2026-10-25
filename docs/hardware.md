@@ -7,10 +7,18 @@ hat ihre Quelle dabei; Unbelegtes ist als `ungeprueft` gekennzeichnet.
 | Dokument | Inhalt |
 | --- | --- |
 | [parts.md](parts.md) | Stückliste mit Bestellnummern, Preisen und Begründungen |
-| [power-budget.md](power-budget.md) | Energiebudget, Akkugröße, Laufzeit |
+| [power-budget.md](power-budget.md) | Versorgung aus USB (`VDDH`, 25-mA-Grenze) |
+| [stromaufnahme.md](stromaufnahme.md) | Stromaufnahmen mit Datenblattstellen |
+| [zellen.md](zellen.md) | Zellenwahl — erledigt, der Akku entfällt |
 | [../hardware/schematic.md](../hardware/schematic.md) | Schaltplan als Netzliste, Pin für Pin |
 | [../hardware/pinout.md](../hardware/pinout.md) | Pinbelegung, gegen den nRF52840 geprüft |
 | [../hardware/layout-notes.md](../hardware/layout-notes.md) | Bauform und Layout-Vorgaben |
+
+> **Der Akku entfällt (Entscheidung von Thomas, 25.10.2026).** Keine Zelle, kein
+> Laderegler, keine Schutzschaltung; das Gerät läuft nur aus USB. NFC und
+> Bluetooth gibt es damit nur am Rechner. Was in diesem Dokument noch vom Akku
+> redet, ist als überholt gekennzeichnet; Maße und Platinenlänge stehen in
+> `../hardware/`, nicht hier. Die Gründe stehen in [zellen.md](zellen.md).
 
 ## Was sich gegenüber dem Entwurf geändert hat
 
@@ -20,16 +28,16 @@ Sechs Punkte, alle mit Datenblattbeleg in den Einzeldokumenten:
 | --- | --- | --- |
 | `SE050C2HQ1` oder die E-Variante | **`SE051C2HQ1/Z01XDZ`** | SE050E2 hat **kein RSA**; SE051C2 hat secp256k1, Ed25519 **und** RSA, dazu 104 statt 50 kB Speicher, und ist lagernd |
 | Teststand `OM-SE050ARD-E` | **MIKROE-5392** | trägt den Zielchip SE051C2 statt der falschen Variante, und kostet weniger als die Hälfte |
-| `MCP73831` | **`MCP73832`** | der Statusausgang ist an einem GPIO zuverlässig lesbar |
-| `DW01A` + `FS8205` | **kein Schutz-IC**, dafür Verpolschutz | käufliche Zellen haben die Schutzschaltung schon; der DW01A gäbe mit dem FS8205 ohnehin erst bei etwa 4,8 A Überstromschutz |
-| LiPo 100 mAh | **150 mAh (Adafruit 1317)** | dünnste belegte Zelle (3,8 mm), einzige mit vollem Herstellerdatenblatt |
+| `MCP73831` | ~~`MCP73832`~~ — **entfällt** | war: Statusausgang an einem GPIO lesbar. Mit dem Akku gestrichen |
+| `DW01A` + `FS8205` | ~~kein Schutz-IC, dafür Verpolschutz~~ — **entfällt** | war: käufliche Zellen haben die Schutzschaltung schon. Mit dem Akku gestrichen |
+| LiPo 100 mAh | ~~150 mAh (Adafruit 1317)~~ — **entfällt** | war: dünnste belegte Zelle. Mit dem Akku gestrichen, siehe [zellen.md](zellen.md) |
 | OLED 0,96" | **0,71" (CFAL4864A-071BW)** | 13,9 × 22 × 1,26 mm statt 29 × 27 × 6,2 mm |
 
 Dazu zwei Berichtigungen an Einzelangaben:
 
 - **Dem nRF52840-DK liegt eine NFC-Antenne bei** (Nordic, Kit-Inhalt). Der
   Posten „Antenne dazukaufen, weil das DK keine hat" entfällt.
-- Fünf der genannten Akku-Bestellnummern stimmten nicht (Adafruit 4236 hat
+- Fünf der genannten Akku-Bestellnummern (Akku inzwischen gestrichen) stimmten nicht (Adafruit 4236 hat
   420 statt 105 mAh, SparkFun PRT-13852 ist die 40-mAh-Zelle, und so weiter) —
   berichtigt in [parts.md](parts.md).
 
@@ -51,8 +59,9 @@ Erstinbetriebnahme **muss** sie ersetzen.
 ### 2. Die Versorgung hat eine Falle, die Reichweite kostet
 
 Der Rechenkern darf nicht an `VDD` (höchstens 3,6 V), sondern an `VDDH`
-(2,5–5,5 V) — dann braucht es **keinen externen Spannungsregler**, und Akku wie
-USB-5 V passen beide dort hin.
+(2,5–5,5 V) — dann braucht es **keinen externen Spannungsregler**, und die USB-5-V
+passen dort hin. (Früher stand hier „Akku wie USB-5 V"; den Akku gibt es nicht
+mehr.)
 
 Aber: Aus dem intern erzeugten `VDD` dürfen nur **25 mA** nach außen fließen,
 und bei Sendeleistung über 4 dBm nur **5 mA**. Anzeige (25 mA), Flash (20 mA)
@@ -92,9 +101,11 @@ Leitungen werden verlegt, aber nicht bestückt. Stufe 2 kann den Sensor dann
 nachrüsten, **ohne dass eine neue Platine nötig wird**.
 
 **Was der Verzicht einbringt:** Bauhöhe und Seitenaufteilung richten sich nicht
-mehr nach dem 2,8 mm dicken Sensor. Der freie Platz im mittleren Drittel geht
-in den Abstand zwischen Akku und NFC-Antenne — siehe
-[../hardware/layout-notes.md](../hardware/layout-notes.md).
+mehr nach dem 2,8 mm dicken Sensor. Wie der frei gewordene Platz im mittleren
+Drittel genutzt wird, steht in
+[../hardware/layout-notes.md](../hardware/layout-notes.md); der frühere Plan,
+ihn als Abstand zwischen Akku und NFC-Antenne zu verwenden, ist mit dem Akku
+überholt.
 
 ## Teststand (jetzt zu bestellen)
 
@@ -123,10 +134,10 @@ Vollständig mit Bestellnummern in [parts.md](parts.md). Kurzfassung:
   herausgeführt, 6,15 USD bei DigiKey
 - **U2** `SE051C2HQ1/Z01XDZ` — HX2QFN20, 3 × 3 mm
 - **U3** `W25Q512JVEIQ` — 64 MByte, 3-V-Fassung (nicht die 1,8-V-Fassung)
-- **U4** `MCP73832T-2ACI/OT` + diskrete Lastumschaltung
+- ~~**U4** `MCP73832T-2ACI/OT` + diskrete Lastumschaltung~~ — entfällt
 - **DS1** `CFAL4864A-071BW` — 0,71", SSD1306
 - **J1** `GCT USB4085-GF-A` + 2 × 5,1 kΩ an CC1/CC2 + `USBLC6-2SC6`
-- Akku `Adafruit 1317` (150 mAh) mit eingebauter Schutzschaltung
+- ~~Akku `Adafruit 1317`~~ — entfällt
 - `EVQP7A01P` Taster, `Everlight 19-337C` RGB-LED
 - NFC-Antenne als Leiterbahn, differentiell, abgestimmt auf 13,56 MHz
 
@@ -138,24 +149,23 @@ und das Endprodukt braucht die vorgeschriebene Kennzeichnung.
 Die Bluetooth-Fassung ist laut Herstellerdokument **5.2**; Händler werben mit
 5.4 — verbindlich ist Raytac.
 
-## Laufzeit
+## Laufzeit — entfallen
 
-Mit 150 mAh, Lastschalter für die Anzeige und Bluetooth auf Abruf:
-**etwa 6,8 Monate** bei zehn Benutzungen am Tag — und etwa 8,4 Monate, falls
-die Anzeige nur ihren Typ.-Wert von 12 mA zieht. Gerechnet, nicht gemessen;
-Rechenweg und Annahmen in [power-budget.md](power-budget.md).
+Mit dem Akku gibt es keine Laufzeit mehr; die frühere Rechnung („etwa 6,8 Monate
+bei zehn Benutzungen am Tag mit 150 mAh") ist erledigt. **Die drei
+Entscheidungen, die sie trugen, bleiben im Entwurf, aber ihre Begründung ist
+jetzt eine andere:**
 
-**Die Laufzeit hängt nicht an der Akkugröße, sondern an drei Entscheidungen,
-die nichts kosten:** Lastschalter für die Anzeige (Faktor 3), Wecken per
-GPIOTE-PORT statt Event (Faktor 7 im Weckpfad), Bluetooth auf Abruf statt
-dauernd (Faktor 1,5).
+- Lastschalter für die Anzeige (war: Faktor 3 der Laufzeit)
+- Wecken per GPIOTE-PORT statt Event (war: Faktor 7 im Weckpfad)
+- Bluetooth auf Abruf statt dauernd (war: Faktor 1,5; bleibt wegen des
+  Bedrohungsmodells)
 
-Der Wegfall des Fingerabdrucksensors bringt dabei nur **etwa fünf Tage** — er
-war energetisch nie das Problem, solange er abschaltbar gewesen wäre.
-
-Der Akku ist ein Verschleißteil. Bei 300 belegten Ladezyklen und einem
-Nachladen je Woche sind das etwa sechs Jahre — er sollte als Verschleißteil
-benannt oder austauschbar sein. **Noch zu entscheiden.**
+Was jede heute begründet und was von ihr offen ist, steht in
+[stromaufnahme.md](stromaufnahme.md), Abschnitt „Befunde, deren Begründung
+gefallen ist". Der Akku als Verschleißteil (300 Ladezyklen, etwa sechs Jahre)
+war einer der Gründe, ihn zu streichen — siehe [zellen.md](zellen.md); die Frage „als
+Verschleißteil benennen oder austauschbar" hat sich damit erledigt.
 
 ## Die Entscheidungen
 
@@ -170,18 +180,19 @@ niemand braucht, wäre Vorrat.
 höchstens +4 dBm, und die Lastschalter Q4/Q5 sind Pflicht. Über 4 dBm bleiben
 nur 5 mA — damit ließe sich kein einziger Nebenverbraucher mehr betreiben.
 
-### Akku und NFC-Antenne: Trennung und Ferritfolie
+### Akku und NFC-Antenne: Trennung und Ferritfolie — überholt
 
-**Beides zusammen.** Die Platine wird **70 statt 62 mm** lang, damit Akku und
-Antenne in verschiedenen Dritteln liegen, **und** eine Ferritfolie entkoppelt
-die Zelle. So geht jedes Handy mit NFC und Akku vor.
+Entschieden war: Die Platine wird länger, damit Akku und Antenne in
+verschiedenen Dritteln liegen, und eine Ferritfolie entkoppelt die Zelle. Beides
+war für den Akku gedacht — die Zelle mit ihrer Aluminiumhülle dämpft das
+NFC-Feld. **Mit dem Akku fällt die Begründung.** Der Hardware-Strang (Zweig `akku-weg`) hat
+nachgemessen: Die Platine wird kürzer, und die Ferritfolie entfällt ersatzlos.
+Die Maße stehen in `../hardware/layout-notes.md` (nach dem Zusammenführen
+dieses Zweigs) und **werden hier bewusst nicht wiederholt.**
 
-NFC erst in Stufe 2 wäre falsch: der Akku ist überhaupt nur deshalb im Gerät,
-weil NFC und Bluetooth ohne Rechner laufen sollen.
-
-**Wird das Gehäuse dadurch zu groß, weicht die Kapazität, nicht der Abstand** —
-dann die schmale Zelle (BerryBase, 100 mAh, 12 mm breit) und etwa 4,5 statt 6,7
-Monate Laufzeit.
+Auch der Satz „NFC erst in Stufe 2 wäre falsch: der Akku ist überhaupt nur
+deshalb im Gerät, weil NFC und Bluetooth ohne Rechner laufen sollen" ist damit
+erledigt. NFC bleibt in Stufe 1, läuft aber nur mit USB-Strom.
 
 ### Ladungspumpen-Kondensatoren der Anzeige: keine nötig
 
@@ -193,8 +204,8 @@ die Panelspannung selbst aus `VBAT`; bestätigt durch die Strommessung, die mit
 `VCC = 7,5 V` angegeben ist, obwohl `VCC` nirgends herausgeführt ist.
 
 **Auf unserer Platine ist nichts nötig.** Nebenbei belegt: der Strom ist
-**typisch 12 mA, höchstens 25 mA** — der obere Wert, mit dem das Energiebudget
-rechnet, ist also die echte Obergrenze.
+**typisch 12 mA, höchstens 25 mA** — der obere Wert, mit dem
+[stromaufnahme.md](stromaufnahme.md) rechnet, ist also die echte Obergrenze.
 
 ### Fingerabdrucksensor: Stufe 1 ohne, Stufe 2 nachrüstbar
 
@@ -225,8 +236,10 @@ verschob:
   Tabelle steht „Power-Down (with state retention), ~430 µA – Disabled", und die
   Fußnote sagt: einschaltbar nur über das Perso-Applet (AN13015). Ohne diesen
   Schritt bleibt nur „Deep Power-Down" mit unter 5 µA, bei dem der Zustand
-  **verloren** geht. Das Energiebudget rechnet bisher so, als stünde beides zur
-  Wahl. Vor der Platine klären, sonst stimmt die Laufzeitrechnung nicht.
+  **verloren** geht. Die frühere Laufzeitrechnung tat so, als stünde beides zur
+  Wahl; die Laufzeit gibt es nicht mehr, aber der Suspend-Strom im Betrieb hängt
+  von diesem Modus ab (siehe [stromaufnahme.md](stromaufnahme.md)). Vor der
+  Platine klären.
 - **Clock Stretching ist ab Werk ebenfalls aus.** Die Zeile „I2C Target, up to
   3,4 Mbit/s" gilt laut Tabelle nur „with clock stretching enabled" — auch das
   geht nur über das Perso-Applet. Ohne es ist die Höchstfrequenz niedriger. Das
@@ -340,11 +353,11 @@ Erst danach lohnt jede weitere Messung.
 - der tatsächliche Gesamt-Ruhestrom (das Datenblatt gibt die Weck-Szenarien nur
   als Entweder-oder an, eine belegte Summe gibt es nicht)
 - der Strom der Anzeige im Betrieb: das Datenblatt nennt typisch **12 mA**,
-  höchstens **25 mA** — welcher Wert bei unserer Bildschirmbelegung gilt,
-  entscheidet über etwa einen Monat Laufzeit
+  höchstens **25 mA** — welcher Wert bei unserer Bildschirmbelegung gilt, ist
+  der größte Einzelposten je Benutzung (Laufzeit gibt es keine mehr)
 - die Betriebsströme von QSPI, I2C und SPI — **Nordic spezifiziert sie in
   keiner Fassung des Datenblatts**
 - die Dauer einer Signatur im Sicherheitschip
 - die Abstimmung der NFC-Antenne (mit Netzwerkanalysator, nicht rechnen)
 - der Spitzenstrom und ob er einen Brownout auslöst
-- die Selbstentladung der Zelle — durch kein Datenblatt belegt
+- der Spannungseinbruch auf `VBUS` beim Einstecken und bei Lastsprüngen
