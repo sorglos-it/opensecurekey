@@ -2746,3 +2746,68 @@ Antennenfeld.
 wird die Platine selbst zum Stecker, ändert sich dieses Band — nach oben wie
 nach unten. Alle Zahlen oben lassen Z1 unverändert; **sie sind damit die
 obere Schranke für die Länge, nicht die untere.**
+
+# Quarz verlegt — und die Wandlerschleife geht so nicht
+
+Stand 25.10.2026. **0 Abstandsfehler, Verbindungsfehler 171 → 165.**
+
+## Quarz: liegt, beide Netze vollständig
+
+| Netz | Weg |
+| --- | --- |
+| `XL1` | X1.1 → C8.1 → unten links herum → Durchkontaktierung **11,20 / 20,50** → oben → U1.17 |
+| `XL2` | X1.2 → C9.1 → unten → Durchkontaktierung **11,20 / 19,70** → oben → U1.18 |
+
+**Warum die Durchkontaktierungen links neben dem Modul sitzen und nicht am
+Pad:** U1s linke Padspalte läuft bei `x` 12,05 im **0,8-mm-Raster
+ununterbrochen** von `y` 12,5 bis 22,1 durch. Dort ist für eine
+Durchkontaktierung kein Platz; sie muss links daneben, ab `x` ≤ 11,45.
+Sechs Einträge weniger — genau die sechs Pads der beiden Netze.
+
+## Wandlerschleife: Versuch, Fehler, Rückbau
+
+Ich hatte die Durchkontaktierungen **in L1s eigene Pads** gesetzt und oben
+geradeaus zu U1.31 und U1.30 gezogen — der kürzeste denkbare Weg. **Ergebnis:
+14 Abstandsfehler.**
+
+> **Der Grund ist eine Padreihe, die ich nicht aufgelistet hatte.** U1 hat am
+> unteren Rand **zwei versetzte Reihen**: `y` 12,6492 **und `y` 13,5509**.
+> Ich hatte die Spalten geprüft und „der Modulinnenraum ist leer" geschlossen —
+> für die zweite Reihe hatte ich nie nachgesehen. Meine Bahnen liefen mitten
+> hindurch.
+
+**Gemessen, nachdem es schiefging** — die Korridore auf der Oberseite links am
+Modul:
+
+| von | bis | frei |
+| --- | --- | ---: |
+| versetzte Reihe (Oberkante 13,8504) → Pad 31 (13,9000) | | **0,0496** |
+| Pad 31 (14,2995) → Pad 30 (14,7001) | | **0,4006** |
+| zwischen zwei Pads der versetzten Reihe | | **0,401** |
+
+**Keiner davon trägt eine brauchbare Bahn:** 0,4 mm Lücke erlaubt mit zweimal
+0,152 Abstand eine Bahn von **0,09 mm**. Die Oberseite ist dort dicht.
+
+**Alles zurückgebaut**, beide Bahnen und beide Durchkontaktierungen. Stand
+wieder 0 Abstandsfehler.
+
+## Was daraus folgt
+
+**An U1s linke Spalte kommt man nur von links.** Genau so liegt der Quarz
+jetzt. L1 steht aber rechts (`x` 14,8 … 18,8), und der Weg nach links ist unten
+durch C3, C4 und C5 versperrt — die 0,4125 mm Luft, die wir mit Absicht
+geschaffen haben, sind für eine Bahn zu wenig.
+
+**Zwei Wege, beide mit Preis, keiner ausgeführt:**
+
+1. **Unter C3 herum**, bei `y` ≈ 13,0 nach links bis `x` 11,2, dort
+   Durchkontaktierung, oben ins Pad. Rechnerisch **rund 7 mm statt 3,59** —
+   immer noch deutlich besser als die 10,14 von gestern, aber es gibt die
+   Hälfte des Gewinns zurück.
+2. **C3 und C5 noch einmal versetzen**, damit bei `y` ≈ 14,1 ein Korridor
+   entsteht. Dann bleibt die Schleife kurz, aber die beiden Kondensatoren
+   rücken wieder von ihren Pins weg — genau das, was wir heute früh behoben
+   haben.
+
+**Das ist eine Abwägung zwischen Abblockung und Schaltschleife**, und sie
+gehört nicht ans Ende einer Runde. Gemeldet, nicht entschieden.
