@@ -1628,7 +1628,7 @@ Entwurfs" ist damit gezählt, nicht gefühlt.
 | Grundfläche | 7,9 × 8,6 mm | **4,0 × 4,32 mm** |
 | Strom | 2 A | 1 A |
 
-**Die Grenze ist 4,45 mm.** [**Falsch — siehe die Berichtigung am Ende dieser Datei: die 4,45 sind eine Breite, keine Höhe.**] Der PH liegt **1,05 mm darüber**, der SH **1,55 mm
+**Die Grenze ist 4,45 mm.** [**Zur Zahl 4,45 siehe die Berichtigung am Ende dieser Datei: es gibt sie zweimal. Hier ist die Höhe gemeint und das ist richtig — maßgeblich für J2 ist aber die Hohlraumtiefe 4,65.**] Der PH liegt **1,05 mm darüber**, der SH **1,55 mm
 darunter** — und braucht nur ein Viertel der Fläche. 1 A gegen 100 mA
 Ladestrom ist reichlich.
 
@@ -2263,7 +2263,7 @@ NFC-Pins liegen bei `y` 13,5. Nordics Vorgabe setzt die Abstimm­kondensatoren
 Abstimmung — und `schematic.md` nennt sie ohnehin `TBD`, weil die Abstimmung
 eine Messung ist. **Nicht bewegt, gemeldet.**
 
-# Berichtigung: die 4,45 mm sind eine Breite, keine Bauhöhe
+# Die Zahl 4,45 gibt es zweimal — eine Breite und eine Höhe
 
 **Gesucht war ein Platz für einen 5,5 mm hohen Akkustecker. Gefunden wurde ein
 Fehler in der Grenze selbst.**
@@ -2313,3 +2313,42 @@ Freihaltezone beginnt bei **23,1484**. Das Kupfer endet also genau an der
 Padkante. Es ist eines der beiden Massepads am Antennenende — **das muss an
 Masse**, und Raytac verlangt dort ausdrücklich Durchkontaktierungen.
 Nächster Arbeitsgang.
+
+## Berichtigung meiner Berichtigung, 25.10.2026
+
+**Der Abschnitt darüber war zur Hälfte falsch, und zwar in der Hälfte, die
+zählt.** Ich hatte geschlossen, die 4,45 mm seien *nur* eine Breite und als
+Bauhöhe nirgends hergeleitet. **Sie ist hergeleitet — in `cad/masse.md`:**
+
+> Zeile 43: `| Unten | Ferritfolie 0,4 + Zellenreserve 4,05 · U2 0,32 · U3 Flash | 4,45 mm |`
+> Zeile 88: `Wer die 9,55 mm will, ändert eine Zeile (h_bot_part von 4,45 auf 4,20)`
+
+**0,4 + 4,05 = 4,45**, und `h_bot_part` ist ein Höhenparameter im
+Gehäusemodell. Das ist eine Bauhöhe, sauber gerechnet.
+
+| Zahl | bedeutet | hergeleitet in |
+| --- | --- | --- |
+| 4,45 mm | **Bauhöhe** der Unterseite: Ferritfolie 0,40 + Zellenreserve 4,05 | `cad/masse.md`, Z. 43 |
+| 4,45 mm | **Restbreite** neben der Zelle: 24,20 − 19,75, je Seite 2,225 | `layout-notes.md` |
+| 4,65 mm | **Hohlraumtiefe**: 0,2 Luft + 0,4 Folie + 4,05 Zelle | `cad/masse.md`, Z. 398 |
+| 4,4501 mm | Band zwischen U1-Körper und Anzeigeglas | `layout-notes.md` |
+
+**Viermal fast dieselbe Zahl für vier verschiedene Größen.** Dreimal exakt
+4,45 — und zwei davon sind unabhängig voneinander richtig.
+
+> **Warum ich die Höhe nicht gefunden habe:** `cad/` liegt **nicht auf dem
+> Zweig `platine`**. Mein Arbeitsbaum hat die Datei nicht; ein `grep` über
+> alles, was ich sehe, findet sie nie. **Ich habe „kommt in dieser Datei nicht
+> vor" mit „ist nirgends hergeleitet" verwechselt** — und genau davor warne ich
+> seit zwei Tagen bei fremden Zahlen.
+>
+> Die Lehre ist nicht „besser suchen", sondern: **Wenn eine Zahl aus einem
+> anderen Strang stammt, liegt ihre Herleitung wahrscheinlich auch dort.**
+> Dateien, die ich nicht im Arbeitsbaum habe, erreiche ich mit
+> `git show origin/main:cad/masse.md` — so habe ich sie am Ende auch gelesen.
+
+**Für J2 gilt eine dritte Zahl, keine der beiden:** Maßgeblich ist die
+**Hohlraumtiefe von 4,65 mm**. Der JST-PH mit 5,5 mm ragt also **0,85 mm**
+darüber hinaus — nicht 1,05, nicht die 1,70, die ich gerechnet hatte. Der SH
+mit 2,9 mm bleibt **1,75 mm darunter**. Die Rangfolge der beiden Teile hat
+sich nie geändert, die Zahl dreimal.
