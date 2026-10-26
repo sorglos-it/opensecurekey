@@ -133,6 +133,14 @@ SPI braucht drei schnelle Leitungen und eine langsame. Am Modul U1 sind frei:
   zusammen auf.**
 - Der nRF52840 hat kein SDIO. Nur SPI-Modus: etwa 25 MHz, grob 2 … 3 MB/s
   Obergrenze. USB Full Speed (0,4 … 0,5 MB/s) bleibt die Bremse.
+- **Vorsorge für 4-Bit-SDIO (nur aufgeschrieben, nichts umgebaut):** Ein
+  künftiger Rechenkern mit SDIO braucht **sechs** Leitungen: CLK, CMD, DAT0 …
+  DAT3 (an der Karte: CLK, CMD, DAT0, DAT1, DAT2, CD/DAT3). Die vier freien
+  schnellen Pins reichen dafür nicht; es kämen zwei langsame dazu
+  (`P0.04`, `P1.02`) – langsame Pins taugen nicht für 25 MHz. Der Schacht
+  DM3AT führt alle acht Kontakte heraus, die Platine schließt 4-Bit also nicht
+  von sich aus aus, **wenn alle acht Pads erreichbar bleiben**. Vor einem
+  Kernwechsel nachsehen, welche Pins der neue Kern für SDIO fest vorgibt.
 - Ungeprüft: ob die Leiterbahnen von den Modulpins 23, 25, 26, 29 auf die
   Unterseite durchkommen.
 - Die `netlist.enet` im Zweig führt noch `VBAT_SENSE` und `CHG_STAT` auf
