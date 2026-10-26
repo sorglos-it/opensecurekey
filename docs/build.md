@@ -182,13 +182,13 @@ das ist auf diesem Rechner virtualisiert.
 
 | Stück | Fassung | Wo | Woher |
 | --- | --- | --- | --- |
-| Python | 3.12.15 | `D:\py312` | `astral-sh/python-build-standalone` (GitHub) |
-| west, cmake, ninja | 1.5.0 / 3.31.6 / 1.13.2 | `D:\claude\ncs-tools\v312` | `pip` in eine eigene Umgebung |
-| nRF Connect SDK | v3.4.1 (Zephyr 4.4.2) | `D:\ncs` | `west init` + `west update` von GitHub |
-| Zephyr SDK | 1.0.1 | `D:\zephyr-sdk` | GitHub-Release `zephyrproject-rtos/sdk-ng` |
+| Python | 3.12.15 | `D:\claude\sdk\py312` | `astral-sh/python-build-standalone` (GitHub) |
+| west, cmake, ninja | 1.5.0 / 3.31.6 / 1.13.2 | `D:\claude\sdk\ncs-tools\v312` | `pip` in eine eigene Umgebung |
+| nRF Connect SDK | v3.4.1 (Zephyr 4.4.2) | `D:\claude\sdk\ncs` | `west init` + `west update` von GitHub |
+| Zephyr SDK | 1.0.1 | `D:\claude\sdk\zephyr-sdk` | GitHub-Release `zephyrproject-rtos/sdk-ng` |
 
 ```powershell
-west init -m https://github.com/nrfconnect/sdk-nrf --mr v3.4.1 D:\ncs
+west init -m https://github.com/nrfconnect/sdk-nrf --mr v3.4.1 D:\claude\sdk\ncs
 ```
 
 ```powershell
@@ -202,21 +202,21 @@ Beide entpacken, dann die Werkzeugkette an die **richtige** Stelle legen
 (siehe Falle 3) und bei CMake anmelden:
 
 ```powershell
-D:\claude\ncs-tools\v312\Scripts\cmake.exe -P D:\zephyr-sdk\zephyr-sdk-1.0.1\cmake\zephyr_sdk_export.cmake
+D:\claude\sdk\ncs-tools\v312\Scripts\cmake.exe -P D:\claude\sdk\zephyr-sdk\zephyr-sdk-1.0.1\cmake\zephyr_sdk_export.cmake
 ```
 
 Danach vier Umgebungsvariablen, dann baut `tools/build.py`:
 
 ```powershell
-$env:Path = "D:\claude\ncs-tools\v312\Scripts;$env:Path"
+$env:Path = "D:\claude\sdk\ncs-tools\v312\Scripts;$env:Path"
 ```
 
 ```powershell
-$env:ZEPHYR_BASE = 'D:\ncs\zephyr'
+$env:ZEPHYR_BASE = 'D:\claude\sdk\ncs\zephyr'
 ```
 
 ```powershell
-$env:ZEPHYR_SDK_INSTALL_DIR = 'D:\zephyr-sdk\zephyr-sdk-1.0.1'
+$env:ZEPHYR_SDK_INSTALL_DIR = 'D:\claude\sdk\zephyr-sdk\zephyr-sdk-1.0.1'
 ```
 
 ```powershell
@@ -269,7 +269,7 @@ Drei Sackgassen auf dem Weg dorthin, alle mit **derselben** Meldung
 `VERSION_MAJOR must be present and in the range of 0-255 (Current: )`:
 
 - Ein Pfad aus `$ENV{ZEPHYR_BASE}` muss durch `file(TO_CMAKE_PATH ...)`:
-  `D:\ncs\zephyr` enthält `\n`, und CMake liest das als Zeilenumbruch.
+  `D:\claude\sdk\ncs\zephyr` enthält `\n`, und CMake liest das als Zeilenumbruch.
 - Zephyr läuft Versionsarten und -dateien **paarweise** ab. Zwei Dateien
   und eine Art ergeben ein Paar ohne Partner — und die Meldung hat dann
   eine leere Klammer.
