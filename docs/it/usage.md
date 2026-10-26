@@ -52,6 +52,8 @@ Buono a sapersi:
 
 ## Avvicinare al telefono (NFC)
 
+**Solo con la corrente USB.** La chiave non ha batteria. L'NFC funziona solo finché è inserita in una porta USB: il telefono va verso la chiave, non il contrario. Tenere la chiave libera accanto al telefono non funziona più. Non è stato verificato se basti un semplice caricatore USB senza computer.
+
 **Stato:** mai provato con un telefono vero. La portata non è stata misurata.
 
 - Tieni la chiave **più vicino al lettore di una carta.**
@@ -106,7 +108,7 @@ La parte **pubblica** di una chiave SSH, di un certificato o di una chiave PGP a
 **Stato: aperto.**
 
 - La chiave può conservare il valore di partenza per i codici monouso, come voce "Codice unico (tempo)" o "Codice unico (contatore)".
-- La batteria tiene in funzione l'orologio. I codici basati sul tempo hanno bisogno dell'ora.
+- La chiave non ha batteria. Il computer imposta l'orologio quando la inserisci (**previsto, non ancora costruito**). Se l'orologio del computer è sbagliato, sono sbagliati anche i codici. I codici basati sul tempo hanno bisogno dell'ora.
 - **Come il codice finale di sei cifre venga mostrato nell'interfaccia o sulla chiave non è descritto nella documentazione tecnica.** Su questo qui non scrivo nulla.
 - Il comando `osk codes` **non** mostra questi codici, ma l'elenco dei numeri di uscita per gli script.
 - KeePassXC e VeraCrypt lavorano con un procedimento Yubico. Questo manca ancora: **con lo stato attuale nessuno dei due programmi funziona.**

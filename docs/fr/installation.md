@@ -96,7 +96,9 @@ Ce qui n’est **pas** transmis :
 - tout le reste
 - une phrase de portefeuille crypto : elle est créée de façon à ne pas être copiée sur une seconde clé
 
-L’ordinateur et la liaison radio entre les deux ne voient que des données chiffrées.
+L’appairage se fait uniquement par USB sur l’ordinateur. Les deux clés sont branchées en même temps. Il n’existe pas de transfert par radio de clé à clé, parce que la clé n’a pas de batterie.
+
+L’ordinateur sur lequel les deux clés sont branchées ne voit que des données chiffrées.
 
 **Lacune connue :** La partie publique des clés SSH, des certificats et des clés PGP n’est pour l’instant **pas** transmise à la seconde clé et ne figure pas dans la sauvegarde. La clé y fonctionne, mais un programme ne peut la lister que lorsque la partie publique a été enregistrée à nouveau.
 

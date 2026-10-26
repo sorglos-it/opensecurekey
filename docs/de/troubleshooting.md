@@ -71,7 +71,7 @@ Allgemeine Tipps (nicht am Stick erprobt):
 1. Anderen USB-Anschluss versuchen.
 2. Anderes Kabel oder direkt an den Rechner, ohne Verteiler.
 3. Stick abziehen, einstecken, Programm neu starten.
-4. Ist der Akku womöglich leer? Laden lassen.
+4. Der Stick hat keinen Akku und nimmt allen Strom aus dem USB-Anschluss. Bleibt der Bildschirm dunkel, bekommt er keinen Strom: anderen Anschluss probieren (Punkt 1).
 
 Was sonst zählt:
 
@@ -122,6 +122,7 @@ Im Notfall lässt sich der Anmelde-Teil (FIDO) zurücksetzen.
 - Der Stick nennt sich **FIDO 2.0 und 2.1.** Befehle zur Verwaltung von Passkeys (Auflisten, Löschen) und zum Einlernen von Fingerabdrücken im Browser **gibt es nicht.**
 - Der Stick meldet **keine eingebaute Nutzerprüfung** (`uv`), solange kein Sensor drin ist. Das ist richtig so. Die PIN wird getrennt gemeldet.
 - Über **Bluetooth** gibt es **keine** Anmeldung im Browser. Browser unterstützen FIDO über Bluetooth nicht zuverlässig. Nimm USB oder NFC.
+- NFC und Bluetooth gehen nur, solange der Stick im USB-Anschluss steckt. Lose am Handy geht nichts.
 - Der **Unterschriftszähler** beginnt bei jedem Einschalten bei null. Eine Seite, die auf wachsende Zähler besteht, könnte den Stick für eine Kopie halten.
 - Die **Kennung des Herstellers** (AAGUID) ist vorläufig.
 

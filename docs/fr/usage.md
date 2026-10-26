@@ -52,6 +52,8 @@ Bon à savoir :
 
 ## Approcher du téléphone (NFC)
 
+**Seulement avec le courant USB.** La clé n'a pas de batterie. Le NFC ne marche que tant qu'elle est branchée sur un port USB : le téléphone vient vers la clé, pas l'inverse. Tenir la clé libre contre un téléphone ne marche plus. On n'a pas vérifié si un simple chargeur USB sans ordinateur suffit.
+
 **État :** jamais essayé avec un vrai téléphone. La portée n'a pas été mesurée.
 
 - Tiens la clé **plus près du lecteur qu'une carte.**
@@ -106,7 +108,7 @@ La partie **publique** d’une clé SSH, d’un certificat ou d’une clé PGP s
 **État : ouvert.**
 
 - La clé peut stocker la valeur de départ des codes uniques, comme entrée « Code unique (temps) » ou « Code unique (compteur) ».
-- La batterie garde l’horloge en marche. Les codes basés sur le temps ont besoin de l’heure.
+- La clé n’a pas de batterie. L’ordinateur règle l’horloge quand tu la branches (**prévu, pas encore construit**). Si l’horloge de l’ordinateur est fausse, les codes le sont aussi. Les codes basés sur le temps ont besoin de l’heure.
 - **La façon dont le code final à six chiffres est affiché dans l’interface ou sur la clé n’est pas décrite dans la documentation technique.** Je n’écris donc rien là-dessus ici.
 - La commande `osk codes` ne montre **pas** ces codes, mais la liste des codes de sortie pour les scripts.
 - KeePassXC et VeraCrypt fonctionnent avec une méthode de Yubico. Elle manque encore : **ces deux programmes ne marchent pas dans l’état actuel.**

@@ -122,7 +122,10 @@ decision that touches the store strand, and it is not made here.
 
 **Second open point:** the log entry carries the device clock, which counts
 from power-on, not a real UTC time. Only the computer can supply UTC, and who
-hands it over is not decided yet. Until then the log says device time, and it
+hands it over is not decided yet. Since the battery was dropped (25 October
+2026) the clock always starts at zero when the stick is plugged in, so the
+computer has to hand it over at every plug-in; there is no clock that keeps
+running between two uses. Until then the log says device time, and it
 says so here rather than letting a reader assume otherwise.
 
 ## Why there is a table and not a derivation

@@ -2695,13 +2695,37 @@ Alle Pads, geparkte Steckverbinder ausgenommen, nach belegten `y`-Bändern:
 | 8,913 | 11,699 | Q1/Q2/Q3, U4, C2 |
 | 11,878 | **24,799** | U1 samt allem darunter, U3, X1, C8/C9, SW1 |
 | 25,599 | **33,870** | SW1-Oberkante, Q4/Q5, R9/R17, C13, C14 |
-| 33,870 | 51,500 | **frei — hier liegt die Zelle** (Unterseite) |
+| 33,870 | 51,500 | ~~**frei — hier liegt die Zelle** (Unterseite)~~ **→ nicht frei, siehe Berichtigung darunter** |
 | 51,500 | 53,499 | J3, Antennenbuchse |
 | 53,499 | 70,000 | Antennenfeld, darin nur R10–R12 und die LED |
 
 > **Die ganze Schaltung endet bei `y` 33,870.** Alles darüber ist Zelle,
 > Antennenbuchse und Antennenfeld. **Zwei Drittel der Platine tragen keine
 > Schaltung** — darin hat der Master recht.
+
+> ## ⚠ BERICHTIGUNG 25.10.2026: „frei" heißt hier nur „keine Pads"
+>
+> **Das Band `y` 33,870 … 51,500 ist nicht frei. Dort liegt die Anzeige.**
+>
+> Die Tabelle darüber zählt **Pads**. Die Anzeige DS1 hat auf dieser Platine
+> keine Pads — sie hängt an `J4`, und `J4` steht neben der Platine geparkt.
+> Das Glas ist trotzdem da: **13,90 × 22,00 mm, auf der Oberseite.** Die
+> Zeile sagt „Unterseite", und genau dort ist das Band wirklich leer; die
+> Oberseite ist es nicht.
+>
+> **Und die Lage der Anzeige ist erzwungen, nicht gewählt.** Neben U1 bleiben
+> quer 27 − 15,5 = **11,50 mm**, das Glas ist **13,90 mm** breit. Es paßt
+> nicht daneben, also muß es dahinter, und U1s Körper endet bei `y`
+> **22,5499**. Daraus folgt **23,05 … 45,05**, ohne Spielraum.
+>
+> **Wer diese Zeile als „frei" liest, rechnet die Platine zu kurz.** Genau so
+> ist die Zahl 52,85 mm weiter unten entstanden.
+>
+> **Die Lehre, und sie ist allgemein:** Ein Messwerkzeug, das Pads zählt,
+> sieht kein Bauteil ohne Pads — kein Glas, keinen Akku, keine Ferritfolie,
+> keinen Sensor, der nur aufliegt. **„Keine Pads" und „kein Bauteil" sind
+> nicht dasselbe.** Vor jedem „frei" gehört die Frage, auf welcher Seite und
+> gegen welche Liste gemessen wurde.
 
 ## Die drei Rechnungen
 
@@ -2720,8 +2744,12 @@ ist, **was weiter reicht: die Zelle oder die Schaltung.**
 
 1. **Unter rund 9 mm Zellenlänge bringt eine kleinere Zelle gar nichts mehr.**
    Dann endet die Schaltung weiter oben als die Zelle, und **die Schaltung ist
-   das Maß.** Die Platine wird nicht kürzer als **52,85 mm**, solange die
+   das Maß.** Die Platine wird nicht kürzer als ~~52,85 mm~~, solange die
    Bauteile stehen, wo sie stehen.
+
+   > **Berichtigt 25.10.2026: die 52,85 mm tragen nicht.** Sie lassen die
+   > Anzeige aus — siehe die Berichtigung bei der Bandtabelle oben. Mit der
+   > Anzeige sind es **59,55 mm**.
 2. **Im Repo gibt es keine kürzere Zelle als 25,0 mm mit belegten Maßen.** Die
    untersuchte Tabelle (`docs/parts.md`) führt fünf Zellen; die kürzeste ist
    die SparkFun mit 25,0 mm. Die 40-mAh-Zelle **PRT-13852 kommt dort nur in
@@ -3126,3 +3154,410 @@ Kondensatoren gemeinsam, nicht einzeln.
 Wenn die Funkleistung oder das Rauschen auf `VSYS` auffällt, ist diese Schleife
 der erste Verdächtige. **Wer sie verkürzen will, muss die Partie neu ordnen,
 nicht den Draht anders ziehen.**
+# Der Akku entfällt — Entscheidung von Thomas, 25.10.2026
+
+**Thomas hat am 25.10.2026 entschieden: der Akku entfällt vollständig.** Keine
+Zelle, kein Laderegler, keine Schutzschaltung, keine Lastumschaltung. Das Gerät
+läuft ausschließlich aus USB. **NFC und Bluetooth gibt es damit nur am
+Rechner** — das ist bewusst in Kauf genommen.
+
+Diese Datei ist die Quelle, aus der die anderen Stränge lesen. Darum steht die
+Entscheidung hier, bevor etwas gezeichnet wird.
+
+## Die Begründung, wie sie getroffen wurde
+
+Die Uhr für die Einmalcodes braucht keine Dauerversorgung: sie wird beim
+Einstecken vom Rechner nachgestellt, und der Code entsteht im Moment des
+Benutzens. Damit kaufte der Akku nur noch NFC und BLE **ohne** Rechner.
+
+Dagegen standen drei Dinge: 4–5 mm Bauhöhe, ein Verbrauchsteil mit wenigen
+Jahren Lebensdauer in einem Gerät, das Jahrzehnte halten soll, und die
+Dämpfung der NFC-Antenne durch die Aluminiumhülle der Zelle.
+
+## Welche bisherigen Begründungen damit hinfällig sind
+
+**Befund und Begründung sind hier getrennt:** Dass eine Begründung wegfällt,
+heißt nicht, dass das damit begründete Maß fällt. Die Maße selbst sind eine
+eigene Frage und werden weiter unten gemessen, nicht hier entschieden.
+
+| Was | Begründung bisher | Stand jetzt |
+| --- | --- | --- |
+| **Länge 70 mm** (statt 62) | räumliche Trennung von Akku und NFC-Antenne, Abschnitt „Akku gegen NFC-Antenne" | **Begründung hinfällig.** Es gibt nichts mehr zu trennen. Ob die 70 mm fallen, ist gemessen zu beantworten — siehe unten |
+| **Breite 26 mm** (statt 24) | Fingerabdrucksensor passt nicht neben die Zelle, es fehlten 1,40 mm | **Begründung hinfällig.** Der Sensor hat die ganze Breite |
+| **Breite 27 mm** (statt 26) | Klemmkragen plus Zelle plus Sensorfeld nebeneinander, Gehäuse-Strang | **Begründung teilweise hinfällig.** Der Zellanteil fällt weg, der Klemmkragen bleibt. Gehört dem Gehäuse-Strang, nicht mir |
+| **Ferritfolie** unter der Zelle | Zelle dämpft die NFC-Antenne (Taoglas) | **entfällt ersatzlos** — es liegt kein leitfähiger Untergrund mehr hinter der Antenne |
+| **Zelle außermittig / mittig** | Platz für U2 im Streifen daneben | **gegenstandslos** |
+| **Bauhöhe 3,8 mm vom Akku** | dickstes Teil | **hinfällig.** Dickstes Teil ist jetzt das Modul U1 mit 2,05 mm — in Stufe 2 der Sensor |
+| **Zone Z3 = 30,5 mm** | Länge der Zelle LP-401230-J | **hinfällig.** Z3 richtet sich jetzt nach Anzeige und Sensorfeld |
+| **„NFC in Stufe 1 weglassen kommt nicht in Frage"** (Zeile 66) | der Akku sei überhaupt nur wegen NFC/BLE ohne Rechner im Gerät | **Die Voraussetzung ist weg.** NFC bleibt trotzdem, arbeitet aber nur am Rechner. Der Satz ist nicht mehr gültig, wie er dasteht |
+
+## Was elektrisch verwaist — gemessen, nicht geschätzt
+
+Gemessen am 25.10.2026 an der **Netzliste des Schaltplans im Editor**
+(`sch_net_list`, 59 Netze), nicht an `schematic.md`. Ein Bauteil steht hier,
+wenn **jedes** seiner Netze zum Akkupfad gehört.
+
+**Bauteile, die ersatzlos entfallen — 14 Stück:**
+
+| Teil | Funktion | Netze, an denen es hängt |
+| --- | --- | --- |
+| U4 | Laderegler MCP73832 | `VBUS`, `VBAT_RAW`, `CHG_STAT`, `PROG`, `GND` |
+| J2 | Akkustecker JST-PH | `VBAT_RAW`, `GND` (Pins 2–4) |
+| Q1 | Verpolschutz / NFC-Rückstromsperre | `VBAT_RAW`, `VBAT_SW`, `Q1_G` |
+| Q2 | Lastumschaltung USB | `VBUS`, `VSYS`, `Q2_G` |
+| Q3 | Lastumschaltung Akku | `VBAT_SW`, `VSYS`, `Q3_G` |
+| R1 | PROG, 10 kΩ → 100 mA Ladestrom | `PROG`, `GND` |
+| R2 | Pull-up STAT, 100 kΩ | `CHG_STAT`, `VDD3V3` |
+| R3 | Gate Q1, 100 kΩ | `Q1_G`, `GND` |
+| R4 | Gate Q2, 100 kΩ | `Q2_G`, `VBAT_SW` |
+| R5 | Gate Q3, 100 kΩ | `Q3_G`, `VBUS` |
+| R13 | Teiler oben, 2,2 MΩ | `VBAT_SW`, `VBAT_SENSE` |
+| R14 | Teiler unten, 2,2 MΩ | `VBAT_SENSE`, `GND` |
+| C17 | 10 nF an der Akkumessung | `VBAT_SENSE`, `GND` |
+| C2 | 4,7 µF an `VBAT_RAW` | `VBAT_RAW`, `GND` |
+
+> **Sieben davon standen nicht in der Vorgabe an diesen Strang**: R2, R3, R4,
+> R5, R14, C17 und C2. Sie sind über die Netzliste gefunden, nicht über die
+> Liste im Auftrag.
+
+**Netze, die ersatzlos verschwinden — 8 Stück:** `VBAT_RAW`, `VBAT_SW`,
+`VBAT_SENSE`, `CHG_STAT`, `PROG`, `Q1_G`, `Q2_G`, `Q3_G`.
+
+**Zwei Anschlüsse des Rechenkerns werden frei:**
+
+| Pin am Modul | Port | war | ist jetzt |
+| --- | --- | --- | --- |
+| U1.20 | `P0.04` / AIN2 | `VBAT_SENSE`, Spannungsmessung | **frei** — einziger belegter Analogeingang, also sind jetzt alle acht frei |
+| U1.50 | `P1.02` | `CHG_STAT`, Ladezustand vom STAT-Pin | **frei** |
+
+Eine eigene Ladezustandsanzeige gibt es nicht und gab es nicht: der STAT-Pin
+ging auf `P1.02`, die Anzeige lief über die RGB-LED D1 in Software. **D1 bleibt**
+— sie zeigt weiter Betrieb und Fehler.
+
+**Was ausdrücklich bleibt**, obwohl es im Ladepfad stand:
+
+- **C1 = 4,7 µF an `VBUS`.** Es war der Eingangskondensator des Ladereglers und
+  ist jetzt der Vorrat am Stecker. Begründung unten bei der Versorgung.
+- **D2**, der TVS auf `VBUS`. Der Stecker wird weiter gesteckt.
+- **C3, C4, C5, C7** am Rechenkern, unverändert.
+
+## Die Versorgung: `VBUS` geht direkt an `VDDH`
+
+Bisher gingen zwei Quellen über Q2/Q3 auf `VSYS` und von dort an `VDDH`
+(`schematic.md` ab Zeile 45 und ab Zeile 143). **Jetzt gibt es eine Quelle.**
+
+**Entschieden: `VSYS` und `VBUS` werden ein Netz. Kein Ersatzbauteil.**
+
+Die Begründung steht schon in `schematic.md` Zeile 45 und wird von dieser
+Änderung nicht berührt: `VDDH` reicht von **2,5 bis 5,5 V** (nRF52840 PS v1.1,
+Tab. 172 und 173), der Chip erzeugt sein `VDD` selbst in der REG0-Stufe, ein
+externer Spannungsregler ist nicht nötig. USB liefert am Anschluss höchstens
+**5,25 V**; zu den 5,5 V bleiben **0,25 V**, und `D2` begrenzt die Spitzen.
+Es fällt nur die zweite Quelle weg, nicht die Wahl von `VDDH`.
+
+Der `VBUS`-Pin des Rechenkerns (U1.32) und `VDDH` (U1.30) liegen danach auf
+**demselben Netz**. Das ist Nordics eigene Anordnung für ein USB-gespeistes
+Gerät.
+
+> `ungeprueft`: Nordic führt diesen Fall in der Referenzschaltung als
+> „Configuration 1 — USB (VDDH = VBUS)". **Die Seite selbst war nicht
+> erreichbar** (Cloudflare), die Angabe stammt aus einer Suchzusammenfassung.
+> Die Entscheidung hängt nicht daran: sie trägt schon über die 2,5–5,5 V aus
+> Tab. 172/173, die im Projekt belegt sind.
+
+### Ein Fund, der aus dem Zusammenlegen kommt: die Kapazität am Stecker
+
+Bisher saßen `C3` (4,7 µF) und `C4` (100 nF) hinter Q2 auf `VSYS`. Werden die
+Netze eins, hängen sie **unmittelbar am Steckkontakt**, zusammen mit `C1`:
+
+> 4,7 + 4,7 + 0,1 = **9,5 µF**
+
+**USB 2.0 erlaubt höchstens 10 µF** unmittelbar an `VBUS` (Einschaltstrom beim
+Stecken). 9,5 µF liegt darunter, aber nur um 0,5 µF. `C7` (DECUSB, 4,7 µF)
+zählt nicht mit, es hängt an `DECUSB`, nicht an `VBUS`.
+
+**Folge für das Zeichnen:** Es darf **kein weiterer Kondensator** an dieses
+Netz, ohne dass neu gerechnet wird. Wer C1 oder C3 vergrößert, reißt die
+Grenze. `ungeprueft` ist die Toleranz der Teile — 4,7 µF X5R bei 5 V liefern
+real weniger als 4,7 µF, die Grenze ist also eher komfortabler als gerechnet.
+
+### Zwei Punkte, die nicht mir gehören
+
+1. **Die Firmware verliert die Versorgung im Moment des Ziehens.** Es gibt
+   keinen Puffer mehr. Ein angefangener Schreibvorgang in den Flash oder in
+   den Sicherheitschip muss das überleben. Das ist eine Firmware-Auflage und
+   gehört in `docs/`, nicht hierher.
+2. **Der passive NFC-Pfad** (offener Punkt 5 weiter oben, NFC direkt am
+   Sicherheitschip über LA/LB) wird durch diese Entscheidung **wichtiger**,
+   nicht unwichtiger: er ist jetzt der einzige Weg, bei dem das Gerät ohne
+   Rechner überhaupt etwas tun könnte. Bleibt offen.
+
+## Wie kurz die Platine wird — gemessen am 25.10.2026
+
+**Antwort: etwa 59,6 mm, wenn die NFC-Zone bleibt, wie sie ist; etwa 64,1 mm,
+wenn sie auf ihr altes Maß zurückgeht.** Das sind **10,4 bzw. 5,9 mm weniger**
+als die heutigen 70 mm. Wie die Zahl zustande kommt, steht darunter — sie ist
+aus dem Editor gemessen, nicht aus einer Schätzung gerechnet.
+
+### Erst: was das Messwerkzeug misst
+
+`pcb_layout_boxes` liefert **Hüllen über Pad-Mitten, nicht über Kupfer und
+nicht über Körper.** Das ist hier nachgewiesen, nicht angenommen: für U1 meldet
+es `y` 12,499 … 22,101 = 9,602 mm; die Padhülle aus `extent_mm` ist
+`y` 12,2998 … 22,3000 = 10,0002 mm. Die Differenz ist **0,40 mm = eine
+Padbreite**, je 0,20 an jedem Ende. **Jede Zahl aus diesem Werkzeug ist also
+eine Untergrenze.**
+
+Darum sind unten für die beiden Teile, die die Länge bestimmen, die
+**Körpermaße** eingesetzt, die weiter oben aus den Pads nachgebaut und gegen
+das Datenblatt geprüft wurden.
+
+### Die Bänder, neu — gemessen, Teil für Teil
+
+Gemessen wurden alle 54 platzierten Teile. **Fünf stehen neben der Platine**
+(J2, J4, J5, J6 bei `x` 29 … 39, JP1 bei `y` = −18,7) und zählen nicht mit.
+
+| Was | gemessene Grenze in `y` | Quelle der Zahl |
+| --- | --- | --- |
+| J1 USB, erste Pads | 0,701 | Pad-Mitte |
+| U1 **Körper** | 12,0499 … **22,5499** | aus 61 Pads nachgebaut, trifft 15,5 × 10,5 auf vier Stellen |
+| X1 Quarz, unten | 23,899 (Pad-Mitten) → Körper ≈ **24,65** | 3215, 3,2 × 1,5 |
+| SW1 Taster, oben | 22,7 … 26,299 (Pad-Mitten) → ≈ **26,5** | am Rand bei `x` 2,75 … 4,25 |
+| höchstes Teil auf der **Unterseite** | **23,899** (X1) | — |
+| Q4, Q5, R9, R17, C13, C14, oben | 28,699 … 33,599 | **verschiebbar**, siehe unten |
+| J3 NFC-Anschluss | 52,499 | wandert mit der Schleife |
+| R10–R12, D1 (LED) | 63,0 … 66,759 | sitzen an der Spitze, wandern mit |
+
+**Der Kern endet bei `y` ≈ 26,5** — gesetzt von SW1, dahinter U1 mit 22,55 und
+X1 mit 24,65. Alles andere liegt davor.
+
+**Die sechs Teile bei 28,7 … 33,6 müssen nicht dort liegen.** Es sind die
+Lastschalter für Anzeige und Sensor samt Widerständen und Kondensatoren; sie
+stehen oben, weil dort das Zellfeld war. Nach unten verschoben finden sie in
+`y` 24,7 … 45 Platz: **die Unterseite ist dort heute vollständig leer**, das
+höchste Teil unten ist X1 bei 23,899.
+
+### Daraus die neue Länge
+
+| Band | von … bis | Länge | wodurch gesetzt |
+| --- | --- | --- | --- |
+| Kern (USB, Funkteil, Flash, Sicherheitschip, Quarz, Taster) | 0 … **26,5** | 26,5 | SW1, gemessen |
+| Anzeige DS1, Oberseite | **23,05 … 45,05** | 22,00 | Glasmaß 13,90 × 22,00 aus `../docs/parts.md`; liegt neben SW1, nicht dahinter |
+| NFC-Schleife | **45,05 … Ende** | 14,50 oder 19,00 | **offen, gehört nicht mir** |
+
+Die Anzeige beginnt bei 23,05, nicht bei 26,5: SW1 steht bei `x` 2,75 … 4,25 am
+Rand, das Glas liegt mittig bei `x` 6,55 … 20,45 — **die beiden stehen
+nebeneinander, nicht hintereinander.** Nach hinten begrenzt die Anzeige
+allein der Körper von U1, der bei `y` 22,5499 endet; 0,5 mm Luft darauf ergibt
+23,05.
+
+> **Länge = 45,05 + NFC-Zone.**
+>
+> | NFC-Zone | Platine wird | gegenüber 70 mm |
+> | --- | --- | --- |
+> | 14,50 mm (heutiger Plan, 357 mm² Schleifenfläche) | **59,55 mm** | **−10,45** |
+> | 19,00 mm (Stufe-1-Maß von früher, 448 mm²) | **64,05 mm** | **−5,95** |
+>
+> **Die 59,55 mm sind eine obere Schranke, nicht das Ende.** Diese Zahl
+> gehört immer mitgegeben, sonst wird sie weitergereicht, als wäre nichts
+> mehr drin:
+>
+> | **Möglichkeit, nicht Stand** | Platine wird |
+> | --- | --- |
+> | 59,55 mm, **zusätzlich SW2 aus dem USB-Band heraus** | **56,55 mm** |
+>
+> Woher die 3,00 mm kommen: Abschnitt „Der Steckerwechsel bringt weniger
+> Länge, als die Bänder versprechen". **SW2 ist mit 5,00 mm das höchste Teil
+> in diesem Band — und ein Knopf, keine Schaltung.** Liegt er woanders, wird
+> die Gruppe 2,4 mm flacher und der Gewinn steigt von 0,60 auf 3,00 mm.
+>
+> **Nicht ausgeführt, nicht gemessen am geänderten Stand.** Es ist eine
+> Neuplatzierung der ganzen unteren Partie und braucht eine eigene Runde.
+> Thomas will so kurz wie möglich — bei 59,55 mm sind drei Millimeter keine
+> Kleinigkeit, darum steht die Zeile hier und nicht in einer Fußnote.
+
+**Gegenprobe gegen den alten Plan:** Z3 war 25 … 55,5 = 30,5 mm, gesetzt von
+der Zelle LP-401230-J. Neu ist Z3 23,05 … 45,05 = 22,0 mm. Ersparnis
+30,5 − 22,0 = 8,5 mm, dazu rückt der Anfang von 25 auf 23,05 = 1,95 mm.
+Zusammen **10,45 mm** — dieselbe Zahl wie oben, auf einem anderen Weg.
+
+**Die Länge hängt jetzt allein an der NFC-Schleife.** Vorher war sie die Summe
+aus Zelle und Trennabstand; beides ist weg. Wer die Platine kürzer will als
+59,55 mm, nimmt es der Antennenfläche weg, nicht mehr dem Akku.
+
+### Stufe 2: der Sensor passt nicht neben die Anzeige — das ist neu
+
+Der Fingerabdrucksensor ist inzwischen der **FPC2534, Ø 11 × 0,83 mm**
+(`../docs/fingerprint.md`), nicht mehr das 15 × 15 mm große BM-Lite. Er wird
+berührt, muss also auf **dieselbe Seite wie die Anzeige**.
+
+Quer nutzbar sind **24,20 mm** (Band 1,40 … 25,60, Abschnitt „Bauteile beginnen
+quer bei 1,40"). Nebeneinander bräuchten Anzeige und Sensor
+
+> 13,90 + 0,50 + 11,00 = **25,40 mm**
+
+**Das sind 1,20 mm zu viel.** Die alte Rechnung ging auf, weil dort die
+**12,0 mm breite Zelle** neben dem Sensor stand, nicht die 13,90 mm breite
+Anzeige. Mit dem Wegfall der Zelle rückt die Anzeige in diese Spur — und sie
+ist breiter.
+
+**Folge:** In Stufe 2 braucht der Sensor **eigene 11 mm in der Länge**. Z3 wird
+dann 22,0 + 0,5 + 11,0 = **33,5 mm**, die Platine **70,55 bzw. 75,05 mm** —
+also **länger als heute**, nicht kürzer.
+
+> **Das ist keine Entscheidung dieses Strangs.** Zur Wahl stehen: Stufe 2 wird
+> länger als Stufe 1; oder die Platine bleibt gleich bei rund 70 mm und Stufe 1
+> verschenkt die 10 mm; oder das Querband wird neu verhandelt (es fehlen
+> 1,20 mm, und die 0,20 mm am hinteren Rand sind laut dem Abschnitt oben
+> ohnehin „zu bestätigen"). **Gefragt über die Mastersitzung.**
+
+### Was an dieser Messung `ungeprueft` ist
+
+- Die Körpermaße von X1 und SW1 sind aus Pad-Mitten plus Datenblattmaß
+  **gerechnet**, nicht wie bei U1 aus den Pads nachgebaut und gegengeprüft.
+- Die **Lage der Anzeige ist nicht gezeichnet** — DS1 ist kein Bauteil auf der
+  Platine, sie hängt an J4, und J4 steht neben der Platine. Die 22,00 mm sind
+  das Glasmaß aus `../docs/parts.md`.
+- Die **Schleifenfläche der NFC-Antenne ist nicht gerechnet**. Dass 14,50 mm
+  reichen, ist nicht gezeigt; die Zahlen 357 mm² und 448 mm² stehen weiter oben
+  und stammen nicht aus einer Abstimmungsrechnung.
+- **Die Platine ist nicht angefaßt** — nichts verschoben, der Umriss
+  unverändert, `pcb_import_changes` nicht gelaufen. Die Messung oben gilt für
+  den Stand vor der Schaltplanänderung.
+
+### Nachtrag am selben Abend: der Schaltplan ist geändert
+
+Nach dem Go über die Mastersitzung ausgeführt und nachgemessen:
+
+| | |
+| --- | --- |
+| Bauteile gelöscht | **14** (U4, J2, Q1, Q2, Q3, R1–R5, R13, R14, C17, C2) |
+| verwaiste Leitungen weggeräumt | **27** |
+| verwaiste Netzfahnen weggeräumt | **11** |
+| `VSYS` in `VBUS` zusammengelegt | 4 Fahnen ersetzt (C3.1, C4.1, L1.2, U1.30), **jede einzeln an der Netzliste nachgeprüft** |
+| Netze | **59 → 50**, `VBUS` hat jetzt 12 Pins |
+| sch-DRC | **2 Warnungen**, beide gewollt: `U1.20` (P0.04) und `U1.50` (P1.02) sind frei; `FP_IRQ` war schon vorher ein Ein-Pin-Netz |
+
+**`Apply Changes` auf die Platine ist nicht gelaufen** — das klickt Thomas.
+Solange das nicht geschehen ist, stehen die 14 Teile noch auf der Platine, und
+jede Messung an ihr zeigt den alten Stand.
+
+### Abgeglichen mit der Längenrechnung der Platinen-Sitzung
+
+Zwei Abschnitte weiter oben stehen zwei Rechnungen derselben Nacht, die ich
+beim Messen noch nicht kannte — mein Zweig lag auf `main`, diese Arbeit lag
+auf `akku-raus`. **Beide sind sorgfältiger gemessen als meine Untergrenze,
+und in einem Punkt kommen sie trotzdem zu kurz.**
+
+**1. „Was die Platine an Länge verlöre, wenn der Akku kleiner wird" nennt als
+Grenzfall 52,85 mm** — Schaltung endet bei `y` 33,870, Antennenfeld 18,98.
+
+> **Diese 52,85 mm tragen nicht.** Die Rechnung setzt die Zelle auf null, läßt
+> aber **die Anzeige außer Acht**: das Glas ist 13,90 × 22,00 mm und liegt auf
+> der Oberseite. Im Band 33,870 … 51,500, das dort als „frei — hier liegt die
+> Zelle (Unterseite)" steht, liegt auf der **Oberseite** die Anzeige. Sie
+> verschwindet mit dem Akku nicht.
+
+**Die Anzeige kann auch nicht neben U1.** Quer bleibt neben dem Modul
+27 − 15,5 = **11,50 mm**; das Glas ist **13,90 mm** breit. Sie muß also
+dahinter, und U1s Körper endet bei `y` 22,5499. **Damit ist 23,05 … 45,05
+erzwungen, nicht gewählt.**
+
+Die Bandmessung dort bestätigt im übrigen meine Zahlen und ist genauer als
+sie: Unterseite belegt bis **24,799** (ich hatte 23,899 aus Pad-Mitten, also
+eine Untergrenze, wie angesagt), darüber nur noch die sechs verschiebbaren
+Teile bis 33,870. **In 24,8 … 45 ist die Unterseite frei** — die sechs passen
+dorthin.
+
+**2. „Der Steckerwechsel bringt weniger Länge, als die Bänder versprechen"**
+zeigt, daß Z1 noch bis zu **3,00 mm** hergibt, und nur dann, wenn SW2
+woanders hinkommt. Meine 59,55 mm lassen Z1 unverändert.
+
+> **Damit ist 59,55 mm eine obere Schranke, keine untere.** Mit der
+> Steckerrunde wären rund **56,55 mm** erreichbar. Das ist eine eigene
+> Neuplatzierung der unteren Partie und gehört nicht in diese Runde.
+
+**Und der Satz, der aus beiden Abschnitten zusammen folgt:** „Jeder
+Millimeter, den die Zelle kürzer wird, ist entweder ein Millimeter weniger
+Platine oder ein Millimeter mehr Antennenfeld." Mit dem Wegfall des Akkus ist
+das keine Abwägung zwischen Zelle und Feld mehr, sondern **nur noch zwischen
+Länge und Antennenfläche**. Die Zelle steht auf keiner Seite mehr.
+
+# Nach dem Apply Changes: die Platine, gemessen
+
+Stand 25.10.2026, nachdem Thomas `Apply Changes` geklickt hat. **Der Umriss
+ist nicht angefaßt** — die Länge steht erst fest, wenn die NFC-Zone
+entschieden ist.
+
+## Zuerst: hat der Import wirklich getan, was er sollte?
+
+Nicht die Erfolgsmeldung, sondern der Zustand:
+
+| | vorher | jetzt | |
+| --- | ---: | ---: | --- |
+| Bauteile auf der Platine | 54 | **40** | 54 − 14 ✔ |
+| Pads | 251 | **219** | −32 |
+| Netze auf der Platine | 59 | **50** | ✔ |
+
+Nachgesehen, nicht geschlossen: **keines der 14 gelöschten Teile hat noch ein
+Pad**, und **kein Pad hängt an einem der neun verschwundenen Netze**
+(`VSYS`, `VBAT_RAW`, `VBAT_SW`, `VBAT_SENSE`, `CHG_STAT`, `PROG`, `Q1_G`,
+`Q2_G`, `Q3_G`). Die 39 Pads ohne Netz sind die mechanischen — Schirm- und
+Haltestifte, unverändert und nicht meine.
+
+## Die erwarteten Leichen gibt es nicht — und so ist das geprüft
+
+Gesucht wurde nach vier Sorten. **Gefunden: keine.** Damit das nachprüfbar
+ist, hier womit:
+
+| gesucht | Werkzeug | Befund |
+| --- | --- | --- |
+| verwaiste Leiterbahnen | `pcb_lines_list` ohne Filter | **24 Bahnen, alle auf lebenden Netzen** (GND, USB_DM/DP, XL1/XL2, DCCH, VBUS) |
+| Durchkontaktierungen im Nichts | `pcb_vias_list` | **9, alle auf lebenden Netzen** |
+| Beschriftungen gelöschter Teile | `pcb_designators_list` | **40 Einträge, genau die 40 verbliebenen Teile** |
+| freie Texte im Bestückungsdruck | `pcb_texts_list` | **0** |
+
+**Ein Fund, der zählt, auch wenn er unauffällig aussieht:** Die
+Wandlerschleife von `L1` zu `U1` VDDH trug `VSYS`. Sie trägt jetzt **`VBUS`**
+— vier Bahnsegmente und eine Durchkontaktierung. Der Import hat die
+Zusammenlegung also bis ins Kupfer durchgezogen, nicht nur in die Netzliste.
+
+## Gießflächen und DRC
+
+Alle **vier** Flächen neu aufgebaut (TOP, INNER_1, INNER_2, BOTTOM), zweimal:
+einmal direkt, dann nach einem `doc_reload`, weil EasyEDA auf einer
+Vier-Lagen-Platine erst nach erneutem Öffnen richtig verbindet.
+
+> **Abstandsfehler: 0.** `countByType` nennt ausschließlich
+> `Connection Error`.
+
+**131 Verbindungsfehler bleiben — das sind die unverlegten Netze, kein
+Schaden aus dem Import.** Belegt dadurch, daß die Zahl über **drei**
+DRC-Läufe hinweg gleich bleibt: vor dem Flächenaufbau, danach, und nach dem
+`doc_reload` mit erneutem Aufbau. Hätte der Import etwas hinterlassen, hätte
+sich mindestens eine der drei Zahlen bewegt.
+
+Was die 131 sind: die Pads der vier **geparkten** Steckverbinder (J4, J5, J6)
+und von JP1, die außerhalb der Platine stehen und die keine Fläche erreichen
+kann; die feinrasterigen Massepads, die schon vorher eigene Bahnen brauchten;
+und alles, was schlicht noch nicht verlegt ist.
+
+> **Was ich hier ausdrücklich nicht behaupte:** daß 131 gegenüber dem Stand
+> unmittelbar vor dem Import eine bestimmte Verbesserung ist. Die zuletzt in
+> dieser Datei genannte Zahl (175) stammt aus einer früheren Nacht, und die
+> Platinen-Sitzung hat seither verlegt. **Ich kenne die Zahl von kurz vor dem
+> Klick nicht** und rechne deshalb keine Differenz aus.
+
+## Was als nächstes fehlt
+
+1. **Die NFC-Zone entscheiden.** Erst dann der Umriss. Länge = 45,05 mm +
+   Zone.
+2. Dann **Umriss kürzen**, Flächen wieder aufbauen, DRC.
+3. Die sechs Teile bei `y` 28,7 … 33,6 auf die Unterseite, damit die Anzeige
+   ihren Platz bekommt (siehe oben, die Unterseite ist dort leer).
+
+# Datenträger: ändert die Länge nicht
+
+Stand 26.10.2026. SD-NAND (8,00 × 6,20 mm) wie microSD-Schacht (13,85 × 15,95 mm)
+passen auf die Unterseite `y` 25 … 45. **Länge bleibt 59,55 mm.** Maße,
+Belegung und Quellen: `datentraeger.md`.

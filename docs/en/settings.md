@@ -58,6 +58,7 @@ Good to know:
 - **Everything risky is off** until you switch it on on purpose.
 - **NFC always needs the button.** Even when the NFC contact is short. This protects against an attack from a pocket, where someone relays the radio link.
 - The Bluetooth radio address changes, so that nobody can track you.
+- NFC and Bluetooth work only while the key is plugged into a USB port. It has no battery.
 
 ## Language on the key
 

@@ -14,7 +14,7 @@ Ci sono inoltre:
 - **Memoria (64 MB):** la cassaforte, cifrata, e il registro.
 - **Schermo:** mostra che cosa autorizzi.
 - **Un pulsante:** è la tua autorizzazione.
-- **Batteria:** per NFC e Bluetooth senza computer, e perché l'orologio continui a funzionare.
+- **Nessuna batteria:** la chiave funziona solo con la corrente USB. Il computer imposta l'orologio per i codici unici quando la inserisci.
 
 ## Vie verso il computer
 
@@ -23,16 +23,25 @@ Ci sono inoltre:
 - USB come tastiera (**previsto, non ancora costruito**)
 - canale USB per il programma di gestione
 - unità USB, di sola lettura, con i programmi sopra (**previsto**)
-- NFC
-- Bluetooth, solo per il programma di gestione
+- NFC (solo finché l'USB alimenta la chiave)
+- Bluetooth, solo per il programma di gestione (solo finché l'USB alimenta la chiave)
 
-## Perché una batteria?
+## Perché nessuna batteria?
 
-Il chip radio non può prendere corrente dal campo NFC. Un'altra chiave può farlo, perché lì risponde un semplice chip di scheda. Qui risponde il firmware. Quindi la chiave ha bisogno di una propria corrente.
+La chiave non ha una batteria, per scelta. Funziona solo finché è inserita in una porta USB.
 
-- La batteria si carica via USB.
-- **Autonomia:** Sulla carta circa **7 mesi** con dieci utilizzi al giorno. Il calcolo è pieno di ipotesi, per esempio sull'autoscarica. **Non è stato misurato nulla.**
-- Se la batteria regga una sessione NFC è aperto.
+- L'orologio per i codici unici basati sul tempo non ha bisogno di alimentazione continua. Lo imposta il computer quando inserisci la chiave, e il codice nasce solo nel momento in cui lo usi. **Bozza, non ancora costruito.**
+- Per il timestamp di una firma la chiave chiede l'ora a un server di timestamp. Non usa il proprio orologio.
+- Una batteria avrebbe dato solo NFC e Bluetooth senza computer. Contro questo c'erano più lunghezza (quanta, è scritto in `hardware/layout-notes.md`) e un componente soggetto a usura con pochi anni di vita, in una chiave che deve durare decenni.
+
+**A che cosa rinunci:**
+
+- Il chip radio non può prendere corrente dal campo NFC. Perciò NFC e Bluetooth esistono solo finché la chiave è inserita in un computer.
+- Tenere la chiave libera accanto al telefono non funziona più.
+- Il Bluetooth verso la tua app funziona solo finché la chiave è inserita in un computer. Con la chiave sul portachiavi non funziona più.
+- Una seconda chiave si accoppia solo via USB al computer. Per questo entrambe le chiavi sono inserite nello stesso computer.
+
+È una scelta fatta di proposito. La tecnica è in `docs/architecture.md`.
 
 ## Le due strade della configurazione
 

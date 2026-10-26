@@ -14,7 +14,7 @@ Dazu kommen:
 - **Speicher (64 MB):** der Tresor, verschlüsselt, und das Protokoll.
 - **Bildschirm:** zeigt, was du freigibst.
 - **Ein Knopf:** das ist deine Freigabe.
-- **Akku:** für NFC und Bluetooth ohne Rechner, und damit die Uhr weiterläuft.
+- **Kein Akku:** Der Stick läuft nur aus USB. Die Uhr für Einmalcodes stellt der Rechner beim Einstecken.
 
 ## Wege zum Rechner
 
@@ -23,16 +23,25 @@ Dazu kommen:
 - USB als Tastatur (**geplant, noch nicht gebaut**)
 - USB-Kanal für das Verwaltungsprogramm
 - USB-Laufwerk, nur lesbar, mit den Programmen drauf (**geplant**)
-- NFC
-- Bluetooth, nur für das Verwaltungsprogramm
+- NFC (nur, solange USB den Stick versorgt)
+- Bluetooth, nur für das Verwaltungsprogramm (nur, solange USB den Stick versorgt)
 
-## Warum ein Akku?
+## Warum kein Akku?
 
-Der Funkchip kann sich keinen Strom aus dem NFC-Feld holen. Ein anderer Stick kann das, weil dort ein einfacher Kartenchip antwortet. Hier antwortet die Firmware. Also braucht der Stick eigenen Strom.
+Der Stick hat bewusst keinen Akku. Er läuft nur, solange er im USB-Anschluss steckt.
 
-- Der Akku lädt über USB.
-- **Laufzeit:** Auf dem Papier etwa **7 Monate** bei zehn Benutzungen am Tag. Die Rechnung steckt voller Annahmen, zum Beispiel für die Selbstentladung. **Gemessen ist nichts.**
-- Ob der Akku eine NFC-Sitzung durchhält, ist offen.
+- Die Uhr für zeitbasierte Einmalcodes braucht keine Dauerversorgung. Der Rechner stellt sie beim Einstecken, und der Code entsteht erst im Moment des Benutzens. **Entwurf, noch nicht gebaut.**
+- Den Zeitstempel einer Signatur holt der Stick von einem Zeitstempel-Server, nicht von seiner eigenen Uhr.
+- Ein Akku hätte nur NFC und Bluetooth ohne Rechner gebracht. Dagegen standen mehr Länge (wie viel, steht in `hardware/layout-notes.md`) und ein Verbrauchsteil mit wenigen Jahren Lebensdauer, in einem Stick, der Jahrzehnte halten soll.
+
+**Was du dafür aufgibst:**
+
+- Der Funkchip kann sich keinen Strom aus dem NFC-Feld holen. NFC und Bluetooth gibt es deshalb nur, solange der Stick am Rechner steckt.
+- Den Stick lose ans Handy halten geht nicht mehr.
+- Bluetooth zu deiner eigenen App geht nur noch, solange der Stick am Rechner steckt. Mit dem Stick am Schlüsselbund geht es nicht mehr.
+- Ein Zweitstick wird nur über USB am Rechner gekoppelt. Beide Sticks stecken dazu am selben Rechner.
+
+Das ist bewusst so entschieden. Die Technik dahinter steht in `docs/architecture.md`.
 
 ## Die zwei Wege der Einrichtung
 

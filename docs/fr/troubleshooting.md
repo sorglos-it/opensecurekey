@@ -71,7 +71,7 @@ Conseils généraux (pas essayés sur la clé) :
 1. Essayer un autre port USB.
 2. Un autre câble, ou directement sur l’ordinateur, sans répartiteur.
 3. Débrancher la clé, la rebrancher, relancer le programme.
-4. La batterie est-elle peut-être vide ? La laisser charger.
+4. La clé n’a pas de batterie et tire tout son courant du port USB. Si l’écran reste noir, elle ne reçoit pas de courant : essaie un autre port (point 1).
 
 Ce qui compte aussi :
 
@@ -122,6 +122,7 @@ En cas d’urgence, la partie connexion (FIDO) peut être réinitialisée.
 - La clé se présente comme **FIDO 2.0 et 2.1.** Les commandes pour gérer les passkeys (lister, supprimer) et pour enregistrer des empreintes digitales dans le navigateur **n’existent pas.**
 - La clé ne signale **aucune vérification d’utilisateur intégrée** (`uv`) tant qu’aucun capteur n’est installé. C’est correct ainsi. Le code PIN est signalé séparément.
 - Par **Bluetooth**, il n’y a **aucune** connexion dans le navigateur. Les navigateurs ne prennent pas FIDO en charge de façon fiable par Bluetooth. Prends l’USB ou le NFC.
+- Le NFC et le Bluetooth ne marchent que tant que la clé est branchée sur un port USB. Tenue libre contre un téléphone, rien ne marche.
 - Le **compteur de signatures** repart de zéro à chaque mise sous tension. Un site qui exige des compteurs croissants pourrait prendre la clé pour une copie.
 - L’**identifiant du fabricant** (AAGUID) est provisoire.
 

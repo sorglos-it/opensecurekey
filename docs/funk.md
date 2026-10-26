@@ -3,6 +3,15 @@
 The two wireless ways into the key: NFC (hold it against a phone) and
 Bluetooth LE (talk to the management program without a cable).
 
+**Both exist only while USB powers the stick** — and whether they stay at all is not decided (one strand is checking what a device without NFC and Bluetooth would be; this file treats them neither as settled nor as dropped). The device has no battery (decided
+25 October 2026), and the nRF52840 cannot harvest power from an NFC field. So the
+stick lies in a USB port and the phone comes to it; holding a loose stick against
+a phone, or talking Bluetooth to an own app with the stick on a key ring, does
+not work. Nothing in the code below changes because of this — the transports do
+not know where the power comes from. What changes is where they can be used. The
+current draw is in `stromaufnahme.md`; the reasons for the decision are in
+`architecture.md`.
+
 ## The honest limit
 
 **No radio measurement has been made, and none can be made yet.** The board
@@ -21,8 +30,10 @@ PC". Nothing more. In particular, none of the following is known:
 - whether a browser or a phone's FIDO stack accepts this applet,
 - whether pairing with a real Bluetooth stack produces the numbers this code
   expects, or how much power either way draws,
-- whether the battery lasts through an NFC session (the nRF52840 cannot
-  harvest power from the field — see `architecture.md`).
+- whether a phone reads the stick well while it sits in a computer's USB port
+  (antenna position, metal of the port and the housing — nothing is measured),
+- whether a plain USB charger, without a computer, is enough to power an NFC or
+  Bluetooth session (not examined).
 
 What the tests do show is in the last section.
 

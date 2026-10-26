@@ -58,6 +58,7 @@ Gut zu wissen:
 - **Alles Riskante ist aus,** bis du es bewusst einschaltest.
 - **NFC braucht immer den Knopf.** Auch dann, wenn NFC kurz dauert. Das schützt vor einem Angriff aus der Tasche, bei dem jemand die Funkverbindung weiterleitet.
 - Die Funkadresse von Bluetooth wechselt, damit man dich nicht verfolgen kann.
+- NFC und Bluetooth arbeiten nur, solange der Stick im USB-Anschluss steckt. Er hat keinen Akku.
 
 ## Sprache am Stick
 

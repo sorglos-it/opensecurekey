@@ -96,7 +96,9 @@ What is **not** transferred:
 - everything else
 - a crypto wallet seed: It is created in a way that it is not copied to a second key
 
-The computer and the radio link in between only see encrypted data.
+Pairing runs over USB at the computer only. Both keys are plugged in at the same time. There is no radio transfer from key to key, because the key has no battery.
+
+The computer with both keys plugged in only sees encrypted data.
 
 **Known gap:** The public part of SSH keys, certificates and PGP keys does **not** go to the second key so far, and it is not in the backup. The key works there, but a program can only list it once the public part has been saved again.
 

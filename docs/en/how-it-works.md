@@ -14,7 +14,7 @@ In addition there are:
 - **Memory (64 MB):** the vault, encrypted, and the log.
 - **Screen:** shows what you are approving.
 - **One button:** this is your approval.
-- **Battery:** for NFC and Bluetooth without a computer, and so that the clock keeps running.
+- **No battery:** The key runs from USB only. The computer sets the clock for one-time codes when you plug the key in.
 
 ## Ways to the computer
 
@@ -23,16 +23,25 @@ In addition there are:
 - USB as a keyboard (**planned, not built yet**)
 - USB channel for the management program
 - USB drive, read-only, with the programs on it (**planned**)
-- NFC
-- Bluetooth, only for the management program
+- NFC (only while USB powers the key)
+- Bluetooth, only for the management program (only while USB powers the key)
 
-## Why a battery?
+## Why no battery?
 
-The radio chip cannot take power from the NFC field. Another key can, because there a simple card chip answers. Here the firmware answers. So the key needs its own power.
+The key has no battery, on purpose. It runs only while it is plugged into a USB port.
 
-- The battery charges over USB.
-- **Run time:** On paper about **7 months** at ten uses a day. The calculation is full of assumptions, for example for self-discharge. **Nothing is measured.**
-- Whether the battery can last through an NFC session is open.
+- The clock for time-based one-time codes needs no continuous power. The computer sets it when you plug the key in, and the code is made only at the moment you use it. **Draft, not built yet.**
+- For the timestamp on a signature, the key asks a timestamp server. It does not use its own clock.
+- A battery would only have bought NFC and Bluetooth without a computer. Against that stood more length (how much is in `hardware/layout-notes.md`) and a part that wears out in a few years, in a key that should last decades.
+
+**What you give up for this:**
+
+- The radio chip cannot take power from the NFC field. So NFC and Bluetooth exist only while the key is plugged into a computer.
+- Holding the key loose against a phone no longer works.
+- Bluetooth to your own app works only while the key is plugged into a computer. With the key on a key ring it no longer works.
+- A second key is paired over USB at the computer only. Both keys are plugged into the same computer for that.
+
+This was decided on purpose. The technology behind it is in `docs/architecture.md`.
 
 ## The two ways of setup
 
