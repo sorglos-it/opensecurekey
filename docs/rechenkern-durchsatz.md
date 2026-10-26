@@ -9,6 +9,11 @@ Wechsel?**
 Die kurze Antwort steht am Ende: Faktor **7,5**, nicht Faktor 60. Und die
 Wand steht nicht dort, wo alle hinsehen.
 
+Seit die drei Betriebsarten des Datenträgers entschieden sind, hängen vier
+Dinge hintereinander — USB, Speicherschnittstelle, Verschlüsselung, Hashen.
+Welche davon zuerst klemmt, steht in einer eigenen Tabelle weiter unten. Die
+Antwort vorweg: **heute das USB, nach jedem Wechsel der Speicher.**
+
 ## Was gemessen ist und was nicht
 
 Das Wichtigste vorweg, weil sonst jede Zahl unten mehr verspricht, als sie
@@ -159,6 +164,114 @@ nicht 12, sondern knapp 6. Aus 5,6 Stunden werden 44 Minuten. Das ist kein
 Rundungsfehler — **aus unbenutzbar wird benutzbar** —, aber es ist auch kein
 USB-Stick. Ein gewöhnlicher Stick schreibt 8 GB in zwei bis vier Minuten.
 
+## Vier Engstellen, und welche zuerst klemmt
+
+Seit den drei Betriebsarten hängen vier Dinge hintereinander, und jedes Byte
+muss durch alle vier: **USB → Speicherschnittstelle → Verschlüsselung →
+Hashen**. Die langsamste bestimmt alles; die anderen drei sind dann egal.
+
+| | USB | Speicher | AES-GCM | Hashen | **klemmt zuerst** |
+| --- | ---: | ---: | ---: | ---: | --- |
+| heute (nRF52840, microSD über SPI 1-Bit) | **0,4** | ~3 | ? | ~25,8 | **das USB** |
+| nRF54LM20B (USB HS, weiter SPI 1-Bit) | ~38 | **~3** | ? | ~25,8 | **der Speicher** |
+| STM32 + Funkmodul (USB HS, SDMMC 4-Bit) | ~38 | **~4** | ? | ~25,8 | **der Speicher** |
+
+Alles in MB/s. `?` heißt: nie gemessen, siehe unten.
+
+**Befund: Nach einem Wechsel auf USB High Speed ist das USB nicht mehr die
+Engstelle — der Speicher ist es.** Und zwar in *jedem* Vorschlag, den diese
+Datei macht. Der nRF52840 kann kein 4-Bit-SDIO und kein eMMC, eine microSD
+läuft dort nur über SPI mit einer Datenleitung; der nRF54LM20 hat ebenfalls
+kein SDMMC. Und selbst der Weg mit echtem 4-Bit-SDMMC bringt in der einzigen
+Forenmessung, die es dazu gibt, nur 4,1 MB/s — ein Drittel mehr, nicht das
+Zehnfache. (Dieser Wert ist eine fremde Messung an einer fremden Platine; ein
+guter Kartenleser schafft an einer guten Karte deutlich mehr. Er ist der
+einzige, den es gibt, darum steht er hier — `ungeprüft` bleibt er trotzdem.)
+
+**Ein Rechenkern mit USB High Speed, der am SPI-Speicher verhungert, hat
+nichts gewonnen — außer Faktor 7,5, und keinen Schritt mehr.**
+
+## Was das Hashen kostet
+
+Jeder geschriebene Block muss gehasht und in den Merkle-Baum eingerechnet
+werden, jeder gelesene gegen den Baum geprüft. Das ist zusätzliche Rechenlast,
+und in Betriebsart 3 ist es die *einzige*.
+
+**Der Ausgangswert** (Herstellerangabe, von der Mastersitzung übergeben, hier
+nicht nachgemessen): SHA-256 mit Beschleuniger schafft 4123 Byte in 0,1596 ms.
+
+Das sind **25,8 MB/s** — 0,039 µs je Byte.
+
+**Befund: Das Hashen ist nicht die Engstelle.** 25,8 MB/s liegen achtmal über
+den ~3 MB/s des Speichers. Es wird erst dann zur Wand, wenn der Speicher mehr
+als 25 MB/s liefert — und so einen Speicherweg hat keiner der Kandidaten.
+
+**Was der Baum obendrauf kostet.** Ein Merkle-Baum über 16 GB mit Blöcken zu
+4 KiB hat 4 194 304 Blätter, also **22 Ebenen**. Je Block kommen zu den
+4096 Byte Nutzdaten 22 Knoten zu 64 Byte dazu:
+
+| | Byte | Zeit |
+| --- | ---: | ---: |
+| Block selbst | 4 096 | 159 µs |
+| 22 Knoten im Pfad | 1 408 | 55 µs |
+| **je 4-KiB-Block** | **5 504** | **214 µs** |
+
+Das sind **19,2 MB/s** statt 25,8 — der Baum kostet rund ein Drittel. Immer
+noch sechsmal schneller als der Speicher. (`ungeprüft`, gerechnet; der
+Aufwand je Aufruf des Beschleunigers ist dabei **nicht** eingerechnet, und bei
+22 kurzen Aufrufen zu 64 Byte kann der spürbar werden. Wer es misst, misst
+genau das.)
+
+**Betriebsart 3 ist nicht billiger — sie ist nur halb so teuer.** Ohne
+Verschlüsselung bleibt das Hashen vollständig stehen. Und weil beide Arten
+weit über dem Speicher liegen, ist der Unterschied **am Gerät gar nicht zu
+sehen**: alle drei Betriebsarten laufen mit rund 3 MB/s, weil der Speicher
+sie ausbremst.
+
+**Es sei denn, AES-GCM ist langsamer als 3 MB/s.** Dann — und nur dann —
+wird Betriebsart 3 spürbar schneller als 1 und 2, und die Verschlüsselung ist
+die Wand statt des Speichers. Das ist die eine Zahl, die niemand hat.
+
+## Was eine fremde Karte beim Einstecken kostet
+
+Die Frage ist berechtigt und die Antwort ist eindeutig.
+
+**Vollständige Prüfung — geht nicht.** Den ganzen Baum beim Einstecken
+nachzurechnen heißt, die ganze Karte zu lesen. Nicht mit 26 MB/s, wie man beim
+Blick auf den Hash-Wert denkt, sondern mit den ~3 MB/s des Speichers:
+
+| Karte | ganze Karte nachrechnen |
+| --- | ---: |
+| 1 GB | 5,6 min |
+| 8 GB | 44 min |
+| 16 GB | **1,5 h** |
+
+Nicht zehn Minuten — **anderthalb Stunden**. Der Hash war nie das Problem,
+das Lesen ist es. Unzumutbar ist zu freundlich formuliert.
+
+**Pfadprüfung je Block — geht.** Einmal beim Einstecken die Wurzel aus dem
+Sicherheitschip holen, danach je gelesenem Block nur dessen Pfad prüfen. Das
+sind die 214 µs von oben, also 19,2 MB/s — der Speicher bleibt die Engstelle,
+das Einstecken kostet **nichts außer dem einen Zugriff auf den Sicherheitschip**.
+
+**Befund für die Konzeptsitzung: Nur die Pfadprüfung trägt. Die vollständige
+Prüfung ist bei 16 GB keine Option, auch nicht als „einmal am Anfang".**
+
+Zwei Dinge, die dabei auffallen und dort hingehören, nicht hierher:
+
+1. **Die Knoten des Pfades müssen gelesen werden.** 22 Zugriffe zu 32 Byte,
+   verstreut über die Karte — und wahlfreie kurze Zugriffe sind auf einer
+   SD-Karte das Langsamste, was es gibt (die ESP32-P4-Messung nennt
+   0,14 MB/s). Das macht die Pfadprüfung kaputt, wenn man nichts tut.
+   **Abhilfe:** die oberen Ebenen des Baums im RAM halten. Die obersten
+   12 Ebenen sind 4 095 Knoten zu 32 Byte = **128 KB** — das passt in die
+   512 KB des nRF54LM20, aber nur knapp in die 256 KB des nRF52840. Dann
+   bleiben 10 Zugriffe je Block statt 22.
+2. **Beim Schreiben wandert die Wurzel in den Sicherheitschip.** Wenn das bei
+   jedem Block geschieht, bestimmt nicht der Speicher den Durchsatz, sondern
+   der SE051 — und seine Schreibzyklen sind endlich. Das ist eine
+   Entwurfsfrage der Konzeptsitzung, keine der Hardware.
+
 ## Der andere Weg: zwei Chips
 
 ### ESP32-P4 mit C6 als Funkbegleiter
@@ -234,7 +347,9 @@ Drei Gründe, in dieser Reihenfolge:
 2. **Die entscheidende Zahl fehlt noch.** Bevor irgendetwas gewechselt wird,
    muss der Durchsatz des gewählten Speicherbausteins samt AES-GCM gemessen
    sein. Liegt er unter 1 MB/s, ist der ganze Wechsel umsonst, und das lässt
-   sich heute nicht ausschließen.
+   sich heute nicht ausschließen. Das **Hashen** ist dabei entlastet: mit
+   25,8 MB/s (19,2 MB/s mit Merkle-Pfad) liegt es weit über allem anderen und
+   ist in keinem der Vorschläge die Engstelle.
 3. **Das Modul gibt es noch nicht.** BL54LM20B ist Vorserie. Eine Platine auf
    ein Beta-Muster zu zeichnen, dessen Preis und Zulassung offen sind, ist für
    dieses Projekt die unsicherere Variante.
@@ -254,7 +369,13 @@ Nicht meine Entscheidung, darum hier als Frage:
 2. **Reichen 44 Minuten für 8 GB?** Wenn nein, hilft nur der Zwei-Chip-Weg mit
    STM32 — und der kostet die Einfachheit des Geräts.
 3. **Wer misst AES-GCM und den Speicher am Gerät?** Ohne diese Messung ist
-   jede Entscheidung hier geraten.
+   jede Entscheidung hier geraten. Es ist dieselbe Messung, die auch
+   entscheidet, ob die drei Betriebsarten sich überhaupt unterschiedlich
+   schnell anfühlen.
+4. **Soll der Speicherweg neu bedacht werden?** Solange der Datenträger über
+   SPI mit einer Datenleitung hängt, ist bei rund 3 MB/s Schluss — mit und
+   ohne neuen Rechenkern. Das ist eine Frage an den Platinen-Strang, nicht an
+   diesen hier.
 
 ## Quellen
 
@@ -270,6 +391,7 @@ Nicht meine Entscheidung, darum hier als Frage:
 | Herstellerseite | ESP32-P4 USB-CDC rund 220–230 Mbit/s bei 8 KB Puffer | https://docs.espressif.com/projects/esp-faq/en/latest/software-framework/peripherals/usb.html |
 | Datenblatt | STM32F7x3: USB High Speed ohne externe ULPI-PHY (AN4879) | https://www.st.com/resource/en/application_note/an4879-introduction-to-usb-hardware-and-pcb-guidelines-using-stm32-mcus-stmicroelectronics.pdf |
 | Doku | Zephyr: Brett mit Nordic-USBHS-PHY | https://docs.zephyrproject.org/latest/boards/seeed/xiao_nrf54lm20a/doc/index.html |
+| Herstellerangabe | SHA-256 mit Beschleuniger: 4123 Byte in 0,1596 ms (von der Mastersitzung übergeben, hier nicht nachgemessen) | — |
 
 Stand 26.10.2026. Preise, Lagerstände und Lieferzeiten sind Momentaufnahmen
 und hier bewusst nicht aufgeführt — sie ändern sich schneller als diese Datei.
