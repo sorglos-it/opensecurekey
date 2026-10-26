@@ -11,8 +11,14 @@ aus Schätzungen. Gerechnet gegen den Stand `akku-weg` (59,55 mm).
 - Beide gehören auf die **Unterseite, `y` 25 … 45**. Oben liegt die Anzeige
   (`y` 23,05 … 45,05). Dorthin ziehen ohnehin die sechs Teile Q4, Q5, R9, R17,
   C13, C14 (siehe `layout-notes.md`, Ende).
-- **Empfehlung: Variante A, SD-NAND, 64 Gb = 8 GB.** 49,6 mm² statt 220,9 mm²,
-  0,80 mm Bauhöhe statt 1,68 mm, kein Schlitz im Gehäuse.
+- **Gewichtung nach Thomas' drei Betriebsarten (Karte nur im Stick /
+  weitergegeben mit Passwort / weitergegeben, signiert): Variante A (gelötet)
+  kann nur Betriebsart 1. Sie schließt Betriebsart 2 und 3 aus – die Karte kann
+  das Gerät nicht verlassen. Variante B ist die einzige, die den vollen Zweck
+  erfüllt, und sie kostet keine Länge (±0,00 mm).** A ist damit nur die
+  Rückfalllösung, nicht gleichwertig.
+- Zahlen zum Vergleich: A 49,6 mm², 0,80 mm hoch, kein Schlitz, 8 GB (vorbehalten);
+  B 220,9 mm², 1,68 mm hoch, Schlitz im Gehäuse, 16 GB und mehr, tauschbar.
 - **Vorbehalt:** Dass das 64-Gb-Teil im Gehäuse 8 × 6,2 mm heute lieferbar ist,
   ist nicht belegt (siehe unten). Sicher belegt sind 4 GB (32 Gb) und 1 GB
   (8 Gb).
@@ -75,6 +81,36 @@ Die Hersteller schreiben **Gigabit**. Jede Zahl hier ist umgerechnet
 - Nicht belegt: Verhalten der 0,8-mm-Platine unter der Steckkraft; Abstand des
   Stahlgehäuses zur Funkantenne (etwa 9 mm, `ungeprueft`).
 - Die Karte verlässt das Gerät: der Inhalt muss verschlüsselt sein.
+
+## Bedienbarkeit und Gehäuseöffnung (Variante B)
+
+Welcher Typ am Schlüsselring praktisch ist: **Push-Push (DM3AT).**
+
+| Typ | Karte wechseln ohne Gehäuse zu öffnen? | Urteil |
+| --- | --- | --- |
+| DM3AT, Push-Push | **ja**: Karte eindrücken, sie springt 5,6 mm heraus, greifen, ziehen; neue einschieben, bis sie rastet | **geeignet** |
+| DM3CS, Klappe | **nein**: Deckel muss aufgeklappt werden | ungeeignet |
+| DM3D, Push-Pull | ja, aber ohne Auswerfer; die Karte ragt eingesteckt etwa 3,5 mm heraus | ungeeignet am Ring (hängt an Taschen, wird abgerissen) |
+
+- Eingerastet ragt die Karte 1,6 mm über den Körper hinaus. Der Körper sitzt
+  bei `x` 0,2; die Kartenkante liegt dann etwa bei `x` −1,4, also **bündig mit
+  der Seitenwand** (1,6 mm, `cad/masse.md`) – Eindrücken zum Auswerfen geht nur
+  mit Fingernagel oder Spitze. Das ist Absicht, kein Fehler: so rutscht sie
+  nicht heraus. `ungeprueft` am Gehäuse; Wandstärke dort nicht nachgemessen.
+
+**Öffnung, zur Weitergabe an den Gehäuse-Strang (nicht in `cad/` eingetragen):**
+
+| | |
+| --- | --- |
+| Lage | Seitenwand links, quer 0, längs Mitte **33,9 mm** (Körper `y` 27,0 … 40,85) |
+| Schlitz | **12,0 × 1,8 mm** (Karte 11,0 × 1,0 mm, je Seite Spiel), durch 1,6 mm Wand |
+| Längs | `y` 27,9 … 39,9 |
+| Auswurfweg | 5,6 mm nach außen, frei von Wand und Kragen |
+| Abstand zum SW1-Schlitz (4,5 × 2,4 mm, längs 24,5 → `y` 22,25 … 26,75) | **1,15 mm Steg** |
+| Klemmkragen (1,2 mm je Seite) | muss auf der linken Kante über **etwa 12 mm unterbrochen** werden – zusammen mit der Unterbrechung bei SW1 (21,70 … 27,30) fehlt Klemmung über **etwa `y` 21,7 … 39,9 = 18,2 mm** der 59,55 mm |
+
+Der letzte Punkt ist das eigentliche Gehäuseproblem: Der Kragen ersetzt dort
+die Schrauben. Das entscheidet der Gehäuse-Strang.
 
 ## Anschlüsse (gegen `netlist.enet` gemessen)
 
