@@ -3555,3 +3555,9 @@ und alles, was schlicht noch nicht verlegt ist.
 2. Dann **Umriss kürzen**, Flächen wieder aufbauen, DRC.
 3. Die sechs Teile bei `y` 28,7 … 33,6 auf die Unterseite, damit die Anzeige
    ihren Platz bekommt (siehe oben, die Unterseite ist dort leer).
+
+# Datenträger: ändert die Länge nicht
+
+Stand 26.10.2026. SD-NAND (8,00 × 6,20 mm) wie microSD-Schacht (13,85 × 15,95 mm)
+passen auf die Unterseite `y` 25 … 45. **Länge bleibt 59,55 mm.** Maße,
+Belegung und Quellen: `datentraeger.md`.
