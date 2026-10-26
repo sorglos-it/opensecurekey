@@ -490,3 +490,39 @@ Händlerseiten **am 26.10.2026** selbst abgerufen, außer wo anders angegeben.
 - `hardware/datentraeger.md` (Zweig `sd-datentraeger`) — Schacht, Karte,
   Betriebsarten
 - `hardware/layout-notes.md`:1419–1423, 3157 — Platzhalter und Akku-Entscheidung
+
+---
+
+## Nachtrag 26.10.2026 — der Flash auf dem Brett ist kleiner als der Entwurf
+
+Nach dem Bestellen geprüft, von der Mastersitzung, gegen alle Entscheidungen
+der letzten zwei Tage. **Die Liste war aktuell** — Akku-Wegfall, Datenträger
+und die drei Betriebsarten waren berücksichtigt. Auch die später entschiedenen
+FIPS-140-3-Anforderungen verlangen hier nichts Zusätzliches: Die PIN-Eingabe am
+Gerät braucht Taster und Anzeige, beide sind da; Verguss und der Verzicht auf
+einen Debug-Anschluss betreffen die Serienfertigung, nicht den Teststand.
+
+**Ein Punkt blieb ungeprüft, und er gehört festgehalten:**
+
+Das nRF52840-DK trägt einen **MX25R6435F** als externen QSPI-Flash
+(Nordic-SDK-Dokumentation zu QSPI/XiP nennt ihn für PCA10056; die Kapazität
+von **64 Mbit = 8 MByte** folgt aus der Typbezeichnung, `ungeprueft` — nicht
+aus einem Datenblatt nachgelesen).
+
+Der Entwurf sieht **64 MByte** vor (`W25Q512JVEIQ`), also **achtmal so viel**.
+
+| Was damit prüfbar ist | Urteil |
+| --- | --- |
+| Tresor, Geräteprotokoll, Formatwanderung | **geht** — der Tresor braucht keine 64 MB |
+| MCUboot-Zweitplatz im externen Flash | **geht voraussichtlich**, Partitionsgrößen prüfen |
+| **USB-Laufwerk mit den portablen Programmen** | **geht nicht vollständig.** Das Abbild ist **27 MB** (`laufwerk.md`), gemessen sogar 29,10 MB. In 8 MB passt es nicht |
+
+**Kein Nachkauf jetzt.** Das Laufwerk ist der letzte Prüfpunkt der Reihe; davor
+stehen Sicherheitschip, FIDO2, NFC, Smartcard und Tresor, und für alle reichen
+8 MB. Wer es später braucht, nimmt ein QSPI-Flash-Modul mit `W25Q`-Baustein —
+beim Kauf auf die Einheit achten, die Hersteller schreiben Megabit.
+
+**Und eine Einschränkung, die bleibt:** Was in 8 MB passt, sagt nichts darüber,
+wie sich dieselbe Firmware mit 64 MB verhält — Adressbreite, Löschblockgröße
+und Verschleißverteilung ändern sich mit der Größe. Ein Lauf am kleinen Flash
+ist kein Beleg für den großen.
