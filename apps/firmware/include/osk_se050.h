@@ -96,6 +96,108 @@ osk_result_t osk_se050_pin_clear(void);
  * Angabe; zum Warnen reicht er, zum Rechnen nicht. */
 osk_result_t osk_se050_free_memory(uint16_t *bytes_out);
 
+/* --- RSA ----------------------------------------------------------------
+ *
+ * FESTGELEGT VOM MASTER am 27.10.2026, vor dem Start der Straenge. Hier steht
+ * nur der Vertrag; die Umsetzung gehoert Strang A (se050/). Die Straenge C
+ * (PIV, OpenPGP) und F bauen dagegen, auch solange dahinter nichts antwortet.
+ *
+ * RSA bekommt eigene Funktionen und haengt nicht an osk_curve_t. Grund: ein
+ * RSA-Schluessel hat eine Laenge statt einer Kurve, sein oeffentlicher Teil
+ * sind zwei Zahlen statt eines Punktes, und signiert wird nur mit einer
+ * ausdruecklich genannten Auffuellung. Wer RSA in die Kurventabelle presst,
+ * verliert genau diese drei Angaben. */
+
+typedef enum {
+	OSK_RSA_2048,
+	OSK_RSA_3072,
+	OSK_RSA_4096,
+} osk_rsa_bits_t;
+
+/* Auffuellung. Sie ist nie die Vorgabe und wird immer genannt - PKCS#1 v1.5
+ * und PSS sind nicht gegeneinander austauschbar, und welche gilt, entscheidet
+ * das aufrufende Verfahren (PIV: v1.5; OpenPGP: beides; TLS 1.3: nur PSS). */
+typedef enum {
+	OSK_RSA_PAD_PKCS1_V15, /* signieren und entschluesseln */
+	OSK_RSA_PAD_PSS,       /* nur signieren */
+	OSK_RSA_PAD_OAEP,      /* nur entschluesseln */
+	OSK_RSA_PAD_NONE,      /* rohes RSA - nur fuer Pruefzwecke */
+} osk_rsa_pad_t;
+
+/* Welches Hashverfahren den uebergebenen Hash erzeugt hat. Der Chip braucht
+ * das: bei PKCS#1 v1.5 steckt die Kennung im DigestInfo, bei PSS und OAEP
+ * bestimmt sie die Maskenfunktion. Aus der Laenge allein ist es nicht
+ * ableitbar - SHA-512/256 und SHA-256 sind beide 32 Byte lang. */
+typedef enum {
+	OSK_HASH_SHA256,
+	OSK_HASH_SHA384,
+	OSK_HASH_SHA512,
+} osk_hash_t;
+
+/* Welche RSA-Laengen dieser Chip wirklich kann - abgefragt, nicht angenommen,
+ * genau wie osk_se050_curves(). Liefert eine Bitmaske aus
+ * (1 << osk_rsa_bits_t).
+ *
+ * Das ist keine Vorsicht um ihrer selbst willen: der SE051A2 kann RSA
+ * UEBERHAUPT NICHT, der SE051C2 kann es. Beide antworten auf dieselbe
+ * Adresse. Liefert diese Funktion 0, ist der falsche Baustein verbaut, und
+ * die Firmware muss das melden statt beim ersten Schluessel zu scheitern.
+ * Siehe docs/se050.md, Abschnitt zur Kennung. */
+osk_result_t osk_se050_rsa_sizes(uint32_t *mask_out);
+
+osk_result_t osk_se050_rsa_key_create(osk_key_id_t id, osk_rsa_bits_t bits,
+				      const osk_key_policy_t *policy);
+
+/* Oeffentlicher Teil: Modulus und Exponent getrennt. Beide Laengen werden
+ * gemeldet, denn der Exponent ist je Chip und Schluessel 3 oder 4 Byte lang,
+ * und wer 65537 annimmt, baut irgendwann ein falsches Zertifikat. */
+osk_result_t osk_se050_rsa_public(osk_key_id_t id, uint8_t *mod_out, size_t mod_cap,
+				  size_t *mod_len_out, uint8_t *exp_out, size_t exp_cap,
+				  size_t *exp_len_out);
+
+/* Signiert den bereits gebildeten Hash - wie osk_se050_sign() bleibt das
+ * Hashen beim Aufrufer, damit die Anzeige zeigt, was wirklich unterschrieben
+ * wird. Die Signatur ist so lang wie der Modulus. */
+osk_result_t osk_se050_rsa_sign(osk_key_id_t id, osk_rsa_pad_t pad, osk_hash_t hash_alg,
+				const uint8_t *hash, size_t hash_len, uint8_t *sig_out, size_t cap,
+				size_t *len_out);
+
+/* Entschluesseln. Gebraucht fuer den PIV-Steckplatz 9D und den
+ * OpenPGP-Verschluesselungsschluessel; ohne das bleibt verschluesselte Post
+ * ungelesen. `hash_alg` gilt nur bei OAEP und wird sonst nicht angesehen. */
+osk_result_t osk_se050_rsa_decrypt(osk_key_id_t id, osk_rsa_pad_t pad, osk_hash_t hash_alg,
+				   const uint8_t *in, size_t in_len, uint8_t *out, size_t cap,
+				   size_t *len_out);
+
+/* --- Monotone Zaehler ---------------------------------------------------
+ *
+ * FESTGELEGT VOM MASTER am 27.10.2026. Umsetzung bei Strang A nach NXP
+ * AN13187; gebraucht von Strang B (FIDO-Signaturzaehler) und Strang D
+ * (Rueckdrehschutz des Tresors).
+ *
+ * Ein Zaehler im Chip laeuft nur vorwaerts, und das ist die ganze Leistung:
+ * ein Wert im Flash laesst sich zurueckspielen, dieser nicht. Darum liegt der
+ * Rueckdrehschutz hier und nicht im Tresor - ein zurueckgespielter, in sich
+ * voellig gueltiger Tresorzustand ist genau der Angriff, gegen den er hilft.
+ *
+ * Es gibt absichtlich KEIN counter_set() und kein counter_delete(). Beides
+ * waere ein Weg zurueck, und damit waere der Zaehler kein Zaehler mehr. */
+
+osk_result_t osk_se050_counter_create(osk_key_id_t id);
+
+osk_result_t osk_se050_counter_read(osk_key_id_t id, uint64_t *value_out);
+
+/* Den Zaehler auf mindestens `at_least` bringen. Steht er schon dort oder
+ * hoeher, aendert sich nichts und das Ergebnis ist trotzdem OSK_OK - der
+ * Aufruf ist damit wiederholbar, was nach einem Stromausfall mitten im
+ * Schreiben noetig ist.
+ *
+ * Heisst bewusst `raise` und nicht `write`: der Name soll beim Lesen des
+ * Aufrufs sagen, dass es nur in eine Richtung geht. Ein kleinerer Wert ist
+ * keine Aenderung und kein Fehler des Chips, sondern einer des Aufrufers,
+ * und wird als solcher gemeldet. */
+osk_result_t osk_se050_counter_raise(osk_key_id_t id, uint64_t at_least);
+
 /* --- Erstinbetriebnahme: Werksschluessel ersetzen ------------------------
  *
  * HINZUGEFUEGT vom se050-Strang, dem Master gemeldet. Ohne diese zwei

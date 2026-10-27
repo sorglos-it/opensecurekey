@@ -98,6 +98,53 @@ osk_result_t osk_store_public(osk_item_id_t id, uint8_t *out, size_t cap, size_t
 osk_result_t osk_store_reveal(osk_item_id_t id, const char *asked_by, uint8_t *out, size_t cap,
 			      size_t *len_out);
 
+/* --- Signaturzaehler ----------------------------------------------------
+ *
+ * FESTGELEGT VOM MASTER am 27.10.2026, vor dem Start der Straenge.
+ *
+ * Gezaehlt wird in CTAP (Strang B), gespeichert hier (Strang D). Genau
+ * deshalb steht der Vertrag im Header und nicht in einem der beiden
+ * Straenge: wuerde jeder seinen eigenen bauen, gaebe es zwei Zaehler, die
+ * gleich heissen und Verschiedenes messen.
+ *
+ * WARUM DAS NICHT IM RAM GEHT: Der Zaehler ist das Mittel, mit dem ein
+ * Dienst einen geklonten Schluessel erkennt - er muss bei jeder Anmeldung
+ * groesser sein als zuvor. Heute liegt er im RAM und faengt nach jedem
+ * Einstecken bei null an; damit sieht der Dienst bei JEDER zweiten Anmeldung
+ * aus wie ein Klon. Eine Pruefung, die nur innerhalb eines Laufs zaehlt,
+ * zeigt den Fehler nicht - sie muss ueber einen Neustart hinweg pruefen. */
+
+/* Zaehler des Zugangs um eins erhoehen und den NEUEN Wert melden. Das
+ * Erhoehen und das Festschreiben sind ein Vorgang: wird der Strom mitten
+ * darin gezogen, ist der Zaehler entweder alt oder neu, nie dazwischen und
+ * nie kleiner als vorher.
+ *
+ * Diese Funktion wird vor dem Signieren gerufen, nicht danach. Ein Zaehler,
+ * der nach einer gelungenen Signatur erhoeht wird, laesst sich durch
+ * Stromabziehen im richtigen Moment zweimal auf demselben Wert benutzen. */
+osk_result_t osk_store_sigcount_next(osk_item_id_t cred, uint32_t *value_out);
+
+/* Nur ablesen, ohne zu erhoehen - fuer Anzeige und Pruefung. */
+osk_result_t osk_store_sigcount_get(osk_item_id_t cred, uint32_t *value_out);
+
+/* --- Rueckdrehschutz ---------------------------------------------------
+ *
+ * Der Stand des Tresors, der bei jedem Festschreiben um eins steigt. Sein
+ * Anker liegt NICHT hier, sondern als monotoner Zaehler im Sicherheitschip
+ * (osk_se050_counter_read / _raise): ein Wert im Flash laesst sich mit dem
+ * Flash zurueckspielen, der im Chip nicht.
+ *
+ * Der Tresor hebt den Chipzaehler bei jedem Festschreiben selbst mit an und
+ * vergleicht beim Oeffnen. Ist der Stand im Flash KLEINER als der im Chip,
+ * ist ein alter Zustand zurueckgespielt worden, und osk_store_open()
+ * verweigert.
+ *
+ * Gepruefter Fall ist ein zurueckgespielter, in sich VOELLIG GUELTIGER
+ * Zustand - mit richtiger Signatur, richtiger Pruefsumme, richtigem Format.
+ * Gegen einen verfaelschten hilft die Verschluesselung schon; der gueltige
+ * alte ist der eigentliche Angriff. */
+osk_result_t osk_store_generation(uint64_t *value_out);
+
 /* Formatversion und Wanderung nach einem Firmware-Update. */
 osk_result_t osk_store_format_version(uint16_t *version_out);
 osk_result_t osk_store_migrate(void);
