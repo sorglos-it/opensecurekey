@@ -1,5 +1,26 @@
 # Maße und Dickenrechnung
 
+> **ÜBERHOLT, Stand 27.10.2026. Keine Zahl dieser Datei gilt noch.**
+>
+> Die ganze Rechnung hängt am Akku: der Zellenraum ist mit **4,05 mm das
+> dickste Element** jeder Lagensumme, und die Aufteilung quer (Zelle
+> 1,20…13,20, Sensorfeld 13,70…24,70) teilt die Breite danach auf. **Der Akku
+> ist am 25.10.2026 gestrichen** (`../docs/plan.md`, Abschn. 2) — damit fallen
+> Zellenraum, Zellenreserve, Rückfallzelle, Ferritfolie und Akkustecker J2
+> ersatzlos weg.
+>
+> **Zwei Angaben kehren sich dadurch um**, und beide sind ungünstiger als man
+> erwartet:
+>
+> - **Das dickste Teil ist jetzt der USB-Stecker J1 mit 2,90 mm über alles.**
+>   Die Höhengrenze für alles andere ist also von 3,8 auf **2,90 mm gefallen**.
+> - **Die Platine ist nicht mehr 24 × 70 mm, sondern 27 × 59,55 mm**
+>   (obere Schranke) — die Dicke wird dünner, Breite und Länge ändern sich.
+>
+> **Neu gerechnet werden muss von vorn, nicht ausgebessert.** Der Text unten
+> bleibt stehen, weil er belegt, *wie* gerechnet wurde — die Methode gilt
+> weiter, die Zahlen nicht.
+
 Stand 24.10.2026, nach Thomas' Entscheidungen zu Platinenbreite und
 USB-Anschluss. **Gerechnet, nichts gebaut, nichts gemessen.** Jede Zahl stammt
 aus `../docs/parts.md`, `../hardware/layout-notes.md` oder einem Datenblatt, das

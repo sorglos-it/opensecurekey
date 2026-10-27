@@ -427,51 +427,48 @@ wird getrennt über `clientPin` gemeldet. Solange nur die PIN da ist, könnte da
 Feld zu viel versprechen. Mit einem Sensor wäre es dann richtig. **Gehört dem
 CTAP-Strang; hier nur gemeldet, nicht entschieden.**
 
-## 3. Bedingung 4 nachgerechnet: die Baugröße ist kein Hindernis mehr
+## 3. Bedingung 4 nachgerechnet: die Baugröße entscheidet wieder mit
 
-Der Auftrag fragt, wie dick ein Sensor wirklich sein darf. **Die Antwort steht
-schon im Projekt**, in `hardware/layout-notes.md`, und sie ist günstiger als
-gedacht.
+> **Berichtigt am 27.10.2026.** Dieser Abschnitt rechnete mit dem Akku als
+> maßgebender Höhe. **Der Akku ist am 25.10. gestrichen worden**
+> (`docs/plan.md`, Abschn. 2), und damit kehrt sich der Befund um: Die
+> Höhengrenze ist **gefallen**, nicht gestiegen.
 
-Der Aufbau heute (`hardware/layout-notes.md`, Abschn. „Bauform: 24 × 70 mm"):
+Der Aufbau heute (`hardware/layout-notes.md`):
 
 | Lage | Dicke |
 | --- | --- |
 | Platine | 0,8 mm |
-| Akku (Adafruit 1317) auf der einen Seite | 3,8 mm |
-| Funkmodul (MDBT50Q) auf der anderen Seite | 2,05 mm |
-| **Summe** | **≈ 6,7 mm plus Gehäuse, fertig etwa 8–9 mm** |
+| ~~Akku (Adafruit 1317)~~ | ~~3,8 mm~~ — **entfällt** |
+| **USB-Randstecker J1** (GCT USB4155-03-C) | **2,90 mm über alles** — das dickste Teil |
+| Funkmodul (MDBT50Q) | 2,05 mm |
 
-`layout-notes.md` schreibt dazu, wörtlich:
+**Die maßgebende Größe ist jetzt der USB-Stecker mit 2,90 mm.** Das ist die
+Grenze, unter die ein Sensor passen muss, wenn das Gehäuse nicht dicker werden
+soll — vorher waren es 3,8 mm.
 
-> „**Wichtig für Stufe 2:** Das BM-Lite muss **neben** die Zelle, nicht über
-> sie. Mit 2,8 mm ist es dünner als der Akku (3,8 mm) — nebeneinander bestimmt
-> also weiter der Akku die Höhe, und das Gehäuse bleibt gleich."
+| Sensor | Dicke | Luft bis 2,90 mm |
+| --- | --- | --- |
+| BM-Lite | 2,8 mm | **0,1 mm** — praktisch nichts |
+| **AllKey FPC2534AM** | **0,83 mm** (Sensorkörper) | **2,07 mm** |
 
-**Das heißt: schon mit 2,8 mm kostet der Sensor keine Bauhöhe.** Die
-Gesamthöhe richtet sich nach dem Akku, nicht nach dem Sensor. Solange der Sensor
-dünner als 3,8 mm bleibt und **neben** der Zelle liegt, ändert sich am Gehäuse
-nichts. Die Grenze ist also nicht „so dünn wie möglich", sondern **3,8 mm** —
-und selbst darüber wäre nur die Seitenaufteilung zu ändern, nicht die Bauform.
+**Damit wird die Sensorwahl zur Höhenfrage, und sie war es vorher nicht.** Beim
+BM-Lite entscheidet die Fassung darüber, ob das Gehäuse wächst; beim FPC2534
+bleibt auch mit Fassung Luft.
 
-Mit dem AllKey wird es deutlich einfacher:
+**Zwei Folgen:**
 
-| | BM-Lite | **AllKey FPC2534AM** | Gewinn |
-| --- | --- | --- | --- |
-| Dicke | 2,8 mm | **0,83 mm** (Sensorkörper) | **−1,97 mm**, 70 % weniger |
-| Grundfläche | 15 × 15 mm = 225 mm² | **Ø 11 mm ≈ 95 mm²** | **−58 %** |
-| Abstand zum Akku (3,8 mm) | 1,0 mm Luft | **3,0 mm Luft** | — |
-
-**Zwei Folgen, beide erfreulich:**
-
-1. **Die Einschränkung in `layout-notes.md` fällt weg.** Dort steht: „Mit der
-   schmalen Zelle (12 mm) passt das BM-Lite (15 × 15 mm) bequem; mit der
-   19,75 mm breiten wird es eng." Mit Ø 11 mm statt 15 × 15 mm **passt der
-   Sensor auch neben die breite Zelle** — die Wahl der Akkukapazität ist nicht
-   mehr an die Sensorfrage gekoppelt.
+1. **Die Einschränkung „neben die Zelle, nicht über sie" ist gegenstandslos** —
+   es gibt keine Zelle mehr. Die Fläche, die der Akku belegte, ist frei; der
+   Sensor hat Platz, unabhängig von seiner Grundfläche (Ø 11 mm bzw.
+   15 × 15 mm).
 2. **Die Gehäuseaussparung wird kleiner.** Statt eines 15-mm-Quadrats ein Loch
    von Ø 11 mm, und die aktive Fläche ist nur 5,0 × 4,8 mm. Das Blindstück aus
    Stufe 1 wird entsprechend kleiner.
+
+> **Offen und nur messbar:** die Bauhöhe des FPC2534 **mit** Fassung bzw.
+> ZIF-Steckverbinder. 0,83 mm ist der Sensorkörper allein. Erst diese Zahl sagt,
+> ob Stufe 2 ohne Gehäuseänderung geht.
 
 **Was bleibt:** Der Flex-Anschluss (12-polig, ZIF) braucht einen Steckverbinder
 oder eine Lötstelle; das Stiftfeld J5 (1 × 6, 1,27 mm) passt dafür nicht

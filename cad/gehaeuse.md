@@ -9,6 +9,18 @@ Rechnung dahinter steht in [masse.md](masse.md).
 > steht am Ende unter
 > [Was sich durch den Steckerumbau ändert](#was-sich-durch-den-steckerumbau-ändert).
 > Wer hier etwas ändert, liest das zuerst.
+>
+> **Und seit dem 25.10.2026 kommt ein Zweites hinzu: es gibt keinen Akku mehr.**
+> Jede Stelle unten, die von Zelle, Zellenraum, Ferritfolie oder Akkuseite
+> spricht, ist damit gegenstandslos — das sind über zwanzig Stellen, die
+> Aufteilung quer und die ganze Dickenrechnung eingeschlossen. **Die Zahlen
+> dieser Datei dürfen nicht mehr verwendet werden**, auch nicht als Näherung:
+> der Zellenraum war mit 4,65 mm das dickste Element, und er fällt weg.
+>
+> **Das ist Neuzeichnung, nicht Berichtigung** — Arbeit für den Gehäuse-Strang,
+> und sie beginnt erst, wenn das Platinenmaß steht (heute 27 × 59,55 mm, obere
+> Schranke). Bis dahin bleibt der alte Text als Nachweis stehen, wie gerechnet
+> wurde, und **nichts daraus gilt.**
 
 ## Was es ist
 

@@ -10,8 +10,9 @@ Die Teilemaße stammen aus `../docs/parts.md`, die Netze aus `schematic.md`.
 | --- | --- | --- |
 | U1 Raytac MDBT50Q-1MV2 | **15,5 × 10,5 × 2,05 mm** | Chipantenne, braucht Freiraum |
 | DS1 OLED 0,71" | **13,90 × 22,00 × 1,26 mm**, aktiv 10,54 × 14,70 mm | FPC-Fahne |
-| Akku Adafruit 1317 | **3,8 × 19,75 × 26,02 mm** | dickstes Teil |
-| Akku BerryBase LP-401230 | **4,05 × 12,0 × 30,5 mm** | schmale Alternative |
+| ~~Akku Adafruit 1317~~ | ~~3,8 × 19,75 × 26,02 mm~~ | **entfällt seit 25.10.2026** |
+| ~~Akku BerryBase LP-401230~~ | ~~4,05 × 12,0 × 30,5 mm~~ | **entfällt** |
+| **J1 USB-C-Randstecker** GCT USB4155-03-C | **2,90 mm Bauhöhe über alles** | **jetzt das dickste Teil** |
 | J1 USB-C GCT USB4085 | Körper 8,94 × 9,17 mm, Öffnung 3,16 mm hoch | Durchsteck, 4 Haltestifte |
 | U2 SE051C2 | 3 × 3 × 0,32 mm | — |
 | U3 Flash WSON8 | 8 × 6 mm | — |
@@ -19,8 +20,16 @@ Die Teilemaße stammen aus `../docs/parts.md`, die Netze aus `schematic.md`.
 | D1 RGB-LED | 1,6 × 1,6 × 0,5 mm | — |
 | L1 Spule | 0603 | nahe an DCCH |
 
-**Das dickste Teil ist der Akku mit 3,8 mm, das längste mit 26 mm.** Beides
-bestimmt die Bauform.
+~~**Das dickste Teil ist der Akku mit 3,8 mm, das längste mit 26 mm.**~~
+**→ BERICHTIGT 27.10.2026, nachdem der Akku entfallen ist:**
+
+**Das dickste Teil ist jetzt der USB-Stecker J1 mit 2,90 mm**, gefolgt vom
+Funkmodul U1 mit 2,05 mm. **Das längste ist die Anzeige mit 22,00 mm.**
+
+**Die Folge ist eine Verschärfung, keine Entlastung:** Die Höhengrenze ist von
+3,8 auf **2,90 mm** gefallen. Wer ein Teil einplant, das höher baut als der
+Stecker, macht das Gehäuse dicker — vorher war bis 3,8 mm alles umsonst zu
+haben.
 
 ## Bauform: 26 × 70 mm
 
@@ -97,10 +106,17 @@ Modul hin, das Antennendrittel wird größer.
 70 × 26 mm ist noch Schlüsselanhängerformat — etwa so groß wie ein
 Autoschlüssel.
 
-**Die Bauhöhe richtet sich jetzt nach dem Akku (3,8 mm), nicht mehr nach dem
-Sensor (2,8 mm plus Fassung).** Damit ist die Höhe von der Sensorfrage
-entkoppelt: Stufe 2 kann den Sensor nachrüsten, ohne dass das Gehäuse dicker
-werden muss, solange er neben dem Akku und nicht über ihm sitzt.
+~~**Die Bauhöhe richtet sich jetzt nach dem Akku (3,8 mm), nicht mehr nach dem
+Sensor (2,8 mm plus Fassung).**~~ **→ BERICHTIGT 27.10.2026: Der Akku ist weg,
+und damit wird es eng.**
+
+**Die Höhe bestimmt jetzt der USB-Stecker mit 2,90 mm.** Der Sensor misst
+**2,8 mm plus Fassung** — er passt also nur noch mit **0,1 mm Luft** darunter,
+und nur, wenn die Fassung nichts aufträgt.
+
+**Das ist zu messen, bevor Stufe 2 zugesagt wird.** Vorher lag zwischen Sensor
+und Höhengrenze ein ganzer Millimeter; jetzt entscheidet die Fassung darüber,
+ob das Gehäuse dicker werden muss.
 
 ### Wenn das Gehäuse dadurch zu groß wird
 

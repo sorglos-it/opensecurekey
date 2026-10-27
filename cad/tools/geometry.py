@@ -1,5 +1,12 @@
 """Geometrie des Gehaeuses aus der Parametertabelle.
 
+UEBERHOLT seit 27.10.2026: dieses Modell hat einen Akkuraum, und der Akku ist
+am 25.10. gestrichen worden (docs/plan.md, Abschn. 2). Die Koerper stimmen
+damit nicht mehr - auch die Dicke nicht, denn der Zellenraum war das dickste
+Element. Neu gezeichnet wird erst, wenn das Platinenmaß steht; bis dahin ist
+die Ausgabe dieses Moduls eine Vorschau auf einen alten Entwurf.
+Siehe ../masse.md, Kopf.
+
 Keine Abhaengigkeiten. Liefert fuer jeden Koerper eine Liste von Quadern mit
 einem Zeichen davor: '+' hinzufuegen, '-' abziehen, in dieser Reihenfolge.
 Alle Maße in Millimeter.
