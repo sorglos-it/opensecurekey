@@ -69,5 +69,7 @@ void test_t1(void);
 void test_scp03(void);
 void test_errors(void);
 void test_contract(void);
+void test_rsa(void);
+void test_counter(void);
 
 #endif

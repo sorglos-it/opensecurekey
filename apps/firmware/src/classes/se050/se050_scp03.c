@@ -1,5 +1,6 @@
 #include <string.h>
 #include "se050_scp03.h"
+#include "se050_cmd.h"
 
 /* Ableitungskonstanten, Amendment D Tabelle 4-1. */
 #define DD_CARD_CRYPTOGRAM 0x00u
@@ -268,14 +269,29 @@ osk_result_t osk_scp03_wrap(osk_scp03_t *s, const uint8_t *in, size_t in_len, ui
 	const uint8_t *data = NULL;
 	size_t data_len = 0;
 	if (in_len > 4u) {
-		data_len = in[4];
-		if (in_len != 5u + data_len) {
-			/* Lc passt nicht zur Laenge: entweder ist ein Le
-			 * mitgekommen oder der Aufrufer hat sich verrechnet.
-			 * Beides darf nicht stillschweigend durchgehen. */
-			return OSK_ERR_ARG;
+		/* Zwei Formen von Lc, und sie messen dasselbe in
+		 * verschiedener Breite: ein Byte, oder ein Nullbyte und
+		 * danach zwei Byte (erweiterte Laenge, ISO 7816-4; vom
+		 * Applet zugelassen, AN12413 4.1). Die erweiterte Form
+		 * entsteht nur, wenn mehr als 255 Byte hineingehen - ein
+		 * RSA-Chiffrat. */
+		if (in[4] == 0x00u && in_len > 7u) {
+			data_len = ((size_t)in[5] << 8) | in[6];
+			if (in_len != 7u + data_len) {
+				return OSK_ERR_ARG;
+			}
+			data = &in[7];
+		} else {
+			data_len = in[4];
+			if (in_len != 5u + data_len) {
+				/* Lc passt nicht zur Laenge: entweder ist ein
+				 * Le mitgekommen oder der Aufrufer hat sich
+				 * verrechnet. Beides darf nicht
+				 * stillschweigend durchgehen. */
+				return OSK_ERR_ARG;
+			}
+			data = &in[5];
 		}
-		data = &in[5];
 	}
 
 	/* Nutzlast auffuellen: ISO 9797-1 Verfahren 2, also 0x80 und dann
@@ -287,13 +303,16 @@ osk_result_t osk_scp03_wrap(osk_scp03_t *s, const uint8_t *in, size_t in_len, ui
 	}
 
 	const size_t lcc = padded + SCP03_MAC_LEN;
-	if (lcc > 0xFFu) {
-		/* Mehr geht in ein Lc-Byte nicht. Laenger wird in dieser
-		 * Fassung nicht gebraucht; der SE050 kann zwar erweiterte
-		 * Laengen, aber dafuer waere auch der Kopf anders. */
+	if (lcc > SE050_MAX_PAYLOAD) {
 		return OSK_ERR_FULL;
 	}
-	const size_t total = 5u + lcc + 1u; /* + Le */
+	/* Kopflaenge und Le haengen an derselben Entscheidung: entweder
+	 * ueberall kurz oder ueberall erweitert. Ein kurzes Lc mit einem
+	 * zwei Byte langen Le waere kein gueltiger Befehl. */
+	const bool ext = (lcc > 0xFFu);
+	const size_t head = ext ? 7u : 5u;
+	const size_t le_len = ext ? 2u : 1u;
+	const size_t total = head + lcc + le_len;
 	if (cap < total) {
 		return OSK_ERR_FULL;
 	}
@@ -306,7 +325,13 @@ osk_result_t osk_scp03_wrap(osk_scp03_t *s, const uint8_t *in, size_t in_len, ui
 	out[1] = in[1];
 	out[2] = in[2];
 	out[3] = in[3];
-	out[4] = (uint8_t)lcc;
+	if (ext) {
+		out[4] = 0x00u;
+		out[5] = (uint8_t)(lcc >> 8);
+		out[6] = (uint8_t)(lcc & 0xFFu);
+	} else {
+		out[4] = (uint8_t)lcc;
+	}
 
 	if (data_len > 0) {
 		if (padded > sizeof(plain)) {
@@ -320,7 +345,7 @@ osk_result_t osk_scp03_wrap(osk_scp03_t *s, const uint8_t *in, size_t in_len, ui
 
 		r = make_icv(s, false, icv);
 		if (r == OSK_OK) {
-			r = osk_aes_cbc_encrypt(s->s_enc, icv, plain, &out[5], padded);
+			r = osk_aes_cbc_encrypt(s->s_enc, icv, plain, &out[head], padded);
 		}
 		osk_wipe(plain, padded);
 		osk_wipe(icv, sizeof(icv));
@@ -333,12 +358,12 @@ osk_result_t osk_scp03_wrap(osk_scp03_t *s, const uint8_t *in, size_t in_len, ui
 	/* MAC ueber Kopf und bereits verschluesselte Nutzlast
 	 * (Amendment D 6.2.6: erst chiffrieren, dann signieren). */
 	uint8_t mac[OSK_AES_BLOCK];
-	r = cmac_over_command(s, out, 5u + padded, mac);
+	r = cmac_over_command(s, out, head + padded, mac);
 	if (r != OSK_OK) {
 		osk_wipe(out, total);
 		return r;
 	}
-	memcpy(&out[5 + padded], mac, SCP03_MAC_LEN);
+	memcpy(&out[head + padded], mac, SCP03_MAC_LEN);
 	memcpy(s->chain, mac, SCP03_CHAIN_LEN);
 	osk_wipe(mac, sizeof(mac));
 
@@ -346,6 +371,9 @@ osk_result_t osk_scp03_wrap(osk_scp03_t *s, const uint8_t *in, size_t in_len, ui
 	 * zurueckgeben, und stoert sich sonst nicht daran
 	 * (AN12413 4.1.2). */
 	out[total - 1u] = 0x00u;
+	if (ext) {
+		out[total - 2u] = 0x00u;
+	}
 
 	/* Zaehler weiter - auch wenn nichts zu verschluesseln war
 	 * (Amendment D 6.2.6). */

@@ -71,16 +71,42 @@ static osk_result_t plain_exchange(osk_se050_apdu_t *a, uint8_t cla, uint8_t ins
 				   uint8_t p2, const uint8_t *payload, size_t payload_len,
 				   uint8_t *rsp, size_t rsp_cap, size_t *rsp_len)
 {
-	if (payload_len > 0xFFu) {
+	if (payload_len > SE050_MAX_PAYLOAD) {
 		return OSK_ERR_FULL;
 	}
 
-	uint8_t cmd[5u + 0xFFu + 1u];
+	uint8_t cmd[7u + SE050_MAX_PAYLOAD + 2u];
 	size_t n = 4u;
 	cmd[0] = cla;
 	cmd[1] = ins;
 	cmd[2] = p1;
 	cmd[3] = p2;
+	if (payload_len > 0xFFu) {
+		/* Erweiterte Laenge (ISO 7816-4, vom Applet ausdruecklich
+		 * zugelassen: AN12413 4.1, "Both standard as well as
+		 * extended length APDUs are supported"). Gebraucht wird sie
+		 * fuer genau einen Fall: ein RSA-Chiffrat ist so lang wie
+		 * der Modulus, bei 4096 bit also 512 Byte, und das passt in
+		 * kein Lc-Byte. Ohne das bliebe verschluesselte Post
+		 * ungelesen.
+		 *
+		 * UNBESTAETIGT wie die Werte in se050_t1_wire.h: dass das
+		 * Applet diese Form annimmt, steht im Dokument; gemessen
+		 * ist es nicht. Am Geraet ist es eine Messung - Befehl
+		 * schicken und sehen, ob 0x9000 kommt. */
+		cmd[4] = 0x00u;
+		cmd[5] = (uint8_t)(payload_len >> 8);
+		cmd[6] = (uint8_t)(payload_len & 0xFFu);
+		memcpy(&cmd[7], payload, payload_len);
+		n = 7u + payload_len;
+		/* Bei erweiterter Laenge ist auch Le zwei Byte lang. */
+		cmd[n] = 0x00u;
+		cmd[n + 1u] = 0x00u;
+		n += 2u;
+		const osk_result_t re = raw_exchange(a, cmd, n, rsp, rsp_cap, rsp_len);
+		osk_wipe(cmd, n);
+		return re;
+	}
 	if (payload_len > 0) {
 		cmd[4] = (uint8_t)payload_len;
 		memcpy(&cmd[5], payload, payload_len);
@@ -168,7 +194,11 @@ static osk_result_t session_cmd(osk_se050_apdu_t *a, const uint8_t id[SE050_SESS
 				const uint8_t *inner, size_t inner_len, uint8_t *rsp,
 				size_t rsp_cap, size_t *rsp_len)
 {
-	uint8_t payload[16u + 0xFFu];
+	/* Der innere Befehl kann mit SCP03-Verpackung und erweiterter
+	 * Laenge deutlich ueber 255 Byte lang werden - ein RSA-Chiffrat von
+	 * 512 Byte landet hier. Das TLV-Laengenfeld kann das (0x82 und zwei
+	 * Byte, AN12413 4.1.3.2). */
+	uint8_t payload[16u + SE050_MAX_PAYLOAD];
 	osk_tlv_writer_t w;
 	osk_tlv_init(&w, payload, sizeof(payload));
 	osk_tlv_put(&w, TAG_SESSION_ID, id, SE050_SESSION_ID_LEN);
@@ -426,10 +456,7 @@ osk_result_t osk_se050_apdu_exchange_in(osk_se050_apdu_t *a, osk_se050_session_t
 	if (!a->applet_selected) {
 		return OSK_ERR_IO;
 	}
-	if (payload_len > 0xFFu) {
-		/* Erweiterte Laengen kann der Baustein, dieser Treiber
-		 * braucht sie nicht: der laengste Befehl hier ist ein
-		 * oeffentlicher P384-Schluessel mit 97 Byte. */
+	if (payload_len > SE050_MAX_PAYLOAD) {
 		return OSK_ERR_FULL;
 	}
 	*rsp_len = 0;
@@ -460,13 +487,22 @@ osk_result_t osk_se050_apdu_exchange_in(osk_se050_apdu_t *a, osk_se050_session_t
 	} else {
 		/* Klartext-Befehl bauen, SCP03 darum, dann in den
 		 * Sitzungsumschlag. Das Le setzt die Verpackung. */
-		uint8_t plain[5u + 0xFFu];
+		uint8_t plain[7u + SE050_MAX_PAYLOAD];
 		size_t plain_len = 4u;
 		plain[0] = SE050_CLA;
 		plain[1] = ins;
 		plain[2] = p1;
 		plain[3] = p2;
-		if (payload_len > 0) {
+		if (payload_len > 0xFFu) {
+			/* Erweiterte Laenge, siehe plain_exchange(). Die
+			 * SCP03-Verpackung erkennt diese Form am Nullbyte
+			 * im Lc-Feld. */
+			plain[4] = 0x00u;
+			plain[5] = (uint8_t)(payload_len >> 8);
+			plain[6] = (uint8_t)(payload_len & 0xFFu);
+			memcpy(&plain[7], payload, payload_len);
+			plain_len = 7u + payload_len;
+		} else if (payload_len > 0) {
 			plain[4] = (uint8_t)payload_len;
 			memcpy(&plain[5], payload, payload_len);
 			plain_len = 5u + payload_len;

@@ -88,6 +88,16 @@ static int boot(fake_bus_t *fb, se050_sim_t *sim)
 	return osk_se050_open() == OSK_OK;
 }
 
+/* Fuer test_rsa.c und test_counter.c: den Bus anmelden und oeffnen, ohne
+ * den Nachbau anzufassen. Die Platinenhaken oben gelten fuer den ganzen
+ * Prueflauf, darum liegt das hier und nicht dort. */
+int boot_sim(fake_bus_t *fb, se050_sim_t *sim)
+{
+	(void)sim;
+	g_bus = fb;
+	return osk_se050_open() == OSK_OK;
+}
+
 void test_contract(void)
 {
 	TT_CASE("Vertrag: anmelden baut Applet-Auswahl und Kanal auf");

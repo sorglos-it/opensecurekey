@@ -23,8 +23,14 @@
  * und jeder Pruefblock legt sich ein eigenes fake_bus_t auf den Stapel.
  * Mit 1200 Byte lief der Windows-Bau in einen Stapelueberlauf (1 MB
  * Vorgabe gegen 8 MB unter Linux) - der Linux-Lauf hatte das nicht
- * gezeigt. Was die Tests wirklich ablegen, bleibt unter 300 Byte. */
-#define FB_MAX_FRAME 320
+ * gezeigt.
+ *
+ * 640 statt der frueheren 320: ein oeffentlicher RSA-4096-Modulus ist
+ * 512 Byte lang und kommt in EINEM Antwortblock (der Treiber kuendigt
+ * SE050_IFSD = 1024 an). Auf dem Hinweg bleibt alles klein - dort
+ * zerlegt der Treiber nach dem IFSC des Bausteins. 32 Schritte mal zwei
+ * Puffer sind damit 40 kB je Testbus statt 20. */
+#define FB_MAX_FRAME 640
 
 /* Was der Testbus bei einem Schritt tun soll. */
 typedef enum {

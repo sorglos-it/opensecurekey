@@ -11,6 +11,7 @@
 #include "se050_apdu.h"
 #include "se050_tlv.h"
 #include "se050_platform.h"
+#include "se050_state.h"
 
 /* Kennungen im Baustein. Fest, weil es je genau eines gibt.
  *
@@ -64,6 +65,22 @@
 static osk_se050_apdu_t g_apdu;
 static bool g_open;
 static uint16_t g_applet_config;
+
+/* Zugang zum Zustand fuer die Vertragsdateien daneben (se050_rsa.c,
+ * se050_counter.c). Siehe se050_state.h. */
+osk_result_t osk_se050_state(osk_se050_apdu_t **apdu_out)
+{
+	if (!g_open) {
+		return OSK_ERR_IO;
+	}
+	*apdu_out = &g_apdu;
+	return OSK_OK;
+}
+
+uint16_t osk_se050_applet_config(void)
+{
+	return g_open ? g_applet_config : 0u;
+}
 
 /* ------------------------------------------------------------- Hilfen */
 

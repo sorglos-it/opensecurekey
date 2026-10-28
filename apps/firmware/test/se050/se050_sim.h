@@ -20,6 +20,31 @@
 #include "fake_bus.h"
 #include "se050_scp03.h"
 
+/* Zaehler und RSA-Schluessel, die der Nachbau wirklich fuehrt.
+ *
+ * Warum ueberhaupt Zustand, wo der Nachbau sonst nur Antworten abspult:
+ * ein monotoner Zaehler IST Zustand. Ein Test, der nur eine festgelegte
+ * Antwort zurueckbekommt, prueft nicht, dass nichts zurueckgeht - und
+ * genau das ist die Leistung des Zaehlers. Der Zustand liegt im Nachbau,
+ * also auf der Chipseite, und ueberlebt osk_se050_close(): damit laesst
+ * sich ein Neustart der Firmware nachstellen. */
+#define SIM_MAX_COUNTERS 4u
+#define SIM_MAX_RSA 2u
+
+typedef struct {
+	uint32_t id;
+	uint8_t len; /* Laenge in Byte, 1 bis 8 */
+	uint64_t value;
+	bool used;
+} sim_counter_t;
+
+typedef struct {
+	uint32_t id;
+	uint16_t bits;
+	bool crt; /* mit P2_DEFAULT angelegt, nicht mit P2_RAW */
+	bool used;
+} sim_rsa_t;
+
 typedef struct {
 	/* Feste Schluessel - dieselben, die der Testhaken dem Treiber gibt. */
 	osk_scp03_static_keys_t keys;
@@ -60,13 +85,30 @@ typedef struct {
 	size_t commands;
 
 	/* Die Klartext-Nutzlast des letzten Befehls. */
-	uint8_t last_payload[256];
+	uint8_t last_payload[600];
 	size_t last_payload_len;
 
 	/* Was auf den naechsten Befehl geantwortet wird. */
-	uint8_t next_body[256];
+	uint8_t next_body[600];
 	size_t next_body_len;
 	uint16_t next_sw;
+
+	/* Verfahrensbyte (TAG_2) des letzten RSA-Befehls - daran prueft der
+	 * Test, dass die Auffuellung nicht geraten wurde. */
+	uint8_t last_rsa_algo;
+
+	/* Hinweg-Kette: der Treiber zerlegt einen Befehl, der laenger ist
+	 * als das angekuendigte IFSC, in mehrere I-Bloecke. Der Nachbau
+	 * sammelt sie, sonst waere ein RSA-Chiffrat nicht zustellbar. */
+	uint8_t asm_buf[1104];
+	size_t asm_len;
+
+	/* Objekte, die der Nachbau selbst fuehrt. Nur wenn objects_live
+	 * gesetzt ist; sonst bleibt es beim abgespulten next_body, und die
+	 * aelteren Tests merken von all dem nichts. */
+	bool objects_live;
+	sim_counter_t counters[SIM_MAX_COUNTERS];
+	sim_rsa_t rsa[SIM_MAX_RSA];
 } se050_sim_t;
 
 /* Nachbau an den Testbus haengen. */
@@ -78,6 +120,15 @@ void sim_set_reply(se050_sim_t *sim, const uint8_t *body, size_t len, uint16_t s
 /* Die Schluessel festlegen, die der Nachbau beim naechsten Sitzungsaufbau
  * als richtig ansieht - so laesst sich eine falsche PIN pruefen. */
 void sim_set_auth_keys(se050_sim_t *sim, const osk_scp03_static_keys_t *keys);
+
+/* Nach einem osk_se050_close() wieder anhaengen, ohne den Zustand des
+ * Nachbaus zu loeschen - so laesst sich ein Neustart nachstellen. */
+void sim_reattach(se050_sim_t *sim, fake_bus_t *fb);
+
+/* Den Nachbau Objekte wirklich fuehren lassen: Zaehler zaehlen, RSA-
+ * Schluessel liegen vor. Ein Lesen auf eine unbekannte Kennung wird dann
+ * abgelehnt statt beantwortet. */
+void sim_objects_live(se050_sim_t *sim, bool on);
 
 /* Die festen Schluessel, die Nachbau und Testhaken gemeinsam benutzen. */
 const osk_scp03_static_keys_t *sim_keys(void);

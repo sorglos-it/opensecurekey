@@ -34,6 +34,12 @@ int main(void)
 	printf("\nVertragsfunktionen gegen den Nachbau\n");
 	test_contract();
 
+	printf("\nRSA\n");
+	test_rsa();
+
+	printf("\nMonotone Zaehler\n");
+	test_counter();
+
 	/* Diese Zeile liest tools/check.py aus (Muster
 	 * "<name>: N Faelle, M Fehler"). Ohne sie zaehlt der Lauf dort als
 	 * "keine Pruefung ausgefuehrt" - und gruener Code ohne eine einzige

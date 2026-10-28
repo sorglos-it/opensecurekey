@@ -31,6 +31,8 @@ $sources = @(
     (Join-Path $src 'se050_scp03.c'),
     (Join-Path $src 'se050_apdu.c'),
     (Join-Path $src 'se050.c'),
+    (Join-Path $src 'se050_rsa.c'),
+    (Join-Path $src 'se050_counter.c'),
     (Join-Path $src 'se050_crypto_common.c'),
     (Join-Path $src 'se050_crypto_cng.c'),
     (Join-Path $here 'fake_bus.c'),
@@ -41,6 +43,8 @@ $sources = @(
     (Join-Path $here 'test_scp03.c'),
     (Join-Path $here 'test_errors.c'),
     (Join-Path $here 'test_contract.c'),
+    (Join-Path $here 'test_rsa.c'),
+    (Join-Path $here 'test_counter.c'),
     (Join-Path $here 'test_main.c')
 )
 
