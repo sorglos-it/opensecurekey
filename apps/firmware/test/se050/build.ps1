@@ -35,6 +35,13 @@ $sources = @(
     (Join-Path $src 'se050_counter.c'),
     (Join-Path $src 'se050_crypto_common.c'),
     (Join-Path $src 'se050_crypto_cng.c'),
+    # osk_mem.c gehoert dazu: osk_wipe() liegt dort, und der Treiber ruft es
+    # an sechs Stellen. Die Datei fehlte hier, waehrend das Makefile sie
+    # fuehrt - zwei Baubeschreibungen derselben Pruefung, die sich
+    # widersprachen. Der Windows-Weg brach deshalb erst beim Binden ab,
+    # nicht beim Uebersetzen, und das sieht aus wie ein Fehler des
+    # Aufrufers statt wie eine fehlende Quelle.
+    (Join-Path $firmware 'src\osk_mem.c'),
     (Join-Path $here 'fake_bus.c'),
     (Join-Path $here 'se050_sim.c'),
     (Join-Path $here 'test_crc.c'),
