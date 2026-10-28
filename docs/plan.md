@@ -537,6 +537,19 @@ nur aufliegt.
    Widerspruch 4.
 4. **AES-256-GCM-Durchsatz am Gerät.** Liegt er unter 3 MB/s, ist er die neue
    Wand für den Datenträger. Nur am Gerät messbar.
+4a. **Stapelbedarf des SE050-Treibers nach der erweiterten APDU-Länge.**
+    Gefunden beim Zusammenführen von Strang A am 28.10.2026. Damit ein
+    RSA-4096-Chiffrat (512 Byte) durchpasst, sind drei Puffer auf
+    `SE050_MAX_PAYLOAD` = 889 Byte gewachsen: `cmd[898]` in
+    `plain_exchange()` sowie `payload[905]` und `plain[896]` in der
+    SCP03-Schicht. **Zusammen knapp 1,8 kB auf dem Stapel eines Fadens**, der
+    unter Zephyr oft 1–2 kB groß ist.
+    **Das ist kein Übersetzungsfehler und fällt am PC nicht auf** — dort ist
+    der Stapel groß. Am Gerät ist es entweder ein Absturz oder eine
+    Stapelwächter-Meldung. Zwei Wege: Fadenstapel vergrößern, oder die Puffer
+    aus dem Stapel in einen festen Bereich verlegen. **Entschieden wird es an
+    einer Messung** (`CONFIG_THREAD_ANALYZER`), nicht an einer Schätzung —
+    und das geht erst mit dem Teststand.
 
 **Ungelöst, zwei davon dauerhaft:**
 
