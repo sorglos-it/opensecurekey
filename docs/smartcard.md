@@ -435,9 +435,23 @@ because a list would be the second build description this is meant to avoid;
 the mirror changes **where** the build happens, not **how**. The repository is
 not touched, and `robocopy /MIR` clears out whatever an earlier run left behind.
 
-This was missed at first: the strand worked in a worktree on `D:`, where it
-works, and the script simply gave up on `Z:` with a message that blamed WSL for
-being down. Measured from `Z:` the counts are the same as above.
+**Windows PowerShell 5.1 and PowerShell 7 do not treat a foreign program's
+error output the same way**, and that broke the same script a second time. In
+5.1, `$ErrorActionPreference = 'Stop'` turns native stderr into a *terminating*
+`NativeCommandError` before the script can look at the result, and `2>$null`
+does not catch it there; in 7 none of that happens. The consequence was that
+the mirroring above was never reached in 5.1 — the script aborted at exactly
+the line where it meant to detect the network drive. **5.1 is the case that
+counts: a double-click starts 5.1, not 7.** Every call to a foreign program
+therefore goes through one helper that sets `'Continue'` for the call, merges
+stderr into stdout and catches what is left; nothing calls `wsl.exe` or
+`robocopy` directly.
+
+Both were missed the same way: the strand worked in a worktree on `D:` and
+measured in PowerShell 7, so neither the network drive nor 5.1 was ever
+exercised. The script now prints the edition it ran under, so a measurement
+says by itself which one it was. It is checked in 5.1 and in 7, each on a
+network drive and on a local one; the counts are the same in all four.
 
 `python tools/check.py` passes, but it reports `firmware/tests` as **skipped**
 (no cmake, no make on Windows) — so it does **not** run any of the checks
