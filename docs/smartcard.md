@@ -426,6 +426,19 @@ and the `build.ps1` did not list one source file. The Windows path therefore
 never linked, and it looked like a caller error rather than a missing source.
 Two descriptions of one test drift apart; one cannot.
 
+**The repository sits on `Z:`, and `Z:` is a network drive that WSL cannot
+translate** — `wslpath` fails there with `Failed to translate 'Z:\...'`. WSL is
+running; it just cannot reach the path. `run.ps1` therefore mirrors the
+`apps/firmware` tree into a local directory under `%TEMP%` and calls the
+Makefile from there. The whole tree is mirrored rather than a list of files,
+because a list would be the second build description this is meant to avoid;
+the mirror changes **where** the build happens, not **how**. The repository is
+not touched, and `robocopy /MIR` clears out whatever an earlier run left behind.
+
+This was missed at first: the strand worked in a worktree on `D:`, where it
+works, and the script simply gave up on `Z:` with a message that blamed WSL for
+being down. Measured from `Z:` the counts are the same as above.
+
 `python tools/check.py` passes, but it reports `firmware/tests` as **skipped**
 (no cmake, no make on Windows) — so it does **not** run any of the checks
 above. "check.py is green" is not a statement about this folder.
