@@ -78,7 +78,7 @@ osk_led_t osk_ui_led_for(const char *status_key)
 	if (strcmp(status_key, "status.locked") == 0 || strcmp(status_key, "status.error") == 0) {
 		return OSK_LED_RED;
 	}
-	if (strcmp(status_key, "status.busy") == 0 || strcmp(status_key, "status.battery") == 0) {
+	if (strcmp(status_key, "status.busy") == 0) {
 		return OSK_LED_AMBER;
 	}
 	return OSK_LED_BLUE;

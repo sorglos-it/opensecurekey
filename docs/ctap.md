@@ -76,9 +76,15 @@ Each purpose has its own label, so no two derivations can ever produce the
 same value. Section 12.3 requires exactly that for the largeBlobKey: it must
 not be reachable through `hmac-secret` with any salt.
 
-The number of services is therefore unlimited — the SE050's 50 kB of user
-memory holds one secret, not one key per site. A paired second key that holds
-the same root secret is a real spare: it derives the same keys.
+The number of services is therefore unlimited **in the "mirrored" mode**: the
+chip's user memory holds one secret, not one key per site. A paired second key
+that holds the same root secret is a real spare: it derives the same keys.
+
+**In the "this device only" mode the number is finite** — there each credential
+is a permanent key pair inside the chip and occupies its memory. Which mode a
+profile uses, and the size of that memory, are stated in one place only:
+`docs/architecture.md`, section "Two key modes, chosen per profile". Do not
+repeat a capacity number here.
 
 ### The credential ID carries everything needed
 

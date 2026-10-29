@@ -31,11 +31,15 @@ all: generated run
 # Die erzeugten Dateien (Schriften, Texttabelle) muessen zu generate.py und zu
 # den fuenf Sprachdateien passen. Weicht eine ab, bricht der Lauf hier ab -
 # nicht erst, wenn jemand einen falschen Text auf dem Schirm sieht.
+#
+# check_lang_index.py prueft zusaetzlich, dass jeder Platz in der Texttabelle in
+# allen fuenf Sprachen denselben Begriff meint. Ein verschobener Index ist
+# still: die Tabelle uebersetzt noch, zeigt aber den falschen Text.
 generated:
 	@if $(PYTHON) --version >/dev/null 2>&1; then \
-	   $(PYTHON) $(UI)/generate.py --check; \
+	   $(PYTHON) $(UI)/generate.py --check && $(PYTHON) check_lang_index.py; \
 	 elif python3 --version >/dev/null 2>&1; then \
-	   python3 $(UI)/generate.py --check; \
+	   python3 $(UI)/generate.py --check && python3 check_lang_index.py; \
 	 else \
 	   echo "UEBERSPRUNGEN: kein Python - erzeugte Dateien NICHT verglichen"; \
 	 fi

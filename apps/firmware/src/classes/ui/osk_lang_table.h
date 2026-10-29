@@ -5,9 +5,9 @@
 #ifndef OSK_LANG_TABLE_H
 #define OSK_LANG_TABLE_H
 
-/* 31 Schluessel in 5 Sprachen. Quelle: apps/firmware/lang/<sprache>.json */
+/* 30 Schluessel in 5 Sprachen. Quelle: apps/firmware/lang/<sprache>.json */
 
-#define OSK_LANG_KEY_COUNT 31
+#define OSK_LANG_KEY_COUNT 30
 
 static const char *const osk_lang_keys[OSK_LANG_KEY_COUNT] = {
 	"ask.by",
@@ -33,7 +33,6 @@ static const char *const osk_lang_keys[OSK_LANG_KEY_COUNT] = {
 	"ask.yes",
 	"error.denied",
 	"error.timeout",
-	"status.battery",
 	"status.busy",
 	"status.error",
 	"status.locked",
@@ -67,7 +66,6 @@ static const char *const osk_lang_de[OSK_LANG_KEY_COUNT] = {
 	"Lang: ja",
 	"Abgebrochen",
 	"Zeit abgelaufen",
-	"Akku schwach",
 	"Arbeitet",
 	"Fehler",
 	"Gesperrt",
@@ -101,7 +99,6 @@ static const char *const osk_lang_en[OSK_LANG_KEY_COUNT] = {
 	"Long: yes",
 	"Cancelled",
 	"Time ran out",
-	"Battery low",
 	"Working",
 	"Error",
 	"Locked",
@@ -135,7 +132,6 @@ static const char *const osk_lang_fr[OSK_LANG_KEY_COUNT] = {
 	"Long : oui",
 	"Annulé",
 	"Temps écoulé",
-	"Batterie faible",
 	"Travaille",
 	"Erreur",
 	"Verrouillé",
@@ -169,7 +165,6 @@ static const char *const osk_lang_it[OSK_LANG_KEY_COUNT] = {
 	"Lungo: sì",
 	"Annullato",
 	"Tempo scaduto",
-	"Batteria scarica",
 	"Lavora",
 	"Errore",
 	"Bloccato",
@@ -203,7 +198,6 @@ static const char *const osk_lang_es[OSK_LANG_KEY_COUNT] = {
 	"Largo: sí",
 	"Cancelado",
 	"Se agotó el tiempo",
-	"Batería baja",
 	"Trabaja",
 	"Error",
 	"Bloqueado",

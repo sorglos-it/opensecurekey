@@ -39,7 +39,6 @@
     "timeout": "Tempo scaduto"
   },
   "status": {
-    "battery": "Batteria scarica",
     "busy": "Lavora",
     "error": "Errore",
     "locked": "Bloccato",

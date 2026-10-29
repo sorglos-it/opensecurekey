@@ -257,6 +257,14 @@ Aber sie müssen in die Erstinbetriebnahme, sonst fallen sie erst am Gerät auf.
 Gerechnet am 23.10.2026. Die Programmgrößen sind **gemessen**, nicht geschätzt:
 `go build -trimpath -ldflags="-s -w"`, ohne cgo, für die drei Systeme.
 
+> **Diese Tabelle ist überholt.** Die Programme sind seitdem gewachsen; am
+> fertigen Laufwerk gemessen sind es **nicht 27,5 MB, sondern mehr**, und
+> entsprechend weniger bleibt für den Tresor übrig. **Die gültigen Zahlen
+> stehen an genau einer Stelle: `docs/laufwerk.md`, Abschnitt „Bleibt der
+> Tresor bei seinen 28,2 MiB?“** Die Rechnung hier bleibt stehen, weil sie die
+> Entscheidung für 64 MB trägt — und die gilt unverändert. Keine Zahl aus
+> dieser Tabelle weiterverwenden.
+
 | Posten | Größe |
 | --- | --- |
 | Programm Windows | 9,3 MB |
@@ -269,7 +277,7 @@ Gerechnet am 23.10.2026. Die Programmgrößen sind **gemessen**, nicht geschätz
 
 | Flash | frei für den Tresor | Einträge |
 | --- | --- | --- |
-| 32 MB | **passt nicht** — die Programme allein sind 27,5 MB | — |
+| 32 MB | **passt nicht** — die Programme allein sprengen es (Größe: `laufwerk.md`) | — |
 | **64 MB** | 34,5 MB | **3072** (4 Profile zu 768) |
 | 128 MB | 98,5 MB | mehr möglich, aber nicht nötig |
 | 256 MB | 226,5 MB | dito |
@@ -278,7 +286,7 @@ Gerechnet am 23.10.2026. Die Programmgrößen sind **gemessen**, nicht geschätz
 es. Das war vorher eine Vermutung, jetzt ist es gerechnet.
 
 **Und mehr als 64 MB bringt nichts**, weil 3072 Einträge der Bedarf übersteigen
-und der Tresor sie in 28,2 MB unterbringt. Die alte Grenze von 256 Einträgen lag
+und der Tresor sie in seinem Bereich unterbringt (Größe: `laufwerk.md`). Die alte Grenze von 256 Einträgen lag
 nicht am Flash, sondern am RAM: eine ganze Indexfassung lag im Speicher. Seit
 Formatfassung 4 ist der Index in Blöcke zu 64 Sätzen geteilt, von denen immer
 nur einer im RAM liegt — 768 Einträge je Profil kosten damit genauso viel RAM

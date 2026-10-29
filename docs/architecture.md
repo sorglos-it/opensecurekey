@@ -135,8 +135,19 @@ Four separate memories, and only one of them is tight.
 The firmware shares that 1 MB with the bootloader and — if the update slot sits
 inside — with a second copy of itself. That would leave roughly 496 kB per image,
 and Zephyr with the BLE controller, USB, NFC and the crypto library is already a
-large part of that. Today's sources are about 12,000 lines of C and nothing of
-PIV, OpenPGP, the wallet, the display or the radio transports is written yet.
+large part of that. (This paragraph is the reasoning as it stood before the
+first ARM build; what was actually measured on 25 October 2026 is in the
+section "Measured, 25 October 2026" below, and that measurement overrules the
+estimate here.)
+
+**What is written:** PIV, OpenPGP, the wallet, the display and the radio
+transports are all written and compiled on a PC — stage 2 of the four stages
+(written / compiled / in the image / run on the device). An earlier version of
+this sentence said none of them existed; that was true when the 1 MB budget was
+first estimated and is no longer. What each module is worth is stated once, in
+its own file, and not repeated here: `smartcard.md` (PIV, OpenPGP, OTP),
+`wallet.md`, `display.md`, `funk.md` (NFC, BLE). **None of them has run on the
+device.**
 
 **So the update slot goes into the external flash, not into the internal one.**
 MCUboot can keep its secondary slot in the QSPI flash, which there is 64 MB of.
@@ -181,8 +192,11 @@ What the number is worth, and what it is not:
 - It is a **lower bound** for a second reason: six symbols do not exist on
   the device yet, and the measurement build substitutes placeholders for
   them (`apps/firmware/src/messbau.c`). The real implementations are bigger.
-- USB, BLE and NFC on the Zephyr side are not written yet, nor is the
-  bootloader. Those are the large items still to come.
+- The **Zephyr-side glue** for USB, BLE and NFC is not written yet, nor is the
+  bootloader — the transport logic itself is (see `funk.md`), but the board
+  bindings that would put it into a device image are not. The display has the
+  same gap: `osk_ui_port_nrf.c` has never been compiled (`display.md`). Those
+  are the large items still to come.
 - It is **stage 2 of 4**: compiled and in the image, **never run on the
   device**. There is no hardware yet.
 - The other numbers in the table above — QSPI flash and secure element —
