@@ -72,6 +72,11 @@ int main(void)
 	    {"Stromausfall", test_power},	{"Wanderung alter Fassungen", test_migrate},
 	    {"Sicherungsdatei", test_backup},	{"Stick zu Stick", test_transfer},
 	    {"Verschleiss", test_wear},
+	    {"Kapazitaeten", test_capacity},
+	    {"Rueckdrehschutz", test_guard},
+	    {"Verkettetes Protokoll", test_logchain},
+	    {"Wisch-PIN", test_wipe},
+	    {"Signaturzaehler", test_sigcount},
 	};
 
 	printf("Tresor von opensecurekey - Pruefsaetze am PC\n");

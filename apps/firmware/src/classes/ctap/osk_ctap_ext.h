@@ -72,7 +72,17 @@ osk_result_t osk_ctap_ext_unsigned_output(const osk_ctap_ext_in_t *in, const osk
 					  bool allow_list_present, uint8_t *out, size_t cap,
 					  size_t *len_out);
 
-/* Dienste, die die Mindestlaenge der PIN erfahren duerfen. */
+/* Dienste, die die Mindestlaenge der PIN erfahren duerfen.
+ *
+ * Wie viele es sein duerfen, steht NUR hier: authenticatorConfig 0x03 fuellt
+ * die Liste, GetInfo meldet die Grenze unter 0x10, und beide holen die Zahl
+ * an dieser Stelle. Bis zum 29.10.2026 stand die Grenze als 2 in
+ * osk_ctap_ext.c und daneben ein nie benutztes Feld min_pin_rp[2] im
+ * Zustand des Kerns - zwei Stellen fuer eine Zahl, von denen eine nichts
+ * tat. */
+#define OSK_CTAP_MINPIN_RP_MAX 4
+
+
 osk_result_t osk_ctap_minpin_rp_add(const char *rp_id);
 void osk_ctap_minpin_rp_clear(void);
 

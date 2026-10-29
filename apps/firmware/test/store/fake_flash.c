@@ -25,6 +25,7 @@ static uint32_t g_writes;
 static uint32_t g_fail_after;
 static bool g_dead;
 static bool g_torn; /* der eine zerrissene Vorgang ist schon passiert */
+static uint8_t *g_snap;
 
 void fake_flash_init(void)
 {
@@ -45,6 +46,8 @@ void fake_flash_init(void)
 
 void fake_flash_free(void)
 {
+	free(g_snap);
+	g_snap = NULL;
 	for (int i = 0; i < BANKS; i++) {
 		free(g_bank[i].mem);
 		g_bank[i].mem = NULL;
@@ -71,6 +74,22 @@ void fake_flash_wipe(void)
 	g_writes = 0;
 	g_dead = false;
 	g_torn = false;
+}
+
+void fake_flash_snapshot(void)
+{
+	if (g_snap == NULL) {
+		g_snap = malloc(OSK_VAULT_SIZE);
+	}
+	memcpy(g_snap, g_bank[g_cur].mem, OSK_VAULT_SIZE);
+}
+
+void fake_flash_rollback(void)
+{
+	if (g_snap == NULL) {
+		return;
+	}
+	memcpy(g_bank[g_cur].mem, g_snap, OSK_VAULT_SIZE);
 }
 
 void fake_flash_fail_after(uint32_t n)

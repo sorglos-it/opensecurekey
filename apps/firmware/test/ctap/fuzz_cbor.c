@@ -166,6 +166,69 @@ static size_t sample_client_pin(uint8_t *out, size_t cap)
 	return 1 + w.len;
 }
 
+/* Die beiden Befehle der Verwaltung und der Konfiguration. Ihre Leser
+ * stehen VOR der Pruefung des MAC - ein Angreifer erreicht sie also ohne
+ * PIN, und darum gehoeren sie in diesen Lauf. */
+static size_t sample_cred_mgmt(uint8_t *out, size_t cap)
+{
+	osk_cbor_writer_t w;
+	uint8_t blob[64];
+
+	for (unsigned i = 0; i < sizeof(blob); i++)
+		blob[i] = (uint8_t)(i * 7u);
+
+	out[0] = OSK_CTAP_CMD_CRED_MGMT;
+	osk_cbor_writer_init(&w, out + 1, cap - 1);
+	osk_cbor_put_map(&w, 4);
+	osk_cbor_put_uint(&w, 1);
+	osk_cbor_put_uint(&w, 4); /* enumerateCredentialsBegin */
+	osk_cbor_put_uint(&w, 2);
+	osk_cbor_put_map(&w, 2);
+	osk_cbor_put_uint(&w, 1);
+	osk_cbor_put_bytes(&w, blob, 32);
+	osk_cbor_put_uint(&w, 2);
+	osk_cbor_put_map(&w, 2);
+	osk_cbor_put_text(&w, "id");
+	osk_cbor_put_bytes(&w, blob, 48);
+	osk_cbor_put_text(&w, "type");
+	osk_cbor_put_text(&w, "public-key");
+	osk_cbor_put_uint(&w, 3);
+	osk_cbor_put_uint(&w, 2);
+	osk_cbor_put_uint(&w, 4);
+	osk_cbor_put_bytes(&w, blob, 32);
+	return 1 + w.len;
+}
+
+static size_t sample_config(uint8_t *out, size_t cap)
+{
+	osk_cbor_writer_t w;
+	uint8_t blob[32];
+
+	for (unsigned i = 0; i < sizeof(blob); i++)
+		blob[i] = (uint8_t)(i * 11u);
+
+	out[0] = OSK_CTAP_CMD_CONFIG;
+	osk_cbor_writer_init(&w, out + 1, cap - 1);
+	osk_cbor_put_map(&w, 4);
+	osk_cbor_put_uint(&w, 1);
+	osk_cbor_put_uint(&w, 3); /* setMinPINLength */
+	osk_cbor_put_uint(&w, 2);
+	osk_cbor_put_map(&w, 3);
+	osk_cbor_put_uint(&w, 1);
+	osk_cbor_put_uint(&w, 8);
+	osk_cbor_put_uint(&w, 2);
+	osk_cbor_put_array(&w, 2);
+	osk_cbor_put_text(&w, "example.com");
+	osk_cbor_put_text(&w, "zweiter.example");
+	osk_cbor_put_uint(&w, 3);
+	osk_cbor_put_bool(&w, true);
+	osk_cbor_put_uint(&w, 3);
+	osk_cbor_put_uint(&w, 2);
+	osk_cbor_put_uint(&w, 4);
+	osk_cbor_put_bytes(&w, blob, 32);
+	return 1 + w.len;
+}
+
 /* Verbiegt eine Vorlage: Bytes tauschen, abschneiden, anhaengen. */
 static size_t mutate(const uint8_t *in, size_t len, uint8_t *out, size_t cap)
 {
@@ -210,8 +273,8 @@ int main(int argc, char **argv)
 	if (g_rng == 0)
 		g_rng = 1;
 
-	uint8_t templ[3][1024];
-	size_t templ_len[3];
+	uint8_t templ[5][1024];
+	size_t templ_len[5];
 	uint8_t msg[1400];
 	uint8_t out[2048];
 
@@ -226,6 +289,8 @@ int main(int argc, char **argv)
 	templ_len[0] = sample_make_credential(templ[0], sizeof(templ[0]));
 	templ_len[1] = sample_get_assertion(templ[1], sizeof(templ[1]));
 	templ_len[2] = sample_client_pin(templ[2], sizeof(templ[2]));
+	templ_len[3] = sample_cred_mgmt(templ[3], sizeof(templ[3]));
+	templ_len[4] = sample_config(templ[4], sizeof(templ[4]));
 
 	unsigned long runs = 0, ok_answers = 0, pure_random = 0;
 	unsigned long accepted_random = 0;
@@ -241,7 +306,7 @@ int main(int argc, char **argv)
 				msg[i] = (uint8_t)rnd();
 			pure_random++;
 		} else {
-			const unsigned which = rnd() % 3u;
+			const unsigned which = rnd() % 5u;
 			len = mutate(templ[which], templ_len[which], msg, sizeof(msg));
 		}
 

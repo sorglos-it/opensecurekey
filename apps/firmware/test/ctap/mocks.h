@@ -49,6 +49,24 @@ void mock_store_set_full(bool full);
  * suchen darf nichts oeffnen, was nicht gemeint ist. */
 unsigned mock_store_reveal_count(void);
 
+/* ---- Signaturzaehler --------------------------------------------------
+ *
+ * Der Zaehler des Tresors (osk_store_sigcount_next/_get) liegt in einer
+ * DATEI, nicht in einer Variablen. Das ist der Punkt: eine Variable ueberlebt
+ * keinen Neustart, und genau das ist der Fehler, der behoben werden sollte.
+ * Eine Pruefung, die den Zaehler nur innerhalb eines Laufs ansieht, kann
+ * nicht zeigen, ob er im Flash angekommen ist.
+ *
+ * mock_reset_all() loescht die Datei NICHT - ein Aus- und Einstecken loescht
+ * den Flash auch nicht. Wer wirklich bei null anfangen will, sagt es. */
+void mock_sigcount_forget(void);
+/* Wo die Datei liegt. Ohne Aufruf: OSK_SIGCOUNT_FILE aus der Umgebung, sonst
+ * "osk-sigcount.bin" im laufenden Verzeichnis. */
+void mock_sigcount_file(const char *path);
+/* Jeden Zugriff auf den Zaehler scheitern lassen - fuer die Pruefung, dass
+ * dann NICHT signiert wird. */
+void mock_sigcount_set_broken(bool broken);
+
 /* ---- Uhr --------------------------------------------------------------- */
 void mock_clock_set(uint64_t ms);
 void mock_clock_advance(uint64_t ms);

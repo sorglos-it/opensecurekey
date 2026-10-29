@@ -9,7 +9,7 @@
 #include "osk_pin.h"
 #include "osk_store.h"
 
-#define EXT_MINPIN_RP_MAX 2
+#define EXT_MINPIN_RP_MAX OSK_CTAP_MINPIN_RP_MAX
 
 static char g_minpin_rp[EXT_MINPIN_RP_MAX][OSK_MAX_RP_ID];
 static size_t g_minpin_rp_count;

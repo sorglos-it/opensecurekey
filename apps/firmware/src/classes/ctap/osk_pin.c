@@ -741,17 +741,28 @@ static uint8_t apply_permissions(const pin_req_t *q)
 	if (q->permissions > 0xff)
 		return CTAP2_ERR_UNAUTHORIZED_PERM;
 
-	/* Was wir nicht koennen, darf auch nicht verlangt werden: wir haben
-	 * weder credMgmt noch bioEnroll noch authenticatorConfig. */
-	const uint8_t unsupported = (uint8_t)(OSK_PERM_CM | OSK_PERM_BE | OSK_PERM_ACFG);
-	if ((q->permissions & unsupported) != 0)
+	/* bioEnroll (be) bleibt verweigert, und das ist eine Entscheidung,
+	 * keine Luecke: keine Webseite und kein Browser darf einen Finger
+	 * einlernen. Das geschieht am Geraet. Siehe docs/ctap.md.
+	 *
+	 * cm (Verwaltung) und acfg (Konfiguration) sind seit dem 29.10.2026
+	 * erlaubt - vorher standen sie hier neben be, weil die beiden Befehle
+	 * fehlten. Sie jetzt weiter zu verweigern, waere der umgekehrte
+	 * Fehler: ein Befehl, der da ist, zu dem aber kein Token zu bekommen
+	 * ist. */
+	if ((q->permissions & OSK_PERM_BE) != 0)
 		return CTAP2_ERR_UNAUTHORIZED_PERM;
 
-	g_pin.permissions = (uint8_t)(q->permissions & (OSK_PERM_MC | OSK_PERM_GA | OSK_PERM_LBW));
+	g_pin.permissions = (uint8_t)(q->permissions &
+				      (OSK_PERM_MC | OSK_PERM_GA | OSK_PERM_CM | OSK_PERM_LBW |
+				       OSK_PERM_ACFG));
 	if (g_pin.permissions == 0)
 		return CTAP2_ERR_UNAUTHORIZED_PERM;
 
-	/* mc und ga brauchen eine RP-ID; bei lbw ist sie gleichgueltig. */
+	/* mc und ga brauchen eine RP-ID; bei lbw, cm und acfg ist sie
+	 * freiwillig. Bei cm wirkt sie als Filter: ein Token mit RP-ID darf
+	 * nur die Zugaenge dieses einen Dienstes sehen und loeschen
+	 * (osk_ctap_cm.c). */
 	if ((g_pin.permissions & (OSK_PERM_MC | OSK_PERM_GA)) != 0 && !q->rp_id)
 		return CTAP2_ERR_MISSING_PARAMETER;
 

@@ -13,7 +13,7 @@
 
 /* Eine Anfrage an den Kern schicken. Liefert das Statusbyte; der CBOR-Teil
  * landet in body/body_len. */
-static __attribute__((unused)) uint8_t h_call(const uint8_t *msg, size_t len, uint8_t *body,
+static T_UNUSED uint8_t h_call(const uint8_t *msg, size_t len, uint8_t *body,
 					      size_t cap, size_t *body_len)
 {
 	static uint8_t out[2048];
@@ -41,11 +41,18 @@ static __attribute__((unused)) uint8_t h_call(const uint8_t *msg, size_t len, ui
 
 /* Sucht einen Schluessel mit ganzzahligem Namen in der obersten Abbildung
  * einer Antwort. Liefert einen Leser, der auf dem Wert steht. */
-static __attribute__((unused)) bool h_find(const uint8_t *cbor, size_t len, uint64_t want,
+static T_UNUSED bool h_find(const uint8_t *cbor, size_t len, uint64_t want,
 					   osk_cbor_reader_t *out)
 {
 	osk_cbor_reader_t r;
 	size_t count = 0;
+
+	/* Auch wenn nichts gefunden wird, bleibt *out brauchbar: ein leerer
+	 * Leser liefert sauber Fehler. Vorher stand bei einem Fehlschlag
+	 * Zufall im Leser, und eine Pruefung, die das Ergebnis von h_find
+	 * nur zaehlt statt abzufragen, stuerzte danach ab - sie meldete
+	 * also nicht den Befund, sondern nichts. */
+	osk_cbor_reader_init(out, NULL, 0);
 
 	osk_cbor_reader_init(&r, cbor, len);
 	if (osk_cbor_enter_map(&r, &count) != OSK_OK)
@@ -65,7 +72,7 @@ static __attribute__((unused)) bool h_find(const uint8_t *cbor, size_t len, uint
 }
 
 /* Holt eine Bytefolge unter einem ganzzahligen Schluessel. */
-static __attribute__((unused)) bool h_get_bytes(const uint8_t *cbor, size_t len, uint64_t key,
+static T_UNUSED bool h_get_bytes(const uint8_t *cbor, size_t len, uint64_t key,
 						const uint8_t **p, size_t *plen)
 {
 	osk_cbor_reader_t r;
@@ -82,7 +89,7 @@ typedef struct {
 } h_msg_t;
 
 /* MakeCredential mit den Pflichtfeldern. opts darf NULL sein. */
-static __attribute__((unused)) void h_make_credential(h_msg_t *m, const char *rp_id,
+static T_UNUSED void h_make_credential(h_msg_t *m, const char *rp_id,
 						      const char *user_name, bool rk,
 						      bool hmac_secret, int cred_protect,
 						      const uint8_t *pin_auth, size_t pin_auth_len,
@@ -155,6 +162,49 @@ static __attribute__((unused)) void h_make_credential(h_msg_t *m, const char *rp
 		osk_cbor_put_uint(&w, pin_protocol);
 	}
 
+	m->len = 1 + w.len;
+}
+
+/* GetAssertion mit einer allowList aus hoechstens einem Eintrag. cred_id
+ * darf NULL sein; dann wird ohne allowList gefragt (auffindbare Zugaenge).
+ *
+ * Steht hier, weil vier Pruefungen es brauchen. */
+static T_UNUSED void build_get_assertion(h_msg_t *m, const char *rp_id, const uint8_t *cred_id,
+					 size_t cred_id_len, const uint8_t *pin_auth,
+					 size_t pin_auth_len, uint64_t pin_protocol)
+{
+	osk_cbor_writer_t w;
+	uint8_t hash[32];
+	size_t entries = 2;
+
+	osk_sha256((const uint8_t *)"clientData", 10, hash);
+	if (cred_id)
+		entries++;
+	if (pin_auth)
+		entries += 2;
+
+	m->buf[0] = OSK_CTAP_CMD_GET_ASSERTION;
+	osk_cbor_writer_init(&w, m->buf + 1, sizeof(m->buf) - 1);
+	osk_cbor_put_map(&w, entries);
+	osk_cbor_put_uint(&w, 0x01);
+	osk_cbor_put_text(&w, rp_id);
+	osk_cbor_put_uint(&w, 0x02);
+	osk_cbor_put_bytes(&w, hash, 32);
+	if (cred_id) {
+		osk_cbor_put_uint(&w, 0x03);
+		osk_cbor_put_array(&w, 1);
+		osk_cbor_put_map(&w, 2);
+		osk_cbor_put_text(&w, "id");
+		osk_cbor_put_bytes(&w, cred_id, cred_id_len);
+		osk_cbor_put_text(&w, "type");
+		osk_cbor_put_text(&w, "public-key");
+	}
+	if (pin_auth) {
+		osk_cbor_put_uint(&w, 0x06);
+		osk_cbor_put_bytes(&w, pin_auth, pin_auth_len);
+		osk_cbor_put_uint(&w, 0x07);
+		osk_cbor_put_uint(&w, pin_protocol);
+	}
 	m->len = 1 + w.len;
 }
 

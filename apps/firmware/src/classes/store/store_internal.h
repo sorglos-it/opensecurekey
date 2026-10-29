@@ -44,6 +44,29 @@ void osk_hdr_restore(const osk_hdr_t *snap);
 /* Legt einen leeren Tresor an. */
 osk_result_t osk_hdr_format(uint16_t format);
 
+/* ---- Rueckdrehschutz -------------------------------------------------- */
+
+/* Vergleicht die Folgenummer des Kopfes mit dem monotonen Zaehler im SE050.
+ * Wird beim Oeffnen gerufen, nachdem der Kopf gelesen ist.
+ *
+ *   Flash < Chip   OSK_ERR_ROLLBACK - ein alter Zustand ist zurueckgespielt
+ *   Flash > Chip   der Chip wird nachgezogen (Stromausfall beim letzten Mal)
+ *   gleich         nichts zu tun
+ *
+ * Es gibt KEINE Gegenrichtung: der Zaehler im Chip laesst sich nicht senken,
+ * und genau darauf beruht der ganze Schutz. */
+osk_result_t osk_guard_check(void);
+
+/* Pruefmal der Wisch-PIN eines Profils. Gerechnet ueber den
+ * geraetegebundenen Wert aus dem SE050, darum nur auf diesem Geraet
+ * gueltig. Setzt voraus, dass der Tresor offen ist (key_dev liegt vor). */
+osk_result_t osk_wipe_tag(uint8_t profile, const uint8_t *pin, size_t pin_len,
+			  uint8_t out[OSK_WIPE_TAG_LEN]);
+
+/* Loescht den ganzen Tresor. Kein Rueckweg, keine Nachfrage - die hat der
+ * Aufrufer schon gestellt oder die Wisch-PIN ersetzt sie. */
+osk_result_t osk_store_wipe_all(void);
+
 /* Holt eine Nonce. Der Zaehler im Kopf wird vorher festgehalten. */
 osk_result_t osk_nonce_take(osk_nonce_purpose_t purpose, uint8_t out[OSK_NONCE_LEN]);
 
@@ -132,6 +155,9 @@ osk_result_t osk_blob_erase(uint32_t slot);
 /* ---- Protokoll -------------------------------------------------------- */
 
 osk_result_t osk_log_add_internal(uint16_t what, osk_item_id_t id, const char *asked_by);
+
+/* Prueft die Hash-Kette des Protokolls von hinten nach vorn.
+ * Siehe osk_log_verify() in osk_log.h. */
 
 /* Laesst den Ringkopf neu suchen - nach dem Formatieren und im Test. */
 void osk_log_reset_mount(void);

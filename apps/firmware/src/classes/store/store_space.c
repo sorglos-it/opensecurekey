@@ -143,10 +143,12 @@ static osk_result_t index_read_block(uint8_t profile, uint16_t block)
 	case OSK_FMT_V3:
 	case OSK_FMT_V4:
 	case OSK_FMT_V5:
-		/* Gleiche Satzgroesse seit Fassung 3. Fassung 5 benutzt nur
-		 * Bytes, die vorher auf 0 standen - ein alter Satz liest sich
-		 * darum als "kein oeffentlicher Teil, kein Chip-Schluessel"
-		 * und muss nicht umgerechnet werden. */
+	case OSK_FMT_V6:
+		/* Gleiche Satzgroesse seit Fassung 3. Die Fassungen 5 und 6
+		 * benutzen nur Bytes, die vorher auf 0 standen - ein alter
+		 * Satz liest sich darum als "kein oeffentlicher Teil, kein
+		 * Chip-Schluessel, noch nie signiert" und muss nicht
+		 * umgerechnet werden. */
 		rec_size = sizeof(osk_idx_rec_t);
 		break;
 	default:
