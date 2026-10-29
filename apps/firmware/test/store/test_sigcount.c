@@ -16,12 +16,100 @@
 #include "test_util.h"
 #include "osk_store.h"
 #include "osk_store_profiles.h"
+#include "fake_flash.h"
+#include "fake_se050.h"
+#include "osk_vault_format.h"
+#include <stdio.h>
 
 void test_sigcount(void)
 {
 	osk_item_id_t cred = 0, other = 0;
 	uint32_t v = 0, v2 = 0;
 	uint64_t hotp = 0;
+
+	/* ---- Der geraeteweite Zaehler: Kennung 0 --------------------------
+	 *
+	 * CTAP zaehlt geraeteweit und nicht je Eintrag, weil nicht auffindbare
+	 * Nachweise abgeleitet werden und gar keinen Tresoreintrag haben, an
+	 * dem ein Zaehler haengen koennte (osk_sigcount.h). Es fragt darum
+	 * unter der Kennung 0 - die ist frei, denn der Tresor gibt
+	 * Eintragskennungen ab 1 aus.
+	 *
+	 * Dieser Fall ist am 29.10.2026 ROT geschrieben worden und hat den
+	 * Fehler gezeigt: die erste Umsetzung suchte auch fuer die 0 einen
+	 * Indexsatz und meldete OSK_ERR_NOT_FOUND. Am PC fiel das nie auf,
+	 * weil die Attrappe in test/ctap/mocks.c ihren eigenen geraeteweiten
+	 * Zaehler fuehrt - sie prueft die CTAP-Seite des Vertrags, nicht
+	 * diese. */
+
+	osk_test_case("Die Kennung 0 ist der Zaehler des Geraets");
+	t_device(0, 9, T_PIN);
+	T_OK(osk_store_sigcount_get(0, &v));
+	T_EQ(v, 0);
+	T_OK(osk_store_sigcount_next(0, &v));
+	T_EQ(v, 1);
+	T_OK(osk_store_sigcount_next(0, &v));
+	T_EQ(v, 2);
+
+	osk_test_case("Er ueberlebt den Neustart - der Fehler, den ein Lauf nicht zeigt");
+	t_reboot();
+	T_OK(osk_store_sigcount_get(0, &v));
+	T_EQ(v, 2);
+	T_OK(osk_store_sigcount_next(0, &v));
+	T_EQ(v, 3);
+	t_reboot();
+	T_OK(osk_store_sigcount_get(0, &v));
+	T_EQ(v, 3);
+
+	osk_test_case("Er braucht kein aufgeschlossenes Profil");
+	{
+		/* Ein nicht auffindbarer Nachweis hat keinen Eintrag und kein
+		 * Profil. Haenge der Zaehler an einem Profil, waere er fuer
+		 * genau die Nachweise unerreichbar, fuer die er da ist. */
+		osk_store_profile_lock(0);
+		T_OK(osk_store_sigcount_get(0, &v));
+		T_OK(osk_store_sigcount_next(0, &v));
+		T_EQ(v, 4);
+		T_OK(osk_store_profile_unlock(0, (const uint8_t *)T_PIN, strlen(T_PIN)));
+	}
+
+	osk_test_case("Was eine Anmeldung kostet - gemessen, nicht geschaetzt");
+	{
+		/* Der geraeteweite Zaehler steigt bei JEDER Anmeldung, und
+		 * jedes Erhoehen ist ein Kopfsatz. Was das heisst, gehoert
+		 * gezaehlt und nicht ueberschlagen. */
+		const uint32_t n = 1000u;
+		uint32_t writes, erases, worst, chip;
+
+		t_device(0, 10, T_PIN);
+		fake_flash_count_reset();
+		fake_se050_raises_reset();
+		for (uint32_t i = 0; i < n; i++) {
+			T_OK(osk_store_sigcount_next(0, &v));
+		}
+		T_EQ(v, n);
+		writes = fake_flash_writes();
+		erases = fake_flash_erase_max(OSK_AREA_HDR2_OFF, OSK_AREA_HDR2_LEN);
+		worst = fake_flash_erase_total();
+		chip = fake_se050_raises();
+
+		printf("      %u Anmeldungen: %u Schreib-/Loeschvorgaenge im Flash,\n",
+		       n, writes);
+		printf("      haeufigster Kopfsektor %u mal geloescht, %u Loeschvorgaenge\n",
+		       erases, worst);
+		printf("      insgesamt, %u Anhebungen im SE050\n", chip);
+		printf("      -> je Anmeldung %u,%02u Schreibvorgaenge, %u,%03u Loeschungen\n",
+		       writes / n, (writes * 100u / n) % 100u, erases / n,
+		       (erases * 1000u / n) % 1000u);
+
+		/* Ein Kopfsatz je Anmeldung, nicht mehr. Waere es mehr,
+		 * stimmte etwas an der Transaktion nicht. */
+		T_EQ(chip, n);
+		T_TRUE(writes <= 2u * n);
+		/* 16 Sektoren zu vier Saetzen: ein Loeschvorgang je vier
+		 * Anmeldungen, verteilt auf 16 Sektoren. */
+		T_TRUE(erases <= n / 16u + 4u);
+	}
 
 	osk_test_case("Ein frischer Eintrag hat noch nie signiert");
 	t_device(0, 1, T_PIN);

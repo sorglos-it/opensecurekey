@@ -40,23 +40,23 @@
  * unsere Bauart trifft: er nimmt eine Eintragskennung, und fuer einen
  * geraeteweiten Zaehler gibt es keine.
  *
- * OFFEN, GEMELDET AN DEN MASTER AM 29.10.2026 - UND AM GERAET HEUTE EIN
- * FEHLER: Strang D hat den Vertrag inzwischen JE EINTRAG umgesetzt
- * (store_items.c, osk_store_sigcount_next -> sigcount_rec -> find_rec: der
- * Stand liegt als rec->sigcount im Indexsatz des Eintrags). Fuer die
- * Kennung 0 findet find_rec nichts und meldet OSK_ERR_NOT_FOUND; dieses
- * Modul gibt den Fehler weiter, und CTAP signiert dann gar nicht.
+ * ERLEDIGT am 29.10.2026, entschieden vom Master, umgesetzt in Strang D.
+ * Kurz vorher war das hier ein Fehler am Geraet: der Tresor suchte auch
+ * fuer die Kennung 0 einen Indexsatz, fand keinen und meldete
+ * OSK_ERR_NOT_FOUND - CTAP haette gar nicht signiert. Am PC fiel es nicht
+ * auf, weil die Attrappe in test/ctap/mocks.c ihren eigenen geraeteweiten
+ * Zaehler fuehrt und die Kennung uebergeht; sie prueft diese Seite des
+ * Vertrags, nicht jene.
  *
- * Damit laeuft FIDO2 am Geraet erst, wenn EINE der beiden Seiten geaendert
- * ist, und das entscheidet der Master, nicht dieser Strang:
- *   - entweder behandelt der Tresor die Kennung 0 als "Zaehler des
- *     Geraets" (ein Feld im Kopfsatz, so wie item_next dort liegt), oder
- *   - CTAP zaehlt nur fuer auffindbare Nachweise - dann haben die nicht
- *     auffindbaren und U2F GAR KEINEN Zaehler, und das sind die meisten.
- * Der erste Weg ist der kleinere Eingriff und der einzige, der alle
- * Nachweise abdeckt. Am PC faellt der Unterschied nicht auf: die Attrappe
- * in test/ctap/mocks.c fuehrt einen geraeteweiten Zaehler und uebergeht die
- * Kennung - sie prueft also diese Seite des Vertrags, nicht jene. */
+ * Jetzt gilt im Tresor eine festgelegte Aufteilung, dieselbe wie hier:
+ *   Kennung 0           der Zaehler des GERAETS, als sigcount_dev im
+ *                       Kopfsatz - fuer alle Nachweise ohne eigenen
+ *                       Indexsatz, also die nicht auffindbaren und U2F
+ *   jede andere Kennung GENAU dieser eine Eintrag, in seinem Indexsatz
+ * Siehe osk_vault_format.h (OSK_SIGCOUNT_DEVICE) und shared/vault-format.md.
+ *
+ * Was es kostet, steht dort gemessen: je Anmeldung ein Kopfsatz im Flash
+ * und eine Anhebung des monotonen Zaehlers im SE050. */
 #define OSK_SIGCOUNT_SLOT ((osk_item_id_t)0)
 
 /* Um eins erhoehen, festschreiben und den NEUEN Wert liefern. Wird VOR dem

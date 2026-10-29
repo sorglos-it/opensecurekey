@@ -35,4 +35,10 @@ uint64_t fake_se050_counter_peek(uint32_t id);
  * null verlassen, und genau das laesst sich damit nachstellen. */
 void fake_se050_counter_start_at(uint64_t value);
 
+/* Wie oft der Zaehler wirklich angehoben wurde. Jedes Anheben ist ein
+ * Schreibvorgang im NVM des Chips - eine Zahl, die man kennen will, bevor
+ * man sie je Anmeldung bezahlt. */
+uint32_t fake_se050_raises(void);
+void fake_se050_raises_reset(void);
+
 #endif

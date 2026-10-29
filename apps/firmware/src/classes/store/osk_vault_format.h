@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "osk_crypto.h"
+#include "osk_store.h" /* osk_item_id_t */
 
 #define OSK_STATIC_ASSERT(cond, name) typedef char osk_sa_##name[(cond) ? 1 : -1]
 
@@ -159,6 +160,12 @@ static inline uint32_t osk_blob_addr(uint32_t slot)
 /* Laenge des Wisch-PIN-Pruefmals. */
 #define OSK_WIPE_TAG_LEN 16u
 
+/* Die Kennung, unter der osk_store_sigcount_next() den Zaehler des GERAETS
+ * meint statt den eines Eintrags. Dasselbe steht in CTAP als
+ * OSK_SIGCOUNT_SLOT; beide muessen 0 sein, und beide sagen warum: der
+ * Tresor gibt Eintragskennungen ab 1 aus, die 0 ist also frei. */
+#define OSK_SIGCOUNT_DEVICE ((osk_item_id_t)0)
+
 /* ---- Kopf ------------------------------------------------------------- */
 /* Der Kopf steht im Klartext, denn ohne ihn laesst sich nichts oeffnen. Er
  * enthaelt nichts Geheimes: Fassung, Zaehlerstand, Adressen und die Belegung
@@ -304,6 +311,26 @@ typedef struct {
 	 * wird die PIN ja eingegeben. */
 	uint8_t wipe_tag[OSK_PROFILE_MAX][OSK_WIPE_TAG_LEN];
 
+	/* Der Signaturzaehler des GERAETS (ab Fassung 6). Er liegt hier und
+	 * nicht in einem Indexsatz, weil die meisten FIDO-Nachweise gar
+	 * keinen Indexsatz haben: nicht auffindbare Nachweise werden
+	 * abgeleitet und nirgends gespeichert, U2F ebenso. Ein Zaehler je
+	 * Eintrag koennte nur die auffindbaren zaehlen.
+	 *
+	 * Angesprochen wird er ueber osk_store_sigcount_next() mit der
+	 * Kennung 0. Die ist frei: item_next beginnt bei 1, es gibt also
+	 * keinen Eintrag mit der Kennung 0 (siehe osk_hdr_format und
+	 * osk_store_add). Jede andere Kennung meint weiterhin genau EINEN
+	 * Eintrag - das ist kein zweiter Zaehler gleichen Namens, sondern
+	 * eine festgelegte Aufteilung.
+	 *
+	 * Vier Byte aus reserved; die Struktur bleibt gleich gross, und
+	 * crc32 bleibt das letzte Feld. Fassung 6 war noch nie in einem
+	 * Abbild, geschweige denn auf einem Geraet - die Zahl bleibt
+	 * deshalb 6, und es gibt keine Fassung in der Welt, die hier etwas
+	 * anderes stehen haette. */
+	uint32_t sigcount_dev;
+
 	/* Zum Protokoll steht hier nichts: sein Ringkopf wird beim Oeffnen im
 	 * Ring selbst gesucht. Stuende er im Kopf, kostete jeder
 	 * Protokolleintrag einen Kopfsatz - mitten in einer Transaktion.
@@ -314,7 +341,7 @@ typedef struct {
 	 * hinter crc32 eine Auffuellung des Uebersetzers, deckte die Pruefsumme
 	 * sich selbst mit und wuerde nie stimmen. Der Riegel darunter haelt
 	 * das fest. */
-	uint8_t reserved[16];
+	uint8_t reserved[12];
 
 	/* Belegung der Datenplaetze, ein Bit je Platz. Sie gehoert in den Kopf,
 	 * damit ein Platz auch dann als belegt gilt, wenn das Profil gesperrt
