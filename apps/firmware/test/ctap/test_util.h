@@ -13,6 +13,15 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+/* "unbenutzt" sagt jeder Uebersetzer anders. Der Windows-Weg (Visual Studio
+ * Build Tools) kennt __attribute__ nicht; ohne diese Weiche bricht er schon
+ * in diesem Kopf ab. */
+#if defined(__GNUC__) || defined(__clang__)
+#define T_UNUSED __attribute__((unused))
+#else
+#define T_UNUSED
+#endif
+
 static int t_checks;
 static int t_fails;
 
@@ -44,7 +53,7 @@ static inline void t_fail(const char *what, const char *file, int line, const ch
 
 /* Wandelt Bytes in Kleinbuchstaben-Hex. Rueckgabe zeigt auf einen von vier
  * umlaufenden Puffern, damit zwei Aufrufe in einem printf gehen. */
-static inline __attribute__((unused)) const char *t_hex(const void *p, size_t len)
+static inline T_UNUSED const char *t_hex(const void *p, size_t len)
 {
 	static char bufs[4][1024];
 	static unsigned which;
@@ -71,7 +80,7 @@ static inline __attribute__((unused)) const char *t_hex(const void *p, size_t le
 		}                                                                            \
 	} while (0)
 
-static inline __attribute__((unused)) int t_report(const char *name)
+static inline T_UNUSED int t_report(const char *name)
 {
 	printf("%s: %d Faelle, %d Fehler\n", name, t_checks, t_fails);
 	if (t_fails == 0)
@@ -81,7 +90,7 @@ static inline __attribute__((unused)) int t_report(const char *name)
 
 /* Hex-Text in Bytes. Leerzeichen sind erlaubt, damit lange Vorlagen
  * lesbar bleiben. Liefert die Zahl der Bytes, oder 0 bei krummem Text. */
-static inline __attribute__((unused)) size_t t_unhex(const char *hex_in, uint8_t *out, size_t cap)
+static inline T_UNUSED size_t t_unhex(const char *hex_in, uint8_t *out, size_t cap)
 {
 	char hex[2048];
 	size_t n = 0;

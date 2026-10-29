@@ -18,20 +18,44 @@
 #include "osk_crypto.h"
 #include "osk_pin.h"
 #include "osk_se050.h"
+#include "osk_sigcount.h"
+#include "osk_ctap_cm.h"
+#include "osk_ctap_config.h"
 #include "osk_store.h"
 #include "osk_transport.h"
 #include "osk_ui.h"
 
-/* Kennung dieses Geraetemodells. Vorlaeufig; sie gehoert zum fertigen
- * Produkt und wird mit der ersten Serie festgelegt. */
-static const uint8_t OSK_AAGUID[16] = {
+/* Kennung dieses Geraetemodells - eine JE FIRMWARE-VARIANTE.
+ *
+ * FIDO verlangt, dass ein AAGUID eine Fassung mit DENSELBEN Faehigkeiten
+ * bezeichnet. Dieses Geraet wird in zwei Fassungen uebersetzt, mit und ohne
+ * RSA (Kconfig-Option, siehe docs/plan.md, Abschnitt "Querschnitt"). Die
+ * Fassung mit RSA kann nachweisbar mehr; derselbe AAGUID fuer beide waere
+ * also eine falsche Zusage an jeden Dienst, der danach entscheidet.
+ *
+ * Darum zwei Werte, und die VARIANTE entscheidet, nicht der Aufrufer: es
+ * gibt keine Funktion, die den AAGUID setzt. Wer die Firmware ohne RSA
+ * aufspielt, bekommt zwangslaeufig den zweiten.
+ *
+ * Beide Werte sind VORLAEUFIG und werden mit der ersten Serie festgelegt
+ * (docs/plan.md, offener Punkt 10: AAGUID eintragen). Sie unterscheiden sich
+ * im letzten Byte, damit beim Nachsehen im Protokoll sofort zu erkennen ist,
+ * welche Fassung geantwortet hat. */
+static const uint8_t OSK_AAGUID_RSA[16] = {
     0x6f, 0x73, 0x6b, 0x2d, 0x6f, 0x70, 0x65, 0x6e, 0x73, 0x65, 0x63, 0x6b, 0x65, 0x79, 0x00, 0x01,
 };
+static const uint8_t OSK_AAGUID_NO_RSA[16] = {
+    0x6f, 0x73, 0x6b, 0x2d, 0x6f, 0x70, 0x65, 0x6e, 0x73, 0x65, 0x63, 0x6b, 0x65, 0x79, 0x00, 0x02,
+};
 
-/* Ablage residenter Nachweise im Tresor. */
-#define RK_SITE "osk-passkey"
-#define RK_RECORD_VERSION 0x01
-#define RK_RECORD_MAX (1 + 1 + OSK_MAX_USER_ID + 1 + OSK_MAX_USER_NAME + 1 + OSK_MAX_CRED_ID)
+const uint8_t *osk_ctap_aaguid(void)
+{
+#if defined(CONFIG_OSK_RSA)
+	return OSK_AAGUID_RSA;
+#else
+	return OSK_AAGUID_NO_RSA;
+#endif
+}
 
 static osk_ctap_state_t g_state;
 
@@ -125,8 +149,8 @@ static bool copy_text(const char *src, size_t len, char *dst, size_t cap)
 
 /* ---- Residente Nachweise im Tresor ------------------------------------- */
 
-static size_t rk_pack(const uint8_t *cred_id, size_t cred_id_len, const uint8_t *user_id,
-		      size_t user_id_len, const char *user_name, uint8_t *out, size_t cap)
+size_t osk_ctap_rk_pack(const uint8_t *cred_id, size_t cred_id_len, const uint8_t *user_id,
+			size_t user_id_len, const char *user_name, uint8_t *out, size_t cap)
 {
 	const size_t name_len = user_name ? strlen(user_name) : 0;
 	const size_t need = 1 + 1 + user_id_len + 1 + name_len + 1 + cred_id_len;
@@ -135,7 +159,7 @@ static size_t rk_pack(const uint8_t *cred_id, size_t cred_id_len, const uint8_t 
 	if (need > cap || user_id_len > 255 || name_len > 255 || cred_id_len > 255)
 		return 0;
 
-	out[at++] = RK_RECORD_VERSION;
+	out[at++] = OSK_RK_RECORD_VERSION;
 	out[at++] = (uint8_t)user_id_len;
 	memcpy(out + at, user_id, user_id_len);
 	at += user_id_len;
@@ -149,11 +173,11 @@ static size_t rk_pack(const uint8_t *cred_id, size_t cred_id_len, const uint8_t 
 	return at;
 }
 
-static bool rk_unpack(const uint8_t *rec, size_t len, osk_cred_t *out)
+bool osk_ctap_rk_unpack(const uint8_t *rec, size_t len, osk_cred_t *out)
 {
 	size_t at = 0;
 
-	if (len < 4 || rec[0] != RK_RECORD_VERSION)
+	if (len < 4 || rec[0] != OSK_RK_RECORD_VERSION)
 		return false;
 	at = 1;
 
@@ -203,7 +227,7 @@ static osk_result_t rk_find(const uint8_t rp_id_hash[32], const uint8_t *user_id
 	}
 
 	for (size_t i = (start ? *start : 0); i < count; i++) {
-		uint8_t rec[RK_RECORD_MAX];
+		uint8_t rec[OSK_RK_RECORD_MAX];
 		size_t rec_len = 0;
 		osk_cred_t cred;
 
@@ -211,7 +235,7 @@ static osk_result_t rk_find(const uint8_t rp_id_hash[32], const uint8_t *user_id
 			continue;
 
 		memset(&cred, 0, sizeof(cred));
-		const bool ok = rk_unpack(rec, rec_len, &cred);
+		const bool ok = osk_ctap_rk_unpack(rec, rec_len, &cred);
 		osk_wipe(rec, sizeof(rec));
 		if (!ok)
 			continue;
@@ -230,6 +254,38 @@ static osk_result_t rk_find(const uint8_t rp_id_hash[32], const uint8_t *user_id
 	if (start)
 		*start = count;
 	return OSK_ERR_NOT_FOUND;
+}
+
+/* Hat dieser auffindbare Nachweis noch seinen Eintrag im Tresor?
+ *
+ * Das ist die Frage, die "geloescht" von "geloescht, aber weiter benutzbar"
+ * trennt: der Schluessel wird ABGELEITET, die Credential-ID allein genuegt
+ * zum Signieren. Ohne diese Pruefung nimmt deleteCredential (0x0A/0x06) nur
+ * den Eintrag weg und die Anmeldung laeuft weiter - ein Loeschen, das nichts
+ * loescht. Gefunden am 29.10.2026, weil eine Pruefung nach dem Loeschen
+ * noch anmelden konnte.
+ *
+ * Fuer NICHT auffindbare Nachweise gilt das nicht und kann es nicht: sie
+ * haben keinen Eintrag, ihre Zahl ist unbegrenzt. Sie sind erst mit dem
+ * Grundgeheimnis weg (authenticatorReset).
+ *
+ * cred_out darf NULL sein; sonst stehen darin die Nutzerangaben. */
+static bool rk_has_cred(const uint8_t rp_id_hash[32], const uint8_t *cred_id, size_t cred_id_len,
+			osk_cred_t *cred_out)
+{
+	osk_cred_t rk;
+	size_t at = 0;
+
+	memset(&rk, 0, sizeof(rk));
+	while (rk_find(rp_id_hash, NULL, 0, NULL, &rk, &at) == OSK_OK) {
+		if (rk.cred_id_len == cred_id_len &&
+		    memcmp(rk.cred_id, cred_id, cred_id_len) == 0) {
+			if (cred_out)
+				*cred_out = rk;
+			return true;
+		}
+	}
+	return false;
 }
 
 /* ---- Anfrage von MakeCredential ---------------------------------------- */
@@ -256,6 +312,8 @@ typedef struct {
 	bool have_pin_auth;
 	uint64_t pin_protocol;
 	bool have_pin_protocol;
+	uint64_t enterprise;	/* 0x0A: 1 = RP-gefuehrt, 2 = Betrieb-gefuehrt */
+	bool have_enterprise;
 } mc_req_t;
 
 /* Liest eine Liste von PublicKeyCredentialDescriptor. Zu lange oder
@@ -539,6 +597,11 @@ static uint8_t parse_make_credential(const uint8_t *cbor, size_t len, mc_req_t *
 				return CTAP2_ERR_CBOR_UNEXPECTED_TYPE;
 			q->have_pin_protocol = true;
 			break;
+		case 0x0a: /* enterpriseAttestation */
+			if (osk_cbor_read_uint(&r, &q->enterprise) != OSK_OK)
+				return CTAP2_ERR_CBOR_UNEXPECTED_TYPE;
+			q->have_enterprise = true;
+			break;
 		default:
 			if (osk_cbor_skip(&r) != OSK_OK)
 				return CTAP2_ERR_INVALID_CBOR;
@@ -588,6 +651,18 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 	/* Schritt 3: Verfahren waehlen. */
 	if (!q.have_es256)
 		return CTAP2_ERR_UNSUPPORTED_ALGORITHM;
+
+	/* Enterprise Attestation (Abschnitt 6.1.2, Schritt 9).
+	 *
+	 * Die beiden Fehlerwerte sind VERSCHIEDEN und das ist Absicht der
+	 * Spezifikation: ausgeschaltet ist ein falscher PARAMETER (das Geraet
+	 * kann es hier nicht), ein krummer Wert eine falsche OPTION. */
+	if (q.have_enterprise) {
+		if (!g_state.ep_enabled)
+			return CTAP1_ERR_INVALID_PARAMETER;
+		if (q.enterprise != 1u && q.enterprise != 2u)
+			return CTAP2_ERR_INVALID_OPTION;
+	}
 
 	/* Schritt 4 und 5: Schalter deuten. */
 	if (q.have_pin_auth)
@@ -639,6 +714,12 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 		if (found.cred_protect == OSK_CRED_PROTECT_UV_REQUIRED &&
 		    (flags & OSK_AD_FLAG_UV) == 0)
 			continue; /* gilt als nicht gefunden */
+		/* Ein geloeschter auffindbarer Nachweis schliesst nicht mehr
+		 * aus - sonst koennte sich niemand nach dem Loeschen neu
+		 * anmelden. Gleiche Regel wie bei GetAssertion. */
+		if (found.resident &&
+		    !rk_has_cred(rp_id_hash, q.exclude[i], q.exclude_len[i], NULL))
+			continue;
 		if ((flags & OSK_AD_FLAG_UP) == 0)
 			(void)ask_user(OSK_ASK_LOGIN, q.rp_id, NULL);
 		return CTAP2_ERR_CREDENTIAL_EXCLUDED;
@@ -682,12 +763,12 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 
 	/* Schritt 17: residente Nachweise liegen im Tresor. */
 	if (q.opt_rk) {
-		uint8_t rec[RK_RECORD_MAX];
+		uint8_t rec[OSK_RK_RECORD_MAX];
 		osk_item_meta_t meta;
 		osk_item_id_t old_id = 0;
 		osk_item_id_t new_id = 0;
 
-		const size_t rec_len = rk_pack(cred_id, cred_id_len, q.user_id, q.user_id_len,
+		const size_t rec_len = osk_ctap_rk_pack(cred_id, cred_id_len, q.user_id, q.user_id_len,
 					       q.user_name, rec, sizeof(rec));
 		if (rec_len == 0)
 			return CTAP1_ERR_OTHER;
@@ -696,7 +777,7 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 		meta.type = OSK_ITEM_FILE;
 		meta.profile = 0;
 		meta.name = q.rp_id;
-		meta.site = RK_SITE;
+		meta.site = OSK_RK_SITE;
 		meta.mirrored = true;
 		meta.changed_utc = osk_ctap_now_ms() / 1000u;
 		/* Suchschluessel: der Hash des Dienstnamens. Er liegt im
@@ -738,7 +819,7 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 	size_t attested_len = 0;
 	{
 		osk_cbor_writer_t kw;
-		memcpy(attested, OSK_AAGUID, 16);
+		memcpy(attested, osk_ctap_aaguid(), 16);
 		attested[16] = (uint8_t)(cred_id_len >> 8);
 		attested[17] = (uint8_t)cred_id_len;
 		memcpy(attested + 18, cred_id, cred_id_len);
@@ -751,13 +832,20 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 	}
 	flags |= OSK_AD_FLAG_AT;
 
+	/* Der Signaturzaehler kommt aus dem Flash und wird VOR dem Signieren
+	 * erhoeht - siehe osk_sigcount.h. Geht das nicht, wird nicht
+	 * signiert: eine Signatur mit einer Zahl, auf die sich niemand
+	 * verlassen kann, ist schlechter als keine. */
+	uint32_t sign_count = 0;
+	if (osk_sigcount_next(&sign_count) != OSK_OK)
+		return CTAP1_ERR_OTHER;
+
 	uint8_t auth_data[OSK_MAX_AUTH_DATA];
 	size_t auth_len = 0;
-	if (osk_ctap_build_auth_data(rp_id_hash, flags, g_state.sign_count, attested, attested_len,
+	if (osk_ctap_build_auth_data(rp_id_hash, flags, sign_count, attested, attested_len,
 				     ext_cbor, ext_len, auth_data, sizeof(auth_data),
 				     &auth_len) != OSK_OK)
 		return CTAP2_ERR_REQUEST_TOO_LARGE;
-	g_state.sign_count++;
 
 	/* Eigenbeglaubigung (self attestation): unterschrieben wird mit dem
 	 * gerade entstandenen Schluessel. Das ist die datenschonendste Form -
@@ -785,6 +873,19 @@ static uint8_t do_make_credential(const uint8_t *cbor, size_t len, osk_cbor_writ
 	osk_cbor_put_text(w, "packed");
 	osk_cbor_put_uint(w, 0x02);
 	osk_cbor_put_bytes(w, auth_data, auth_len);
+	/* Hier stuende der Schluessel 0x04 (epAtt), wenn eine echte Enterprise
+	 * Attestation herausgegeben worden waere. Sie wird NICHT herausgegeben,
+	 * und zwar aus einem Grund, nicht aus Vergessen: eine Enterprise
+	 * Attestation ist nur etwas wert, wenn sie ein GERAETEZEUGNIS mitbringt
+	 * (x5c mit einem Zertifikat der Serie). Dieses Geraet hat keines - es
+	 * beglaubigt sich selbst, siehe docs/ctap.md. Eingeschaltete Enterprise
+	 * Attestation wird darum mit einer gewoehnlichen Beglaubigung
+	 * beantwortet; das erlaubt die Spezifikation ausdruecklich. epAtt zu
+	 * melden, ohne das Zeugnis zu haben, waere eine Luege gegenueber dem
+	 * Betrieb, der genau darauf baut.
+	 *
+	 * Was fehlt, ist also ein Serienzertifikat und sein Schluessel im
+	 * Sicherheitschip - nicht Code an dieser Stelle. */
 	osk_cbor_put_uint(w, 0x03);
 	osk_cbor_put_map(w, 2);
 	osk_cbor_put_text(w, "alg");
@@ -934,10 +1035,14 @@ static uint8_t emit_assertion(const osk_cred_t *cred, const osk_credid_t *cid,
 	if (ext_len > 0)
 		flags |= OSK_AD_FLAG_ED;
 
-	if (osk_ctap_build_auth_data(rp_id_hash, flags, g_state.sign_count, NULL, 0, ext_cbor,
-				     ext_len, auth_data, sizeof(auth_data), &auth_len) != OSK_OK)
+	/* Siehe osk_sigcount.h: aus dem Flash, vor dem Signieren. */
+	uint32_t sign_count = 0;
+	if (osk_sigcount_next(&sign_count) != OSK_OK)
+		return CTAP1_ERR_OTHER;
+
+	if (osk_ctap_build_auth_data(rp_id_hash, flags, sign_count, NULL, 0, ext_cbor, ext_len,
+				     auth_data, sizeof(auth_data), &auth_len) != OSK_OK)
 		return CTAP2_ERR_REQUEST_TOO_LARGE;
-	g_state.sign_count++;
 
 	uint8_t hash[32];
 	{
@@ -1078,24 +1183,19 @@ static uint8_t do_get_assertion(const uint8_t *cbor, size_t len, osk_cbor_writer
 			found[n].cred_protect = cid.cred_protect;
 			found[n].hmac_secret = cid.hmac_secret;
 			found[n].created = cid.created;
-			/* War es ein residenter Nachweis, holen wir die
-			 * Nutzerangaben aus dem Tresor dazu. */
+			/* Nutzerangaben aus dem Tresor dazu - und fehlt der
+			 * Eintrag, gilt der Nachweis als nicht vorhanden.
+			 * Warum: siehe rk_has_cred(). */
 			if (cid.resident) {
 				osk_cred_t rk;
-				size_t at = 0;
 				memset(&rk, 0, sizeof(rk));
-				while (rk_find(rp_id_hash, NULL, 0, NULL, &rk, &at) == OSK_OK) {
-					if (rk.cred_id_len == q.allow_len[i] &&
-					    memcmp(rk.cred_id, q.allow[i], rk.cred_id_len) == 0) {
-						found[n].resident = true;
-						found[n].user_id_len = rk.user_id_len;
-						memcpy(found[n].user_id, rk.user_id,
-						       rk.user_id_len);
-						memcpy(found[n].user_name, rk.user_name,
-						       sizeof(found[n].user_name));
-						break;
-					}
-				}
+				if (!rk_has_cred(rp_id_hash, q.allow[i], q.allow_len[i], &rk))
+					continue; /* geloescht: nicht vorhanden */
+				found[n].resident = true;
+				found[n].user_id_len = rk.user_id_len;
+				memcpy(found[n].user_id, rk.user_id, rk.user_id_len);
+				memcpy(found[n].user_name, rk.user_name,
+				       sizeof(found[n].user_name));
 			}
 			cids[n] = cid;
 			n++;
@@ -1256,10 +1356,10 @@ static uint8_t do_get_info(osk_cbor_writer_t *w)
 
 	if (osk_store_count(0, &rk_count) != OSK_OK)
 		rk_count = 0;
-	rk_left = (rk_count < 64u) ? 64u - rk_count : 0u;
+	rk_left = (rk_count < OSK_MAX_RESIDENT) ? OSK_MAX_RESIDENT - rk_count : 0u;
 
 	/* Schluessel aufsteigend, wie die kanonische Form verlangt. */
-	osk_cbor_put_map(w, 13);
+	osk_cbor_put_map(w, 14);
 
 	osk_cbor_put_uint(w, 0x01);
 	osk_cbor_put_array(w, 3);
@@ -1275,7 +1375,7 @@ static uint8_t do_get_info(osk_cbor_writer_t *w)
 	osk_cbor_put_text(w, "minPinLength");
 
 	osk_cbor_put_uint(w, 0x03);
-	osk_cbor_put_bytes(w, OSK_AAGUID, sizeof(OSK_AAGUID));
+	osk_cbor_put_bytes(w, osk_ctap_aaguid(), 16);
 
 	osk_cbor_put_uint(w, 0x04);
 	/* "uv" meint in CTAP 2.1 die im GERAET eingebaute Benutzerpruefung -
@@ -1290,19 +1390,40 @@ static uint8_t do_get_info(osk_cbor_writer_t *w)
 	 *
 	 * Gefunden vom Fingerabdruck-Strang beim Nachlesen, ob der Sensor
 	 * Aenderungen am CTAP-Teil braucht. */
-	osk_cbor_put_map(w, 6);
+	/* Die Reihenfolge ist nicht Geschmack: kanonisches CBOR sortiert
+	 * Textschluessel erst nach LAENGE, dann nach Bytes. Darum
+	 * ep/rk/up (2), plat (4), credMgmt (8), authnrCfg/clientPin (9),
+	 * pinUvAuthToken (14), setMinPINLength (15), makeCredUvNotRqd (16).
+	 * Eine falsche Reihenfolge wuerde unser eigener Leser verwerfen -
+	 * genau das prueft test_ctap. */
+	osk_cbor_put_map(w, 10);
+	/* "ep" vorhanden heisst: das Geraet KANN Enterprise Attestation; der
+	 * Wert sagt, ob sie eingeschaltet ist. Ab Werk aus, einschaltbar nur
+	 * ueber authenticatorConfig 0x01 - keine Webseite kann das. */
+	osk_cbor_put_text(w, "ep");
+	osk_cbor_put_bool(w, g_state.ep_enabled);
 	osk_cbor_put_text(w, "rk");
 	osk_cbor_put_bool(w, true);
 	osk_cbor_put_text(w, "up");
 	osk_cbor_put_bool(w, true);
 	osk_cbor_put_text(w, "plat");
 	osk_cbor_put_bool(w, false);
+	osk_cbor_put_text(w, "credMgmt");
+	osk_cbor_put_bool(w, true);
+	osk_cbor_put_text(w, "authnrCfg");
+	osk_cbor_put_bool(w, true);
 	osk_cbor_put_text(w, "clientPin");
 	osk_cbor_put_bool(w, pin->pin_set);
 	osk_cbor_put_text(w, "pinUvAuthToken");
 	osk_cbor_put_bool(w, true);
+	osk_cbor_put_text(w, "setMinPINLength");
+	osk_cbor_put_bool(w, true);
 	osk_cbor_put_text(w, "makeCredUvNotRqd");
 	osk_cbor_put_bool(w, true);
+	/* "alwaysUv" wird ABSICHTLICH nicht gemeldet: Config 0x02
+	 * (toggleAlwaysUv) ist nicht gebaut. Eine Option zu melden, deren
+	 * Schalter fehlt, ist eine falsche Zusage - dieselbe Sorte Fehler, die
+	 * bis zum 24.10.2026 bei "uv" stand. */
 
 	osk_cbor_put_uint(w, 0x05);
 	osk_cbor_put_uint(w, OSK_MAX_MSG);
@@ -1336,6 +1457,18 @@ static uint8_t do_get_info(osk_cbor_writer_t *w)
 
 	osk_cbor_put_uint(w, 0x0d);
 	osk_cbor_put_uint(w, g_state.min_pin_len);
+
+	/* 0x10 maxRPIDsForSetMinPINLength: wie viele Dienste die Liste der
+	 * minPinLength-Erweiterung aufnimmt. Die Zahl MUSS gemeldet werden,
+	 * wer setMinPINLength anbietet - ohne sie darf ein Programm annehmen,
+	 * es sei keiner erlaubt.
+	 *
+	 * Achtung, hier lag eine Falle: 0x10 ist maxRPIDsForSetMinPINLength,
+	 * 0x11 ist preferredPlatformUvAttempts. Zwei Nachbarn, von denen einer
+	 * eine Anzahl von Diensten und der andere eine Anzahl von Versuchen
+	 * meint - nachgelesen in Abschnitt 6.4, nicht aus dem Kopf. */
+	osk_cbor_put_uint(w, 0x10);
+	osk_cbor_put_uint(w, OSK_CTAP_MINPIN_RP_MAX);
 
 	osk_cbor_put_uint(w, 0x14);
 	osk_cbor_put_uint(w, rk_left);
@@ -1377,16 +1510,22 @@ static uint8_t do_reset(osk_link_t link)
 				continue;
 			if (!meta.site)
 				continue;
-			if (strcmp(meta.site, RK_SITE) == 0 ||
+			if (strcmp(meta.site, OSK_RK_SITE) == 0 ||
 			    strcmp(meta.site, "osk-largeblob") == 0)
 				osk_store_delete(meta.id);
 		}
 	}
 
-	g_state.sign_count = 0;
+	/* Der Signaturzaehler wird NICHT zurueckgedreht. Es gibt dafuer keinen
+	 * Vertrag in osk_store.h, und das ist richtig: nach einem Reset ist
+	 * jeder alte Nachweis ohnehin wertlos (neues Grundgeheimnis), ein
+	 * Zurueckdrehen brauchte es also nicht - koennte aber einen Dienst,
+	 * der einen alten Stand noch kennt, einen Klon sehen lassen. */
 	g_state.min_pin_len = OSK_PIN_MIN_DEFAULT;
 	g_state.force_pin_change = false;
+	g_state.ep_enabled = false;
 	memset(&g_state.next_state, 0, sizeof(g_state.next_state));
+	memset(&g_state.cm_enum, 0, sizeof(g_state.cm_enum));
 	osk_ctap_minpin_rp_clear();
 	osk_pin_init();
 	return CTAP2_OK;
@@ -1464,6 +1603,20 @@ osk_result_t osk_ctap_handle(const osk_request_t *req, osk_response_t *res)
 	case OSK_CTAP_CMD_SELECTION:
 		code = body_len ? CTAP1_ERR_INVALID_LENGTH : do_selection();
 		break;
+	case OSK_CTAP_CMD_CRED_MGMT:
+		code = body_len ? osk_ctap_cm_handle(body, body_len, &w)
+				: CTAP2_ERR_MISSING_PARAMETER;
+		break;
+	case OSK_CTAP_CMD_CONFIG:
+		code = body_len ? osk_ctap_config_handle(body, body_len, &w)
+				: CTAP2_ERR_MISSING_PARAMETER;
+		break;
+	case OSK_CTAP_CMD_BIO_ENROLLMENT:
+		/* Abgelehnt, und das ist eine Entscheidung, keine Luecke: kein
+		 * Dienst und kein Browser darf einen Finger einlernen. Das
+		 * geschieht am Geraet, siehe docs/ctap.md. */
+		code = CTAP1_ERR_INVALID_COMMAND;
+		break;
 	default:
 		code = CTAP1_ERR_INVALID_COMMAND;
 		break;
@@ -1474,6 +1627,13 @@ osk_result_t osk_ctap_handle(const osk_request_t *req, osk_response_t *res)
 	/* Nach allem ausser GetAssertion ist der gemerkte Zustand hinfaellig. */
 	if (cmd != OSK_CTAP_CMD_GET_ASSERTION && cmd != OSK_CTAP_CMD_GET_NEXT)
 		g_state.next_state.active = false;
+	/* Dasselbe fuer die Aufzaehlung der Verwaltung: ein GetNext darf nur
+	 * unmittelbar auf ein Begin oder ein GetNext folgen. Sonst liesse sich
+	 * ein fremder Befehl dazwischenschieben und danach weiterzaehlen. */
+	if (cmd != OSK_CTAP_CMD_CRED_MGMT) {
+		g_state.cm_enum.rp_active = false;
+		g_state.cm_enum.cred_active = false;
+	}
 	return OSK_OK;
 }
 
@@ -1492,7 +1652,7 @@ osk_result_t osk_ctap_cred_count(size_t *count_out)
 		memset(&meta, 0, sizeof(meta));
 		if (osk_store_list(0, i, &meta) != OSK_OK)
 			continue;
-		if (meta.site && strcmp(meta.site, RK_SITE) == 0)
+		if (meta.site && strcmp(meta.site, OSK_RK_SITE) == 0)
 			found++;
 	}
 	*count_out = found;

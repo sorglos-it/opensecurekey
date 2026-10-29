@@ -5,6 +5,12 @@
 #
 # Ein gruener Lauf heisst: uebersetzt und ausgefuehrt. Am Geraet ist nichts
 # davon gelaufen - siehe docs/ctap.md.
+#
+# Auf Rechnern ohne gcc und ohne make gibt es denselben Lauf als build.ps1
+# (Visual Studio Build Tools). Die Quellenliste steht damit zweimal, und
+# `build.ps1 -Vergleich` prueft die beiden gegeneinander statt es zu glauben -
+# bei test/se050 fehlte in der einen Beschreibung eine Quelle, die die andere
+# fuehrte, und der Windows-Weg band deshalb nie.
 
 CC      ?= gcc
 SRC     := ../../src/classes/ctap
@@ -20,10 +26,13 @@ SAN ?= -fsanitize=address,undefined -fno-omit-frame-pointer
 
 CORE := $(SRC)/osk_cbor.c $(SRC)/osk_crypto.c $(SRC)/osk_credid.c \
         $(SRC)/osk_ctap_key.c $(SRC)/osk_ctap_ext.c $(SRC)/osk_ctap_core.c \
-        $(SRC)/osk_ctap_u2f.c $(SRC)/osk_pin.c $(TRANS)/usb_hid.c ../../src/osk_mem.c
+        $(SRC)/osk_ctap_u2f.c $(SRC)/osk_pin.c \
+        $(SRC)/osk_ctap_cm.c $(SRC)/osk_ctap_config.c $(SRC)/osk_sigcount.c \
+        $(TRANS)/usb_hid.c ../../src/osk_mem.c
 MOCKS := mocks.c
 
-TESTS := test_crypto test_cbor test_credid test_pin test_ctap test_u2f test_hid
+TESTS := test_crypto test_cbor test_credid test_pin test_ctap test_u2f test_hid \
+         test_sigcount test_credmgmt test_config
 FUZZERS := fuzz_cbor fuzz_hid
 FUZZ_SECS ?= 20
 

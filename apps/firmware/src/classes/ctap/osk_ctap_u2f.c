@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include "osk_ctap.h"
 #include "osk_ctap_internal.h"
+#include "osk_sigcount.h"
 #include "osk_ctap_key.h"
 #include "osk_credid.h"
 #include "osk_crypto.h"
@@ -168,8 +169,16 @@ static osk_result_t do_authenticate(uint8_t control, const uint8_t *data, size_t
 		presence = 0x01;
 	}
 
-	osk_ctap_state_t *st = osk_ctap_state();
-	const uint32_t counter = ++st->sign_count;
+	/* Derselbe Zaehler wie bei CTAP2, aus dem Flash und VOR dem
+	 * Signieren erhoeht (osk_sigcount.h). U2F hatte denselben Fehler:
+	 * ein Zaehler im RAM, der nach jedem Einstecken bei null anfing.
+	 *
+	 * Geht das Festschreiben nicht, wird nicht unterschrieben.
+	 * SW_CONDITIONS_NOT_SATISFIED ist dafuer der Wert, den U2F hat; einen
+	 * eigenen fuer "innerer Fehler" kennt das Protokoll nicht. */
+	uint32_t counter = 0;
+	if (osk_sigcount_next(&counter) != OSK_OK)
+		return only_sw(res, SW_CONDITIONS_NOT_SATISFIED);
 
 	uint8_t counter_be[4] = {
 	    (uint8_t)(counter >> 24),

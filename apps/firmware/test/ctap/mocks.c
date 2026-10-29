@@ -2,6 +2,7 @@
  * echtes P-256. */
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "mocks.h"
 #include "osk_se050.h"
 #include "osk_store.h"
@@ -648,6 +649,119 @@ osk_result_t osk_store_reveal(osk_item_id_t id, const char *asked_by, uint8_t *o
 	return OSK_OK;
 }
 
+/* ---- Signaturzaehler ("Flash") ----------------------------------------
+ *
+ * Der echte Zaehler gehoert Strang D und liegt im externen Flash. Hier
+ * steht er in einer Datei, damit ein NEUER PROZESS ihn wiederfindet. Alles
+ * andere waere eine Attrappe, die genau die Eigenschaft nicht hat, auf die
+ * es ankommt. */
+
+static char g_sigcount_path[512];
+static bool g_sigcount_broken;
+
+/* Wurde ein Pfad genannt, ist die Datei "der Flash" und niemand ausser
+ * mock_sigcount_forget() ruehrt sie an. Wurde KEINER genannt, ist sie ein
+ * Kratzzettel dieses Prozesses: mock_reset_all() und das Prozessende
+ * raeumen sie weg. Sonst stolpern zwei Pruefprogramme uebereinander, und
+ * ein Prueflauf liesse eine Datei im Arbeitsbaum liegen. */
+static bool g_sigcount_named;
+
+void mock_sigcount_file(const char *path)
+{
+	snprintf(g_sigcount_path, sizeof(g_sigcount_path), "%s", path ? path : "");
+	g_sigcount_named = (g_sigcount_path[0] != 0);
+}
+
+void mock_sigcount_set_broken(bool broken)
+{
+	g_sigcount_broken = broken;
+}
+
+static const char *sigcount_path(void)
+{
+	if (g_sigcount_path[0])
+		return g_sigcount_path;
+	const char *env = getenv("OSK_SIGCOUNT_FILE");
+	if (env && env[0])
+		return env;
+	return "osk-sigcount.bin";
+}
+
+void mock_sigcount_forget(void)
+{
+	remove(sigcount_path());
+}
+
+static void sigcount_cleanup(void)
+{
+	if (!g_sigcount_named)
+		remove(sigcount_path());
+}
+
+static bool sigcount_load(uint32_t *out)
+{
+	FILE *f = fopen(sigcount_path(), "rb");
+	uint8_t b[4];
+
+	*out = 0;
+	if (!f)
+		return true; /* nichts da heisst null, nicht Fehler */
+	const size_t n = fread(b, 1, sizeof(b), f);
+	fclose(f);
+	if (n != sizeof(b))
+		return false;
+	*out = ((uint32_t)b[0] << 24) | ((uint32_t)b[1] << 16) | ((uint32_t)b[2] << 8) | b[3];
+	return true;
+}
+
+static bool sigcount_store(uint32_t v)
+{
+	FILE *f = fopen(sigcount_path(), "wb");
+	const uint8_t b[4] = {(uint8_t)(v >> 24), (uint8_t)(v >> 16), (uint8_t)(v >> 8),
+			      (uint8_t)v};
+
+	if (!f)
+		return false;
+	const size_t n = fwrite(b, 1, sizeof(b), f);
+	fclose(f);
+	return n == sizeof(b);
+}
+
+osk_result_t osk_store_sigcount_next(osk_item_id_t cred, uint32_t *value_out)
+{
+	uint32_t v = 0;
+
+	(void)cred;
+	if (!value_out)
+		return OSK_ERR_ARG;
+	if (g_sigcount_broken)
+		return OSK_ERR_IO;
+	if (!sigcount_load(&v))
+		return OSK_ERR_IO;
+	if (v == 0xffffffffu)
+		return OSK_ERR_FULL; /* weiterzaehlen hiesse rueckwaerts */
+	v++;
+	if (!sigcount_store(v))
+		return OSK_ERR_IO;
+	*value_out = v;
+	return OSK_OK;
+}
+
+osk_result_t osk_store_sigcount_get(osk_item_id_t cred, uint32_t *value_out)
+{
+	uint32_t v = 0;
+
+	(void)cred;
+	if (!value_out)
+		return OSK_ERR_ARG;
+	if (g_sigcount_broken)
+		return OSK_ERR_IO;
+	if (!sigcount_load(&v))
+		return OSK_ERR_IO;
+	*value_out = v;
+	return OSK_OK;
+}
+
 osk_result_t osk_store_format_version(uint16_t *version_out)
 {
 	*version_out = 1;
@@ -723,6 +837,17 @@ void mock_reset_all(void)
 	g_store_open = true;
 	g_store_full = false;
 	g_reveal_count = 0;
+	g_sigcount_broken = false;
+	/* Der Signaturzaehler bleibt stehen, WENN ein Pfad genannt wurde -
+	 * siehe mocks.h. Der Kratzzettel ohne Namen geht weg. */
+	if (!g_sigcount_named) {
+		static bool registered;
+		remove(sigcount_path());
+		if (!registered) {
+			atexit(sigcount_cleanup);
+			registered = true;
+		}
+	}
 	g_confirm_rc = OSK_OK;
 	g_verify_rc = OSK_OK;
 	g_verify_ok = true;

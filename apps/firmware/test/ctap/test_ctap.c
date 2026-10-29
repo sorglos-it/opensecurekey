@@ -239,44 +239,6 @@ static void test_make_credential_fehler(void)
 /* ---- GetAssertion ------------------------------------------------------ */
 
 /* Baut eine GetAssertion-Nachricht mit allowList. */
-static void build_get_assertion(h_msg_t *m, const char *rp_id, const uint8_t *cred_id,
-				size_t cred_id_len, const uint8_t *pin_auth, size_t pin_auth_len,
-				uint64_t pin_protocol)
-{
-	osk_cbor_writer_t w;
-	uint8_t hash[32];
-	size_t entries = 2;
-
-	osk_sha256((const uint8_t *)"clientData", 10, hash);
-	if (cred_id)
-		entries++;
-	if (pin_auth)
-		entries += 2;
-
-	m->buf[0] = OSK_CTAP_CMD_GET_ASSERTION;
-	osk_cbor_writer_init(&w, m->buf + 1, sizeof(m->buf) - 1);
-	osk_cbor_put_map(&w, entries);
-	osk_cbor_put_uint(&w, 0x01);
-	osk_cbor_put_text(&w, rp_id);
-	osk_cbor_put_uint(&w, 0x02);
-	osk_cbor_put_bytes(&w, hash, 32);
-	if (cred_id) {
-		osk_cbor_put_uint(&w, 0x03);
-		osk_cbor_put_array(&w, 1);
-		osk_cbor_put_map(&w, 2);
-		osk_cbor_put_text(&w, "id");
-		osk_cbor_put_bytes(&w, cred_id, cred_id_len);
-		osk_cbor_put_text(&w, "type");
-		osk_cbor_put_text(&w, "public-key");
-	}
-	if (pin_auth) {
-		osk_cbor_put_uint(&w, 0x06);
-		osk_cbor_put_bytes(&w, pin_auth, pin_auth_len);
-		osk_cbor_put_uint(&w, 0x07);
-		osk_cbor_put_uint(&w, pin_protocol);
-	}
-	m->len = 1 + w.len;
-}
 
 /* Erzeugt einen Nachweis und gibt seine Credential-ID zurueck. */
 static size_t create_cred(const char *rp_id, const char *user, bool rk, bool hmac_secret,
