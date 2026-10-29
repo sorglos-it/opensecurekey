@@ -174,25 +174,46 @@ tool would need that tool's description, which is not available here.
 
 The card side only: two slots, each holding a fixed string in the vault, read
 through `osk_static_pw_fetch()`. The **typing** belongs to the USB keyboard
-transport, and the seam deliberately points that way — this module calls
-nothing in the transport, so it needs no header from there and the two can be
-built side by side. What the transport has to offer is one line:
+transport (`src/classes/transport/usb_kbd.h`), and the seam points that way —
+this module calls nothing there, so there is no link dependency and the two
+strands build side by side.
 
-```c
-osk_result_t osk_kbd_type(const uint8_t *ascii, size_t len, uint8_t layout, bool enter);
+**45 characters, not 95, and this is the important part.** The keyboard side can
+type exactly these:
+
+```text
+cbdefghijklnrtuv CBDEFGHIJKLNRTUV 0123456789 ! Tab Enter
 ```
 
-and it owns the numbering of the keyboard layouts. Until it names any, the card
-accepts only `OSK_KBD_LAYOUT_US` (0) — better one layout that is demonstrably
-meant than a number that means something different on each side.
+No `a`, no `o`, no `s`, no space, no `@`. The reason is the Yubico protocol,
+whose scan map has exactly 45 entries. This card accepted all printable ASCII
+until 29 October 2026 — 95 characters — which would have allowed a password the
+card accepts and the keyboard then refuses as a whole: the user sets it and it
+never types. **Two quantities with the same name — "allowed characters" —
+measuring different things**, which is this project's recurring failure, for the
+eighth time. It was caught when the two strands met in `main`, not by either one
+alone.
 
-**Printable ASCII only, 0x20 to 0x7E.** Not for convenience: every character
-becomes a key code when typed, and where that code sits depends on the
-computer's layout. A character above 0x7F arrives as a different character on a
-foreign layout, and a password that sometimes arrives differently is worse than
-none. What is refused is refused when the password is **set**, not when it is
-typed — and again when it is read back, because the record comes out of flash
-and this build did not necessarily write it.
+So: **what cannot be typed is not accepted**, and the list is read from
+`OSK_KBD_SCAN_ORDER` rather than copied — if the keyboard side widens it, the
+card can do more at once. The same holds for the maximum length, which is the
+keyboard queue's `OSK_KBD_QUEUE_MAX`, not a second number here. The test walks
+all 256 byte values one at a time and requires exactly 45 accepted and 211
+refused.
+
+That the usable alphabet is this narrow is a **product question and an open
+point for the master**, not a property of this module: it comes from the Yubico
+protocol. Tab and Enter are in the list, so `name` ‖ Tab ‖ `password` in one
+string works.
+
+**There is no layout number, and there must not be one here.** The layout is the
+scan map inside the keyboard side (`osk_kbd_set_scan_map()`). A number on this
+side would have meant something different on each — the same trap again. The
+byte that held it stays in the record as reserved and must be zero.
+
+What is refused is refused when the password is **set**, not when it is typed —
+and again when it is read back, because the record comes out of flash and this
+build did not necessarily write it.
 
 Fetching opens a vault record and therefore asks on the display. That is not
 optional: this is the one place where a secret leaves the device as typed text
@@ -368,6 +389,11 @@ fits inside; anything larger is refused rather than partly read.
 - **Whether `openssl x509` accepts the certificate has not been measured.** The
   tests take it apart field by field against RFC 5280, which is not the same as
   a second implementation parsing it.
+- **A static password can only use 45 of the 95 printable ASCII characters**,
+  because the keyboard side can type no more. Refused at set time with a clear
+  no, rather than accepted and silently untypeable — but it is a real limit on
+  what a password may look like, and widening it means widening the keyboard
+  side's scan map.
 - **PIV management key (9B), biometrics, card-level secure messaging, key
   history (5FC10C), OpenPGP private data objects (0101 to 0104), GET
   CHALLENGE, MSE.** All answered with a proper status word, none implemented.
@@ -379,8 +405,8 @@ fits inside; anything larger is refused rather than partly read.
 
 ```bash
 cd apps/firmware/test/applets
-make                     # the variant WITH RSA:    1130 checks
-make RSA=0               # the variant WITHOUT RSA:  968 checks
+make                     # the variant WITH RSA:    1384 checks
+make RSA=0               # the variant WITHOUT RSA: 1222 checks
 make fuzz FUZZ_SECS=20   # APDU parser and CCID frame
 make CC=clang-19         # all of it again with the second toolchain
 ```
@@ -390,7 +416,8 @@ On Windows there is neither `make` nor `gcc`, and the test harness
 `run.ps1` next to the Makefile calls **that same Makefile** inside WSL:
 
 ```powershell
-.un.ps1 -Both -Fuzz
+.
+un.ps1 -Both -Fuzz
 ```
 
 `run.ps1` builds nothing itself. That is deliberate: on 28 October 2026 the

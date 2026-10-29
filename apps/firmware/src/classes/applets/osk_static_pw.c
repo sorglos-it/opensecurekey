@@ -10,12 +10,20 @@
  * getrennt, sonst findet die Suche nach Marke beides. */
 #define PW_TYPE OSK_ITEM_LOGIN
 
-/* Satzaufbau: Fassung, Belegung, Schalter, Laenge, dann der Text. Feld
+/* Satzaufbau: Fassung, reserviert, Schalter, Laenge, dann der Text. Feld
  * fuer Feld geschrieben und nicht als Abbild der Struktur - ein anderer
  * Uebersetzer legt Strukturen anders aus (dieselbe Begruendung wie bei
- * state_pack() in osk_openpgp.c). */
+ * state_pack() in osk_openpgp.c).
+ *
+ * Das zweite Byte war bis zum 29.10.2026 eine Belegungsnummer. Es gibt
+ * keine: die Belegung ist die Abbildung in der Tastaturseite
+ * (osk_kbd_set_scan_map()), und eine Nummer hier haette auf beiden Seiten
+ * etwas anderes geheissen. Es bleibt als reserviertes Byte stehen und
+ * muss 0 sein - so laesst sich der Satz spaeter erweitern, ohne dass
+ * jemand eine alte Zahl als neue Bedeutung liest. */
 #define REC_VERSION 1u
 #define REC_HEAD 4u
+#define REC_RESERVED 1u /* das Byte, das 0 sein muss */
 #define FLAG_ENTER 0x01u
 
 static const char *slot_tag(uint8_t slot)
@@ -45,12 +53,25 @@ void osk_static_pw_reset(void)
 	 * gehoert. */
 }
 
+/* Kann die Tastaturseite dieses Zeichen tippen? Gefragt wird die Liste
+ * aus usb_kbd.h und keine eigene - siehe Kopf von osk_static_pw.h. */
+static bool typeable(uint8_t c)
+{
+	static const char order[] = OSK_KBD_SCAN_ORDER;
+
+	for (size_t i = 0; i + 1u < sizeof(order); i++) {
+		if ((uint8_t)order[i] == c)
+			return true;
+	}
+	return false;
+}
+
 bool osk_static_pw_text_ok(const uint8_t *text, size_t len)
 {
 	if (text == NULL || len == 0u || len > OSK_STATIC_PW_MAX)
 		return false;
 	for (size_t i = 0; i < len; i++) {
-		if (text[i] < 0x20u || text[i] > 0x7eu)
+		if (!typeable(text[i]))
 			return false;
 	}
 	return true;
@@ -87,13 +108,11 @@ osk_result_t osk_static_pw_set(uint8_t slot, const osk_static_pw_t *pw)
 
 	if (tag == NULL || pw == NULL)
 		return OSK_ERR_ARG;
-	if (pw->layout != OSK_KBD_LAYOUT_US)
-		return OSK_ERR_UNSUPPORTED;
 	if (!osk_static_pw_text_ok(pw->text, pw->len))
 		return OSK_ERR_ARG;
 
 	rec[0] = (uint8_t)REC_VERSION;
-	rec[1] = pw->layout;
+	rec[1] = 0u; /* reserviert, siehe oben */
 	rec[2] = pw->append_enter ? (uint8_t)FLAG_ENTER : 0u;
 	rec[3] = pw->len;
 	memcpy(rec + REC_HEAD, pw->text, pw->len);
@@ -143,7 +162,13 @@ osk_result_t osk_static_pw_fetch(uint8_t slot, const char *asked_by, osk_static_
 		return OSK_ERR_FORMAT;
 	}
 
-	out->layout = rec[1];
+	if (rec[REC_RESERVED] != 0u) {
+		/* Ein Satz, in dem das reservierte Byte belegt ist, kommt von
+		 * einer Fassung, die etwas damit meinte. Diese hier weiss
+		 * nicht was - also wird er nicht halb gelesen. */
+		osk_card_wipe(rec, sizeof(rec));
+		return OSK_ERR_FORMAT;
+	}
 	out->append_enter = (rec[2] & FLAG_ENTER) != 0u;
 	out->len = rec[3];
 	memcpy(out->text, rec + REC_HEAD, out->len);
@@ -151,8 +176,9 @@ osk_result_t osk_static_pw_fetch(uint8_t slot, const char *asked_by, osk_static_
 
 	/* Auch beim Lesen geprueft, nicht nur beim Schreiben: der Satz kommt
 	 * aus dem Flash, und was dort steht, hat diese Fassung des Programms
-	 * nicht unbedingt hingeschrieben. */
-	if (out->layout != OSK_KBD_LAYOUT_US || !osk_static_pw_text_ok(out->text, out->len)) {
+	 * nicht unbedingt hingeschrieben - und was die Tastaturseite tippen
+	 * kann, kann sich mit einer neuen Abbildung geaendert haben. */
+	if (!osk_static_pw_text_ok(out->text, out->len)) {
 		osk_card_wipe(out, sizeof(*out));
 		return OSK_ERR_FORMAT;
 	}

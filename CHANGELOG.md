@@ -36,9 +36,15 @@
     so two of our sticks on one computer looked like one card. It is an
     identifier and **not** a proof — what cannot be forged is the attestation
     signature over it.
-  - **Static password**: the card side holds and validates, printable ASCII
-    only; the typing belongs to the keyboard transport, and the seam points that
-    way so the two strands build side by side.
+  - **Static password**: the card side holds and validates, the typing belongs
+    to the keyboard transport, and the seam points that way so the two strands
+    build side by side. The card accepts **only what the keyboard can type** -
+    45 characters, read from the keyboard side's own list rather than copied.
+    The card accepted all 95 printable ASCII characters until the two strands
+    met in `main`; a password with `a`, `o`, `s` or a space would have been
+    accepted and then refused as a whole at typing time, so it would never have
+    typed. Two quantities with the same name - "allowed characters" - measuring
+    different things, which is this project's recurring failure.
   Both firmware variants — with and without RSA — build and run green with gcc
   and with clang, under AddressSanitizer and UndefinedBehaviorSanitizer; the
   counts and the exact commands are in `docs/smartcard.md`. The run found a real

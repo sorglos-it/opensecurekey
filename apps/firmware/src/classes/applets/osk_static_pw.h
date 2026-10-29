@@ -6,33 +6,41 @@
  * Software", erste Zeile der Tabelle).
  *
  * HIER LIEGT NUR DIE KARTENSEITE. Das Tippen selbst gehoert dem
- * USB-Tastatur-Transport (src/classes/transport/, Strang E). Die Naht ist
- * absichtlich so gelegt, dass sie in diese Richtung zeigt:
+ * USB-Tastatur-Transport (src/classes/transport/usb_kbd.h, Strang E). Die
+ * Naht zeigt in diese Richtung:
  *
- *   Der Transport ruft osk_static_pw_fetch() und tippt, was er bekommt.
+ *   Der Transport ruft osk_static_pw_fetch() und danach osk_kbd_type().
  *
- * Dieses Modul ruft NICHTS im Transport auf. Darum braucht es keine
- * Kopfdatei von dort und die beiden Straenge koennen nebeneinander
- * gebaut werden.
+ * Dieses Modul ruft NICHTS im Transport auf - keine Funktion, keine
+ * Bindung. Es liest aus usb_kbd.h genau EINE Angabe, und zwar als Text:
+ * welche Zeichen die Tastaturseite ueberhaupt tippen kann.
  *
- * Was der Transport dafuer bereitstellen muss, steht in einem Satz:
+ * WARUM DIESE EINE ANGABE SEIN MUSS - und das ist der wichtigste Satz
+ * dieser Datei. Die Tastaturseite kann 45 Zeichen tippen, nicht 95:
  *
- *   osk_result_t osk_kbd_type(const uint8_t *ascii, size_t len,
- *                             uint8_t layout, bool enter);
+ *   cbdefghijklnrtuv CBDEFGHIJKLNRTUV 0123456789 ! Tab Eingabe
  *
- * und er vergibt die Nummern der Tastaturbelegungen. Bis er welche nennt,
- * nimmt die Karte nur OSK_KBD_LAYOUT_US an - lieber eine Belegung, die
- * nachweislich gemeint ist, als eine Zahl, die auf beiden Seiten etwas
- * anderes heisst. Genau dieser Fehler ist in diesem Projekt siebenmal
- * aufgetreten.
+ * Kein a, kein o, kein s, kein Leerzeichen, kein @. Der Grund liegt im
+ * Yubico-Protokoll, dessen Abbildung genau 45 Plaetze hat (usb_kbd.h).
+ * Diese Karte nahm bis zum 29.10.2026 alles druckbare ASCII an - 95
+ * Zeichen. Damit waere ein Passwort entstanden, das die Karte annimmt und
+ * die Tastatur dann als Ganzes verweigert: der Nutzer setzt es, und es
+ * tippt sich nie. Zwei Groessen, die gleich heissen ("erlaubte Zeichen")
+ * und Verschiedenes messen - das Fehlermuster dieses Projekts, zum
+ * achten Mal.
  *
- * ZEICHENVORRAT: nur druckbares ASCII, 0x20 bis 0x7E. Nicht aus
- * Bequemlichkeit, sondern weil jedes Zeichen beim Tippen zu einem
- * Tastencode wird, und wo dieser Code liegt, haengt an der Belegung des
- * Rechners. Ein Umlaut oder ein Zeichen ueber 0x7F wird auf einer
- * fremden Belegung zu einem anderen Zeichen - und ein Passwort, das
- * manchmal anders ankommt, ist schlimmer als keines. Was abgelehnt wird,
- * wird beim Setzen abgelehnt und nicht beim Tippen.
+ * Darum gilt: WAS NICHT GETIPPT WERDEN KANN, WIRD NICHT ANGENOMMEN. Die
+ * Liste steht nicht hier, sondern in OSK_KBD_SCAN_ORDER - eine Angabe an
+ * einer Stelle, und wenn Strang E sie erweitert, kann diese Karte sofort
+ * mehr. Abgelehnt wird beim SETZEN, nicht beim Tippen.
+ *
+ * Dass die Zeichen so knapp sind, ist eine Produktfrage und keine dieses
+ * Moduls: sie gehoert zum Yubico-Protokoll und ist dem Master gemeldet.
+ *
+ * DIE BELEGUNG (welcher Tastenplatz welches Zeichen ist) steht ebenfalls
+ * nicht hier. Sie ist die Abbildung in der Tastaturseite, gesetzt ueber
+ * osk_kbd_set_scan_map(). Eine Belegungs-NUMMER gibt es nicht und darf es
+ * hier nicht geben - sie wuerde auf beiden Seiten etwas anderes heissen.
  */
 #ifndef OSK_STATIC_PW_H
 #define OSK_STATIC_PW_H
@@ -41,24 +49,24 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include "osk_result.h"
+/* Nur fuer OSK_KBD_SCAN_ORDER und OSK_KBD_QUEUE_MAX - zwei Texte, keine
+ * Funktion. Es entsteht keine Bindung an die Tastaturseite. */
+#include "usb_kbd.h"
 
 /* Zwei Steckplaetze, wie bei den Einmalcodes (osk_otp.h): einer fuer den
  * kurzen Druck, einer fuer den langen. */
 #define OSK_STATIC_PW_SLOTS 2u
 
-/* Hoechstlaenge. 64 Zeichen, weil das der laengste Eintrag ist, den eine
- * Zeile des Verwaltungsprogramms noch zeigt, und weil laengere Passwoerter
- * an Anmeldefeldern haeufig abgeschnitten werden. */
-#define OSK_STATIC_PW_MAX 64u
-
-/* Die einzige Belegung, die die Karte heute annimmt. Die Nummer vergibt
- * Strang E; bis dahin ist 0 die, auf die beide Seiten sich einigen. */
-#define OSK_KBD_LAYOUT_US 0u
+/* Hoechstlaenge. Es sind dieselben 64 Zeichen, die in einen Tippauftrag
+ * passen (OSK_KBD_QUEUE_MAX in usb_kbd.h) - und sie stehen hier NICHT
+ * als eigene Zahl, sondern werden von dort geholt. Zwei Obergrenzen
+ * waeren wieder zwei Wahrheiten: die kleinere wuerde gelten und niemand
+ * wuesste, welche. */
+#define OSK_STATIC_PW_MAX ((uint8_t)OSK_KBD_QUEUE_MAX)
 
 typedef struct {
-	uint8_t layout;	    /* Tastaturbelegung */
-	bool append_enter;  /* hinterher die Eingabetaste */
-	uint8_t len;	    /* Zeichen, ohne Null am Ende */
+	bool append_enter; /* hinterher die Eingabetaste */
+	uint8_t len;	   /* Zeichen, ohne Null am Ende */
 	uint8_t text[OSK_STATIC_PW_MAX + 1u]; /* ein Byte mehr fuer die Null */
 } osk_static_pw_t;
 
@@ -67,15 +75,17 @@ typedef struct {
 void osk_static_pw_reset(void);
 
 /* Prueft, ob eine Zeichenkette als statisches Passwort in Frage kommt:
- * Laenge 1 bis OSK_STATIC_PW_MAX, jedes Byte 0x20 bis 0x7E. Getrennt
+ * Laenge 1 bis OSK_STATIC_PW_MAX, und jedes Zeichen muss in
+ * OSK_KBD_SCAN_ORDER vorkommen - also wirklich tippbar sein. Getrennt
  * aufrufbar, damit das Verwaltungsprogramm dasselbe Urteil bekommt wie
- * die Karte - und es nur an einer Stelle steht. */
+ * die Karte und der Nutzer das Nein beim Eintippen sieht und nicht erst
+ * beim Benutzen. */
 bool osk_static_pw_text_ok(const uint8_t *text, size_t len);
 
 /* Legt ein Passwort ab oder ersetzt es. Verlangt die freigegebene PIN und
  * einen Tastendruck; das prueft der Aufrufer (das Applet), nicht diese
- * Funktion. OSK_ERR_ARG bei Steckplatz, Laenge, Zeichen oder Belegung,
- * die nicht gehen. */
+ * Funktion. OSK_ERR_ARG bei Steckplatz, Laenge oder Zeichen, die nicht
+ * gehen. */
 osk_result_t osk_static_pw_set(uint8_t slot, const osk_static_pw_t *pw);
 
 /* Entfernt das Passwort eines Steckplatzes. OSK_ERR_NOT_FOUND, wenn dort
