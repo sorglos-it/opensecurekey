@@ -7,10 +7,19 @@ Massenspeicher dreimal, der Schlüsselexport dreimal. **Was hier steht, gilt.** 
 Entscheidung steht genau einmal; was offen ist, steht als offen.
 
 **Einordnung vorweg:** Nichts von diesem Gerät ist je auf Hardware gelaufen.
-Rund 12 000 Zeilen C sind geschrieben und übersetzt, 94 281 Prüfungen laufen am
-PC grün, Schaltplan und Platine sind gezeichnet. Die Teile für den Teststand
-sind bestellt. **Das Projekt steht auf Stufe 2 von 4** — geschrieben /
-übersetzt / im Abbild / am Gerät gelaufen.
+Rund 12 000 Zeilen C sind geschrieben und übersetzt, Schaltplan und Platine sind
+gezeichnet. Die Teile für den Teststand sind bestellt. **Das Projekt steht auf
+Stufe 2 von 4** — geschrieben / übersetzt / im Abbild / am Gerät gelaufen.
+
+**Was am 29.10.2026 selbst nachgemessen wurde**, nicht aus Meldungen
+übernommen: sechs Prüfläufe der Stränge, jeder einzeln gestartet —
+`se050` 1066, `authz` 255, `ctap` 1425, `store` 87 591, `transport` 232,
+`applets` 1384 Fälle, **zusammen 91 953, kein Fehler**. Dazu `tools/check.py`:
+14 Schritte ok, 308 Tests, 0 Fehler. **Drei Schritte sind dort übersprungen und
+damit NICHT geprüft:** `firmware/build` (kein nRF Connect SDK),
+`firmware/tests` und `firmware/format`. Die C-Prüfläufe der Stränge laufen
+deshalb ausdrücklich nicht über `check.py`, sondern über die Skripte in
+`apps/firmware/test/*/` — „check.py ist grün" sagt über die Firmware nichts.
 
 ---
 
@@ -511,6 +520,23 @@ gelaufen. Im Protokoll steht, welche.
    Zustand prüfen**, nicht gegen einen verfälschten. Genau das ist der Angriff.
 3. **Beide Firmware-Varianten** müssen gebaut und geprüft werden. Eine Option,
    die nur in einer Richtung getestet ist, ist keine.
+4. **Eine Attrappe prüft die eigene Seite des Vertrags, nicht die andere.**
+   Am 29.10.2026 am Signaturzähler aufgetreten: CTAP spricht den geräteweiten
+   Zähler mit der reservierten Kennung 0 an, der Tresor sucht zu jeder Kennung
+   einen Indexsatz und findet für die 0 keinen — am Gerät wäre **gar nicht
+   signiert** worden. Grün war trotzdem alles: die Attrappe in
+   `test/ctap/mocks.c` führt selbst einen geräteweiten Zähler und übergeht die
+   Kennung. **Zwei Größen, die gleich heißen und Verschiedenes messen — das
+   achte Mal in diesem Projekt**, und das erste Mal zwischen zwei Strängen
+   statt in einer Unterlage.
+   **Entschieden am 29.10.2026:** Kennung 0 ist der geräteweite Zähler und
+   liegt als `sigcount_dev` im Kopfsatz (vier Byte aus `reserved[16]`, crc32
+   bleibt letztes Feld); jede andere Kennung zählt weiter je Eintrag. Das
+   deckt alle Nachweise ab — nicht auffindbare Nachweise und U2F haben keinen
+   Indexsatz, in dem ein Zähler liegen könnte, und das sind die meisten.
+   Offen daraus: **jede Anmeldung kostet einen Kopfsatz** im Flash, womöglich
+   zusätzlich einen NVM-Schreibvorgang im Sicherheitschip. Beides ist
+   gemeldet, nicht gerechnet.
 
 **Was in 8 MB läuft, beweist nichts für 64 MB** — Adressbreite, Löschblockgröße
 und Verschleißverteilung ändern sich mit der Größe. (Das Entwicklungsbrett hat
