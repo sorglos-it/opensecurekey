@@ -607,6 +607,8 @@ entstehen wieder zwei Wahrheiten:
 | Stromaufnahmen mit Datenblattstellen | `docs/stromaufnahme.md` |
 | FIPS 140-3: elf Bereiche als Bauliste, 21 Bauaufgaben | `D:\claude\side-session-notes\fips-140-3.md` |
 | Maße, Bänder, Platzierung | `hardware/layout-notes.md` |
+| Messmittel für die Platine (Kupfer am Punkt, Pad gegen Pad, Hülle des Funkmoduls) | `hardware/tools/LIESMICH.md` |
+| Wo sich SE050-Applet 3.x und 7.2 unterscheiden | `docs/se051-unterschiede.md` |
 
 **Zum Aufräumen im Repo:**
 
