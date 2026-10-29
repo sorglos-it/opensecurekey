@@ -4,6 +4,14 @@
 #   make            - alles uebersetzen und laufen lassen
 #   make fuzz       - Fuzzlauf ueber APDU- und CCID-Parser (Dauer FUZZ_SECS)
 #   make CC=clang-19 - mit dem zweiten Uebersetzer
+#   make RSA=0      - die Fassung OHNE RSA (Kconfig-Option CONFIG_OSK_RSA)
+#
+# BEIDE FASSUNGEN muessen gebaut und geprueft werden: eine Option, die nur
+# in einer Richtung geprueft ist, ist keine (docs/plan.md, Abschnitt 8).
+# Unter Windows gibt es weder make noch gcc; dort ruft run.ps1 dieses
+# Makefile in der WSL auf. Es gibt absichtlich nur DIESE eine
+# Baubeschreibung - zwei, die sich widersprechen, haben den Prueflauf des
+# SE050-Treibers am 28.10.2026 schon einmal still gebrochen.
 #
 # Ein gruener Lauf heisst: uebersetzt und am PC ausgefuehrt. Am Geraet ist
 # nichts davon gelaufen, und mit einem echten Kartenleser-Stapel (pcscd,
@@ -13,7 +21,12 @@ CC      ?= gcc
 APP     := ../../src/classes/applets
 TRANS   := ../../src/classes/transport
 # test_util.h liegt beim CTAP-Pruefsatz; sie wird geteilt und nicht kopiert.
-INC     := -I../../include -I$(APP) -I$(TRANS) -I. -I../ctap
+# ../ctap liefert zwei Dinge: test_util.h (das Pruefgeruest, geteilt und
+# nicht kopiert) und osk_crypto.h mit SHA-256. Letzteres braucht die
+# Attestierung; SHA-256 wird nicht zum zweiten Mal geschrieben, genauso
+# wie die Geldboerse es haelt (src/classes/wallet/wallet_hash.h).
+CTAP    := ../../src/classes/ctap
+INC     := -I../../include -I$(APP) -I$(TRANS) -I. -I../ctap -I$(CTAP)
 CFLAGS  := -std=c11 -Wall -Wextra -Werror -Wshadow -Wconversion -Wsign-conversion \
            -Wpointer-arith -Wcast-qual -Wundef -O1 -g $(INC)
 LDFLAGS :=
@@ -22,12 +35,23 @@ LDFLAGS :=
 # den ein Angreifer zuerst erreicht - hier wollen wir jeden Ueberlauf sehen.
 SAN ?= -fsanitize=address,undefined -fno-omit-frame-pointer
 
+# RSA=1 (Vorgabe) setzt CONFIG_OSK_RSA. Die Option wirkt an genau einer
+# Stelle, osk_rsa_available() - siehe Kopf von osk_rsa_card.h.
+RSA ?= 1
+ifeq ($(RSA),1)
+CFLAGS += -DCONFIG_OSK_RSA=1
+endif
+
 CORE := $(APP)/osk_apdu.c $(APP)/osk_applets.c $(APP)/osk_card.c $(APP)/osk_piv.c \
         $(APP)/osk_openpgp.c $(APP)/osk_otp.c $(APP)/osk_otp_crypto.c \
+        $(APP)/osk_rsa_card.c $(APP)/osk_serial.c $(APP)/osk_static_pw.c \
+        $(APP)/osk_attest.c \
+        $(CTAP)/osk_crypto.c ../../src/osk_mem.c \
         $(TRANS)/usb_ccid.c
 MOCKS := mocks.c
 
-TESTS := test_crypto test_apdu test_ccid test_piv test_openpgp test_otp
+TESTS := test_crypto test_apdu test_ccid test_piv test_openpgp test_otp \
+         test_rsa_card test_attest test_static_pw test_serial
 FUZZERS := fuzz_apdu fuzz_ccid
 FUZZ_SECS ?= 20
 

@@ -7,6 +7,8 @@
 #include "osk_openpgp.h"
 #include "osk_card.h"
 #include "osk_ui.h"
+#include "osk_se050.h"
+#include "osk_rsa_card.h"
 #include "mocks.h"
 #include "card_helper.h"
 
@@ -514,6 +516,432 @@ static void test_terminate(void)
 	T_EQ("ohne PW3 kein Beenden", g_sw, OSK_SW_COND_NOT_SATISFIED);
 }
 
+
+/* --- RSA ---------------------------------------------------------------- */
+
+/* Freigaben, kurz: PW1 fuer die Unterschrift (81), PW1 fuer alles andere
+ * (82), PW3 fuer die Verwaltung (83). Abschnitt 4.3. */
+static void pgp_verify_pw3(void)
+{
+	verify_pw(0x83u, g_pw3, sizeof(g_pw3));
+	T_EQ("PW3 angenommen", g_sw, OSK_SW_OK);
+}
+
+static void pgp_verify_pw1_sign(void)
+{
+	verify_pw(0x81u, g_pw1, sizeof(g_pw1));
+	T_EQ("PW1 angenommen", g_sw, OSK_SW_OK);
+}
+
+static void pgp_verify_pw1_other(void)
+{
+	verify_pw(0x82u, g_pw1, sizeof(g_pw1));
+	T_EQ("PW1 angenommen", g_sw, OSK_SW_OK);
+}
+
+/* Vorsatz des DigestInfo woertlich aus RFC 8017 Abschnitt 9.2,
+ * Anmerkung 1 - gegen den RFC geprueft, nicht gegen die Tabelle im Code. */
+#define PGP_DI_SHA256 "3031300d060960864801650304020105000420"
+#define PGP_DI_SHA512 "3051300d060960864801650304020305000440"
+
+/* Lange Antworten einsammeln: Modulus und Unterschrift sind laenger als
+ * eine kurze Antwort, der Verteiler kuendigt den Rest mit 61xx an. */
+static uint8_t g_rlong[1024];
+static size_t g_rlong_len;
+
+static uint16_t pgp_collect(void)
+{
+	g_rlong_len = 0u;
+	for (unsigned round = 0; round < 16u; round++) {
+		if (g_resp_len > 0u && g_rlong_len + g_resp_len <= sizeof(g_rlong)) {
+			memcpy(g_rlong + g_rlong_len, g_resp, g_resp_len);
+			g_rlong_len += g_resp_len;
+		}
+		if ((g_sw & 0xff00u) != OSK_SW_MORE)
+			break;
+		(void)call(0x00u, 0xc0u, 0x00u, 0x00u, NULL, 0u, 256);
+	}
+	return g_sw;
+}
+
+/* Algorithmus-Eigenschaften fuer RSA nach Abschnitt 4.4.3.9:
+ * 01 || Modulus-Bits (2) || Exponent-Bits (2) || Einfuhrform (1). */
+static size_t pgp_rsa_attr(uint16_t nbits, uint16_t ebits, uint8_t *out)
+{
+	out[0] = 0x01u;
+	out[1] = (uint8_t)(nbits >> 8);
+	out[2] = (uint8_t)nbits;
+	out[3] = (uint8_t)(ebits >> 8);
+	out[4] = (uint8_t)ebits;
+	out[5] = 0x00u;
+	return 6u;
+}
+
+/* Ein DigestInfo - GENAU DAS schickt OpenPGP beim Unterschreiben, nicht
+ * den nackten Hash (Abschnitt 7.2.10: die Karte fuellt auf, das
+ * DigestInfo baut der Rechner). */
+static size_t pgp_di(const char *prefix_hex, size_t hash_len, uint8_t *out, size_t cap,
+		     uint8_t *hash_out)
+{
+	size_t n = t_unhex(prefix_hex, out, cap);
+
+	if (n == 0u || n + hash_len > cap)
+		return 0u;
+	for (size_t i = 0; i < hash_len; i++) {
+		out[n + i] = (uint8_t)(0x40u + i);
+		if (hash_out != NULL)
+			hash_out[i] = out[n + i];
+	}
+	return n + hash_len;
+}
+
+/* Die Algorithmus-Eigenschaften eines Schluessels aus GET DATA 6E holen. */
+static bool pgp_read_attr(uint32_t tag, const uint8_t **val_out, size_t *len_out)
+{
+	const uint8_t *outer = NULL;
+	const uint8_t *inner = NULL;
+	size_t outer_len = 0;
+	size_t inner_len = 0;
+
+	(void)call(0x00u, 0xcau, 0x00u, 0x6eu, NULL, 0u, 256);
+	if (pgp_collect() != OSK_SW_OK)
+		return false;
+	if (!osk_tlv_find(g_rlong, g_rlong_len, 0x6eu, &outer, &outer_len))
+		return false;
+	if (!osk_tlv_find(outer, outer_len, 0x73u, &inner, &inner_len))
+		return false;
+	return osk_tlv_find(inner, inner_len, tag, val_out, len_out);
+}
+
+static void test_rsa_attributes(void)
+{
+	uint8_t attr[8];
+	const uint8_t *got = NULL;
+	size_t got_len = 0;
+
+	mock_reset_all();
+	put_pw3();
+	osk_applets_reset();
+	select_pgp();
+	pgp_verify_pw3();
+
+	/* Vor dem Setzen: eine Kurve, weil wir P-256 anbieten. */
+	T_TRUE("C1 lesbar", pgp_read_attr(0xc1u, &got, &got_len));
+	T_EQ("ECDSA", got[0], (uint8_t)OSK_PGP_ALG_ECDSA);
+
+	if (!OSK_RSA_BUILT) {
+		/* Die Fassung ohne RSA nimmt die RSA-Eigenschaften nicht an
+		 * und bleibt bei der Kurve. */
+		(void)pgp_rsa_attr(2048u, 17u, attr);
+		(void)call(0x00u, 0xdau, 0x00u, 0xc1u, attr, 6u, -1);
+		T_EQ("ohne CONFIG_OSK_RSA abgelehnt", g_sw, OSK_SW_FUNC_NOT_SUPPORTED);
+		T_TRUE("C1 lesbar", pgp_read_attr(0xc1u, &got, &got_len));
+		T_EQ("bleibt eine Kurve", got[0], (uint8_t)OSK_PGP_ALG_ECDSA);
+		return;
+	}
+
+	/* RSA-2048 fuer den Unterschriftenschluessel. */
+	(void)pgp_rsa_attr(2048u, 17u, attr);
+	(void)call(0x00u, 0xdau, 0x00u, 0xc1u, attr, 6u, -1);
+	T_EQ("RSA-2048 angenommen", g_sw, OSK_SW_OK);
+	T_TRUE("C1 lesbar", pgp_read_attr(0xc1u, &got, &got_len));
+	T_EQ("sechs Byte", got_len, 6u);
+	T_EQ("Kennung RSA", got[0], (uint8_t)OSK_PGP_ALG_RSA);
+	T_EQ("2048 oben", got[1], 0x08u);
+	T_EQ("2048 unten", got[2], 0x00u);
+	T_EQ("Einfuhrform 00", got[5], 0x00u);
+
+	/* 4096 geht auch - OpenPGP schickt die Bitlaenge als Zahl, darum
+	 * kann es alle drei Laengen des Chips (anders als PIV). */
+	(void)pgp_rsa_attr(4096u, 17u, attr);
+	(void)call(0x00u, 0xdau, 0x00u, 0xc2u, attr, 6u, -1);
+	T_EQ("RSA-4096 angenommen", g_sw, OSK_SW_OK);
+	(void)pgp_rsa_attr(3072u, 17u, attr);
+	(void)call(0x00u, 0xdau, 0x00u, 0xc3u, attr, 6u, -1);
+	T_EQ("RSA-3072 angenommen", g_sw, OSK_SW_OK);
+
+	/* Laengen, die der Chip nicht kann, werden abgelehnt - nicht auf
+	 * die naechstgelegene gerundet. */
+	(void)pgp_rsa_attr(1024u, 17u, attr);
+	(void)call(0x00u, 0xdau, 0x00u, 0xc1u, attr, 6u, -1);
+	T_EQ("1024 abgelehnt", g_sw, OSK_SW_FUNC_NOT_SUPPORTED);
+	(void)pgp_rsa_attr(2047u, 17u, attr);
+	(void)call(0x00u, 0xdau, 0x00u, 0xc1u, attr, 6u, -1);
+	T_EQ("2047 abgelehnt", g_sw, OSK_SW_FUNC_NOT_SUPPORTED);
+	/* Falsche Laenge des Datenfelds. */
+	(void)pgp_rsa_attr(2048u, 17u, attr);
+	(void)call(0x00u, 0xdau, 0x00u, 0xc1u, attr, 5u, -1);
+	T_EQ("fuenf Byte sind keine RSA-Eigenschaften", g_sw, OSK_SW_WRONG_LENGTH);
+
+	/* Zurueck auf eine Kurve: dann ist der Schluesselplatz KEIN
+	 * RSA-Platz mehr. Ein Platz haelt genau einen Schluessel. */
+	{
+		static const uint8_t p256[] = {0x13, 0x2a, 0x86, 0x48, 0xce,
+					       0x3d, 0x03, 0x01, 0x07};
+
+		(void)call(0x00u, 0xdau, 0x00u, 0xc1u, p256, sizeof(p256), -1);
+		T_EQ("P-256 angenommen", g_sw, OSK_SW_OK);
+		T_TRUE("C1 lesbar", pgp_read_attr(0xc1u, &got, &got_len));
+		T_EQ("wieder ECDSA", got[0], (uint8_t)OSK_PGP_ALG_ECDSA);
+		T_EQ("und neun Byte", got_len, 9u);
+	}
+}
+
+static void test_rsa_sign_and_decipher(void)
+{
+	uint8_t attr[8];
+	static uint8_t di[128];
+	static uint8_t crypt[600];
+	uint8_t hash[64];
+	const uint8_t *got = NULL;
+	const uint8_t *inner = NULL;
+	size_t got_len = 0;
+	size_t inner_len = 0;
+	size_t n;
+
+	mock_reset_all();
+	put_pw3();
+	osk_applets_reset();
+	select_pgp();
+	pgp_verify_pw3();
+
+	if (!OSK_RSA_BUILT) {
+		/* Ohne RSA gibt es nichts zu unterschreiben und nichts zu
+		 * entschluesseln, was hier gehoert - die Kurvenwege pruefen
+		 * test_sign_and_decrypt(). */
+		(void)pgp_rsa_attr(2048u, 17u, attr);
+		(void)call(0x00u, 0xdau, 0x00u, 0xc1u, attr, 6u, -1);
+		T_EQ("ohne CONFIG_OSK_RSA abgelehnt", g_sw, OSK_SW_FUNC_NOT_SUPPORTED);
+		(void)di;
+		(void)crypt;
+		(void)hash;
+		(void)n;
+		(void)inner;
+		(void)inner_len;
+		return;
+	}
+
+	/* Unterschrift und Verschluesselung auf RSA-2048 stellen und
+	 * erzeugen. */
+	(void)pgp_rsa_attr(2048u, 17u, attr);
+	(void)call(0x00u, 0xdau, 0x00u, 0xc1u, attr, 6u, -1);
+	T_EQ("Unterschrift auf RSA", g_sw, OSK_SW_OK);
+	(void)call(0x00u, 0xdau, 0x00u, 0xc2u, attr, 6u, -1);
+	T_EQ("Verschluesselung auf RSA", g_sw, OSK_SW_OK);
+
+	{
+		static const uint8_t crt_sign[] = {0xb6, 0x00};
+		static const uint8_t crt_dec[] = {0xb8, 0x00};
+
+		(void)call(0x00u, 0x47u, 0x80u, 0x00u, crt_sign, sizeof(crt_sign), 256);
+		T_EQ("Unterschriftenschluessel erzeugt", pgp_collect(), OSK_SW_OK);
+		T_TRUE("7F49", osk_tlv_find(g_rlong, g_rlong_len, 0x7f49u, &inner, &inner_len));
+		T_TRUE("Modulus in 81", osk_tlv_find(inner, inner_len, 0x81u, &got, &got_len));
+		T_EQ("256 Byte", got_len, 256u);
+		T_TRUE("Exponent in 82", osk_tlv_find(inner, inner_len, 0x82u, &got, &got_len));
+		/* Der Befund von Strang A: drei Byte, nicht vier. */
+		T_EQ("Exponent drei Byte", got_len, 3u);
+
+		(void)call(0x00u, 0x47u, 0x80u, 0x00u, crt_dec, sizeof(crt_dec), 256);
+		T_EQ("Verschluesselungsschluessel erzeugt", pgp_collect(), OSK_SW_OK);
+	}
+
+	/* Die gemeldete Exponentenlaenge kommt jetzt vom CHIP, nicht aus der
+	 * Zahl, die das Kartenprogramm gesetzt hat. 65537 ist 2^16+1, also
+	 * 17 Bit - der Vertrag warnt davor, 65537 anzunehmen, also wird
+	 * nachgesehen. */
+	T_TRUE("C1 lesbar", pgp_read_attr(0xc1u, &got, &got_len));
+	T_EQ("Exponent 17 Bit", (unsigned)(((unsigned)got[3] << 8) | got[4]), 17u);
+
+	/* UNTERSCHREIBEN. Hinein geht das DigestInfo. */
+	pgp_verify_pw1_sign();
+	n = pgp_di(PGP_DI_SHA256, 32u, di, sizeof(di), hash);
+	T_EQ("DigestInfo ist 51 Byte", n, 51u);
+	(void)call(0x00u, 0x2au, 0x9eu, 0x9au, di, n, 256);
+	T_EQ("unterschrieben", pgp_collect(), OSK_SW_OK);
+	/* Bei RSA geht die Unterschrift nackt hinaus, so lang wie der
+	 * Modulus - nicht als r||s wie bei einer Kurve. */
+	T_EQ("so lang wie der Modulus", g_rlong_len, 256u);
+	T_EQ("Auffuellung PKCS#1 v1.5 genannt", mock_rsa_last_pad(), (int)OSK_RSA_PAD_PKCS1_V15);
+	T_EQ("Hashverfahren SHA-256", mock_rsa_last_hash(), (int)OSK_HASH_SHA256);
+	{
+		size_t hl = 0;
+		const uint8_t *hv = mock_rsa_last_hash_val(&hl);
+
+		T_EQ("32 Byte Hash", hl, 32u);
+		T_TRUE("und genau der aus dem DigestInfo", memcmp(hv, hash, 32u) == 0);
+	}
+
+	/* Der Zaehler in DO 93 laeuft bei RSA genauso mit. */
+	{
+		const uint8_t *tmpl = NULL;
+		const uint8_t *cnt = NULL;
+		size_t tmpl_len = 0;
+		size_t cnt_len = 0;
+
+		(void)call(0x00u, 0xcau, 0x00u, 0x7au, NULL, 0u, 256);
+		T_EQ("7A gelesen", pgp_collect(), OSK_SW_OK);
+		T_TRUE("Vorlage 7A", osk_tlv_find(g_rlong, g_rlong_len, 0x7au, &tmpl, &tmpl_len));
+		T_TRUE("Zaehler 93", osk_tlv_find(tmpl, tmpl_len, 0x93u, &cnt, &cnt_len));
+		T_EQ("drei Byte", cnt_len, 3u);
+		T_EQ("steht auf eins", cnt[2], 1u);
+	}
+
+	/* SHA-512 muss als SHA-512 ankommen. */
+	pgp_verify_pw1_sign();
+	n = pgp_di(PGP_DI_SHA512, 64u, di, sizeof(di), hash);
+	(void)call(0x00u, 0x2au, 0x9eu, 0x9au, di, n, 256);
+	T_EQ("unterschrieben", pgp_collect(), OSK_SW_OK);
+	T_EQ("Hashverfahren SHA-512", mock_rsa_last_hash(), (int)OSK_HASH_SHA512);
+
+	/* Kein DigestInfo - wird abgelehnt und nicht gerechnet. */
+	{
+		const unsigned before = mock_rsa_sign_count();
+
+		pgp_verify_pw1_sign();
+		memset(di, 0x5au, 51u);
+		(void)call(0x00u, 0x2au, 0x9eu, 0x9au, di, 51u, 256);
+		T_EQ("kein DigestInfo", g_sw, OSK_SW_WRONG_DATA);
+		T_EQ("Chip nicht gefragt", mock_rsa_sign_count(), before);
+
+		/* SHA-1: der Chip koennte es, der Vertrag nennt es nicht. */
+		pgp_verify_pw1_sign();
+		n = pgp_di("3021300906052b0e03021a05000414", 20u, di, sizeof(di), NULL);
+		(void)call(0x00u, 0x2au, 0x9eu, 0x9au, di, n, 256);
+		T_EQ("SHA-1 abgelehnt", g_sw, OSK_SW_WRONG_DATA);
+		T_EQ("Chip immer noch nicht gefragt", mock_rsa_sign_count(), before);
+	}
+
+	/* ENTSCHLUESSELN. Im Datenfeld ein Kennbyte 00, danach das Chiffrat
+	 * in Modulus-Laenge (Abschnitt 7.2.11). */
+	pgp_verify_pw1_other();
+	crypt[0] = 0x00u;
+	for (size_t i = 1; i < 257u; i++)
+		crypt[i] = (uint8_t)(i * 3u + 5u);
+	(void)call(0x00u, 0x2au, 0x80u, 0x86u, crypt, 257u, 256);
+	T_EQ("entschluesselt", pgp_collect(), OSK_SW_OK);
+	T_EQ("der Chip hat entschluesselt", mock_rsa_decrypt_count(), 1u);
+	T_EQ("Auffuellung genannt", mock_rsa_last_pad(), (int)OSK_RSA_PAD_PKCS1_V15);
+	T_TRUE("und etwas kam heraus", g_rlong_len > 0u);
+
+	/* Ohne das Kennbyte, und mit falscher Laenge. */
+	pgp_verify_pw1_other();
+	crypt[0] = 0x01u;
+	(void)call(0x00u, 0x2au, 0x80u, 0x86u, crypt, 257u, 256);
+	T_EQ("falsches Kennbyte", g_sw, OSK_SW_WRONG_DATA);
+	pgp_verify_pw1_other();
+	crypt[0] = 0x00u;
+	(void)call(0x00u, 0x2au, 0x80u, 0x86u, crypt, 256u, 256);
+	T_EQ("ein Byte zu kurz", g_sw, OSK_SW_WRONG_DATA);
+	pgp_verify_pw1_other();
+	(void)call(0x00u, 0x2au, 0x80u, 0x86u, crypt, 258u, 256);
+	T_EQ("ein Byte zu lang", g_sw, OSK_SW_WRONG_DATA);
+
+	/* Bei einer Kurve kommt der fremde Punkt in A6 -> 7F49 -> 86. Bei
+	 * RSA gibt es das nicht, und es wird auch nicht so gelesen. */
+	pgp_verify_pw1_other();
+	{
+		static const uint8_t a6[] = {0xa6, 0x02, 0x7f, 0x00};
+
+		(void)call(0x00u, 0x2au, 0x80u, 0x86u, a6, sizeof(a6), 256);
+		T_EQ("Kurvenform bei RSA abgelehnt", g_sw, OSK_SW_WRONG_DATA);
+	}
+
+	/* ANMELDEN mit dem dritten Schluessel, auch auf RSA. */
+	pgp_verify_pw3();
+	(void)pgp_rsa_attr(2048u, 17u, attr);
+	(void)call(0x00u, 0xdau, 0x00u, 0xc3u, attr, 6u, -1);
+	T_EQ("Anmeldeschluessel auf RSA", g_sw, OSK_SW_OK);
+	{
+		static const uint8_t crt_auth[] = {0xa4, 0x00};
+
+		(void)call(0x00u, 0x47u, 0x80u, 0x00u, crt_auth, sizeof(crt_auth), 256);
+		T_EQ("erzeugt", pgp_collect(), OSK_SW_OK);
+	}
+	pgp_verify_pw1_other();
+	n = pgp_di(PGP_DI_SHA256, 32u, di, sizeof(di), hash);
+	(void)call(0x00u, 0x88u, 0x00u, 0x00u, di, n, 256);
+	T_EQ("angemeldet", pgp_collect(), OSK_SW_OK);
+	T_EQ("so lang wie der Modulus", g_rlong_len, 256u);
+	T_EQ("Hashverfahren SHA-256", mock_rsa_last_hash(), (int)OSK_HASH_SHA256);
+}
+
+/* Der Zustand liegt im Tresor und muss einen Stromausfall ueberstehen -
+ * auch die neuen RSA-Felder. Die Satzfassung ist dafuer von 1 auf 2
+ * gestiegen. */
+static void test_rsa_state_survives(void)
+{
+	uint8_t attr[8];
+	const uint8_t *got = NULL;
+	size_t got_len = 0;
+
+	mock_reset_all();
+	put_pw3();
+	osk_applets_reset();
+	select_pgp();
+	pgp_verify_pw3();
+
+	if (!OSK_RSA_BUILT) {
+		/* Ohne RSA gibt es keine RSA-Felder, die ueberleben muessten.
+		 * Dass die Satzfassung 2 eine Fassung 1 noch annimmt, prueft
+		 * state_unpack() ueber die Kurvenwege mit. */
+		(void)pgp_rsa_attr(4096u, 17u, attr);
+		(void)call(0x00u, 0xdau, 0x00u, 0xc2u, attr, 6u, -1);
+		T_EQ("ohne CONFIG_OSK_RSA abgelehnt", g_sw, OSK_SW_FUNC_NOT_SUPPORTED);
+		(void)got;
+		(void)got_len;
+		return;
+	}
+
+	(void)pgp_rsa_attr(4096u, 17u, attr);
+	(void)call(0x00u, 0xdau, 0x00u, 0xc2u, attr, 6u, -1);
+	T_EQ("RSA-4096 gesetzt", g_sw, OSK_SW_OK);
+
+	/* Karte aus und wieder an - der Tresor bleibt. */
+	osk_applets_reset();
+	select_pgp();
+	T_TRUE("C2 lesbar", pgp_read_attr(0xc2u, &got, &got_len));
+	T_EQ("noch RSA", got[0], (uint8_t)OSK_PGP_ALG_RSA);
+	T_EQ("4096 oben", got[1], 0x10u);
+	T_EQ("4096 unten", got[2], 0x00u);
+	/* Und der Unterschriftenschluessel ist davon unberuehrt geblieben. */
+	T_TRUE("C1 lesbar", pgp_read_attr(0xc1u, &got, &got_len));
+	T_EQ("weiter eine Kurve", got[0], (uint8_t)OSK_PGP_ALG_ECDSA);
+}
+
+/* Ein Chip ohne RSA: die Karte arbeitet weiter, nur eben ohne RSA. */
+static void test_rsa_missing_chip(void)
+{
+	uint8_t attr[8];
+	const uint8_t *got = NULL;
+	size_t got_len = 0;
+
+	mock_reset_all();
+	put_pw3();
+	mock_se050_set_rsa_mask(0u);
+	osk_applets_reset();
+	select_pgp();
+	pgp_verify_pw3();
+
+	(void)pgp_rsa_attr(2048u, 17u, attr);
+	(void)call(0x00u, 0xdau, 0x00u, 0xc1u, attr, 6u, -1);
+	T_EQ("RSA abgelehnt", g_sw, OSK_SW_FUNC_NOT_SUPPORTED);
+	T_TRUE("C1 lesbar", pgp_read_attr(0xc1u, &got, &got_len));
+	T_EQ("bleibt eine Kurve", got[0], (uint8_t)OSK_PGP_ALG_ECDSA);
+
+	/* Und die Kurve geht weiter - das ist der Punkt. */
+	{
+		static const uint8_t crt_sign[] = {0xb6, 0x00};
+
+		(void)call(0x00u, 0x47u, 0x80u, 0x00u, crt_sign, sizeof(crt_sign), 256);
+		T_EQ("Kurvenschluessel erzeugt", pgp_collect(), OSK_SW_OK);
+		T_TRUE("Punkt in 86",
+		       osk_tlv_find(g_rlong, g_rlong_len, 0x7f49u, &got, &got_len) &&
+			   osk_tlv_find(got, got_len, 0x86u, NULL, NULL));
+	}
+	mock_reset_all();
+}
+
 int main(void)
 {
 	setvbuf(stdout, NULL, _IONBF, 0);
@@ -527,5 +955,9 @@ int main(void)
 	test_keys();
 	test_sign_and_decrypt();
 	test_terminate();
+	test_rsa_attributes();
+	test_rsa_sign_and_decipher();
+	test_rsa_state_survives();
+	test_rsa_missing_chip();
 	return t_report("test_openpgp");
 }

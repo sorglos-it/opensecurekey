@@ -90,7 +90,16 @@ void osk_resp_tlv(osk_resp_t *r, uint32_t tag, const uint8_t *val, size_t len);
 /* Verschachtelte TLV ohne zweiten Puffer: `begin` merkt sich die Stelle und
  * laesst Platz fuer die Laenge, `end` traegt sie nach und schiebt die Daten,
  * falls das Laengenfeld laenger ausfallen muss als der Platzhalter.
- * Hoechstens OSK_TLV_DEPTH Ebenen - tiefer wird nichts von uns. */
+ *
+ * Die Tiefe ist nicht begrenzt: jede Ebene braucht nur eine eigene Marke,
+ * und die liegt beim Aufrufer. OSK_TLV_DEPTH sagt, wie tief die Antworten
+ * von PIV und OpenPGP gehen - das Attestierungszertifikat geht tiefer
+ * (Zertifikat, unterschriebener Teil, Name, Namensmenge, Namensteil), und
+ * das ist in Ordnung.
+ *
+ * Bis zum 29.10.2026 stand hier "hoechstens OSK_TLV_DEPTH Ebenen - tiefer
+ * wird nichts von uns". Der Code hat das nie geprueft, und mit der
+ * Attestierung war es auch nicht mehr wahr. */
 #define OSK_TLV_DEPTH 4
 
 typedef struct {

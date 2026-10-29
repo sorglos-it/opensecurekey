@@ -83,6 +83,21 @@ osk_result_t osk_card_obj_read(osk_item_type_t type, const char *tag, const char
 osk_result_t osk_card_obj_write(osk_item_type_t type, const char *tag, const char *name,
 				const uint8_t *data, size_t len);
 
+/* --- Objektkennungen der beiden Kurven ---------------------------------- */
+
+/* RFC 5480 Abschnitt 2.1.1.1: prime256v1 ist 1.2.840.10045.3.1.7,
+ * secp384r1 ist 1.3.132.0.34. Nur der Inhalt, ohne Tag und Laenge.
+ *
+ * Sie stehen hier, weil zwei Teile sie brauchen: OpenPGP in den
+ * Algorithmus-Eigenschaften (Spezifikation 3.4 Abschnitt 4.4.3.9) und die
+ * Attestierung im SubjectPublicKeyInfo (osk_attest.c). Dieselbe Zahl
+ * gehoert an eine Stelle - zweimal hingeschrieben veraltet eine davon
+ * still. */
+#define OSK_OID_P256_LEN 8u
+#define OSK_OID_P384_LEN 5u
+extern const uint8_t osk_oid_p256[OSK_OID_P256_LEN];
+extern const uint8_t osk_oid_p384[OSK_OID_P384_LEN];
+
 /* --- Kleinigkeiten ------------------------------------------------------ */
 
 /* Vergleich ohne Zeitunterschied. true = gleich. */

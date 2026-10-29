@@ -9,6 +9,8 @@
 #include "osk_apdu.h"
 #include "osk_card.h"
 #include "osk_ui.h"
+#include "osk_se050.h"
+#include "osk_rsa_card.h"
 #include "mocks.h"
 #include "card_helper.h"
 
@@ -223,8 +225,30 @@ static void test_keys_and_sign(void)
 	verify_pin();
 	(void)call(0x00u, 0x47u, 0x00u, 0x9fu, tmpl_p256, sizeof(tmpl_p256), 256);
 	T_EQ("fremder Steckplatz", g_sw, OSK_SW_REF_NOT_FOUND);
+	/* Bis zum 29.10.2026 stand hier "RSA gibt es nicht". Jetzt gibt es
+	 * RSA-2048 (Kennung 07, SP 800-73-4 Teil 1 Tabelle 6-2) - die
+	 * Antwort ist 61xx, weil ein 256-Byte-Modulus nicht in eine kurze
+	 * Antwort passt. Ausfuehrlich geprueft wird das in
+	 * test_rsa_keys(). */
 	(void)call(0x00u, 0x47u, 0x00u, OSK_PIV_SLOT_AUTH, tmpl_rsa, sizeof(tmpl_rsa), 256);
-	T_EQ("RSA gibt es nicht", g_sw, OSK_SW_FUNC_NOT_SUPPORTED);
+	if (OSK_RSA_BUILT)
+		T_TRUE("RSA-2048 geht jetzt",
+		       g_sw == OSK_SW_OK || (g_sw & 0xff00u) == OSK_SW_MORE);
+	else
+		T_EQ("ohne CONFIG_OSK_RSA weiter nicht", g_sw, OSK_SW_FUNC_NOT_SUPPORTED);
+	/* Eine Kennung, die es in SP 800-73-4 nicht gibt, bleibt abgelehnt:
+	 * 0x05 waere RSA-3072 nach SP 800-73-5, und die liegt hier nicht
+	 * vor - geraten wird nichts (siehe osk_piv.h). */
+	{
+		static const uint8_t tmpl_rsa3072[] = {0xac, 0x03, 0x80, 0x01, 0x05};
+
+		(void)call(0x00u, 0x47u, 0x00u, OSK_PIV_SLOT_AUTH, tmpl_rsa3072,
+			   sizeof(tmpl_rsa3072), 256);
+		T_EQ("RSA-3072 hat in dieser Fassung keine Kennung", g_sw,
+		     OSK_SW_FUNC_NOT_SUPPORTED);
+	}
+	/* Der RSA-Schluessel aus dem Versuch oben wird gleich durch eine
+	 * Kurve ersetzt - der Steckplatz haelt genau einen Schluessel. */
 
 	before = mock_ui_confirm_count();
 	(void)call(0x00u, 0x47u, 0x00u, OSK_PIV_SLOT_AUTH, tmpl_p256, sizeof(tmpl_p256), 256);
@@ -618,6 +642,378 @@ static void test_command_chaining(void)
 	T_EQ("anderes Kommando bricht ab", g_sw, OSK_SW_COND_NOT_SATISFIED);
 }
 
+
+/* --- RSA ---------------------------------------------------------------- */
+
+/* Die drei DigestInfo-Vorsaetze woertlich aus RFC 8017 Abschnitt 9.2,
+ * Anmerkung 1 - gegen den RFC geprueft, nicht gegen die Tabelle im Code. */
+#define RSA_DI_SHA256 "3031300d060960864801650304020105000420"
+#define RSA_DI_SHA384 "3041300d060960864801650304020205000430"
+
+/* Lange Antworten einsammeln: eine RSA-Unterschrift ist so lang wie der
+ * Modulus, also laenger als eine kurze Antwort. Der Verteiler kuendigt den
+ * Rest mit 61xx an (7816-4 Abschnitt 5.3.4). */
+static uint8_t g_long[1024];
+static size_t g_long_len;
+
+static uint16_t rsa_collect(void)
+{
+	g_long_len = 0u;
+	for (unsigned round = 0; round < 16u; round++) {
+		if (g_resp_len > 0u && g_long_len + g_resp_len <= sizeof(g_long)) {
+			memcpy(g_long + g_long_len, g_resp, g_resp_len);
+			g_long_len += g_resp_len;
+		}
+		if ((g_sw & 0xff00u) != OSK_SW_MORE)
+			break;
+		(void)call(0x00u, 0xc0u, 0x00u, 0x00u, NULL, 0u, 256);
+	}
+	return g_sw;
+}
+
+static uint16_t rsa_generate(uint8_t slot, uint8_t alg)
+{
+	uint8_t tmpl[8];
+
+	tmpl[0] = 0xacu;
+	tmpl[1] = 0x03u;
+	tmpl[2] = 0x80u;
+	tmpl[3] = 0x01u;
+	tmpl[4] = alg;
+	(void)call(0x00u, 0x47u, 0x00u, slot, tmpl, 5u, 256);
+	return rsa_collect();
+}
+
+/* Ein vollstaendiger EMSA-PKCS1-v1_5-Block: 00 01 FF..FF 00 || DigestInfo.
+ * Bei PIV baut IHN DER RECHNER, nicht die Karte (SP 800-73-4 Teil 2
+ * Abschnitt 3.2.4) - genau das macht diese Funktion nach. */
+static size_t rsa_block(const char *prefix_hex, size_t hash_len, size_t mod_len, uint8_t *out,
+			size_t cap, uint8_t *hash_out)
+{
+	uint8_t di[96];
+	size_t di_len = t_unhex(prefix_hex, di, sizeof(di));
+	size_t pad;
+
+	if (di_len == 0u || mod_len > cap)
+		return 0u;
+	for (size_t i = 0; i < hash_len; i++) {
+		di[di_len + i] = (uint8_t)(0x30u + i);
+		if (hash_out != NULL)
+			hash_out[i] = di[di_len + i];
+	}
+	di_len += hash_len;
+
+	pad = mod_len - di_len - 3u;
+	out[0] = 0x00u;
+	out[1] = 0x01u;
+	for (size_t i = 0; i < pad; i++)
+		out[2u + i] = 0xffu;
+	out[2u + pad] = 0x00u;
+	memcpy(out + 3u + pad, di, di_len);
+	return mod_len;
+}
+
+/* Packt einen Wert in die Vorlage 7C { <tag> <wert> }. */
+static size_t rsa_auth_cmd(uint8_t tag, const uint8_t *val, size_t len, uint8_t *out, size_t cap)
+{
+	size_t at = 0;
+	/* Inhalt der Vorlage: das leere 82 (zwei Byte) und das Tag mit
+	 * seinem Laengenfeld (vier Byte), dann der Wert. */
+	const size_t inner = 6u + len;
+
+	if (cap < inner + 8u)
+		return 0u;
+	out[at++] = 0x7cu;
+	if (inner < 0x80u) {
+		out[at++] = (uint8_t)inner;
+	} else {
+		out[at++] = 0x82u;
+		out[at++] = (uint8_t)(inner >> 8);
+		out[at++] = (uint8_t)inner;
+	}
+	out[at++] = 0x82u; /* leeres 82: "antworte" */
+	out[at++] = 0x00u;
+	out[at++] = tag;
+	out[at++] = 0x82u;
+	out[at++] = (uint8_t)(len >> 8);
+	out[at++] = (uint8_t)len;
+	memcpy(out + at, val, len);
+	return at + len;
+}
+
+static void test_rsa_keys(void)
+{
+	static uint8_t blk[512];
+	static uint8_t cmd[600];
+	uint8_t hash[64];
+	const uint8_t *inner = NULL;
+	const uint8_t *mod = NULL;
+	const uint8_t *exp = NULL;
+	const uint8_t *sig = NULL;
+	size_t inner_len = 0;
+	size_t mod_len = 0;
+	size_t exp_len = 0;
+	size_t sig_len = 0;
+	size_t n;
+	size_t got;
+
+	mock_reset_all();
+	osk_applets_reset();
+	select_piv();
+
+	if (!OSK_RSA_BUILT) {
+		/* Die Fassung ohne RSA verhaelt sich wie ein Geraet mit einem
+		 * SE051A2: RSA wird nicht angeboten und nicht angelegt.
+		 * Ausfuehrlich geprueft wird das in test_rsa_missing_chip(),
+		 * das in beiden Fassungen dasselbe verlangt. */
+		verify_pin();
+		T_EQ("ohne CONFIG_OSK_RSA kein RSA-Schluessel",
+		     rsa_generate(OSK_PIV_SLOT_AUTH, OSK_PIV_ALG_RSA2048),
+		     OSK_SW_FUNC_NOT_SUPPORTED);
+		T_TRUE("und keiner im Chip",
+		       !mock_se050_has_rsa_key(OSK_PIV_KEY_ID(OSK_PIV_SLOT_AUTH)));
+		T_EQ("die Kurve geht weiter",
+		     rsa_generate(OSK_PIV_SLOT_AUTH, OSK_PIV_ALG_P256), OSK_SW_OK);
+		return;
+	}
+
+	/* Mit RSA-Chip steht die Kennung in der Algorithmenliste. */
+	{
+		const uint8_t *val = NULL;
+		const uint8_t *algs = NULL;
+		size_t len = 0;
+		size_t algs_len = 0;
+		bool found_rsa = false;
+
+		T_TRUE("Vorlage 61", osk_tlv_find(g_resp, g_resp_len, 0x61u, &val, &len));
+		T_TRUE("Algorithmenliste", osk_tlv_find(val, len, 0xacu, &algs, &algs_len));
+		for (size_t i = 0; i + 2u < algs_len; i++) {
+			if (algs[i] == 0x80u && algs[i + 1u] == 0x01u &&
+			    algs[i + 2u] == OSK_PIV_ALG_RSA2048)
+				found_rsa = true;
+		}
+		T_TRUE("RSA-2048 wird angeboten", found_rsa);
+	}
+
+	verify_pin();
+	T_EQ("9A als RSA-2048", rsa_generate(OSK_PIV_SLOT_AUTH, OSK_PIV_ALG_RSA2048), OSK_SW_OK);
+	T_TRUE("Schluessel liegt im Chip", mock_se050_has_rsa_key(OSK_PIV_KEY_ID(OSK_PIV_SLOT_AUTH)));
+	T_EQ("mit 2048 Bit", mock_se050_rsa_bits(OSK_PIV_KEY_ID(OSK_PIV_SLOT_AUTH)), 2048u);
+
+	T_TRUE("7F49", osk_tlv_find(g_long, g_long_len, 0x7f49u, &inner, &inner_len));
+	T_TRUE("Modulus in 81", osk_tlv_find(inner, inner_len, 0x81u, &mod, &mod_len));
+	T_TRUE("Exponent in 82", osk_tlv_find(inner, inner_len, 0x82u, &exp, &exp_len));
+	T_EQ("256 Byte Modulus", mod_len, 256u);
+	/* Der Befund von Strang A: drei Byte, nicht vier. */
+	T_EQ("Exponent drei Byte", exp_len, 3u);
+
+	/* UNTERSCHREIBEN. Der Rechner schickt den fertig aufgefuellten
+	 * Block; die Karte packt ihn aus und laesst den Chip ueber den
+	 * benannten Weg des Vertrags unterschreiben. */
+	n = rsa_block(RSA_DI_SHA256, 32u, 256u, blk, sizeof(blk), hash);
+	T_EQ("Block gebaut", n, 256u);
+	got = rsa_auth_cmd(0x81u, blk, n, cmd, sizeof(cmd));
+	T_TRUE("Kommando gebaut", got > 256u);
+	(void)call(0x00u, 0x87u, OSK_PIV_ALG_RSA2048, OSK_PIV_SLOT_AUTH, cmd, got, 256);
+	T_EQ("unterschrieben", rsa_collect(), OSK_SW_OK);
+	T_TRUE("Vorlage 7C", osk_tlv_find(g_long, g_long_len, 0x7cu, &inner, &inner_len));
+	T_TRUE("Unterschrift in 82", osk_tlv_find(inner, inner_len, 0x82u, &sig, &sig_len));
+	T_EQ("so lang wie der Modulus", sig_len, 256u);
+
+	/* DAS IST DIE EIGENTLICHE PRUEFUNG: die Auffuellung wurde GENANNT,
+	 * und das Hashverfahren kam aus dem DigestInfo und nicht aus der
+	 * Laenge. */
+	T_EQ("Auffuellung PKCS#1 v1.5 genannt", mock_rsa_last_pad(), (int)OSK_RSA_PAD_PKCS1_V15);
+	T_EQ("Hashverfahren SHA-256", mock_rsa_last_hash(), (int)OSK_HASH_SHA256);
+	{
+		size_t hl = 0;
+		const uint8_t *hv = mock_rsa_last_hash_val(&hl);
+
+		T_EQ("32 Byte Hash", hl, 32u);
+		T_TRUE("und genau der aus dem Block", memcmp(hv, hash, 32u) == 0);
+	}
+
+	/* Dasselbe mit SHA-384 - ein anderes Verfahren muss auch als ein
+	 * anderes ankommen. */
+	verify_pin();
+	n = rsa_block(RSA_DI_SHA384, 48u, 256u, blk, sizeof(blk), hash);
+	got = rsa_auth_cmd(0x81u, blk, n, cmd, sizeof(cmd));
+	(void)call(0x00u, 0x87u, OSK_PIV_ALG_RSA2048, OSK_PIV_SLOT_AUTH, cmd, got, 256);
+	T_EQ("unterschrieben", rsa_collect(), OSK_SW_OK);
+	T_EQ("Hashverfahren SHA-384", mock_rsa_last_hash(), (int)OSK_HASH_SHA384);
+	{
+		size_t hl = 0;
+
+		(void)mock_rsa_last_hash_val(&hl);
+		T_EQ("48 Byte Hash", hl, 48u);
+	}
+
+	/* Ein Block, der kein ordentlicher v1.5-Block ist, wird ABGELEHNT
+	 * und nicht gerechnet. Eine rohe Schluesseloperation auf einem frei
+	 * gewaehlten Wert waere ein Unterschriftenautomat - bei 9E, das
+	 * keine PIN braucht, waere das besonders schlimm. */
+	{
+		const unsigned before = mock_rsa_sign_count();
+
+		verify_pin();
+		memset(blk, 0xa5u, 256u);
+		got = rsa_auth_cmd(0x81u, blk, 256u, cmd, sizeof(cmd));
+		(void)call(0x00u, 0x87u, OSK_PIV_ALG_RSA2048, OSK_PIV_SLOT_AUTH, cmd, got, 256);
+		T_EQ("roher Wert abgelehnt", g_sw, OSK_SW_WRONG_DATA);
+		T_EQ("und der Chip gar nicht gefragt", mock_rsa_sign_count(), before);
+
+		/* Richtiger Block, aber mit SHA-1 - der Chip koennte es, der
+		 * Vertrag nennt es nicht. */
+		verify_pin();
+		n = rsa_block("3021300906052b0e03021a05000414", 20u, 256u, blk, sizeof(blk),
+			      NULL);
+		got = rsa_auth_cmd(0x81u, blk, n, cmd, sizeof(cmd));
+		(void)call(0x00u, 0x87u, OSK_PIV_ALG_RSA2048, OSK_PIV_SLOT_AUTH, cmd, got, 256);
+		T_EQ("SHA-1 abgelehnt", g_sw, OSK_SW_WRONG_DATA);
+		T_EQ("Chip immer noch nicht gefragt", mock_rsa_sign_count(), before);
+	}
+
+	/* Ohne PIN gar nichts. */
+	osk_applets_reset();
+	select_piv();
+	n = rsa_block(RSA_DI_SHA256, 32u, 256u, blk, sizeof(blk), hash);
+	got = rsa_auth_cmd(0x81u, blk, n, cmd, sizeof(cmd));
+	(void)call(0x00u, 0x87u, OSK_PIV_ALG_RSA2048, OSK_PIV_SLOT_AUTH, cmd, got, 256);
+	T_EQ("ohne PIN nicht", g_sw, OSK_SW_SECURITY);
+
+	/* Nach dem Einschalten weiss die Anwendung nicht mehr, was im
+	 * Steckplatz liegt - sie fragt den Chip und lernt es wieder. Ohne
+	 * das waere RSA nach jedem Abziehen weg. */
+	verify_pin();
+	(void)call(0x00u, 0x87u, OSK_PIV_ALG_RSA2048, OSK_PIV_SLOT_AUTH, cmd, got, 256);
+	T_EQ("nach dem Einschalten wiedergefunden", rsa_collect(), OSK_SW_OK);
+	/* Und die falsche Kennung passt dann nicht mehr. */
+	(void)call(0x00u, 0x87u, OSK_PIV_ALG_P256, OSK_PIV_SLOT_AUTH, cmd, got, 256);
+	T_EQ("P-256 passt nicht zum RSA-Steckplatz", g_sw, OSK_SW_WRONG_P1P2);
+}
+
+/* ENTSCHLUESSELN - ohne das bleibt verschluesselte Post ungelesen.
+ *
+ * Und hier liegt die Verwechslung, auf die es ankommt: Tag 81 ist in 9A
+ * ein aufgefuellter Unterschriftenblock und in 9D ein Chiffrat. Zwei
+ * Groessen, gleich benannt, Verschiedenes gemessen. */
+static void test_rsa_decrypt(void)
+{
+	static uint8_t crypt[512];
+	static uint8_t cmd[600];
+	const uint8_t *inner = NULL;
+	const uint8_t *plain = NULL;
+	size_t inner_len = 0;
+	size_t plain_len = 0;
+	size_t got;
+
+	mock_reset_all();
+	osk_applets_reset();
+	select_piv();
+	verify_pin();
+
+	if (!OSK_RSA_BUILT) {
+		T_EQ("ohne CONFIG_OSK_RSA kein RSA in 9D",
+		     rsa_generate(OSK_PIV_SLOT_KEYMGMT, OSK_PIV_ALG_RSA2048),
+		     OSK_SW_FUNC_NOT_SUPPORTED);
+		/* Der Schluesselaustausch auf der Kurve geht weiter - das ist
+		 * der Weg, auf dem 9D in dieser Fassung entschluesselt. */
+		T_EQ("9D als P-256", rsa_generate(OSK_PIV_SLOT_KEYMGMT, OSK_PIV_ALG_P256),
+		     OSK_SW_OK);
+		return;
+	}
+
+	T_EQ("9D als RSA-2048", rsa_generate(OSK_PIV_SLOT_KEYMGMT, OSK_PIV_ALG_RSA2048),
+	     OSK_SW_OK);
+
+	for (size_t i = 0; i < sizeof(crypt); i++)
+		crypt[i] = (uint8_t)(i * 7u + 1u);
+
+	got = rsa_auth_cmd(0x81u, crypt, 256u, cmd, sizeof(cmd));
+	(void)call(0x00u, 0x87u, OSK_PIV_ALG_RSA2048, OSK_PIV_SLOT_KEYMGMT, cmd, got, 256);
+	T_EQ("entschluesselt", rsa_collect(), OSK_SW_OK);
+	T_EQ("der Chip hat entschluesselt, nicht unterschrieben", mock_rsa_decrypt_count(), 1u);
+	T_EQ("und nichts unterschrieben", mock_rsa_sign_count(), 0u);
+	T_EQ("Auffuellung genannt", mock_rsa_last_pad(), (int)OSK_RSA_PAD_PKCS1_V15);
+	T_TRUE("Vorlage 7C", osk_tlv_find(g_long, g_long_len, 0x7cu, &inner, &inner_len));
+	T_TRUE("Klartext in 82", osk_tlv_find(inner, inner_len, 0x82u, &plain, &plain_len));
+	T_TRUE("und er ist nicht leer", plain_len > 0u);
+
+	/* Ein Chiffrat ist so lang wie der Modulus. Kuerzeres ist keines. */
+	verify_pin();
+	got = rsa_auth_cmd(0x81u, crypt, 255u, cmd, sizeof(cmd));
+	(void)call(0x00u, 0x87u, OSK_PIV_ALG_RSA2048, OSK_PIV_SLOT_KEYMGMT, cmd, got, 256);
+	T_EQ("zu kurz", g_sw, OSK_SW_WRONG_DATA);
+	verify_pin();
+	got = rsa_auth_cmd(0x81u, crypt, 257u, cmd, sizeof(cmd));
+	(void)call(0x00u, 0x87u, OSK_PIV_ALG_RSA2048, OSK_PIV_SLOT_KEYMGMT, cmd, got, 256);
+	T_EQ("zu lang", g_sw, OSK_SW_WRONG_DATA);
+
+	/* Tag 85 ist der Schluesselaustausch auf einer Kurve. Bei RSA gibt
+	 * es den nicht - und er wird nicht stillschweigend als etwas
+	 * anderes gelesen. */
+	verify_pin();
+	got = rsa_auth_cmd(0x85u, crypt, 65u, cmd, sizeof(cmd));
+	(void)call(0x00u, 0x87u, OSK_PIV_ALG_RSA2048, OSK_PIV_SLOT_KEYMGMT, cmd, got, 256);
+	T_EQ("Schluesselaustausch gibt es bei RSA nicht", g_sw, OSK_SW_WRONG_DATA);
+
+	/* In 9A ist dasselbe Tag 81 ein Unterschriftenblock - ein Chiffrat
+	 * dort ist kein gueltiger Block und wird abgelehnt. */
+	verify_pin();
+	T_EQ("9A als RSA", rsa_generate(OSK_PIV_SLOT_AUTH, OSK_PIV_ALG_RSA2048), OSK_SW_OK);
+	verify_pin();
+	got = rsa_auth_cmd(0x81u, crypt, 256u, cmd, sizeof(cmd));
+	(void)call(0x00u, 0x87u, OSK_PIV_ALG_RSA2048, OSK_PIV_SLOT_AUTH, cmd, got, 256);
+	T_EQ("Chiffrat in 9A ist kein Block", g_sw, OSK_SW_WRONG_DATA);
+	T_EQ("und in 9A wird nicht entschluesselt", mock_rsa_decrypt_count(), 1u);
+}
+
+/* Der SE051A2: kann RSA ueberhaupt nicht und antwortet auf derselben
+ * Adresse wie der C2. Die Anwendung muss SAUBER OHNE RSA arbeiten. */
+static void test_rsa_missing_chip(void)
+{
+	const uint8_t *val = NULL;
+	const uint8_t *algs = NULL;
+	size_t len = 0;
+	size_t algs_len = 0;
+	bool found_rsa = false;
+
+	mock_reset_all();
+	mock_se050_set_rsa_mask(0u);
+	osk_applets_reset();
+	select_piv();
+
+	/* RSA wird dann gar nicht erst angeboten: ein Kartenprogramm, das
+	 * sich auf die Liste verlaesst und danach ein "geht nicht" bekommt,
+	 * bricht an einer Stelle ab, an der es nichts mehr sagen kann. */
+	T_TRUE("Vorlage 61", osk_tlv_find(g_resp, g_resp_len, 0x61u, &val, &len));
+	T_TRUE("Algorithmenliste", osk_tlv_find(val, len, 0xacu, &algs, &algs_len));
+	for (size_t i = 0; i + 2u < algs_len; i++) {
+		if (algs[i] == 0x80u && algs[i + 1u] == 0x01u &&
+		    algs[i + 2u] == OSK_PIV_ALG_RSA2048)
+			found_rsa = true;
+	}
+	T_TRUE("RSA steht NICHT in der Liste", !found_rsa);
+	T_TRUE("P-256 steht weiter drin", osk_tlv_find(algs, algs_len, 0x80u, NULL, NULL));
+
+	verify_pin();
+	T_EQ("RSA-Schluessel entsteht nicht",
+	     rsa_generate(OSK_PIV_SLOT_AUTH, OSK_PIV_ALG_RSA2048), OSK_SW_FUNC_NOT_SUPPORTED);
+	T_TRUE("und liegt auch nicht im Chip",
+	       !mock_se050_has_rsa_key(OSK_PIV_KEY_ID(OSK_PIV_SLOT_AUTH)));
+
+	/* Die Kurven gehen weiter - das ist der Punkt. */
+	T_EQ("P-256 geht weiter", rsa_generate(OSK_PIV_SLOT_AUTH, OSK_PIV_ALG_P256), OSK_SW_OK);
+	{
+		const uint8_t *inner = NULL;
+		size_t inner_len = 0;
+
+		T_TRUE("7F49", osk_tlv_find(g_long, g_long_len, 0x7f49u, &inner, &inner_len));
+		T_TRUE("Punkt in 86", osk_tlv_find(inner, inner_len, 0x86u, NULL, NULL));
+	}
+	mock_reset_all();
+}
+
 int main(void)
 {
 	/* Ungepuffert, damit ein Absturz die Ausgabe nicht mitnimmt. */
@@ -635,5 +1031,8 @@ int main(void)
 	test_data_objects();
 	test_response_chaining();
 	test_command_chaining();
+	test_rsa_keys();
+	test_rsa_decrypt();
+	test_rsa_missing_chip();
 	return t_report("test_piv");
 }

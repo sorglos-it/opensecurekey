@@ -12,8 +12,10 @@
  * Geraete-PIN im Chip; die Admin-PIN (PW3) und der Resetting Code liegen im
  * Tresor, mit ihrem Fehlversuchszaehler im selben Datensatz.
  *
- * Nur elliptische Kurven - RSA kann der SE050 in dieser Schnittstelle
- * nicht. Was sonst fehlt, steht in docs/smartcard.md.
+ * Elliptische Kurven und RSA. Welche RSA-Laengen wirklich gehen, sagt
+ * der Chip und nicht diese Datei (osk_rsa_card.h) - der SE051A2 kann RSA
+ * ueberhaupt nicht und antwortet auf derselben Adresse wie der C2.
+ * Was fehlt, steht in docs/smartcard.md.
  */
 #ifndef OSK_OPENPGP_H
 #define OSK_OPENPGP_H
@@ -35,7 +37,12 @@
 /* Kennung im Chip: 'PG' und die Nummer des Schluessels. */
 #define OSK_PGP_KEY_ID(n) (0x50470000u | (uint32_t)(n))
 
-/* Algorithmen, die wir anbieten (Abschnitt 4.4.3.9). */
+/* Algorithmen, die wir anbieten (Abschnitt 4.4.3.9, Nummern nach
+ * RFC 4880 Abschnitt 9.1). RSA kann die Karte in allen drei Laengen des
+ * Chips, weil OpenPGP die Bitlaenge als Zahl im Datenobjekt mitschickt -
+ * PIV kann nur 2048, weil es dort eine Algorithmuskennung je Laenge
+ * braucht und SP 800-73-4 nur eine hat (siehe osk_piv.h). */
+#define OSK_PGP_ALG_RSA 1u
 #define OSK_PGP_ALG_ECDSA 19u
 #define OSK_PGP_ALG_ECDH 18u
 

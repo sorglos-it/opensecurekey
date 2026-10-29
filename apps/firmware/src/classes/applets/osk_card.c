@@ -5,6 +5,10 @@
 #include "osk_store.h"
 #include "osk_apdu.h"
 
+/* Die Kurvenkennungen - siehe osk_card.h. */
+const uint8_t osk_oid_p256[OSK_OID_P256_LEN] = {0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07};
+const uint8_t osk_oid_p384[OSK_OID_P384_LEN] = {0x2b, 0x81, 0x04, 0x00, 0x22};
+
 /* Wie oft ein Verwaltungsgeheimnis falsch sein darf. PIV SP 800-73-4 Teil 2
  * Abschnitt 3.2.2 und OpenPGP 3.4 Abschnitt 4.3.1 nennen beide drei. */
 #define ADMIN_TRIES_MAX 3u

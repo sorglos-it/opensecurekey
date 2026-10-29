@@ -3,6 +3,48 @@
 ## [Unreleased]
 
 ### Added
+- Card applications, strand C: **RSA in PIV and OpenPGP**, **PIV attestation per
+  slot (F9)**, **static password** and **one serial number per device**.
+  - **RSA** on the card side, against the contract in `include/osk_se050.h`.
+    PIV gets RSA-2048 — SP 800-73-4 names an algorithm identifier for no other
+    length, and the ones for 3072 and 4096 are recorded as **open** rather than
+    guessed. OpenPGP gets all three lengths, because it carries the modulus
+    length as a number instead of hiding it in an identifier.
+  - **Two questions have to say yes before RSA happens**, and they are not the
+    same question: whether it was built (`CONFIG_OSK_RSA`) and whether the
+    delivered chip can do it (`osk_se050_rsa_sizes()`). The SE051**A2** cannot
+    do RSA at all and answers on the same I²C address as the C2, so a part
+    without RSA is reported at startup and both applications keep working
+    without it. The option takes effect in exactly one function.
+  - **PIV RSA signing deliberately refuses the raw private-key operation** the
+    specification allows, and unwraps the PKCS#1 block instead. Slot 9E needs
+    no PIN, and a raw operation on a freely chosen value would be a signing
+    oracle for anything.
+  - **The hash algorithm is never derived from the length.** SHA-512/256 and
+    SHA-256 are both 32 bytes; it comes out of the DigestInfo OID, and a test
+    feeds a SHA-512/256 DigestInfo and requires that it be refused.
+  - **Attestation** builds an X.509 certificate per slot, signed by the F9 key,
+    with the issuer name copied byte for byte from the stored F9 certificate —
+    a rebuilt name breaks the chain. Fixed validity, because the device has no
+    clock it may trust. No invented object identifiers: the slot, the serial and
+    the release policy go into standard subject fields. No PIN and no button,
+    because nothing secret is released and the F9 key only ever signs data the
+    module assembles itself.
+  - **The serial number** is derived in the security chip and is therefore
+    unique per device and stable across restarts. It closes a real gap: until
+    now every device carried the same number, and GnuPG tells cards apart by it,
+    so two of our sticks on one computer looked like one card. It is an
+    identifier and **not** a proof — what cannot be forged is the attestation
+    signature over it.
+  - **Static password**: the card side holds and validates, printable ASCII
+    only; the typing belongs to the keyboard transport, and the seam points that
+    way so the two strands build side by side.
+  Both firmware variants — with and without RSA — build and run green with gcc
+  and with clang, under AddressSanitizer and UndefinedBehaviorSanitizer; the
+  counts and the exact commands are in `docs/smartcard.md`. The run found a real
+  bug in the new code: the DER integer writer put its length in a single byte,
+  which holds for every curve and breaks on a 257-byte RSA modulus.
+  **Nothing has run on hardware** — level 2 of four.
 - Setup wizard, read-only drive, signed updates and the device side of the
   dongle commands:
   - **Setup wizard** — four steps, not skippable, and the first question is the

@@ -8,6 +8,8 @@
 #include "osk_se050.h"
 #include "osk_store.h"
 #include "osk_ui.h"
+#include "osk_rsa_card.h"
+#include "osk_serial.h"
 
 /* Kommandos (Abschnitt 7.2). */
 #define INS_SELECT 0xa4u
@@ -54,7 +56,20 @@ typedef struct {
 	uint8_t fpr[3][FPR_LEN];    /* C7, C8, C9 */
 	uint8_t ca_fpr[3][FPR_LEN]; /* CA-Fingerabdruecke C8..CA in DO C6 */
 	uint8_t gen_time[3][4];	    /* Erzeugungszeit, DO CD */
-	uint8_t curve[3];	    /* 0 = kein Schluessel, 1 = P-256, 2 = P-384 */
+	uint8_t curve[3];	    /* 0 = kein Kurvenschluessel, 1 = P-256, 2 = P-384 */
+	/* RSA je Schluessel: 0 = kein RSA-Schluessel, sonst die Bitlaenge.
+	 * curve[] und rsa_bits[] sind nie beide gesetzt - in einem
+	 * Schluesselplatz liegt genau ein Schluessel.
+	 *
+	 * Die Exponentenlaenge wird MITGEFUEHRT, obwohl man sie fuer 65537
+	 * auch hinschreiben koennte: der Vertrag warnt ausdruecklich, dass
+	 * der Exponent je Chip und Schluessel drei oder vier Byte lang ist
+	 * und wer 65537 annimmt irgendwann ein falsches Zertifikat baut
+	 * (osk_se050.h). Gemeldet wird deshalb, was das Kartenprogramm
+	 * verlangt hat, bis ein Schluessel da ist - danach, was der Chip
+	 * wirklich hat. */
+	uint16_t rsa_bits[3];
+	uint16_t rsa_ebits[3];
 } pgp_state_t;
 
 static pgp_state_t g_st;
@@ -66,18 +81,40 @@ static bool g_pw1_sign;
 static bool g_pw1_other;
 static bool g_pw3;
 
-/* Die Kennung. Die Seriennummer ist auf jedem Geraet dieselbe, solange es
- * keine echte gibt: siehe docs/smartcard.md, "Was noch fehlt". */
-static const uint8_t g_aid[OSK_PGP_AID_LEN] = {
+/* Die Kennung. Die vier Bytes der Seriennummer kommen aus dem
+ * Sicherheitschip (osk_serial.h) und sind je Geraet verschieden - bis zum
+ * 29.10.2026 stand hier auf jedem Geraet dieselbe, und GnuPG unterscheidet
+ * Karten genau daran: zwei unserer Sticks an einem Rechner sahen wie eine
+ * Karte aus (stand als Luecke in docs/smartcard.md).
+ *
+ * Antwortet der Chip nicht, bleibt das Feld auf Null. Das ist kein
+ * Ersatzwert, sondern eine sichtbare Aussage: "keine Nummer". Eine
+ * erfundene waere wieder auf allen Geraeten dieselbe. */
+static uint8_t g_aid[OSK_PGP_AID_LEN] = {
     0xd2, 0x76, 0x00, 0x01, 0x24, 0x01, /* RID und Anwendung */
     0x03, 0x04,				/* Fassung 3.4 */
     0xff, 0xfe,				/* Hersteller: keiner, Selbstbau */
-    0x00, 0x53, 0x4b, 0x01,		/* Seriennummer */
+    0x00, 0x00, 0x00, 0x00,		/* Seriennummer - siehe oben */
     0x00, 0x00,
 };
 
+/* Der Platz der Seriennummer in der Kennung: Abschnitt 4.2.1 zaehlt RID
+ * (5), Anwendung (1), Fassung (2), Hersteller (2), dann vier Bytes
+ * Seriennummer. */
+#define AID_SERIAL_AT 10u
+
+static void aid_fill_serial(void)
+{
+	uint8_t sn[OSK_SERIAL_SHORT_LEN];
+
+	if (osk_serial_short(sn) != OSK_OK)
+		return;
+	memcpy(g_aid + AID_SERIAL_AT, sn, sizeof(sn));
+}
+
 const uint8_t *osk_openpgp_aid(void)
 {
+	aid_fill_serial();
 	return g_aid;
 }
 
@@ -85,7 +122,11 @@ const uint8_t *osk_openpgp_aid(void)
 
 #define STATE_TAG "PGP-STATE"
 #define STATE_NAME "OpenPGP Kartendaten"
-#define STATE_VERSION 1u
+/* Fassung 2 seit dem 29.10.2026: die beiden RSA-Felder sind
+ * dazugekommen. Fassung 1 wird beim Lesen noch angenommen und bedeutet
+ * "kein RSA-Schluessel" - ein Datensatz aus einer aelteren Firmware darf
+ * nicht dazu fuehren, dass die Karte auf Anfang springt. */
+#define STATE_VERSION 2u
 
 /* Der Zustand wird Feld fuer Feld geschrieben, nicht als Abbild der
  * Struktur: ein anderer Uebersetzer legt Strukturen anders aus. */
@@ -125,6 +166,14 @@ static size_t state_pack(const pgp_state_t *s, uint8_t *out, size_t cap)
 	at += sizeof(s->gen_time);
 	memcpy(out + at, s->curve, sizeof(s->curve));
 	at += sizeof(s->curve);
+	for (unsigned k = 0; k < 3u; k++) {
+		out[at++] = (uint8_t)(s->rsa_bits[k] >> 8);
+		out[at++] = (uint8_t)s->rsa_bits[k];
+	}
+	for (unsigned k = 0; k < 3u; k++) {
+		out[at++] = (uint8_t)(s->rsa_ebits[k] >> 8);
+		out[at++] = (uint8_t)s->rsa_ebits[k];
+	}
 	return at;
 }
 
@@ -132,7 +181,9 @@ static bool state_unpack(const uint8_t *in, size_t len, pgp_state_t *s)
 {
 	size_t at = 0;
 
-	if (in == NULL || len < 8u || in[0] != (uint8_t)STATE_VERSION)
+	if (in == NULL || len < 8u)
+		return false;
+	if (in[0] != 1u && in[0] != 2u)
 		return false;
 	/* Wieder Feld fuer Feld - und nur, wenn jedes Feld wirklich da ist. */
 	if (len <
@@ -167,6 +218,32 @@ static bool state_unpack(const uint8_t *in, size_t len, pgp_state_t *s)
 	memcpy(s->gen_time, in + at, sizeof(s->gen_time));
 	at += sizeof(s->gen_time);
 	memcpy(s->curve, in + at, sizeof(s->curve));
+	at += sizeof(s->curve);
+
+	memset(s->rsa_bits, 0, sizeof(s->rsa_bits));
+	memset(s->rsa_ebits, 0, sizeof(s->rsa_ebits));
+	if (in[0] >= 2u) {
+		/* Erst pruefen, dass die zwoelf Bytes wirklich da sind, dann
+		 * lesen - nie umgekehrt. */
+		if (len < at + 12u)
+			return false;
+		for (unsigned k = 0; k < 3u; k++) {
+			s->rsa_bits[k] = (uint16_t)(((uint16_t)in[at] << 8) | in[at + 1u]);
+			at += 2u;
+		}
+		for (unsigned k = 0; k < 3u; k++) {
+			s->rsa_ebits[k] = (uint16_t)(((uint16_t)in[at] << 8) | in[at + 1u]);
+			at += 2u;
+		}
+		/* Eine Laenge, die es nicht gibt, heisst "kein RSA" - nicht
+		 * "die naechstgelegene". Der Datensatz kommt aus dem Flash. */
+		for (unsigned k = 0; k < 3u; k++) {
+			if (s->rsa_bits[k] != 0u && !osk_rsa_bits_enum(s->rsa_bits[k], NULL))
+				return false;
+			if (s->rsa_bits[k] != 0u && s->curve[k] != 0u)
+				return false;
+		}
+	}
 
 	/* Laengen koennen aus einem beschaedigten Datensatz kommen. */
 	if (s->name_len > FIELD_MAX || s->login_len > FIELD_MAX || s->url_len > FIELD_MAX ||
@@ -227,13 +304,34 @@ static void pgp_reset(void)
 	g_loaded = false;
 	g_terminated = false;
 	state_defaults(&g_st);
+	/* Die Antwort "kann der Chip RSA" und die Seriennummer werden beim
+	 * naechsten Einschalten neu geholt und nicht ueber einen
+	 * Kartenwechsel hinweg geglaubt. */
+	osk_rsa_forget();
+	osk_serial_forget();
 }
 
 /* --- Kurven ------------------------------------------------------------- */
 
-/* Objektkennungen der Kurven (Abschnitt 4.4.3.9, RFC 6637). */
-static const uint8_t g_oid_p256[] = {0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07};
-static const uint8_t g_oid_p384[] = {0x2b, 0x81, 0x04, 0x00, 0x22};
+/* Die Objektkennungen der Kurven (Abschnitt 4.4.3.9, RFC 6637) standen
+ * hier zweimal im Repo, seit die Attestierung sie auch braucht. Jetzt
+ * stehen sie in osk_card.h - an einer Stelle. */
+
+/* In einem Schluesselplatz liegt genau ein Schluessel - eine Kurve oder
+ * ein RSA. Diese zwei Fragen werden ueberall ueber diese zwei Funktionen
+ * gestellt und nirgends durch einen Vergleich mit 0 ersetzt: sonst heisst
+ * "curve == 0" an einer Stelle "kein Schluessel" und an einer anderen
+ * "RSA", und das ist genau die Verwechslung, die dieses Projekt siebenmal
+ * erwischt hat. */
+static bool key_is_rsa(unsigned key)
+{
+	return g_st.rsa_bits[key] != 0u;
+}
+
+static bool key_present(unsigned key)
+{
+	return g_st.curve[key] != 0u || key_is_rsa(key);
+}
 
 static size_t curve_half(uint8_t curve)
 {
@@ -248,11 +346,11 @@ static osk_curve_t curve_to_se050(uint8_t curve)
 static const uint8_t *curve_oid(uint8_t curve, size_t *len_out)
 {
 	if (curve == 2u) {
-		*len_out = sizeof(g_oid_p384);
-		return g_oid_p384;
+		*len_out = sizeof(osk_oid_p384);
+		return osk_oid_p384;
 	}
-	*len_out = sizeof(g_oid_p256);
-	return g_oid_p256;
+	*len_out = sizeof(osk_oid_p256);
+	return osk_oid_p256;
 }
 
 /* Algorithmus-Eigenschaften eines Schluessels: Algorithmuskennung und die
@@ -262,8 +360,55 @@ static void put_alg_attr(osk_resp_t *res, uint32_t tag, unsigned key)
 	uint8_t buf[16];
 	size_t oid_len = 0;
 	const uint8_t *oid;
-	uint8_t curve = g_st.curve[key];
+	uint8_t curve;
 
+	if (key_is_rsa(key)) {
+		/* Aufbau nach Abschnitt 4.4.3.9: Kennung 01, Laenge des
+		 * Modulus in Bit, Laenge des Exponenten in Bit, Einfuhrform.
+		 * Die Form 00 ist die uebliche (e, p, q); eingefuehrt wird
+		 * bei uns ueberhaupt nichts, der Schluessel entsteht im Chip
+		 * und kommt nie heraus. */
+		uint16_t ebits = g_st.rsa_ebits[key];
+		uint8_t exp[8];
+		uint8_t mod[OSK_RSA_MOD_MAX];
+		size_t mod_len = 0;
+		size_t exp_len = 0;
+
+		/* Liegt ein Schluessel, gilt die Laenge, die der CHIP meldet,
+		 * und nicht die, die ein Kartenprogramm einmal verlangt hat.
+		 * Der Vertrag warnt genau davor (osk_se050.h). */
+		if (osk_rsa_public_parts(OSK_PGP_KEY_ID(key), mod, sizeof(mod), &mod_len, exp,
+					 sizeof(exp), &exp_len) == OSK_OK &&
+		    exp_len > 0u) {
+			unsigned top = 0;
+
+			while (top < exp_len && exp[top] == 0x00u)
+				top++;
+			if (top < exp_len) {
+				unsigned bits = (unsigned)(exp_len - top) * 8u;
+				uint8_t b = exp[top];
+
+				while ((b & 0x80u) == 0u) {
+					bits--;
+					b = (uint8_t)(b << 1);
+				}
+				ebits = (uint16_t)bits;
+			}
+		}
+		if (ebits == 0u)
+			ebits = 17u; /* 65537 ist 2^16+1, also 17 Bit */
+
+		buf[0] = (uint8_t)OSK_PGP_ALG_RSA;
+		buf[1] = (uint8_t)(g_st.rsa_bits[key] >> 8);
+		buf[2] = (uint8_t)g_st.rsa_bits[key];
+		buf[3] = (uint8_t)(ebits >> 8);
+		buf[4] = (uint8_t)ebits;
+		buf[5] = 0x00u;
+		osk_resp_tlv(res, tag, buf, (size_t)6u);
+		return;
+	}
+
+	curve = g_st.curve[key];
 	if (curve == 0u)
 		curve = 1u; /* noch kein Schluessel: wir bieten P-256 an */
 	oid = curve_oid(curve, &oid_len);
@@ -499,14 +644,36 @@ static uint16_t cmd_put_data(const osk_apdu_t *a)
 
 		if (a->lc < 2u)
 			return OSK_SW_WRONG_LENGTH;
-		if (a->lc - 1u == sizeof(g_oid_p256) &&
-		    memcmp(a->data + 1, g_oid_p256, sizeof(g_oid_p256)) == 0)
+		if (a->data[0] == (uint8_t)OSK_PGP_ALG_RSA) {
+			/* 01 || Modulus-Bits (2) || Exponent-Bits (2) ||
+			 * Einfuhrform (1), Abschnitt 4.4.3.9. */
+			uint16_t nbits;
+
+			if (!osk_rsa_available())
+				return OSK_SW_FUNC_NOT_SUPPORTED;
+			if (a->lc != 6u)
+				return OSK_SW_WRONG_LENGTH;
+			nbits = (uint16_t)(((uint16_t)a->data[1] << 8) | a->data[2]);
+			if (!osk_rsa_bits_ok(nbits))
+				return OSK_SW_FUNC_NOT_SUPPORTED;
+			g_st.rsa_bits[key] = nbits;
+			g_st.rsa_ebits[key] =
+			    (uint16_t)(((uint16_t)a->data[3] << 8) | a->data[4]);
+			/* Ein Platz haelt genau einen Schluessel. */
+			g_st.curve[key] = 0u;
+			break;
+		}
+		if (a->lc - 1u == sizeof(osk_oid_p256) &&
+		    memcmp(a->data + 1, osk_oid_p256, sizeof(osk_oid_p256)) == 0) {
 			g_st.curve[key] = 1u;
-		else if (a->lc - 1u == sizeof(g_oid_p384) &&
-			 memcmp(a->data + 1, g_oid_p384, sizeof(g_oid_p384)) == 0)
+			g_st.rsa_bits[key] = 0u;
+		} else if (a->lc - 1u == sizeof(osk_oid_p384) &&
+			   memcmp(a->data + 1, osk_oid_p384, sizeof(osk_oid_p384)) == 0) {
 			g_st.curve[key] = 2u;
-		else
+			g_st.rsa_bits[key] = 0u;
+		} else {
 			return OSK_SW_FUNC_NOT_SUPPORTED;
+		}
 		break;
 	}
 	default:
@@ -716,6 +883,11 @@ static uint16_t put_public_key(unsigned key, osk_resp_t *res)
 	const size_t point_len = curve_half(g_st.curve[key]) * 2u + 1u;
 	osk_tlv_mark_t m;
 
+	if (key_is_rsa(key)) {
+		/* Bei RSA ist es 7F49 mit 81 (Modulus) und 82 (Exponent) -
+		 * Abschnitt 7.2.14. */
+		return osk_rsa_put_public(OSK_PGP_KEY_ID(key), res);
+	}
 	if (osk_se050_key_public(OSK_PGP_KEY_ID(key), raw, sizeof(raw), &raw_len) != OSK_OK)
 		return OSK_SW_REF_NOT_FOUND;
 	if (osk_card_public_point(raw, raw_len, point_len, &point) != OSK_OK)
@@ -755,12 +927,26 @@ static uint16_t cmd_generate(const osk_apdu_t *a, osk_resp_t *res)
 	if (osk_ui_confirm(&ask) != OSK_OK)
 		return OSK_SW_SECURITY;
 
-	if (g_st.curve[key] == 0u)
+	/* Ohne vorher gesetzte Algorithmus-Eigenschaften gilt P-256. */
+	if (!key_present(key))
 		g_st.curve[key] = 1u;
 	policy.exportable = false;
 	policy.needs_touch = true;
 
 	(void)osk_se050_key_delete(OSK_PGP_KEY_ID(key));
+
+	if (key_is_rsa(key)) {
+		osk_rsa_bits_t bits;
+
+		if (!osk_rsa_bits_ok(g_st.rsa_bits[key]) ||
+		    !osk_rsa_bits_enum(g_st.rsa_bits[key], &bits))
+			return OSK_SW_FUNC_NOT_SUPPORTED;
+		if (osk_se050_rsa_key_create(OSK_PGP_KEY_ID(key), bits, &policy) != OSK_OK)
+			return OSK_SW_UNKNOWN;
+		state_save();
+		return put_public_key(key, res);
+	}
+
 	if (osk_se050_key_create(OSK_PGP_KEY_ID(key), curve_to_se050(g_st.curve[key]), &policy) !=
 	    OSK_OK)
 		return OSK_SW_UNKNOWN;
@@ -807,6 +993,90 @@ static uint16_t sign_with(unsigned key, const uint8_t *hash, size_t hash_len, os
 	return OSK_SW_OK;
 }
 
+/* RSA-Unterschrift. OpenPGP schickt KEINEN nackten Hash, sondern das
+ * DigestInfo - Kennung des Verfahrens und Hash zusammen (Abschnitt 7.2.10:
+ * die Karte fuellt nach PKCS#1 auf, das DigestInfo baut der Rechner). Der
+ * Vertrag will beides getrennt, und aus der Laenge ist es nicht
+ * ableitbar - SHA-512/256 und SHA-256 sind beide 32 Byte lang. Darum
+ * laeuft es durch osk_rsa_digestinfo_parse() und nicht durch eine
+ * Laengentabelle.
+ *
+ * Ein Kartenprogramm, das SHA-1 oder RIPEMD-160 schickt, bekommt 6A80.
+ * Das ist eine Verengung gegenueber der Spezifikation und gehoert in den
+ * Bericht; sie folgt daraus, dass osk_hash_t nur die drei SHA-2-Verfahren
+ * kennt (osk_se050.h). */
+static uint16_t rsa_sign_with(unsigned key, const uint8_t *di, size_t di_len, osk_ask_t kind,
+			      osk_resp_t *res)
+{
+	static uint8_t sig[OSK_RSA_MOD_MAX];
+	osk_hash_t hash_alg;
+	const uint8_t *hash = NULL;
+	size_t hash_len = 0;
+	size_t sig_len = 0;
+	osk_ask_req_t ask;
+
+	if (!osk_rsa_digestinfo_parse(di, di_len, &hash_alg, &hash, &hash_len))
+		return OSK_SW_WRONG_DATA;
+
+	memset(&ask, 0, sizeof(ask));
+	ask.kind = kind;
+	ask.subject = key_name(key);
+	ask.detail = (g_st.login_len != 0u) ? (const char *)g_st.login : NULL;
+	ask.asked_by = "OpenPGP";
+	ask.timeout_ms = 30000u;
+	if (osk_ui_confirm(&ask) != OSK_OK)
+		return OSK_SW_SECURITY;
+
+	if (osk_se050_rsa_sign(OSK_PGP_KEY_ID(key), OSK_RSA_PAD_PKCS1_V15, hash_alg, hash,
+			       hash_len, sig, sizeof(sig), &sig_len) != OSK_OK)
+		return OSK_SW_UNKNOWN;
+	/* Bei RSA geht die Unterschrift nackt hinaus, so lang wie der
+	 * Modulus - nicht als DER und nicht als r||s. */
+	osk_resp_bytes(res, sig, sig_len);
+	osk_card_wipe(sig, sizeof(sig));
+	return OSK_SW_OK;
+}
+
+/* RSA-Entschluesselung, Abschnitt 7.2.11: im Datenfeld steht ein
+ * Kennbyte 00 und danach das Chiffrat in der Laenge des Modulus. Heraus
+ * kommt der Sitzungsschluessel, den die Karte aus der Auffuellung
+ * herausschaelt.
+ *
+ * Nur PKCS#1 v1.5. OAEP kann der Chip in dieser Fassung nicht, und das
+ * ist belegt und nicht unfertig: AN12413 Tabelle 32 kennt OAEP nur mit
+ * SHA-1, und osk_hash_t hat kein SHA-1 (docs/se050.md). OpenPGP
+ * verschluesselt Sitzungsschluessel mit v1.5, also kostet es hier
+ * nichts. */
+static uint16_t rsa_decipher(const uint8_t *in, size_t in_len, osk_resp_t *res)
+{
+	static uint8_t plain[OSK_RSA_MOD_MAX];
+	size_t out_len = 0;
+	size_t mod_len;
+	osk_ask_req_t ask;
+
+	mod_len = osk_rsa_mod_bytes(g_st.rsa_bits[OSK_PGP_KEY_DEC]);
+	if (mod_len == 0u)
+		return OSK_SW_REF_NOT_FOUND;
+	if (in_len != mod_len + 1u || in[0] != 0x00u)
+		return OSK_SW_WRONG_DATA;
+
+	memset(&ask, 0, sizeof(ask));
+	ask.kind = OSK_ASK_DECRYPT;
+	ask.subject = key_name(OSK_PGP_KEY_DEC);
+	ask.asked_by = "OpenPGP";
+	ask.timeout_ms = 30000u;
+	if (osk_ui_confirm(&ask) != OSK_OK)
+		return OSK_SW_SECURITY;
+
+	if (osk_se050_rsa_decrypt(OSK_PGP_KEY_ID(OSK_PGP_KEY_DEC), OSK_RSA_PAD_PKCS1_V15,
+				  OSK_HASH_SHA256, in + 1u, in_len - 1u, plain, sizeof(plain),
+				  &out_len) != OSK_OK)
+		return OSK_SW_UNKNOWN;
+	osk_resp_bytes(res, plain, out_len);
+	osk_card_wipe(plain, sizeof(plain));
+	return OSK_SW_OK;
+}
+
 static uint16_t cmd_pso(const osk_apdu_t *a, osk_resp_t *res)
 {
 	state_load();
@@ -817,7 +1087,11 @@ static uint16_t cmd_pso(const osk_apdu_t *a, osk_resp_t *res)
 
 		if (!g_pw1_sign)
 			return OSK_SW_SECURITY;
-		sw = sign_with(OSK_PGP_KEY_SIGN, a->data, a->lc, OSK_ASK_SIGN, res);
+		if (!key_present(OSK_PGP_KEY_SIGN))
+			return OSK_SW_REF_NOT_FOUND;
+		sw = key_is_rsa(OSK_PGP_KEY_SIGN)
+			 ? rsa_sign_with(OSK_PGP_KEY_SIGN, a->data, a->lc, OSK_ASK_SIGN, res)
+			 : sign_with(OSK_PGP_KEY_SIGN, a->data, a->lc, OSK_ASK_SIGN, res);
 		if (sw == OSK_SW_OK) {
 			g_st.sig_count++;
 			state_save();
@@ -845,8 +1119,10 @@ static uint16_t cmd_pso(const osk_apdu_t *a, osk_resp_t *res)
 
 		if (!g_pw1_other)
 			return OSK_SW_SECURITY;
-		if (g_st.curve[OSK_PGP_KEY_DEC] == 0u)
+		if (!key_present(OSK_PGP_KEY_DEC))
 			return OSK_SW_REF_NOT_FOUND;
+		if (key_is_rsa(OSK_PGP_KEY_DEC))
+			return rsa_decipher(a->data, a->lc, res);
 		if (a->lc < 3u)
 			return OSK_SW_WRONG_LENGTH;
 		if (!osk_tlv_find(a->data, a->lc, 0xa6u, &tmpl, &tmpl_len))
@@ -884,6 +1160,10 @@ static uint16_t cmd_internal_auth(const osk_apdu_t *a, osk_resp_t *res)
 		return OSK_SW_WRONG_P1P2;
 	if (!g_pw1_other)
 		return OSK_SW_SECURITY;
+	if (!key_present(OSK_PGP_KEY_AUTH))
+		return OSK_SW_REF_NOT_FOUND;
+	if (key_is_rsa(OSK_PGP_KEY_AUTH))
+		return rsa_sign_with(OSK_PGP_KEY_AUTH, a->data, a->lc, OSK_ASK_LOGIN, res);
 	return sign_with(OSK_PGP_KEY_AUTH, a->data, a->lc, OSK_ASK_LOGIN, res);
 }
 

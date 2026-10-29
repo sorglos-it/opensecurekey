@@ -104,6 +104,13 @@ void mock_se050_seed_random(uint32_t seed)
 	g_rand = seed;
 }
 
+static bool g_hkdf_fail;
+
+void mock_se050_set_hkdf_fail(bool fail)
+{
+	g_hkdf_fail = fail;
+}
+
 static slot_t *slot_find(uint32_t id)
 {
 	for (int i = 0; i < SLOTS; i++) {
@@ -178,13 +185,246 @@ osk_result_t osk_se050_key_create(osk_key_id_t id, osk_curve_t curve,
 	return OSK_ERR_FULL;
 }
 
+/* ---- SE050: RSA -------------------------------------------------------- */
+
+/* Nachgestellt, nicht gerechnet: der Modulus ist aus der Kennung
+ * abgeleitet, die Unterschrift ist ein HMAC in Modulus-Laenge. Die
+ * Mathematik macht spaeter der Chip. Was hier WIRKLICH geprueft wird, sind
+ * die Angaben, die die Kartenseite mitschickt - Auffuellung,
+ * Hashverfahren, Hash, Laengen -, denn genau daran scheitert eine
+ * Kartenanwendung, nicht an der Rechnung.
+ *
+ * EINE EIGENSCHAFT IST ABSICHT UND KEIN ZUFALL: der oeffentliche Exponent
+ * kommt DREI Byte lang heraus (01 00 01), nicht vier. Strang A hat das am
+ * echten Chip-Nachbau gesehen und der Vertrag warnt davor, vier
+ * anzunehmen (osk_se050.h). Code, der vier annimmt, faellt hier auf. */
+#define RSA_SLOTS 4
+
+typedef struct {
+	bool used;
+	uint32_t id;
+	uint16_t bits;
+	uint8_t seed[20];
+} rsa_slot_t;
+
+static rsa_slot_t g_rsa[RSA_SLOTS];
+static uint32_t g_rsa_mask = (1u << OSK_RSA_2048) | (1u << OSK_RSA_3072) | (1u << OSK_RSA_4096);
+static int g_rsa_pad = -1;
+static int g_rsa_hash = -1;
+static uint8_t g_rsa_hash_val[64];
+static size_t g_rsa_hash_len;
+static unsigned g_rsa_sign_count;
+static unsigned g_rsa_decrypt_count;
+
+void mock_se050_set_rsa_mask(uint32_t mask)
+{
+	g_rsa_mask = mask;
+}
+
+static rsa_slot_t *rsa_find(uint32_t id)
+{
+	for (int i = 0; i < RSA_SLOTS; i++) {
+		if (g_rsa[i].used && g_rsa[i].id == id)
+			return &g_rsa[i];
+	}
+	return NULL;
+}
+
+bool mock_se050_has_rsa_key(uint32_t id)
+{
+	return rsa_find(id) != NULL;
+}
+
+uint16_t mock_se050_rsa_bits(uint32_t id)
+{
+	const rsa_slot_t *r = rsa_find(id);
+
+	return (r != NULL) ? r->bits : 0u;
+}
+
+int mock_rsa_last_pad(void)
+{
+	return g_rsa_pad;
+}
+
+int mock_rsa_last_hash(void)
+{
+	return g_rsa_hash;
+}
+
+const uint8_t *mock_rsa_last_hash_val(size_t *len_out)
+{
+	if (len_out != NULL)
+		*len_out = g_rsa_hash_len;
+	return g_rsa_hash_val;
+}
+
+unsigned mock_rsa_sign_count(void)
+{
+	return g_rsa_sign_count;
+}
+
+unsigned mock_rsa_decrypt_count(void)
+{
+	return g_rsa_decrypt_count;
+}
+
+osk_result_t osk_se050_rsa_sizes(uint32_t *mask_out)
+{
+	if (mask_out == NULL)
+		return OSK_ERR_ARG;
+	*mask_out = g_rsa_mask;
+	return OSK_OK;
+}
+
+static uint16_t bits_of(osk_rsa_bits_t b)
+{
+	switch (b) {
+	case OSK_RSA_2048:
+		return 2048u;
+	case OSK_RSA_3072:
+		return 3072u;
+	default:
+		return 4096u;
+	}
+}
+
+osk_result_t osk_se050_rsa_key_create(osk_key_id_t id, osk_rsa_bits_t bits,
+				      const osk_key_policy_t *policy)
+{
+	if (policy != NULL && policy->exportable)
+		return OSK_ERR_UNSUPPORTED; /* wie der echte Chip: nichts raus */
+	if ((g_rsa_mask & (1u << (unsigned)bits)) == 0u)
+		return OSK_ERR_UNSUPPORTED;
+	if (rsa_find(id) != NULL)
+		return OSK_ERR_EXISTS;
+	for (int i = 0; i < RSA_SLOTS; i++) {
+		if (!g_rsa[i].used) {
+			uint8_t in[4];
+
+			g_rsa[i].used = true;
+			g_rsa[i].id = id;
+			g_rsa[i].bits = bits_of(bits);
+			in[0] = (uint8_t)id;
+			in[1] = (uint8_t)(id >> 8);
+			in[2] = (uint8_t)(id >> 16);
+			in[3] = (uint8_t)(id >> 24);
+			osk_sha1(in, sizeof(in), g_rsa[i].seed);
+			return OSK_OK;
+		}
+	}
+	return OSK_ERR_FULL;
+}
+
+osk_result_t osk_se050_rsa_public(osk_key_id_t id, uint8_t *mod_out, size_t mod_cap,
+				  size_t *mod_len_out, uint8_t *exp_out, size_t exp_cap,
+				  size_t *exp_len_out)
+{
+	const rsa_slot_t *r = rsa_find(id);
+	size_t n;
+
+	if (r == NULL)
+		return OSK_ERR_NOT_FOUND;
+	if (mod_out == NULL || exp_out == NULL || mod_len_out == NULL || exp_len_out == NULL)
+		return OSK_ERR_ARG;
+	n = (size_t)r->bits / 8u;
+	if (mod_cap < n || exp_cap < 3u)
+		return OSK_ERR_FULL;
+	for (size_t i = 0; i < n; i++)
+		mod_out[i] = (uint8_t)(r->seed[i % sizeof(r->seed)] ^ (uint8_t)i);
+	/* Oberstes Bit gesetzt: ein echter Modulus dieser Bitlaenge hat es
+	 * auch, und damit prueft der Aufrufer die fuehrende Null im
+	 * DER-INTEGER mit. */
+	mod_out[0] = (uint8_t)(mod_out[0] | 0x80u);
+	*mod_len_out = n;
+	/* 65537, drei Byte - siehe oben. */
+	exp_out[0] = 0x01u;
+	exp_out[1] = 0x00u;
+	exp_out[2] = 0x01u;
+	*exp_len_out = 3u;
+	return OSK_OK;
+}
+
+osk_result_t osk_se050_rsa_sign(osk_key_id_t id, osk_rsa_pad_t pad, osk_hash_t hash_alg,
+				const uint8_t *hash, size_t hash_len, uint8_t *sig_out, size_t cap,
+				size_t *len_out)
+{
+	const rsa_slot_t *r = rsa_find(id);
+	uint8_t mac[OSK_SHA1_LEN];
+	size_t n;
+
+	if (r == NULL)
+		return OSK_ERR_NOT_FOUND;
+	if (hash == NULL || hash_len == 0u || hash_len > sizeof(g_rsa_hash_val))
+		return OSK_ERR_ARG;
+	/* Wie der echte Chip: Table 31 von AN12413 hat keinen Eintrag ohne
+	 * Auffuellung, und OAEP ist keine Unterschrift. */
+	if (pad != OSK_RSA_PAD_PKCS1_V15 && pad != OSK_RSA_PAD_PSS)
+		return OSK_ERR_UNSUPPORTED;
+
+	g_rsa_pad = (int)pad;
+	g_rsa_hash = (int)hash_alg;
+	memcpy(g_rsa_hash_val, hash, hash_len);
+	g_rsa_hash_len = hash_len;
+	g_rsa_sign_count++;
+
+	n = (size_t)r->bits / 8u;
+	if (sig_out == NULL || cap < n)
+		return OSK_ERR_FULL;
+	osk_hmac_sha1(r->seed, sizeof(r->seed), hash, hash_len, mac);
+	for (size_t i = 0; i < n; i++)
+		sig_out[i] = mac[i % sizeof(mac)];
+	*len_out = n;
+	return OSK_OK;
+}
+
+osk_result_t osk_se050_rsa_decrypt(osk_key_id_t id, osk_rsa_pad_t pad, osk_hash_t hash_alg,
+				   const uint8_t *in, size_t in_len, uint8_t *out, size_t cap,
+				   size_t *len_out)
+{
+	const rsa_slot_t *r = rsa_find(id);
+	uint8_t mac[OSK_SHA1_LEN];
+
+	if (r == NULL)
+		return OSK_ERR_NOT_FOUND;
+	if (in == NULL || in_len != (size_t)r->bits / 8u)
+		return OSK_ERR_ARG;
+	/* OAEP lehnt der echte Treiber ab, und zwar belegt: AN12413
+	 * Tabelle 32 kennt OAEP nur mit SHA-1, und osk_hash_t hat kein
+	 * SHA-1 (docs/se050.md). Die Attrappe tut dasselbe, sonst wuerde
+	 * eine Kartenanwendung am PC laufen und am Geraet nicht. */
+	if (pad == OSK_RSA_PAD_OAEP)
+		return OSK_ERR_UNSUPPORTED;
+
+	g_rsa_pad = (int)pad;
+	g_rsa_hash = (int)hash_alg;
+	g_rsa_decrypt_count++;
+
+	/* Herauskommt ein kurzer, vorhersagbarer "Sitzungsschluessel" - so,
+	 * wie der Chip die Auffuellung abschaelt und nur den Kern liefert. */
+	if (out == NULL || cap < 32u)
+		return OSK_ERR_FULL;
+	osk_hmac_sha1(r->seed, sizeof(r->seed), in, in_len, mac);
+	memcpy(out, mac, 20u);
+	memcpy(out + 20, mac, 12u);
+	*len_out = 32u;
+	return OSK_OK;
+}
+
 osk_result_t osk_se050_key_delete(osk_key_id_t id)
 {
 	slot_t *s = slot_find(id);
+	rsa_slot_t *r = rsa_find(id);
 
-	if (s == NULL)
+	/* Beide Tabellen: im selben Steckplatz kann vorher das andere
+	 * Verfahren gelegen haben, und ein halb geloeschter Steckplatz
+	 * haette danach zwei Schluessel. */
+	if (s == NULL && r == NULL)
 		return OSK_ERR_NOT_FOUND;
-	memset(s, 0, sizeof(*s));
+	if (s != NULL)
+		memset(s, 0, sizeof(*s));
+	if (r != NULL)
+		memset(r, 0, sizeof(*r));
 	return OSK_OK;
 }
 
@@ -300,6 +540,8 @@ osk_result_t osk_se050_hkdf(osk_key_id_t id, const uint8_t *info, size_t info_le
 
 	if (out == NULL || out_len > sizeof(mac))
 		return OSK_ERR_ARG;
+	if (g_hkdf_fail)
+		return OSK_ERR_IO;
 	key[0] = (uint8_t)id;
 	key[1] = (uint8_t)(id >> 8);
 	key[2] = (uint8_t)(id >> 16);
@@ -734,6 +976,14 @@ const char *osk_result_text(osk_result_t r)
 void mock_reset_all(void)
 {
 	memset(g_slots, 0, sizeof(g_slots));
+	memset(g_rsa, 0, sizeof(g_rsa));
+	g_rsa_mask = (1u << OSK_RSA_2048) | (1u << OSK_RSA_3072) | (1u << OSK_RSA_4096);
+	g_rsa_pad = -1;
+	g_rsa_hash = -1;
+	g_rsa_hash_len = 0u;
+	g_rsa_sign_count = 0u;
+	g_rsa_decrypt_count = 0u;
+	g_hkdf_fail = false;
 	memset(g_items, 0, sizeof(g_items));
 	g_next_id = 1u;
 	g_reveal_count = 0u;
