@@ -1,0 +1,7 @@
+# Die Pruefdateien des Strangs E. Dazu kommt sources_yk_lib.txt.
+yk_test.c
+test_ykcrc.c
+test_ykframe.c
+test_ykhid.c
+test_ykkbd.c
+test_yk_main.c

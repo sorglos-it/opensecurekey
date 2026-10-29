@@ -1,0 +1,16 @@
+# Die Quellen des Strangs E, einmal und nur hier. Pfade relativ zu
+# test/transport. Zeilen mit # sind Bemerkungen, leere Zeilen auch.
+#
+# WARUM DIESE DATEI: am 28.10. gab es zwei Baubeschreibungen derselben
+# Pruefung - ein Makefile und eine build.ps1 - und die ps1 fuehrte
+# osk_mem.c nicht. Der Windows-Weg brach deshalb erst beim Binden ab,
+# was wie ein Fehler des Aufrufers aussieht und nicht wie eine fehlende
+# Quelle. Beide Wege lesen jetzt DIESE Liste. Eine Quelle an einer
+# Stelle.
+../../src/classes/transport/yk_crc.c
+../../src/classes/transport/yk_frame.c
+../../src/classes/transport/yk_ct.c
+../../src/classes/transport/yk_hid.c
+../../src/classes/transport/usb_kbd.c
+# osk_wipe() liegt hier und wird an sieben Stellen gerufen.
+../../src/osk_mem.c
