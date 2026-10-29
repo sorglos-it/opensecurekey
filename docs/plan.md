@@ -13,8 +13,10 @@ Stufe 2 von 4** — geschrieben / übersetzt / im Abbild / am Gerät gelaufen.
 
 **Was am 29.10.2026 selbst nachgemessen wurde**, nicht aus Meldungen
 übernommen: sechs Prüfläufe der Stränge, jeder einzeln gestartet —
-`se050` 1066, `authz` 255, `ctap` 1425, `store` 87 591, `transport` 232,
-`applets` 1384 Fälle, **zusammen 91 953, kein Fehler**. Dazu `tools/check.py`:
+`se050` 1066, `authz` 255, `ctap` 1425, `store` 88 631, `transport` 232,
+`applets` 1384 Fälle, **zusammen 92 993, kein Fehler**. Die Fassung **ohne**
+RSA ist mitgemessen: `applets` 1222 Fälle, 0 Fehler — eine Option, die nur in
+einer Richtung geprüft ist, ist keine. Dazu `tools/check.py`:
 14 Schritte ok, 308 Tests, 0 Fehler. **Drei Schritte sind dort übersprungen und
 damit NICHT geprüft:** `firmware/build` (kein nRF Connect SDK),
 `firmware/tests` und `firmware/format`. Die C-Prüfläufe der Stränge laufen
@@ -671,6 +673,13 @@ Einzige. Jeder Strang bekommt einen eigenen Zweig und fasst nur seine Ordner an.
 - **Geteilter Checkout:** HEAD vor jedem Commit prüfen, `git add` und
   `git commit --` zusammen, Zweig beim Push ausdrücklich nennen.
 - **Ein Werkzeugergebnis ist erst ein Beleg, wenn geprüft ist, was es misst.**
+- **Gemessen wird dort, wo das Repo liegt, und mit der Schale, die der Nutzer
+  startet.** Am 29.10.2026 zweimal am selben Prüflauf aufgetreten: er lief im
+  Worktree auf `D:`, aber nicht auf `Z:` (die WSL kann Netzlaufwerke nicht
+  übersetzen) — und nach der Nachbesserung lief er in PowerShell 7, aber nicht
+  in 5.1, weil dort die Fehlerausgabe eines fremden Programms den Lauf
+  abbricht. **5.1 ist, was beim Doppelklick startet.** Beide Male war die
+  gemeldete Zahl richtig und der Weg dorthin nicht nachvollziehbar.
 - **Was nicht am Gerät lief, wird nicht als geprüft gemeldet.**
 
 **Dieser Plan liegt zweimal** — unter `.claude\plans\` (Arbeitsfassung) und als
