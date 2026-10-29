@@ -42,6 +42,11 @@ add_executable(store_tests
 	test_transfer.c
 	test_wear.c
 	test_wordlist.c
+	test_guard.c
+	test_logchain.c
+	test_wipe.c
+	test_sigcount.c
+	test_capacity.c
 	test_main.c)
 
 target_include_directories(store_tests PRIVATE ${STORE} ${INC}

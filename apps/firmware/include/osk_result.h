@@ -16,6 +16,12 @@ typedef enum {
 	OSK_ERR_FORMAT, /* Daten entsprechen nicht dem erwarteten Aufbau */
 	OSK_ERR_UNSUPPORTED,
 	OSK_ERR_INTERNAL,
+	/* Zurueckgespielter Zustand: der Flash ist aelter als der monotone
+	 * Zaehler im Sicherheitschip. Ein eigener Wert, weil er etwas anderes
+	 * heisst als OSK_ERR_FORMAT - die Daten sind in sich voellig gueltig,
+	 * sie sind nur alt. Wer die beiden zusammenwirft, meldet dem Nutzer
+	 * einen kaputten Tresor, wo ein Angriff vorliegt. */
+	OSK_ERR_ROLLBACK,
 } osk_result_t;
 
 const char *osk_result_text(osk_result_t r);

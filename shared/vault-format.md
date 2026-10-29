@@ -1,6 +1,6 @@
 # Vault format
 
-Status: **implemented and tested on a PC**, never run on hardware — there is no
+Status: **written and compiled, exercised by PC tests** (stage 2 of 4: written / compiled / in the image / run on the device), never run on hardware — there is no
 hardware yet. The tests use a RAM flash double, and the crypto and the SE050 are
 test doubles too, so this describes a structure that has been exercised, not a
 device that has worked.
@@ -46,7 +46,8 @@ there once the upgrade is through; that is the whole price.
 | items per profile | 768, so 3072 in a device |
 | longest secret | 4096 B (small files included) |
 | name / address | 64 / 128 characters |
-| log entries | up to 512, oldest dropped |
+| log entries | up to 512, oldest dropped, hash-chained |
+| wipe PINs | one per profile, off by default |
 
 **3072 is the number the budget allows, and here is the arithmetic.** One item
 takes exactly one secret slot of 8 KiB, so 3072 items are 24 MiB of data area.
@@ -346,11 +347,107 @@ once per operation with the power cut exactly there, tearing that operation in
 half. After each one the device is re-opened and checked: old state or new
 state, nothing in between, every secret intact, no nonce repeated.
 
+## Rollback protection
+
+The plaintext header carries a checksum, not a MAC, so anyone who can write the
+flash can put back an older but completely genuine header and index. Everything
+about that older state is authentic — right checksums, right authentication
+tags, right format — which is exactly why nothing inside the flash can notice
+it. **That valid old state is the attack.** A corrupted one is caught by the
+encryption already.
+
+The anchor therefore does not live in the flash at all. It is a monotonic
+counter in the SE050 (`OSK_KEYID_VAULT_GEN`, `osk_se050_counter_*`), and the
+number it holds is the header's sequence number — the one that already rises by
+one with every commit. No second number was introduced: two quantities that are
+meant to mean the same thing drift apart sooner or later.
+
+**The order is the whole trick.** The header record is written first, the chip
+counter is raised afterwards:
+
+| state after a power cut | flash | chip | what happens next |
+| --- | --- | --- | --- |
+| cut before the header record | n | n | nothing changed |
+| cut between record and raise | n+1 | n | the vault opens and raises the chip on the next open |
+| raised, all well | n+1 | n+1 | — |
+| **flash rolled back** | n−k | n | `osk_store_open()` returns `OSK_ERR_ROLLBACK` |
+
+Raising the other way round would be the one failure that cannot be recovered
+from: the chip would hold a number the flash never reaches, and the device
+would be bricked by a power cut. `osk_se050_counter_raise()` is repeatable —
+already at or above the value, it changes nothing and still says OK — which is
+what makes the catch-up safe.
+
+Two consequences that are easy to get wrong:
+
+- **A fresh vault does not start at 1.** `osk_hdr_format()` reads the chip
+  counter and starts the sequence above it. Otherwise erasing the flash would
+  be the way back: wipe, restore an old image, done. This also covers the wipe
+  PIN below.
+- **The counter's initial value is read, not assumed.** AN12413 does not say
+  what a freshly created counter starts at, so the code asks. There is a test
+  that starts the double at 5000 and fails any firmware that quietly assumes 0.
+- There is deliberately no `counter_set()` and no `counter_delete()` in
+  `osk_se050.h`. Both would be a way back.
+
+`osk_store_generation()` reports the sequence number.
+
+The test (`test_guard.c`) proves the replayed image is **sound in itself**
+before it proves it is refused: the image is restored once while the chip
+counter still matches, and the vault opens and reads the secret. Without that
+first step the later refusal could just as well come from a broken image, and
+the test would be measuring something other than what it claims.
+
+## The wipe PIN
+
+A second PIN per profile whose entry erases the vault. Off by default
+(`osk_store_wipe_pin_set` / `_clear` / `_is_set` in `osk_store_profiles.h`).
+
+- The verifier in the header is **not** a hash of the PIN. It is derived
+  through the device-bound value from the SE050, so the number is worth nothing
+  on another machine. It has to sit in the plaintext header because it is
+  checked while the profile is still locked — that is when the PIN is typed.
+- It is checked **before** the chip PIN. The chip would reject it and burn a
+  try, so after a few attempts the device could not be erased at all.
+- The answer is `OSK_ERR_DENIED`, the same as a wrong PIN. Whoever is forcing
+  the unlock should not see that anything happened, and whoever does not know
+  there is a wipe PIN should not learn that there is one.
+- It may not be the profile's real PIN; that would be a vault that erases
+  itself on unlock. The attempt gives `OSK_ERR_ARG`.
+- It is **not** a way around the rollback protection. The chip counter stays
+  where it is and the fresh vault starts above it.
+
 ## Log
 
 A ring of 512 page-sized slots. The plaintext holds time, reason, item id and
 the name the asking program claims — never a secret. It is encrypted anyway,
 because the list of services used is worth something by itself.
+
+**The ring is hash-chained** (version 6). Each slot carries the first 16 bytes
+of its predecessor's authentication tag, in plaintext so that the slot stays
+readable after the predecessor has been overwritten by the ring, and as
+*additional authenticated data* so that rewriting it destroys the record
+instead of forging the order. The tag depends on the log key, which is rooted
+in the SE050, so someone who can read and write the flash can neither forge a
+record nor recompute a gapless chain.
+
+`osk_log_verify()` walks back from the youngest record and checks two things
+per step: the sequence numbers are consecutive (they are in the additional
+data, so they cannot be renumbered), and the younger record's chain link is the
+older one's tag prefix.
+
+**It does not stop at an empty slot, and that is the point.** Reading does —
+an empty slot is the end of the ring — and that made blanking one slot the
+cheapest way to make everything older than it disappear without touching a
+single chain link. The check therefore keeps walking the whole ring; a valid
+record found *behind* a gap means the gap was made. A ring that has genuinely
+wrapped has its empty run after the oldest surviving record and nothing beyond
+it, so it passes — that counter-case is tested with 700 changes, because a
+check that cries wolf on every device older than 512 entries is worth nothing.
+
+Where the check honestly **stops** and reports nothing: at the oldest surviving
+record, whose predecessor the ring has overwritten, and at a record from a
+version before 6, which has no chain link.
 
 Two details came out of the power-cut test and matter:
 
@@ -367,6 +464,26 @@ record that cannot be decrypted. Reading walks backwards from the youngest slot,
 skipping invalid slots and stopping at an empty one, so every counted entry can
 really be read.
 
+## The FIDO signature counter
+
+Counted in CTAP, stored here: `osk_store_sigcount_next()` / `_get()` in
+`osk_store.h`. It sits in the index record, in four bytes that were zero in
+version 5.
+
+It is **not** the `counter` field in the same record. That one counts HOTP and
+is shown to the user; this one goes to the relying party and is what proves the
+key has not been cloned. Two counters, two purposes, two names — this project's
+most frequent bug is two quantities that are called the same and measure
+different things.
+
+`_next()` raises and commits in one transaction and hands the value out only
+after the header record, so a power cut gives the old value again rather than a
+gap. It is called **before** signing: a counter raised after a successful
+signature can be used twice on the same value by pulling the power at the right
+moment. The test checks it across a restart, because a check that only counts
+within one run is exactly the check that would have missed the bug it exists
+for.
+
 ## Versions and migration
 
 The header carries the format version, and so does every index generation:
@@ -377,7 +494,24 @@ The header carries the format version, and so does every index generation:
 | v2 | 256 B | read-only flag, HOTP counter |
 | v3 | 320 B | the search tag |
 | v4 | 320 B | the index in blocks: 768 items per profile instead of 64 |
-| v5 | 320 B | the public part of a key, on its own slot or in the chip (current) |
+| v5 | 320 B | the public part of a key, on its own slot or in the chip |
+| v6 | 320 B | rollback anchor, hash-chained log, wipe PIN, FIDO signature counter (current) |
+
+**Version 6 is the first upgrade that grows the plaintext header.** The record
+stayed 320 B — the FIDO signature counter sits in four bytes that were
+`reserved` and zero, so a version-5 record reads as "never signed" and nothing
+is converted. The header, though, gained a 16-byte wipe-PIN verifier per
+profile, so `sizeof(osk_hdr_t)` changed and with it the `hdr_size` that
+identifies a record. A version 4/5 record is therefore read through
+`osk_hdr_v5_t` and converted in RAM at mount time, exactly the way a version 3
+record already was. Both areas are scanned, the highest sequence number wins,
+and the records live in the same 1 KiB slots of the same ring — so nothing
+moves and a power cut during the upgrade is the same non-event as before.
+
+The log slot grew too, by the 16-byte chain link, and changed its magic from
+`OSKL` to `OSKC`. Old slots are still read (so an update does not throw the
+device log away); they simply cannot be chain-checked, and `osk_log_verify()`
+stops there rather than reporting a break.
 
 **Version 5 changed no byte that version 4 used.** The new fields sit in bytes
 that were `reserved` and zero, so a version-4 block reads as "no public part,
@@ -499,11 +633,10 @@ breaks off is detected by the closing chunk.
 
 ## Known limits
 
-- **Rollback.** The plaintext header is protected by a checksum, not by a MAC.
-  Someone who can write the flash directly can put an older but genuine header
-  and index back and roll the vault back to an earlier state. Everything stays
-  authentic, so nothing notices. Fixing this needs a monotonic counter in the
-  SE050 that is compared when opening. **Open.**
+- **Rollback — closed in version 6**, see *Rollback protection* above. What
+  remains open is everything below the vault: a counter the SE050 itself never
+  received (a bus the attacker controls) is not covered here, and none of it
+  has run on hardware.
 - **Metadata.** The number of stored secrets can be read from the plaintext slot
   bitmap, and since version 4 the plaintext header also gives the **exact**
   number of items **per profile** (in version 3 the size of an index generation
@@ -520,6 +653,17 @@ breaks off is detected by the closing chunk.
 - **Interrupted restore.** A backup restore or a device-to-device transfer that
   breaks off part way leaves the items read so far in the vault. Each one is
   atomic, so the vault is sound, but it is not all-or-nothing across the file.
+- **Deniability.** `docs/plan.md` names it twice — once as a task of this
+  subsystem and once in milestone 17 — and nowhere says what it should mean.
+  The possible readings differ in what they cost and in what they can promise:
+  a hidden profile whose existence cannot be shown, a second passphrase on the
+  backup file that opens a decoy set, or merely the fact that the plaintext
+  header already reveals nothing but counts. The first of these cannot be built
+  on this layout at all without a change that is visible from outside: the
+  plaintext header gives the **exact** number of items per profile and the slot
+  bitmap gives the number of secrets in the device, so a hidden profile would
+  be countable. Nothing is built and nothing is guessed. **Open — needs a
+  decision.**
 - **Nothing on hardware.** Every number here was measured against a RAM flash
   double with test doubles for crypto and the SE050. Timing, erase durations,
   the cost of a tag search and the Argon2id cost on the real chip are
