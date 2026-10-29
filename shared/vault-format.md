@@ -467,8 +467,48 @@ really be read.
 ## The FIDO signature counter
 
 Counted in CTAP, stored here: `osk_store_sigcount_next()` / `_get()` in
-`osk_store.h`. It sits in the index record, in four bytes that were zero in
-version 5.
+`osk_store.h`. The item id it takes has **two fixed meanings**, and that split
+is written down in both places (here and `osk_sigcount.h` in CTAP):
+
+| id | counter | where |
+| --- | --- | --- |
+| 0 | the **device's** counter | `sigcount_dev` in the header record |
+| anything else | that one item | `sigcount` in its index record |
+
+Id 0 is free because the vault hands out item ids from 1 (`item_next`), and
+`osk_store_add()` skips a 0 rather than trusting that — an old header brings
+its own `item_next` along, and what stands there is not this subsystem's to
+assume.
+
+**Why the device needs one at all.** Most FIDO credentials have no index
+record to hang a counter on: non-discoverable credentials are derived and
+stored nowhere, and neither is U2F. A per-item counter could only count the
+discoverable ones, and mixing the two would be worse than either — if a
+credential ever fell back to the shared number, its counter could go *down*,
+which is precisely the sign of a clone. The per-item counter stays for the
+items that have a record; the device counter covers the rest.
+
+The per-item field sits in four bytes of the index record that were zero in
+version 5, the device field in four bytes of the header's `reserved`. Neither
+changed a structure's size.
+
+**What a login costs** (measured in `test_sigcount.c`, 1000 calls against the
+RAM flash double, not estimated):
+
+| | per 1000 logins | per login |
+| --- | --- | --- |
+| flash write + erase operations | 1235 | 1.24 |
+| erases, all header sectors | 235 | 0.24 |
+| erases, the worst single sector | 15 | 0.015 |
+| SE050 counter raises | 1000 | 1 |
+
+One header record per login, four records per sector, 16 sectors in the ring —
+so the hottest sector sees an erase every 67th login. The SE050 counter is
+raised once per login as well, because the rollback anchor follows every
+commit; that is one NVM write in the chip per login. **Neither endurance
+figure is cited here**: the flash's erase cycles and the SE050's counter
+endurance are numbers from datasheets this subsystem has not read, and nothing
+of this has run on hardware.
 
 It is **not** the `counter` field in the same record. That one counts HOTP and
 is shown to the user; this one goes to the relying party and is what proves the

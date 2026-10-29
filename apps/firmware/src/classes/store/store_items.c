@@ -581,6 +581,15 @@ osk_result_t osk_store_add(const osk_item_meta_t *meta, const uint8_t *secret, s
 	}
 
 	osk_item_id_t id = st->hdr.item_next;
+
+	/* Die 0 bezeichnet den Zaehler des Geraets und darf nie ein Eintrag
+	 * sein. Beim Anlegen faengt item_next bei 1 an; ein Kopf einer alten
+	 * Fassung bringt den Wert aber mit, und was dort steht, hat dieser
+	 * Strang nicht in der Hand. Also hier der Riegel, nicht nur die
+	 * Annahme. */
+	if (id == 0u) {
+		id = 1u;
+	}
 	uint32_t ct_len = 0;
 	uint8_t nonce[OSK_NONCE_LEN];
 
@@ -1375,6 +1384,20 @@ osk_result_t osk_store_wipe_all(void)
  * Verschiedenes messen - dieser hier geht an den Dienst, der `counter` im
  * selben Satz zaehlt HOTP fuer den Nutzer.
  *
+ * ZWEI BEDEUTUNGEN, festgelegt und nicht gewachsen:
+ *
+ *   Kennung 0           der Zaehler des GERAETS, im Kopfsatz
+ *                       (hdr.sigcount_dev). Er gilt fuer alle Nachweise, die
+ *                       keinen eigenen Indexsatz haben - nicht auffindbare
+ *                       Nachweise werden abgeleitet und nirgends gespeichert,
+ *                       U2F ebenso, und das sind die meisten. Die 0 ist frei:
+ *                       Eintragskennungen beginnen bei 1.
+ *   jede andere Kennung GENAU dieser eine Eintrag, im Indexsatz
+ *                       (rec->sigcount).
+ *
+ * Das ist kein zweiter Zaehler mit gleichem Namen, sondern eine Aufteilung,
+ * die an beiden Stellen so dokumentiert ist (siehe osk_sigcount.h in CTAP).
+ *
  * Erhoehen und Festschreiben sind EIN Vorgang, und der Wert kommt erst nach
  * dem Kopfsatz heraus. Faellt der Strom dazwischen aus, gilt der alte Stand,
  * und derselbe Wert wird noch einmal vergeben - er wurde aber auch nie
@@ -1402,6 +1425,15 @@ osk_result_t osk_store_sigcount_get(osk_item_id_t cred, uint32_t *value_out)
 	if (value_out == NULL) {
 		return OSK_ERR_ARG;
 	}
+	if (cred == OSK_SIGCOUNT_DEVICE) {
+		osk_store_state_t *st = osk_store_state();
+
+		if (!st->open) {
+			return OSK_ERR_LOCKED;
+		}
+		*value_out = st->hdr.sigcount_dev;
+		return OSK_OK;
+	}
 	r = sigcount_rec(cred, &profile, &index, &rec);
 	if (r != OSK_OK) {
 		return r;
@@ -1420,6 +1452,28 @@ osk_result_t osk_store_sigcount_next(osk_item_id_t cred, uint32_t *value_out)
 
 	if (value_out == NULL) {
 		return OSK_ERR_ARG;
+	}
+	if (cred == OSK_SIGCOUNT_DEVICE) {
+		osk_store_state_t *st = osk_store_state();
+
+		if (!st->open) {
+			return OSK_ERR_LOCKED;
+		}
+		/* Kein Profil noetig: ein nicht auffindbarer Nachweis hat
+		 * keines. Haenge der Zaehler an einem Profil, waere er fuer
+		 * genau die Nachweise unerreichbar, fuer die er da ist. */
+		if (st->hdr.sigcount_dev == 0xFFFFFFFFu) {
+			return OSK_ERR_FULL;
+		}
+		osk_hdr_snapshot(&snap);
+		st->hdr.sigcount_dev += 1u;
+		r = osk_hdr_commit();
+		if (r != OSK_OK) {
+			osk_hdr_restore(&snap);
+			return r;
+		}
+		*value_out = st->hdr.sigcount_dev;
+		return OSK_OK;
 	}
 	r = sigcount_rec(cred, &profile, &index, &rec);
 	if (r != OSK_OK) {

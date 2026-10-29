@@ -35,6 +35,7 @@ struct ctr {
 
 static struct ctr g_ctr[COUNTERS];
 static uint64_t g_ctr_start;
+static uint32_t g_raises;
 
 static uint32_t g_device = 1u;
 static char g_pin[65] = "123456";
@@ -159,8 +160,19 @@ osk_result_t osk_se050_counter_raise(osk_key_id_t id, uint64_t at_least)
 	 * es gibt keinen Weg zurueck, auch nicht in der Attrappe. */
 	if (at_least > c->value) {
 		c->value = at_least;
+		g_raises++; /* nur das wirkliche Anheben kostet NVM */
 	}
 	return OSK_OK;
+}
+
+uint32_t fake_se050_raises(void)
+{
+	return g_raises;
+}
+
+void fake_se050_raises_reset(void)
+{
+	g_raises = 0u;
 }
 
 uint8_t fake_se050_tries_left(void)
