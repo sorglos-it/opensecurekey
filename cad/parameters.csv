@@ -1,51 +1,56 @@
 name;value_mm;comment
-pcb_len;70.0;Platinenlaenge, aus hardware/layout-notes.md
-pcb_wid;27.0;Platinenbreite - Vorgabe ans Layout, von Thomas am 24.10.2026 auf 27 entschieden
-pcb_th;0.8;Platinendicke, festgelegt wegen Platinenrand-Stecker
-pcb_fit;0.3;Spiel zwischen Platinenkante und Innenwand, je Seite
-pcb_corner_r;1.5;Eckenradius der Platine - Vorgabe ans Layout
-wall_t;1.6;Seitenwand, traegt die Schnappstufe
-skin_t;1.0;Dach und Boden, 5 Schichten a 0.2 mm
-ledge_w;1.2;Auflagebreite fuer die Platine rundum - bauteilfreier Rand
-gap_top;0.3;Luft ueber dem hoechsten Bauteil der Anzeigenseite
-gap_bot;0.2;Luft unter der Platine, Loetseite
-h_top_part;2.05;hoechstes Bauteil oben - U1 Modul MDBT50Q-1MV2
-h_bot_part;4.45;Ferritfolie 0,4 + Zellenreserve 4,05 - gewaehlt ist die Adafruit 1317 mit 3,80; die 0,25 mm sind Reserve fuer beide Zellen und fuers Quellen
-lip_h;1.0;Hoehe der Schnappstufe ueber der Trennebene
-lip_t;0.8;Dicke der Schnappstufe, halbe Seitenwand
-snap_len;6.0;Laenge eines Schnappwulstes
-snap_h;0.5;Hoehe des Schnappwulstes
-snap_d;0.4;Vorstand des Schnappwulstes
-oled_win_x;15.7;Fenster in Laengsrichtung - aktiv 14.70 + 2 x 0.5 Rand
-oled_win_y;11.54;Fenster in Querrichtung - aktiv 10.54 + 2 x 0.5 Rand
-oled_cx;38.0;Fenstermitte laengs - Glas 27..49 laut Uebergabe des Platinen-Strangs
-oled_cy;13.5;Fenstermitte quer - Plattenmitte bei 27 mm Breite
-led_win_d;2.5;Lichtfenster der RGB-LED
-led_cx;66.0;LED-Mitte laengs - Kopfende, vom Platinen-Strang bestaetigt
-led_cy;13.5;LED-Mitte quer - Plattenmitte bei 27 mm Breite
-btn_slot_x;4.5;Tasteroeffnung laengs - Taster 3.5 plus 0.5 je Seite
-btn_slot_z;2.4;Tasteroeffnung in Dickenrichtung
-btn_cx;24.5;Tastermitte laengs SW1 - aus der Uebergabe des Platinen-Strangs; galt bis 24.10.2026 auch fuer SW2
-sw2_cx;8.6412;Tastermitte laengs SW2 - Reset ans USB-Ende versetzt, Uebergabe Platinen-Strang 24.10.2026, Pads 6,1402..11,1419
-btn_relief_x;5.6;Freistellung laengs - deckt auch die DigiKey-Lesart 4,70 mm Koerperlaenge ab
-btn_relief_z;1.65;Freistellung des Klemmkragens ueber dem Taster - 1.35 Bauhoehe plus 0.3
-sw2_pocket_d;0.8;Blindtasche fuer SW2 - Reset darf von aussen nicht erreichbar sein
-btn_z;0.7;Tastermitte ueber Platinenoberseite - halbe Bauteilhoehe 1.35
-usb_open_y;10.5;Frontoeffnung breit - Koerper 8.94 + 2 x 0.78 Spiel
-usb_open_z;3.76;Frontoeffnung hoch - Koerper 3,46 plus 0,3 Spiel; darueber bleiben 0,80 mm Wand
-usb_recess_d;0.8;Mulde in der Frontflaeche - KEINE Formgebung: die Haltestifte der Buchse erzwingen sie
-usb_recess_w;14.0;Mulde breit - Oeffnung 10,5 plus 1,75 je Seite
-usb_recess_z0;-0.6;Mulde beginnt unter der Trennebene
-usb_recess_z1;0.4;Mulde reicht so weit ueber die Oeffnung hinaus
-usb_body_h;3.46;Bauhoehe des USB4085 ueber der Platine - groessere Lesart der Zeichnung, UNGEPRUEFT
-usb_gap_top;0.1;Luft ueber dem Steckerkoerper - Blechgehaeuse, darf das Dach fast beruehren
-usb_nose_x;10.2;Laenge der Nase ab Platinenkante - Steckerkoerper 9,17 tief plus 1,0 Rand
-usb_cy;13.5;Frontoeffnung mittig auf der kurzen Kante
-fp_open_d;11.3;Sensorsitz im Boden - Sensor D11,0 plus 0,3 Klebefuge; der Sensor sitzt IM Boden, nicht auf der Platine
-fp_cx;36.0;Sensormitte in Laengsrichtung - VORLAEUFIG
-fp_cy;19.2;Sensormitte quer - Zelle 1,20..13,20, Trennabstand 0,5, Sensor 13,70..24,70
-fp_plug_th;1.0;Dicke des Blindstuecks fuer Stufe 1
-fp_plug_fit;0.2;Spiel des Blindstuecks im Sitz
-eye_len;8.0;Anbau der Oese hinter der Platine
-eye_hole_d;4.0;Loch der Oese
-outer_corner_r;3.0;Aussenradius der Gehaeuseecken
+pcb_len;59.55;Platinenlaenge in LAENGSrichtung y, Kante bei y=0 ist die USB-Kante. Obere Schranke aus hardware/layout-notes.md
+pcb_wid;27.0;Platinenbreite in QUERrichtung x. Aus hardware/layout-notes.md
+pcb_th;0.8;Platinendicke in z. Die Mittelebene der Platine ist z=0 und gleichzeitig die Mittelebene des Steckers
+pcb_fit;0.3;Spiel zwischen Platinenkante und Innenwand, je Seite, IN DER PLATINENEBENE - keine Hoehe
+pcb_corner_r;1.5;Eckenradius der Platine in der Platinenebene - Vorgabe ans Layout
+wall_t;1.6;Dicke einer Seitenwand, gemessen quer zur Wandflaeche in der Platinenebene
+skin_t;1.0;Dicke von Dach und Boden in z-Richtung, 5 Druckschichten a 0,2 mm
+seal_w;1.2;Breite der umlaufenden Auflage in der Platinenebene. Sie traegt die Platine und trennt den oberen vom unteren Vergussraum. KEIN Klemmkragen mehr - der Verguss haelt
+h_top_part;2.05;Hoehe des hoechsten Bauteils der Anzeigenseite, gemessen von der Platinen-OBERSEITE nach +z. Wert = U1 MDBT50Q-1MV2 aus hardware/layout-notes.md. KEINE Gehaeusedicke
+h_bot_part_b;1.68;Hoehe des hoechsten Bauteils der Unterseite in Variante B, gemessen von der Platinen-UNTERSEITE nach -z. Wert = microSD-Schacht DM3AT-SF-PEJM5 aus hardware/datentraeger.md
+h_bot_part_a;0.8;dasselbe fuer Variante A. Wert = SD-NAND LGA8 aus hardware/datentraeger.md
+h_bot_potted;0.8;Hoehe des hoechsten VERGOSSENEN Bauteils der Unterseite ueber die Platinen-UNTERSEITE. Wert = Flash WSON8 aus hardware/layout-notes.md; der SD-Schacht liegt hinter einem Damm und zaehlt hier nicht
+h_zif_stufe2;1.5;Bauhoehe des ZIF-Steckers fuer das Sensor-Flachband der Stufe 2 ueber der Platinen-UNTERSEITE. ANNAHME, steht in keiner Unterlage - siehe masse.md Abschnitt 6
+pot_cover;0.5;Mindestdicke des Vergusses UEBER dem hoechsten vergossenen Bauteil, in z
+pot_dam_t;0.8;Dicke einer Dammwand, die den Verguss von einer Oeffnung fernhaelt, in der Platinenebene
+pot_dam_t_min;0.4;dasselbe an der einen Stelle, an der nur 0,50 mm Spalt sind: zwischen U1 und dem Anzeigeglas
+pot_island_fit;0.2;Luft zwischen Dammwand und dem Bauteil, das sie trocken haelt, in der Platinenebene
+pot_port_d;2.0;Durchmesser eines Eingusses im Dach
+pot_vent_d;1.0;Durchmesser einer Entlueftung im Dach
+join_lap;1.0;Hoehe des Klebefalzes ueber der Trennebene, in z
+join_lap_t;0.8;Dicke des Klebefalzes - halbe Seitenwand, in der Platinenebene
+usb_shell_w;8.7;Breite der Steckerhuelle von J1 in x. UNGEPRUEFT, am Muster zu messen - die Zeichnung bemasst sie nicht
+usb_shell_h;2.9;Hoehe der Steckerhuelle von J1 ueber alles in z, SYMMETRISCH zur Platinenmittelebene. Aus docs/usb-stecker.md
+usb_collar_fit;0.1;Spiel des Gehaeusekragens um die Steckerhuelle, je Seite
+usb_pad_depth;3.303;Tiefe des LOETBILDS von J1 ab der Platinenkante in +y. KEINE Hoehe. Aus hardware/layout-notes.md
+oled_act_x;10.54;aktive Flaeche der Anzeige in x
+oled_act_y;14.7;aktive Flaeche der Anzeige in y
+oled_win_margin;0.5;Rand des Dachfensters um die aktive Flaeche, je Seite, in der Platinenebene
+oled_glass_x;13.9;Glasmass der Anzeige in x
+oled_glass_y0;23.05;Vorderkante des Anzeigeglases in y
+oled_glass_y1;45.05;Hinterkante des Anzeigeglases in y
+oled_cx;13.5;Mitte der Anzeige in x - Plattenmitte bei 27 mm Breite
+led_win_d;2.5;Durchmesser des Lichtfensters der RGB-LED im Dach
+led_cx;13.5;Mitte von D1 in x
+led_back;4.0;Abstand der Mitte von D1 von der HINTEREN Platinenkante in y - D1 wandert mit der Spitze, siehe masse.md
+btn_slot_y;4.5;Laenge des SW1-Schlitzes in y
+btn_slot_z;2.4;Hoehe des SW1-Schlitzes in z
+btn_relief_y;5.6;Laenge der Freistellung fuer einen Taster in y - deckt auch die DigiKey-Lesart 4,70 mm Koerperlaenge
+btn_z;0.7;Mitte der Betaetigungsflaeche eines Tasters ueber der Platinen-OBERSEITE in z
+sw1_cy;24.5;Mitte von SW1 in y, Betaetigung zur Kante x=0. Aus hardware/layout-notes.md
+sw2_cy;8.6412;Mitte von SW2 in y, Betaetigung zur Kante x=27. Aus hardware/layout-notes.md
+sw2_pocket_d;0.8;Tiefe der Blindtasche fuer SW2 in x - die Wand bleibt stehen, der Reset darf von aussen nicht erreichbar sein
+sw2_island_x0;21.5;Innenkante der Trockeninsel um SW2 in x
+sd_slot_y0;27.9;Vorderkante des microSD-Schlitzes in y. Aus hardware/datentraeger.md
+sd_slot_y1;39.9;Hinterkante des microSD-Schlitzes in y
+sd_slot_z;1.8;Hoehe des microSD-Schlitzes in z
+sd_body_x1;14.05;Hinterkante des Schachtkoerpers in x, Vorderkante liegt an der Platinenkante
+sd_body_y0;27.0;Vorderkante des Schachtkoerpers in y
+sd_body_y1;40.85;Hinterkante des Schachtkoerpers in y
+fp_open_d;11.3;Durchmesser des Sensorsitzes im Boden - Sensor D11,0 plus 0,3 Klebefuge. NUR Stufe 2, im gebauten Koerper nicht enthalten
+fp_sensor_th;0.83;Dicke des Sensorkoerpers FPC2534AM in z. Aus docs/fingerprint.md - NICHT die 2,8 mm des BM-Lite
+eye_len;8.0;Anbau der Oese hinter der Platine in y
+eye_wid;12.0;Breite der Oese in x
+eye_hole_d;4.0;Durchmesser des Oesenlochs
+outer_corner_r;3.0;Aussenradius der senkrechten Gehaeuseecken

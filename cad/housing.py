@@ -1,7 +1,7 @@
 """opensecurekey - Gehaeuse in Fusion 360 bauen.
 
-Fusion-Skript. Es legt die Maße als Benutzerparameter an, baut die drei Teile
-und schreibt STEP und STL nach `cad/export/`.
+Fusion-Skript. Es legt die Masse als Benutzerparameter an, baut die zwei
+Schalen und schreibt STEP und STL nach `cad/export/`.
 
 So wird es benutzt:
 
@@ -11,16 +11,21 @@ So wird es benutzt:
 2. Eine **leere** neue Konstruktion oeffnen.
 3. Skript ausfuehren.
 
-Die Quelle aller Maße ist `cad/parameters.csv`. Im Koerper steht keine Zahl,
+Die Quelle aller Masse ist `cad/parameters.csv`. Im Koerper steht keine Zahl,
 die nicht von dort kommt. Aendert sich die Platinengroesse, wird **nur** die
 CSV geaendert und das Skript neu ausgefuehrt - es baut von Null auf, es gibt
 also keinen alten Stand, der nachgezogen werden muesste.
 
+Zwei Teile, nicht drei: der Sensorsitz der Stufe 2 gehoert nicht in diesen
+Lauf (siehe masse.md Abschnitt 6).
+
 Grenze, offen gesagt: die Benutzerparameter werden angelegt und beschriftet,
-aber die Skizzen sind nicht an sie bemaßt. Ein Parameter, der in Fusion von
+aber die Skizzen sind nicht an sie bemasst. Ein Parameter, der in Fusion von
 Hand verstellt wird, aendert den Koerper also nicht - dafuer die CSV aendern
-und neu laufen lassen. Alles andere waere ein viel groesseres Skript, ohne
-dass es die Arbeit leichter machen wuerde.
+und neu laufen lassen.
+
+Ohne Fusion laeuft `cad/tools/build_mesh.py`; es baut dieselben Koerper aus
+derselben Beschreibung, nur mit Quadraten statt Rundungen.
 """
 
 import os
@@ -34,11 +39,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 if os.path.join(HERE, "tools") not in sys.path:
     sys.path.insert(0, os.path.join(HERE, "tools"))
 
+import budget  # noqa: E402
 import geometry  # noqa: E402
 
 EXPORT = os.path.join(HERE, "export")
 
-# Welche Kanten gerundet werden
 R_OUTER = "outer_corner_r"
 
 
@@ -138,7 +143,7 @@ class Builder:
 
 
 def make_parameters(design, params):
-    """Legt die Maße als Benutzerparameter an - sie dokumentieren den Stand."""
+    """Legt die Masse als Benutzerparameter an - sie dokumentieren den Stand."""
     up = design.userParameters
     created = 0
     for name, (value, comment) in params.items():
@@ -151,6 +156,12 @@ def make_parameters(design, params):
     return created
 
 
+def _outer_corners(d):
+    """Die vier Ecken, die aussen gerundet werden: vorn am Stecker, hinten an der Oese."""
+    return [(d["ot_x0"], d["ot_y0"]), (d["ot_x1"], d["ot_y0"]),
+            (d["eye_x0"], d["eye_y1"]), (d["eye_x1"], d["eye_y1"])]
+
+
 def build_shell_top(design, p, d):
     b = Builder(design, "shell-top")
     for sign, box in geometry.shell_top(p, d, preview=False):
@@ -158,13 +169,16 @@ def build_shell_top(design, p, d):
             b.add_rect(box)
         else:
             b.cut_rect(box)
-    # die Vorschau-Quadrate durch echte Rundungen ersetzen
-    b.cut_circle(p["led_cx"], p["led_cy"], p["led_win_d"], d["z_cav_top"] - 0.1, d["z_roof"] + 0.1)
+    # die runden Formen, die die Vorschau als Quadrate zeigt
+    b.cut_circle(p["led_cx"], d["led_cy"], p["led_win_d"], d["z_pot_top"] - 0.1,
+                 d["z_roof"] + 0.1)
+    for cx, cy in d["ports"]:
+        b.cut_circle(cx, cy, p["pot_port_d"], d["z_pot_top"] - 0.1, d["z_roof"] + 0.1)
+    for cx, cy in d["vents"]:
+        b.cut_circle(cx, cy, p["pot_vent_d"], d["z_pot_top"] - 0.1, d["z_roof"] + 0.1)
     b.cut_circle(d["eye_cx"], d["eye_cy"], p["eye_hole_d"],
                  d["z_pcb_top"] - 0.1, d["z_roof"] + 0.1)
-    b.fillet_vertical_at([(d["ot_x0"], d["ot_y0"]), (d["ot_x0"], d["ot_y1"]),
-                          (d["eye_x1"], d["eye_y0"]), (d["eye_x1"], d["eye_y1"])],
-                         p[R_OUTER])
+    b.fillet_vertical_at(_outer_corners(d), p[R_OUTER])
     return b
 
 
@@ -175,21 +189,9 @@ def build_shell_bottom(design, p, d):
             b.add_rect(box)
         else:
             b.cut_rect(box)
-    b.cut_circle(p["fp_cx"], p["fp_cy"], p["fp_open_d"],
-                 d["z_floor"] - 0.1, d["z_cav_bot"] + 0.1)
     b.cut_circle(d["eye_cx"], d["eye_cy"], p["eye_hole_d"],
-                 d["z_floor"] - 0.1, d["z_pcb_top"] + p["lip_h"] + 0.1)
-    b.fillet_vertical_at([(d["ot_x0"], d["ot_y0"]), (d["ot_x0"], d["ot_y1"]),
-                          (d["eye_x1"], d["eye_y0"]), (d["eye_x1"], d["eye_y1"])],
-                         p[R_OUTER])
-    return b
-
-
-def build_sensor_plug(design, p, d):
-    b = Builder(design, "sensor-plug")
-    z0 = d["z_floor"]  # Vollzylinder, hier gibt es keinen Vorschau-Ersatz
-    b.add_circle(p["fp_cx"], p["fp_cy"], p["fp_open_d"] - p["fp_plug_fit"], z0, z0 + p["fp_plug_th"])
-    b.add_circle(p["fp_cx"], p["fp_cy"], p["fp_open_d"] + 1.5, z0 - 0.4, z0)
+                 d["z_floor"] - 0.1, d["z_pcb_top"] + p["join_lap"] + 0.1)
+    b.fillet_vertical_at(_outer_corners(d), p[R_OUTER])
     return b
 
 
@@ -231,17 +233,24 @@ def run(context):
         make_parameters(design, table)
 
         builders = [build_shell_top(design, p, d),
-                    build_shell_bottom(design, p, d),
-                    build_sensor_plug(design, p, d)]
+                    build_shell_bottom(design, p, d)]
         names = export_all(design, builders)
+
+        schlecht = budget.selftest(p)
+        waerme = budget.waerme(p, d)
 
         ui.messageBox(
             "Gehaeuse gebaut.\n\n"
-            "Dicke gesamt: %.2f mm\n"
-            "Aussen ohne Oese: %.2f x %.2f mm\n"
-            "Aussen mit Oese: %.2f mm lang\n\n"
+            "Gehaeusedicke: %.2f mm (Aussenflaeche unten bis oben)\n"
+            "Aussen ohne Oese: %.2f mm lang x %.2f mm breit\n"
+            "Aussen mit Oese: %.2f mm lang\n"
+            "Steckerversatz: %+.3f mm gegen die Gehaeusemitte\n"
+            "Uebertemperatur bei Spitzenlast: %.1f K\n"
+            "Kontrollpunkte der Hoehenrechnung: %s\n\n"
             "Geschrieben nach cad/export/: %s\n(je STEP und STL, dazu housing.f3d)"
             % (d["total_th"], d["outer_len"], d["outer_wid"], d["overall_len"],
+               d["plug_offset"], waerme["dt_k"],
+               "alle wie erwartet" if not schlecht else "FEHLER: " + "; ".join(schlecht),
                ", ".join(names)))
     except Exception:
         if ui:
