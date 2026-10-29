@@ -9,6 +9,7 @@
 
 #include <string.h>
 #include "store_internal.h"
+#include "osk_se050.h"
 
 static osk_store_state_t g_state;
 static uint64_t (*g_time_fn)(void);
@@ -127,6 +128,38 @@ static void hdr_from_v3(const osk_hdr_v3_t *old, osk_hdr_t *out)
 	memcpy(out->slot_used, old->slot_used, sizeof(old->slot_used));
 }
 
+/* ---- Kopf der Fassungen 4 und 5 lesen -------------------------------- */
+
+static bool hdr_v5_valid(const osk_hdr_v5_t *h)
+{
+	return h->magic == OSK_HDR_MAGIC && h->hdr_size == sizeof(osk_hdr_v5_t) &&
+	       h->format <= OSK_FMT_V5 && h->crc32 == osk_crc32(h, sizeof(*h) - sizeof(h->crc32));
+}
+
+/* Rechnet einen Kopf der Fassung 4 oder 5 im RAM auf die jetzige Fassung um.
+ * Gewachsen ist nur das Pruefmal der Wisch-PIN, und das gab es dort nicht -
+ * es bleibt also leer, und geraten wird nichts. Die Saetze liegen im selben
+ * Ring und in denselben Plaetzen: der Platz ist 1 KiB gross, beide Fassungen
+ * passen hinein. */
+static void hdr_from_v5(const osk_hdr_v5_t *old, osk_hdr_t *out)
+{
+	memset(out, 0, sizeof(*out));
+	out->magic = old->magic;
+	out->format = old->format;
+	out->hdr_size = (uint16_t)sizeof(*out);
+	out->seq = old->seq;
+	out->sector_of_slot = old->sector_of_slot;
+	out->nonce_next = old->nonce_next;
+	memcpy(out->index_block, old->index_block, sizeof(out->index_block));
+	memcpy(out->index_count, old->index_count, sizeof(out->index_count));
+	memcpy(out->index_blocks, old->index_blocks, sizeof(out->index_blocks));
+	out->index_alloc = old->index_alloc;
+	out->blob_cursor = old->blob_cursor;
+	out->item_next = old->item_next;
+	memcpy(out->profile_used, old->profile_used, sizeof(out->profile_used));
+	memcpy(out->slot_used, old->slot_used, sizeof(out->slot_used));
+}
+
 osk_result_t osk_hdr_mount(void)
 {
 	osk_hdr_t cand;
@@ -151,6 +184,27 @@ osk_result_t osk_hdr_mount(void)
 		 * Satz, also entscheidet sie allein - nicht die Lage im Flash. */
 		if (!found || cand.seq > g_state.hdr.seq) {
 			g_state.hdr = cand;
+			g_state.hdr_slot = addr;
+			found = true;
+		}
+	}
+
+	/* Dann dieselben Plaetze noch einmal als Kopf der Fassungen 4 und 5.
+	 * Ein Platz ist 1 KiB gross und traegt genau EINEN Satz, also kann
+	 * hoechstens eine der beiden Pruefungen anschlagen. */
+	for (uint32_t i = 0; i < OSK_HDR_SLOTS; i++) {
+		uint32_t addr = OSK_AREA_HDR2_OFF + i * OSK_HDR_SLOT;
+		osk_hdr_v5_t old;
+
+		r = osk_flash_read(addr, &old, sizeof(old));
+		if (r != OSK_OK) {
+			return r;
+		}
+		if (!hdr_v5_valid(&old)) {
+			continue;
+		}
+		if (!found || old.seq > g_state.hdr.seq) {
+			hdr_from_v5(&old, &g_state.hdr);
 			g_state.hdr_slot = addr;
 			found = true;
 		}
@@ -265,6 +319,70 @@ osk_result_t osk_hdr_commit(void)
 		return r;
 	}
 	g_state.hdr_slot = addr;
+
+	/* Der Anker, und zwar JETZT und nicht vorher: im Flash steht die neue
+	 * Folgenummer, also darf der Chip ihr folgen. Andersherum stuende im
+	 * Chip nach einem Stromausfall ein Wert, den der Flash nie erreicht -
+	 * und der Tresor liesse sich nie wieder oeffnen.
+	 *
+	 * Scheitert das Anheben, ist die Aenderung trotzdem gueltig: der Chip
+	 * hinkt dann um einen Schritt hinterher, und osk_guard_check() holt
+	 * ihn beim naechsten Oeffnen nach. Darum wird der Fehler hier nicht
+	 * weitergereicht - er wuerde eine gelungene Transaktion
+	 * zurueckdrehen, die im Flash schon steht. */
+	(void)osk_se050_counter_raise(OSK_KEYID_VAULT_GEN, g_state.hdr.seq);
+	return OSK_OK;
+}
+
+/* ---- Rueckdrehschutz -------------------------------------------------- */
+
+osk_result_t osk_guard_check(void)
+{
+	uint64_t anchor = 0;
+	osk_result_t r = osk_se050_counter_read(OSK_KEYID_VAULT_GEN, &anchor);
+
+	if (r == OSK_ERR_NOT_FOUND) {
+		/* Erstes Oeffnen auf diesem Chip: Zaehler anlegen und auf den
+		 * Stand bringen, den der Flash schon hat. Der ANFANGSWERT
+		 * eines frisch angelegten Zaehlers steht in AN12413 nicht -
+		 * darum wird er gelesen und nicht angenommen. */
+		r = osk_se050_counter_create(OSK_KEYID_VAULT_GEN);
+		if (r != OSK_OK) {
+			return r;
+		}
+		r = osk_se050_counter_read(OSK_KEYID_VAULT_GEN, &anchor);
+	}
+	if (r != OSK_OK) {
+		return r;
+	}
+
+	if (g_state.hdr.seq < anchor) {
+		/* Der Flash ist aelter als der Chip. Genau das ist der
+		 * Angriff: ein in sich voellig gueltiger alter Zustand -
+		 * richtige Pruefsummen, richtige Pruefwerte, richtiges Format.
+		 * Gegen einen verfaelschten haette die Verschluesselung schon
+		 * geholfen; hier hilft nur der Zaehler, der nicht mit
+		 * zurueckgespielt werden kann. */
+		return OSK_ERR_ROLLBACK;
+	}
+
+	/* Der Flash ist weiter als der Chip: der Strom fiel zwischen Kopfsatz
+	 * und Anheben aus. Wiederholbar, also einfach nachholen. */
+	if (g_state.hdr.seq > anchor) {
+		return osk_se050_counter_raise(OSK_KEYID_VAULT_GEN, g_state.hdr.seq);
+	}
+	return OSK_OK;
+}
+
+osk_result_t osk_store_generation(uint64_t *value_out)
+{
+	if (value_out == NULL) {
+		return OSK_ERR_ARG;
+	}
+	if (!g_state.open) {
+		return OSK_ERR_LOCKED;
+	}
+	*value_out = g_state.hdr.seq;
 	return OSK_OK;
 }
 
@@ -288,7 +406,35 @@ osk_result_t osk_hdr_format(uint16_t format)
 	g_state.hdr.index_alloc = 0u;
 	g_state.hdr.blob_cursor = 0u;
 	g_state.hdr.item_next = 1u; /* Kennung 0 heisst "kein Eintrag" */
-	g_state.hdr.seq = 0u;
+
+	/* Ein frischer Tresor faengt NICHT bei null an, sondern ueber dem
+	 * Stand des Chipzaehlers. Sonst waere Loeschen der Weg zurueck: wer
+	 * den Flash leert, bekaeme einen Tresor mit seq 1, und der Zaehler im
+	 * Chip stuende auf tausend - entweder der Tresor liesse sich nie
+	 * oeffnen, oder der Schutz waere weg. Gelesen wird der Stand, nicht
+	 * angenommen: der Anfangswert eines frischen Zaehlers steht in
+	 * AN12413 nicht. */
+	uint64_t anchor = 0;
+	osk_result_t cr = osk_se050_counter_read(OSK_KEYID_VAULT_GEN, &anchor);
+
+	if (cr == OSK_ERR_NOT_FOUND) {
+		cr = osk_se050_counter_create(OSK_KEYID_VAULT_GEN);
+		if (cr == OSK_OK) {
+			cr = osk_se050_counter_read(OSK_KEYID_VAULT_GEN, &anchor);
+		}
+	}
+	if (cr != OSK_OK) {
+		return cr;
+	}
+	/* Zwei Breiten, die dasselbe zaehlen: der Chipzaehler ist 64 Bit
+	 * breit, die Folgenummer im Kopf 32. Stillschweigend abzuschneiden
+	 * waere der Weg zurueck durch die Hintertuer - also lieber gar kein
+	 * Tresor als einer mit kleinerer Nummer. Erreicht wird das nie: bei
+	 * einem Kopfsatz je Sekunde dauert es 136 Jahre. */
+	if (anchor >= 0xFFFFFFFFull) {
+		return OSK_ERR_FULL;
+	}
+	g_state.hdr.seq = (uint32_t)anchor;
 	g_state.hdr_slot = 0u;
 	g_state.nonce_cur = 1u;
 

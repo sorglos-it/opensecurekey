@@ -64,4 +64,35 @@ osk_result_t osk_store_item_set_se050_key(osk_item_id_t id, uint32_t key_id);
 osk_result_t osk_store_item_counter(osk_item_id_t id, uint64_t *out);
 osk_result_t osk_store_item_counter_next(osk_item_id_t id, uint64_t *out);
 
+/* ---- Wisch-PIN -------------------------------------------------------
+ *
+ * Eine zweite PIN je Profil, deren Eingabe den ganzen Tresor loescht. Sie
+ * steht hier und nicht in osk_store.h, weil der gemeinsame Kopf vom Master
+ * festgelegt ist und kein Feld dafuer hat - wie der Schreibschutz und der
+ * oeffentliche Teil darueber.
+ *
+ * Abschaltbar: ohne gesetzte Wisch-PIN gibt es keine, und dann verhaelt
+ * sich das Geraet genau wie bisher.
+ *
+ * Drei Dinge, die zum Vertrag gehoeren:
+ *
+ *  - Beim Aufschliessen meldet die Wisch-PIN OSK_ERR_DENIED, dasselbe wie
+ *    eine falsche PIN. Wer das Loeschen erzwingen will, soll nicht sehen,
+ *    dass es geschehen ist, und wer sie nicht kennt, soll nicht merken,
+ *    dass es eine gibt.
+ *  - Sie wird vor der Chip-PIN geprueft. Sonst verbrauchte jede Eingabe
+ *    einen Fehlversuch im Chip, und nach ein paar Malen liesse sich das
+ *    Geraet nicht einmal mehr loeschen.
+ *  - Sie darf nicht dieselbe sein wie die echte PIN des Profils; das waere
+ *    ein Tresor, der sich beim Aufschliessen selbst loescht. Der Versuch
+ *    ergibt OSK_ERR_ARG.
+ *
+ * Was das Loeschen NICHT kann: den Rueckdrehschutz aufheben. Der Zaehler im
+ * SE050 bleibt stehen, und der frische Tresor faengt ueber ihm an. Sonst
+ * waere die Wisch-PIN selbst der Weg zurueck - loeschen, alten Stand
+ * zurueckspielen, fertig. */
+osk_result_t osk_store_wipe_pin_set(uint8_t profile, const uint8_t *pin, size_t pin_len);
+osk_result_t osk_store_wipe_pin_clear(uint8_t profile);
+bool osk_store_wipe_pin_is_set(uint8_t profile);
+
 #endif
