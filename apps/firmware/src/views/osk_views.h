@@ -48,7 +48,7 @@ void osk_view_decide(osk_gfx_t *fb, const osk_ask_req_t *req, bool again);
 /* Wieviele Leseseiten braucht dieser Anlass? Mindestens 1. */
 size_t osk_view_pages(const osk_ask_req_t *req);
 
-/* Zustand des Geraets: gesperrt, offen, arbeitet, Akku schwach, Fehler. */
+/* Zustand des Geraets: gesperrt, offen, arbeitet, Fehler. */
 void osk_view_status(osk_gfx_t *fb, const char *text_key);
 
 /* Benutzerpruefung: der Hinweis, die PIN am Rechner einzugeben. */

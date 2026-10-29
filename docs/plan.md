@@ -17,7 +17,13 @@ Stufe 2 von 4** — geschrieben / übersetzt / im Abbild / am Gerät gelaufen.
 `applets` 1384 Fälle, **zusammen 92 993, kein Fehler**. Die Fassung **ohne**
 RSA ist mitgemessen: `applets` 1222 Fälle, 0 Fehler — eine Option, die nur in
 einer Richtung geprüft ist, ist keine. Dazu `tools/check.py`:
-14 Schritte ok, 308 Tests, 0 Fehler. **Drei Schritte sind dort übersprungen und
+14 Schritte ok, 308 Tests, 0 Fehler.
+
+**Am 30.10.2026 nachgemessen**, nach vier weiteren Strängen: `check.py`
+14 ok, 3 übersprungen, **330 Tests, 0 Fehler**; der UI-Prüfsatz
+**4074 Prüfungen, 0 Fehler** (gemessen auf `C:`, weil die WSL Netzlaufwerke
+nicht übersetzt); die Höhenrechnung `cad/tools/budget.py` **9 von 9
+Kontrollpunkten, 4 davon mussten anschlagen**. **Drei Schritte sind übersprungen und
 damit NICHT geprüft:** `firmware/build` (kein nRF Connect SDK),
 `firmware/tests` und `firmware/format`. Die C-Prüfläufe der Stränge laufen
 deshalb ausdrücklich nicht über `check.py`, sondern über die Skripte in
@@ -385,7 +391,14 @@ dahinter fehlt.
   muss in Dateiname **und** Abbildkopf stehen, sonst spielt jemand die falsche
   auf.
 - **Hybrides ML-KEM** für Stick-zu-Stick, Server-zu-Server und CXP.
-- **Dateiwerkzeug** `osk encrypt` / `osk decrypt`.
+- **Dateiwerkzeug** `osk encrypt` / `osk decrypt`. **Gebaut am 30.10.2026**,
+  beide Formate (`age` und OpenPGP), ohne fremde Bibliothek. Geprüft: Rundlauf
+  Byte für Byte, Verfälschung wird erkannt, falscher Empfänger scheitert.
+  **Die Gegenseite im Chip ist eine Attrappe.** Die wichtigste ihrer Annahmen,
+  und am Gerät zuerst zu prüfen: **ob der SE051 das rohe ECDH-Ergebnis
+  herausgibt oder ein schon abgeleitetes.** Davon hängt ab, ob sich eine Datei
+  später überhaupt öffnen lässt. Die übrigen stehen in
+  `docs/dateiwerkzeug.md`.
 - **CSR und CA-Verwaltung**, mit Widerrufsweg.
 - **CXF-Import und -Export.**
 
@@ -464,11 +477,28 @@ jede Planung auf Sand gebaut. Die vier schwerwiegenden:
    Variantentabelle AN12973 sagt das Gegenteil. **Entschieden wird es am
    gelieferten Teil** — Kennung lesen, einmal, und die Frage ist weg.
 
-> **Das Muster dahinter, in diesem Projekt sechsmal aufgetreten: zwei Größen,
+> **Das Muster dahinter, in diesem Projekt neunmal aufgetreten: zwei Größen,
 > die gleich heißen und Verschiedenes messen.** Padmitten gegen Kupfer.
 > Kontaktzahl gegen Pinzahl. Gigabit gegen Gigabyte. Luftlinie gegen verlegte
 > Länge. Gehäusetiefe gegen Lötbildtiefe. Zellenmaße mit und ohne
-> Schutzplatine.
+> Schutzplatine. Geräteweiter Signaturzähler gegen Zähler je Nachweis.
+> Bauteilhöhe gegen Gehäusedicke.
+
+**Sechs der acht sind am 30.10.2026 aufgelöst**, jede Zahl steht nur noch an
+einer Stelle:
+
+| | aufgelöst wie | gilt jetzt in |
+| --- | --- | --- |
+| **1** | Der ARM-Bau ist am 25.10.2026 wirklich geschehen — `update.md` und `CHANGELOG` waren vom 24.10. und überholt. **Nachgemessen:** zwei Werkzeuge, und die Rechnung geht auf (160 148 + 976 = 161 124 B), Board `nrf52840dk/nrf52840`. Das Projekt bleibt auf **Stufe 2 von 4** | `docs/build.md` |
+| **2** | PIV, OpenPGP, Wallet, Anzeige, Funk sind **geschrieben und übersetzt**; `architecture.md` sagte noch „nichts davon geschrieben". Offen bleibt nur die Zephyr-Anbindung und `osk_ui_port_nrf.c` | `docs/architecture.md` |
+| **3** | Zwei Größen gleichen Namens: **abgeleitete** Nachweise (gespiegelt, unbegrenzt) gegen **je ein Schlüsselpaar im Chip** (nur dieses Gerät, endlich) | `docs/architecture.md` |
+| **5** | Die Auslagerung des Update-Platzes war **nicht nötig** und bleibt als Reserve | `docs/architecture.md` |
+| **6** | Gültig ist die **Messung** (`laufwerk.md`, 29,10 MB), nicht die Rechnung; `hardware.md` ist als überholt gekennzeichnet | `docs/laufwerk.md` |
+| **7** | Der offene Punkt war **erledigt**: der Code liest den öffentlichen Teil, `reveal` ist nur Rückfall | `docs/anbindungen.md` |
+
+**Zwei bleiben offen, und das mit Absicht:** 4 (Nutzerspeicher) und 8 (kann der
+Chip Ed25519, X25519, ECDH) entscheidet erst der gelieferte Chip. Dort zu raten
+wäre eine erfundene Entscheidung, und die ist schlimmer als ein offener Punkt.
 
 ---
 
@@ -608,6 +638,8 @@ entstehen wieder zwei Wahrheiten:
 | FIPS 140-3: elf Bereiche als Bauliste, 21 Bauaufgaben | `D:\claude\side-session-notes\fips-140-3.md` |
 | Maße, Bänder, Platzierung | `hardware/layout-notes.md` |
 | Messmittel für die Platine (Kupfer am Punkt, Pad gegen Pad, Hülle des Funkmoduls) | `hardware/tools/LIESMICH.md` |
+| Gehäusemaße, Lagensummen, warum 2,90 mm nicht die Gehäusedicke ist | `cad/masse.md` |
+| Dateiwerkzeug `osk encrypt` / `osk decrypt` | `docs/dateiwerkzeug.md` |
 | Wo sich SE050-Applet 3.x und 7.2 unterscheiden | `docs/se051-unterschiede.md` |
 
 **Zum Aufräumen im Repo:**
@@ -617,29 +649,65 @@ Chipwert daraus, 3,00 µA Deep Power-down, steht in `docs/stromaufnahme.md`) ·
 `hardware/layout-notes.md` und `docs/fingerprint.md` berichtigt · Gegenprobe
 über das ganze Repo gelaufen.
 
-**Der Befund der Gegenprobe war größer als erwartet.** Die Höhengrenze ist
-**von 3,8 auf 2,90 mm gefallen** — ohne Akku ist der **USB-Stecker J1 das
-dickste Teil**. Das ist eine Verschärfung, keine Entlastung, und der Sensor der
-Stufe 2 (FPC2534, 2,8 mm beim BM-Lite) passt nur noch mit **0,1 mm Luft**
-darunter.
+**Der Befund der Gegenprobe war größer als erwartet** — und am 30.10.2026 hat
+sich gezeigt, dass er auch falsch gelesen war. Hier stand, die Höhengrenze sei
+„von 3,8 auf 2,90 mm gefallen" und der Sensor der Stufe 2 passe nur noch mit
+0,1 mm Luft darunter. **Beides stimmt nicht**, weil die 2,90 mm etwas anderes
+messen als eine erlaubte Gehäusedicke:
+
+- **2,90 mm ist die Höhe der Steckerhülle von J1 über alles**, symmetrisch zur
+  Platinenmittelebene — das, was in eine USB-Buchse passen muss.
+- **Die Gehäusedicke ist 7,03 mm** (`cad/masse.md`, Fall `stufe1-b`), und für
+  sie ist überhaupt keine Grenze gesetzt. Eine von 2,90 mm wäre auch nicht
+  baubar: U1 allein ist 2,05 mm hoch und steht auf der 0,8 mm dicken Platine,
+  für Dach und Boden blieben 0,05 mm.
+- **Die einzelnen Bauteile bleiben unter 2,90 mm** — das höchste ist U1 mit
+  2,05 mm. Diese Prüfung ist eingehalten.
+
+**Das ist der neunte Fall desselben Fehlermusters: zwei Größen, die gleich
+heißen und Verschiedenes messen** — hier Bauteilhöhe gegen Gehäusedicke. Der
+Satz oben hat sie drei Tage lang verwechselt, und aus ihm wäre die falsche
+Entscheidung über den Fingerabdrucksensor gefolgt.
 
 **Was daraus offen bleibt:**
 
-12. **Das Gehäuse muss neu gezeichnet werden, nicht ausgebessert.**
-    `cad/masse.md`, `cad/gehaeuse.md` und `cad/tools/geometry.py` hängen alle
-    drei am Zellenraum, der mit 4,05 mm das dickste Element jeder Lagensumme
-    war — über zwanzig Stellen, die Aufteilung quer eingeschlossen. **Alle drei
-    sind als überholt gekennzeichnet; keine Zahl daraus gilt.** Arbeit für den
-    Gehäuse-Strang, und sie beginnt erst, wenn das Platinenmaß steht.
+12. ~~**Das Gehäuse muss neu gezeichnet werden.**~~ **ERLEDIGT am
+    30.10.2026.** `cad/masse.md` und `cad/gehaeuse.md` sind neu geschrieben,
+    das Geometrieskript rechnet sechs Fälle durch. **Gehäusedicke 7,03 mm**
+    (Fall `stufe1-b`, der gebaute). **Nachgemessen:** `cad/tools/budget.py`
+    bestand 9 von 9 Kontrollpunkten, 4 davon mussten anschlagen. Dabei kam der
+    Lesefehler zu den 2,90 mm heraus, der oben in Abschnitt 2 steht.
+    **Gezeichnet und gerechnet — nichts gedruckt, nichts gemessen.**
 13. **Bauhöhe des FPC2534 mit Fassung** — 0,83 mm ist der Sensorkörper allein.
-    Erst mit ZIF-Steckverbinder gemessen sagt die Zahl, ob Stufe 2 ohne
-    Gehäuseänderung geht. **Nur messbar, nicht ableitbar.**
-14. **`status.battery` ist ein toter Zustand in der Firmware** — „Akku schwach"
-    steht in fünf Sprachdateien, die Oberfläche bildet ihn auf Bernstein ab,
-    drei Prüfungen prüfen ihn, **und nichts setzt ihn je.** Herausnehmen
-    verschiebt die Zeichenketten-Indizes, darum gehört es dem UI-Strang und
-    nicht dem Aufräumen. *(Dasselbe Muster wie immer: eine Entscheidung
-    vermehrt sich in fünf Sprachen.)*
+    Die Frage hing bisher an der falschen Grenze: Mit der Gehäusedicke als Maß
+    ist der Sensor **kein Engpass mehr** — der Fall `stufe2-b` kommt auf
+    dieselben 7,03 mm wie der gebaute. Nur das deutlich dickere BM-Lite-Modul
+    kostet 1,12 mm. **Trotzdem nicht ableitbar, sondern am Muster zu messen** —
+    aber es entscheidet nicht mehr über das Gehäuse.
+14. ~~**`status.battery` ist ein toter Zustand.**~~ **ERLEDIGT am 30.10.2026.**
+    Aus Firmware, Sprachtabelle und fünf Sprachdateien heraus; vier Zustände
+    bleiben (gesperrt, offen, arbeitet, Fehler). **Nachgemessen:** 30 Schlüssel
+    in allen fünf Sprachen deckungsgleich **auch in der Reihenfolge**, der
+    Erzeuger `generate.py --check` stimmt mit den erzeugten Dateien überein,
+    UI-Prüfsatz **4074 Prüfungen, 0 Fehler**. Beim Nachmessen fand ich noch
+    einen Kommentar in `osk_views.h`, der den Akku weiterführte — der Code war
+    richtig, der Kommentar nicht.
+
+**Daraus neu offen, beides beim Nachmessen am 30.10.2026 gefunden:**
+
+15. **`hardware/layout-notes.md` trägt den Akku noch im laufenden Text.** Die
+    Tabellen oben sind berichtigt und durchgestrichen, aber darunter stehen
+    über hundert Zeilen, die mit ihm rechnen: Abstand zur NFC-Antenne,
+    Ferritfolie zwischen Zelle und Platine, Ladepfad U4/C1/C2, Akkustecker J2,
+    „die Anzeige kommt gegenüber dem Akku". **Das ist die Quelle, aus der
+    Platine und Gehäuse ihre Maße lesen** — sie darf keine Zahl zu einem
+    Bauteil führen, das es nicht gibt. Wer sie aufräumt, muss bei jeder Stelle
+    entscheiden, ob die Begründung mit dem Akku fällt (Ferritfolie, Ladepfad)
+    oder ohne ihn weiter gilt (Abstand zur Antenne).
+16. **Die Grenze „Stecker mittig ± 0,50 mm" ist nirgends belegt.** Sie steht
+    nur in `cad/tools/budget.py` und entscheidet, welche Datenträger-Variante
+    zulässig ist (0,435 mm besteht, 0,525 mm nicht). Eine Grenze, die nur im
+    Prüfskript steht, ist eine Behauptung des Prüfskripts.
 
 ---
 
