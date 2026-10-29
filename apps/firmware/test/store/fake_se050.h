@@ -4,6 +4,7 @@
  *  - eine geraetegebundene Ableitung, die je Geraet anders ausfaellt
  *  - eine PIN-Pruefung mit Fehlversuchszaehler
  *  - einen Schluesselaustausch, bei dem beide Seiten denselben Wert erhalten
+ *  - monotone Zaehler, die NUR vorwaerts gehen
  *
  * Der Austausch ist ein Spielzeug: die Attrappe rechnet das gemeinsame
  * Geheimnis aus den beiden oeffentlichen Teilen. Damit laesst sich der ABLAUF
@@ -24,5 +25,14 @@ void fake_se050_set_pin(const char *pin);
 void fake_se050_reset(void);
 
 uint8_t fake_se050_tries_left(void);
+
+/* Stand eines Zaehlers, ohne ihn anzufassen. (uint64_t)-1 heisst: gibt es
+ * nicht. Nur fuer die Pruefsaetze - das Geraet kennt diesen Weg nicht. */
+uint64_t fake_se050_counter_peek(uint32_t id);
+
+/* Einen frisch angelegten Zaehler NICHT bei null anfangen lassen. Der
+ * Anfangswert steht in AN12413 nicht; der Tresor darf sich also nicht auf
+ * null verlassen, und genau das laesst sich damit nachstellen. */
+void fake_se050_counter_start_at(uint64_t value);
 
 #endif

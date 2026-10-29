@@ -21,6 +21,21 @@ struct dev {
 	osk_key_id_t key_id;
 };
 
+#define COUNTERS 4
+
+/* Monotone Zaehler. Sie gehoeren zum GERAET und nicht zum Flash - das ist
+ * der ganze Sinn: ein zurueckgespielter Flash nimmt sie nicht mit. Darum
+ * ueberlebt dieser Platz auch fake_flash_wipe(). */
+struct ctr {
+	uint32_t dev;
+	uint32_t id;
+	bool used;
+	uint64_t value;
+};
+
+static struct ctr g_ctr[COUNTERS];
+static uint64_t g_ctr_start;
+
 static uint32_t g_device = 1u;
 static char g_pin[65] = "123456";
 static uint8_t g_tries = TRIES_MAX;
@@ -68,6 +83,84 @@ void fake_se050_reset(void)
 {
 	g_tries = TRIES_MAX;
 	memset(g_dev, 0, sizeof(g_dev));
+	memset(g_ctr, 0, sizeof(g_ctr));
+	g_ctr_start = 0u;
+}
+
+/* ---- monotone Zaehler ------------------------------------------------- */
+
+static struct ctr *ctr_find(uint32_t id)
+{
+	for (int i = 0; i < COUNTERS; i++) {
+		if (g_ctr[i].used && g_ctr[i].dev == g_device && g_ctr[i].id == id) {
+			return &g_ctr[i];
+		}
+	}
+	return NULL;
+}
+
+void fake_se050_counter_start_at(uint64_t value)
+{
+	g_ctr_start = value;
+}
+
+uint64_t fake_se050_counter_peek(uint32_t id)
+{
+	struct ctr *c = ctr_find(id);
+
+	return (c != NULL) ? c->value : (uint64_t)-1;
+}
+
+osk_result_t osk_se050_counter_create(osk_key_id_t id)
+{
+	/* Die Falle aus AN12413: ein WriteCounter OHNE Wert gegen einen
+	 * BESTEHENDEN Zaehler heisst "um eins erhoehen". Eine
+	 * Einrichtungsroutine, die zweimal laeuft, haette den Rueckdrehschutz
+	 * still verschoben. Darum wird zuerst nachgesehen. */
+	if (ctr_find(id) != NULL) {
+		return OSK_ERR_EXISTS;
+	}
+	for (int i = 0; i < COUNTERS; i++) {
+		if (!g_ctr[i].used) {
+			g_ctr[i].used = true;
+			g_ctr[i].dev = g_device;
+			g_ctr[i].id = id;
+			g_ctr[i].value = g_ctr_start;
+			return OSK_OK;
+		}
+	}
+	return OSK_ERR_FULL;
+}
+
+osk_result_t osk_se050_counter_read(osk_key_id_t id, uint64_t *value_out)
+{
+	struct ctr *c = ctr_find(id);
+
+	if (value_out == NULL) {
+		return OSK_ERR_ARG;
+	}
+	if (c == NULL) {
+		return OSK_ERR_NOT_FOUND;
+	}
+	*value_out = c->value;
+	return OSK_OK;
+}
+
+osk_result_t osk_se050_counter_raise(osk_key_id_t id, uint64_t at_least)
+{
+	struct ctr *c = ctr_find(id);
+
+	if (c == NULL) {
+		return OSK_ERR_NOT_FOUND;
+	}
+	/* Wiederholbar: steht er schon dort oder hoeher, aendert sich nichts
+	 * und das Ergebnis ist trotzdem OSK_OK. Genau das wird nach einem
+	 * Stromausfall mitten im Schreiben gebraucht. Kleiner wird er nie -
+	 * es gibt keinen Weg zurueck, auch nicht in der Attrappe. */
+	if (at_least > c->value) {
+		c->value = at_least;
+	}
+	return OSK_OK;
 }
 
 uint8_t fake_se050_tries_left(void)

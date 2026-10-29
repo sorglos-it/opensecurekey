@@ -81,5 +81,10 @@ void test_wordlist(void);
 void test_tag(void);
 void test_paging(void);
 void test_public(void);
+void test_guard(void);
+void test_logchain(void);
+void test_wipe(void);
+void test_sigcount(void);
+void test_capacity(void);
 
 #endif

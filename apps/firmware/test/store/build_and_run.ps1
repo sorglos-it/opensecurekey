@@ -42,6 +42,11 @@ $sources = @(
     (Join-Path $here 'test_transfer.c'),
     (Join-Path $here 'test_wear.c'),
     (Join-Path $here 'test_wordlist.c'),
+    (Join-Path $here 'test_guard.c'),
+    (Join-Path $here 'test_logchain.c'),
+    (Join-Path $here 'test_wipe.c'),
+    (Join-Path $here 'test_sigcount.c'),
+    (Join-Path $here 'test_capacity.c'),
     (Join-Path $here 'test_main.c')
 )
 

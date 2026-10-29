@@ -45,6 +45,17 @@ void fake_flash_revive(void);
 void fake_flash_read_reset(void);
 uint32_t fake_flash_reads_in(uint32_t area_off, uint32_t area_len);
 
+/* Ein vollstaendiges Abbild der gewaehlten Bank sichern und spaeter wieder
+ * einspielen. Damit laesst sich der eigentliche Angriff auf den
+ * Rueckdrehschutz nachstellen: ein in sich VOELLIG GUELTIGER alter Zustand -
+ * richtige Pruefsummen, richtige Pruefwerte, richtiges Format -, nicht ein
+ * verfaelschter. Gegen einen verfaelschten hilft die Verschluesselung schon.
+ *
+ * Was NICHT mitgesichert wird, ist der SE050: die Zaehler dort bleiben
+ * stehen, und genau daran faellt das Zurueckspielen auf. */
+void fake_flash_snapshot(void);
+void fake_flash_rollback(void);
+
 /* Loeschvorgaenge eines Sektors, fuer die Verschleissmessung. */
 uint32_t fake_flash_erase_count(uint32_t addr);
 uint32_t fake_flash_erase_total(void);
