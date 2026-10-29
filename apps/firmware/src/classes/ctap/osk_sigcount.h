@@ -38,7 +38,25 @@
  *
  * Das ist die eine Stelle, an der der Vertrag osk_store_sigcount_next() auf
  * unsere Bauart trifft: er nimmt eine Eintragskennung, und fuer einen
- * geraeteweiten Zaehler gibt es keine. Gemeldet an den Master am 29.10.2026. */
+ * geraeteweiten Zaehler gibt es keine.
+ *
+ * OFFEN, GEMELDET AN DEN MASTER AM 29.10.2026 - UND AM GERAET HEUTE EIN
+ * FEHLER: Strang D hat den Vertrag inzwischen JE EINTRAG umgesetzt
+ * (store_items.c, osk_store_sigcount_next -> sigcount_rec -> find_rec: der
+ * Stand liegt als rec->sigcount im Indexsatz des Eintrags). Fuer die
+ * Kennung 0 findet find_rec nichts und meldet OSK_ERR_NOT_FOUND; dieses
+ * Modul gibt den Fehler weiter, und CTAP signiert dann gar nicht.
+ *
+ * Damit laeuft FIDO2 am Geraet erst, wenn EINE der beiden Seiten geaendert
+ * ist, und das entscheidet der Master, nicht dieser Strang:
+ *   - entweder behandelt der Tresor die Kennung 0 als "Zaehler des
+ *     Geraets" (ein Feld im Kopfsatz, so wie item_next dort liegt), oder
+ *   - CTAP zaehlt nur fuer auffindbare Nachweise - dann haben die nicht
+ *     auffindbaren und U2F GAR KEINEN Zaehler, und das sind die meisten.
+ * Der erste Weg ist der kleinere Eingriff und der einzige, der alle
+ * Nachweise abdeckt. Am PC faellt der Unterschied nicht auf: die Attrappe
+ * in test/ctap/mocks.c fuehrt einen geraeteweiten Zaehler und uebergeht die
+ * Kennung - sie prueft also diese Seite des Vertrags, nicht jene. */
 #define OSK_SIGCOUNT_SLOT ((osk_item_id_t)0)
 
 /* Um eins erhoehen, festschreiben und den NEUEN Wert liefern. Wird VOR dem
