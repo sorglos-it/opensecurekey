@@ -184,7 +184,6 @@ void test_flow(void)
 	T_EQ(osk_ui_led_for("status.locked"), OSK_LED_RED);
 	T_EQ(osk_ui_led_for("status.error"), OSK_LED_RED);
 	T_EQ(osk_ui_led_for("status.busy"), OSK_LED_AMBER);
-	T_EQ(osk_ui_led_for("status.battery"), OSK_LED_AMBER);
 	T_EQ(osk_ui_led_for(NULL), OSK_LED_OFF);
 
 	osk_test_case("der Zustand wird gezeigt und die LED mitgesetzt");

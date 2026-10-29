@@ -18,7 +18,7 @@ typedef enum {
 	OSK_LED_OFF = 0,
 	OSK_LED_GREEN, /* offen, fertig */
 	OSK_LED_BLUE,  /* wartet auf den Nutzer */
-	OSK_LED_AMBER, /* arbeitet, Akku schwach */
+	OSK_LED_AMBER, /* arbeitet */
 	OSK_LED_RED,   /* gesperrt, Fehler */
 } osk_led_t;
 

@@ -38,7 +38,6 @@ static const char *const USED[] = {
     "status.locked",
     "status.unlocked",
     "status.busy",
-    "status.battery",
     "status.error",
     "verify.title",
     "verify.hint",

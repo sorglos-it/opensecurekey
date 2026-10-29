@@ -241,7 +241,7 @@ void test_confirm(void)
 	osk_test_case("Zustandsbilder: jeder Zustand steht lesbar da");
 	{
 		static const char *const keys[] = {"status.locked", "status.unlocked",
-						   "status.busy", "status.battery", "status.error"};
+						   "status.busy", "status.error"};
 
 		for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++) {
 			osk_view_status(&fb, keys[i]);
