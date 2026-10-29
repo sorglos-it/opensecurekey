@@ -280,50 +280,85 @@ class StepWriter:
         return len(used)
 
 
-def check_openings(p, d):
-    """Stichproben im Koerper: ist jede Oeffnung wirklich offen?
+def probe_list(p, d):
+    """Die Proben im Koerper: (Name, Koerper, Punkt, soll_voll).
 
-    Der Anlass steht in cad/gehaeuse.md, Befund 4: der Schnappfalz der unteren
-    Schale stand vor der Tasteroeffnung und vor der USB-Oeffnung. Das zeigt
-    keine Dickenrechnung und kein Dichtheitstest - nur eine Probe an der
-    Stelle, an der etwas frei sein muss.
+    Eine Dickenrechnung zeigt nicht, ob eine Oeffnung wirklich offen ist, und
+    ein Dichtheitstest auch nicht. Dafuer sind diese Proben da - und zu jeder
+    Stelle, die FREI sein muss, steht eine daneben, die VOLL sein muss.
     """
     top = geometry.shell_top(p, d)
     bot = geometry.shell_bottom(p, d)
-    bx = p["btn_cx"]
-    sx = p["sw2_cx"]
-    lip_mid = p["lip_h"] / 2.0          # in der Schnappstufe
-    wall_mid = (d["ot_y0"] + d["pk_y0"] - p["lip_t"]) / 2.0   # aeussere Wandhaelfte
-    front_mid = (d["ot_x0"] + d["pk_x0"] - p["lip_t"]) / 2.0
-    probes = [
-        ("Falz vor dem SW1-Schlitz", bot, (bx, wall_mid, lip_mid), False),
-        ("Falz neben dem SW1-Schlitz", bot, (bx + 15.0, wall_mid, lip_mid), True),
-        ("Falz vor der USB-Oeffnung", bot, (front_mid, p["usb_cy"], lip_mid), False),
-        ("Falz neben der USB-Oeffnung", bot, (front_mid, 3.0, lip_mid), True),
-        ("Kragen ueber SW1", top, (bx, d["pk_y0"] + 0.5, p["btn_relief_z"] - 0.5), False),
-        ("Kragen ueber SW2", top, (sx, d["pk_y1"] - 0.5, p["btn_relief_z"] - 0.5), False),
-        ("Kragen neben den Tastern", top, (bx + 15.0, d["pk_y0"] + 0.5, 0.8), True),
-        # Gegenprobe zum Umzug: an der alten SW2-Stelle muss der Kragen wieder
-        # voll stehen, sonst ist die alte Freistellung stehen geblieben
-        ("Kragen an der alten SW2-Stelle", top,
-         (bx, d["pk_y1"] - 0.5, p["btn_relief_z"] - 0.5), True),
-        ("SW1-Wand ist durchbrochen", top, (bx, wall_mid, p["btn_z"]), False),
-        ("SW2-Wand bleibt stehen", top,
-         (sx, d["ot_y1"] - p["lip_t"] / 2.0, d["z_cav_top"] - 0.2), True),
-        # Der Falz der unteren Schale darf auch an der neuen SW2-Stelle nicht
-        # im Weg sein - dort steht er aussen, die Blindtasche liegt innen
-        ("Falz an der SW2-Blindtasche", bot,
-         (sx, d["ot_y1"] - p["lip_t"] / 2.0, lip_mid), True),
-        ("Dach ueber dem Hohlraum", top,
-         (bx, p["pcb_wid"] / 2.0 + 5.0, d["z_roof"] - 0.2), True),
+    # In der Hoehe des Klebefalzes gehoert die AEUSSERE Wandhaelfte der
+    # unteren Schale und die INNERE der oberen. Darum zwei Abtastpunkte.
+    wall_x = (d["ot_x0"] + d["pk_x0"]) / 2.0                  # Wandmitte, untere Schale
+    wall_x_top = (d["ot_x0"] + p["join_lap_t"] + d["pk_x0"]) / 2.0   # innere Haelfte
+    front_y_top = (d["ot_y0"] + p["join_lap_t"] + d["pk_y0"]) / 2.0
+    btn_z = d["z_pcb_top"] + p["btn_z"]
+    pot_z = d["z_pot_top"] - 0.2                    # knapp unter der Vergussoberflaeche
+    bot_z = d["z_pcb_bot"] - 0.3                    # im unteren Vergussraum
+    roof_z = d["z_roof"] - 0.2
+    sw1, sw2 = p["sw1_cy"], p["sw2_cy"]
+    return [
+        # --- Taster
+        ("SW1: Wand ist durchbrochen", top, (wall_x_top, sw1, btn_z), False),
+        ("SW1: Wand steht daneben", top, (wall_x_top, sw1 + 10.0, btn_z), True),
+        ("SW2: Blindtasche ist frei", top,
+         (d["pk_x1"] + p["sw2_pocket_d"] / 2.0, sw2, btn_z), False),
+        ("SW2: Wand bleibt stehen", top,
+         (d["pk_x1"] + p["sw2_pocket_d"] + p["wall_t"] / 4.0, sw2,
+          d["z_pcb_top"] + p["join_lap"] + 0.2), True),
+        ("SW2: Falz der unteren Schale steht davor", bot,
+         (d["pk_x1"] + p["sw2_pocket_d"] + p["wall_t"] / 4.0, sw2,
+          d["z_pcb_top"] + p["join_lap"] / 2.0), True),
+        ("SW2: Damm steht", top, (p["sw2_island_x0"] - p["pot_dam_t"] / 2.0, sw2, pot_z), True),
+        ("SW2: Insel ist trocken", top, (p["sw2_island_x0"] + 1.5, sw2, pot_z), False),
+        # --- Anzeige
+        ("Anzeige: Damm davor steht", top,
+         (p["oled_cx"], p["oled_glass_y0"] - p["pot_dam_t_min"] / 2.0, pot_z), True),
+        ("Anzeige: Insel ist trocken", top, (p["oled_cx"], d["win_cy"], pot_z), False),
+        ("Anzeige: Fenster ist offen", top, (p["oled_cx"], d["win_cy"], roof_z), False),
+        ("Anzeige: Dach steht daneben", top, (p["oled_cx"], 18.0, roof_z), True),
+        # --- Verguss oben
+        ("Verguss oben: Raum ist frei", top, (p["oled_cx"], 16.0, pot_z), False),
+        ("Einguss ist offen", top, (d["ports"][0][0], d["ports"][0][1], roof_z), False),
+        ("Dach neben dem Einguss steht", top, (8.0, 10.0, roof_z), True),
+        # --- Stecker
+        ("Kragen: Oeffnung ist frei", top, (d["usb_cx"], front_y_top, btn_z), False),
+        ("Frontwand steht daneben", top, (3.0, front_y_top, btn_z), True),
+        ("Stecker: Insel ist trocken", bot, (d["usb_cx"], 2.0, bot_z), False),
+        ("Stecker: Damm dahinter steht", bot,
+         (d["usb_cx"], d["usb_y1"] + p["pot_dam_t"] / 2.0, bot_z), True),
+        # --- microSD
+        ("microSD: Schlitz ist offen", bot, (wall_x, (p["sd_slot_y0"] + p["sd_slot_y1"]) / 2.0, 0.0), False),
+        ("microSD: Wand steht daneben", bot, (wall_x, 50.0, 0.0), True),
+        ("microSD: Schacht ist trocken", bot, (7.0, 33.9, bot_z), False),
+        ("microSD: Damm steht", bot,
+         (p["sd_body_x1"] + p["pot_island_fit"] + p["pot_dam_t"] / 2.0, 33.9, bot_z), True),
+        # --- Verguss unten, Auflage, Klebefalz
+        ("Verguss unten: Raum ist frei", bot, (20.0, 15.0, bot_z), False),
+        ("Boden steht darunter", bot, (20.0, 15.0, d["z_floor"] + 0.2), True),
+        ("Platinentasche ist frei", bot, (p["oled_cx"], 30.0, 0.0), False),
+        ("Auflage traegt die Platine", bot, (d["pk_x0"] + p["seal_w"] / 2.0, 50.0, bot_z), True),
+        ("Klebefalz: aussere Haelfte gehoert unten", bot,
+         (d["ot_x0"] + p["join_lap_t"] / 2.0, 50.0, d["z_pcb_top"] + p["join_lap"] / 2.0), True),
+        ("Klebefalz: innere Haelfte gehoert oben", bot,
+         (d["pk_x0"] - p["join_lap_t"] / 2.0, 50.0, d["z_pcb_top"] + p["join_lap"] / 2.0), False),
+        ("Klebefalz: innere Haelfte steht oben", top,
+         (d["pk_x0"] - p["join_lap_t"] / 2.0, 50.0, d["z_pcb_top"] + p["join_lap"] / 2.0), True),
     ]
+
+
+def check_openings(p, d):
+    """Fuehrt die Proben aus. Liefert (Anzahl, Anzahl der 'muss voll')."""
+    probes = probe_list(p, d)
     bad = []
     for name, ops, (x, y, z), want in probes:
         if _inside(ops, x, y, z) != want:
             bad.append("%s: erwartet %s" % (name, "voll" if want else "frei"))
     if bad:
         raise ValueError("Probe im Koerper fehlgeschlagen - " + "; ".join(bad))
-    return len(probes)
+    return len(probes), sum(1 for t in probes if t[3])
 
 
 def main():
@@ -332,9 +367,10 @@ def main():
     if not os.path.isdir(OUT):
         os.makedirs(OUT)
 
-    print("Dicke gesamt      : %.2f mm" % d["total_th"])
-    print("Aussen ohne Oese  : %.2f x %.2f mm" % (d["outer_len"], d["outer_wid"]))
+    print("Gehaeusedicke     : %.2f mm (Aussenflaeche unten bis oben)" % d["total_th"])
+    print("Aussen ohne Oese  : %.2f mm lang x %.2f mm breit" % (d["outer_len"], d["outer_wid"]))
     print("Aussen mit Oese   : %.2f mm lang" % d["overall_len"])
+    print("Steckerversatz    : %+.3f mm (Steckermitte gegen Gehaeusemitte)" % d["plug_offset"])
     print("")
 
     for name, fn in geometry.BODIES:
@@ -355,7 +391,9 @@ def main():
               "STEP %d Zeilen, %d Verweise geprueft"
               % (name, faces, tris, edges, vol, w.n, refs))
 
-    print("\n%d Proben an den Oeffnungen bestanden" % check_openings(p, d))
+    anzahl, voll = check_openings(p, d)
+    print("\n%d Proben im Koerper bestanden - %d davon muessen VOLL sein, %d FREI"
+          % (anzahl, voll, anzahl - voll))
     print("check: ok")
 
 
