@@ -12,6 +12,10 @@
 
 #define OSK_REVEAL_TIMEOUT_MS 30000u
 
+static bool is_wipe_pin(uint8_t profile, const uint8_t *pin, size_t pin_len);
+static osk_result_t derive_profile_key(uint8_t profile, const uint8_t *pin, size_t pin_len,
+				       osk_key_t *out);
+
 /* Die Ableitungstexte tragen KEINE Formatfassung. Sonst braeuchte jede
  * Wanderung die PIN aller Profile, um neue Schluessel zu bilden. */
 static const char INFO_DEV[] = "osk/vault/device";
@@ -94,6 +98,16 @@ osk_result_t osk_store_open(void)
 		osk_crypto_wipe(&st->key_log, sizeof(st->key_log));
 		return r;
 	}
+	/* Der Rueckdrehschutz, und zwar BEVOR irgendetwas gelesen wird: ein
+	 * zurueckgespielter Zustand ist in sich voellig gueltig, also faellt
+	 * er spaeter nirgends mehr auf. */
+	r = osk_guard_check();
+	if (r != OSK_OK) {
+		osk_crypto_wipe(&st->key_dev, sizeof(st->key_dev));
+		osk_crypto_wipe(&st->key_log, sizeof(st->key_log));
+		return r;
+	}
+
 	if (st->hdr.format < OSK_FMT_OLDEST_KNOWN || st->hdr.format > OSK_FMT_CURRENT) {
 		/* Eine Fassung, die diese Firmware nicht kennt: lieber nicht
 		 * oeffnen als falsch lesen. */
@@ -224,7 +238,20 @@ osk_result_t osk_store_profile_unlock(uint8_t profile, const uint8_t *pin, size_
 		return OSK_ERR_NOT_FOUND;
 	}
 
-	/* Erst der Chip: dort liegt der Fehlversuchszaehler, der ein Durchraten
+	/* Die Wisch-PIN wird VOR dem Chip geprueft, und das ist kein Zufall:
+	 * sie ist nicht die PIN des Chips, der Chip wuerde sie ablehnen und
+	 * dabei einen Fehlversuch verbrauchen. Wer sein Geraet so loescht,
+	 * duerfte es sonst nach ein paar Malen gar nicht mehr tun.
+	 *
+	 * Gemeldet wird danach OSK_ERR_DENIED - genau das, was eine falsche
+	 * PIN meldet. Wer das Loeschen erzwingen wollte, soll nicht sehen,
+	 * dass es geschehen ist. */
+	if (is_wipe_pin(profile, pin, pin_len)) {
+		(void)osk_store_wipe_all();
+		return OSK_ERR_DENIED;
+	}
+
+	/* Dann der Chip: dort liegt der Fehlversuchszaehler, der ein Durchraten
 	 * stoppt. Das Flash allein wuerde beliebig viele Versuche erlauben. */
 	r = osk_se050_pin_verify(pin, pin_len);
 	if (r != OSK_OK) {
@@ -1139,6 +1166,283 @@ osk_result_t osk_store_item_counter_next(osk_item_id_t id, uint64_t *out)
 		return rollback(&snap, r);
 	}
 	*out = rec->counter;
+	return OSK_OK;
+}
+
+/* ---- Wisch-PIN -------------------------------------------------------
+ *
+ * Eine zweite PIN je Profil. Wird sie eingegeben, ist der Tresor weg.
+ *
+ * Zwei Dinge daran sind keine Kleinigkeit:
+ *
+ * 1. Das Pruefmal haengt am geraetegebundenen Wert aus dem SE050. Ein
+ *    blosser Abdruck der PIN im Klartext-Kopf waere ein Woerterbuchangriff
+ *    auf dem Schreibtisch - der Fehlversuchszaehler des Chips greift bei der
+ *    Wisch-PIN ja nicht, denn sie wird nicht im Chip geprueft.
+ *
+ * 2. Die Antwort nach aussen ist dieselbe wie bei einer falschen PIN:
+ *    OSK_ERR_DENIED. Wer das Loeschen erzwingen will, soll nicht sehen, dass
+ *    es geschehen ist, und wer die Wisch-PIN nicht kennt, soll nicht merken,
+ *    dass es eine gibt. */
+
+static const char INFO_WIPE[] = "osk/vault/wipe";
+
+osk_result_t osk_wipe_tag(uint8_t profile, const uint8_t *pin, size_t pin_len,
+			  uint8_t out[OSK_WIPE_TAG_LEN])
+{
+	osk_store_state_t *st = osk_store_state();
+	uint8_t pin_hash[OSK_HASH_LEN];
+	uint8_t full[OSK_KEY_LEN];
+	uint8_t info[sizeof(INFO_WIPE) + 1];
+	osk_result_t r;
+
+	r = osk_crypto_sha256(pin, pin_len, pin_hash);
+	if (r != OSK_OK) {
+		return r;
+	}
+	memcpy(info, INFO_WIPE, sizeof(INFO_WIPE) - 1);
+	info[sizeof(INFO_WIPE) - 1] = (uint8_t)('0' + profile);
+
+	r = osk_crypto_hkdf(st->key_dev.b, sizeof(st->key_dev.b), pin_hash, sizeof(pin_hash), info,
+			    sizeof(info) - 1, full, sizeof(full));
+	osk_crypto_wipe(pin_hash, sizeof(pin_hash));
+	if (r != OSK_OK) {
+		return r;
+	}
+	memcpy(out, full, OSK_WIPE_TAG_LEN);
+	osk_crypto_wipe(full, sizeof(full));
+	return OSK_OK;
+}
+
+static bool wipe_tag_set(const uint8_t tag[OSK_WIPE_TAG_LEN])
+{
+	for (size_t i = 0; i < OSK_WIPE_TAG_LEN; i++) {
+		if (tag[i] != 0u) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/* Ist das die Wisch-PIN dieses Profils? Verglichen wird ohne
+ * Laufzeitunterschied - sonst verriete die Dauer der Abfrage, wie viele
+ * Byte stimmen. */
+static bool is_wipe_pin(uint8_t profile, const uint8_t *pin, size_t pin_len)
+{
+	osk_store_state_t *st = osk_store_state();
+	uint8_t tag[OSK_WIPE_TAG_LEN];
+
+	if (!wipe_tag_set(st->hdr.wipe_tag[profile])) {
+		return false;
+	}
+	if (osk_wipe_tag(profile, pin, pin_len, tag) != OSK_OK) {
+		return false;
+	}
+	return osk_crypto_equal(st->hdr.wipe_tag[profile], tag, sizeof(tag));
+}
+
+osk_result_t osk_store_wipe_pin_set(uint8_t profile, const uint8_t *pin, size_t pin_len)
+{
+	osk_store_state_t *st = osk_store_state();
+	osk_hdr_t snap;
+	uint8_t tag[OSK_WIPE_TAG_LEN];
+	osk_result_t r;
+
+	if (profile >= OSK_PROFILE_MAX || pin == NULL) {
+		return OSK_ERR_ARG;
+	}
+	if (pin_len < OSK_PIN_MIN || pin_len > OSK_PIN_MAX) {
+		return OSK_ERR_ARG;
+	}
+	if (!st->open) {
+		return OSK_ERR_LOCKED;
+	}
+	/* Nur wer das Profil offen hat, darf seine Wisch-PIN setzen. Sonst
+	 * koennte jeder mit Zugriff auf den Stick eine Falle legen. */
+	if (!st->profile_open[profile]) {
+		return OSK_ERR_DENIED;
+	}
+	r = osk_wipe_tag(profile, pin, pin_len, tag);
+	if (r != OSK_OK) {
+		return r;
+	}
+	/* Eine Wisch-PIN, die zugleich die echte PIN ist, waere ein Tresor,
+	 * der sich beim Aufschliessen selbst loescht. */
+	if (osk_store_profile_is_unlocked(profile)) {
+		osk_key_t probe;
+
+		if (derive_profile_key(profile, pin, pin_len, &probe) == OSK_OK &&
+		    osk_crypto_equal(probe.b, st->key_profile[profile].b, sizeof(probe.b))) {
+			osk_crypto_wipe(&probe, sizeof(probe));
+			return OSK_ERR_ARG;
+		}
+		osk_crypto_wipe(&probe, sizeof(probe));
+	}
+
+	osk_hdr_snapshot(&snap);
+	memcpy(st->hdr.wipe_tag[profile], tag, sizeof(tag));
+	r = osk_hdr_commit();
+	if (r != OSK_OK) {
+		osk_hdr_restore(&snap);
+		return r;
+	}
+	return OSK_OK;
+}
+
+osk_result_t osk_store_wipe_pin_clear(uint8_t profile)
+{
+	osk_store_state_t *st = osk_store_state();
+	osk_hdr_t snap;
+	osk_result_t r;
+
+	if (profile >= OSK_PROFILE_MAX) {
+		return OSK_ERR_ARG;
+	}
+	if (!st->open) {
+		return OSK_ERR_LOCKED;
+	}
+	if (!st->profile_open[profile]) {
+		return OSK_ERR_DENIED;
+	}
+	osk_hdr_snapshot(&snap);
+	memset(st->hdr.wipe_tag[profile], 0, OSK_WIPE_TAG_LEN);
+	r = osk_hdr_commit();
+	if (r != OSK_OK) {
+		osk_hdr_restore(&snap);
+		return r;
+	}
+	return OSK_OK;
+}
+
+bool osk_store_wipe_pin_is_set(uint8_t profile)
+{
+	osk_store_state_t *st = osk_store_state();
+
+	if (!st->open || profile >= OSK_PROFILE_MAX) {
+		return false;
+	}
+	return wipe_tag_set(st->hdr.wipe_tag[profile]);
+}
+
+/* Loescht den ganzen Tresor: Kopf, Index, Protokoll und alle Datenplaetze.
+ *
+ * Der Chipzaehler bleibt, wo er ist - er KANN nicht zurueck, und genau das
+ * ist der Punkt. Der frische Tresor faengt darum ueber ihm an
+ * (osk_hdr_format), sonst waere die Wisch-PIN selbst der Weg zurueck:
+ * loeschen, alten Stand zurueckspielen, fertig. */
+osk_result_t osk_store_wipe_all(void)
+{
+	osk_store_state_t *st = osk_store_state();
+	osk_result_t r;
+
+	osk_index_drop();
+
+	/* Zuerst die Geheimnisse, dann erst der Kopf. Bricht der Strom
+	 * mittendrin ab, ist schon etwas weg und der Rest folgt beim
+	 * naechsten Mal - ein halb geloeschter Tresor ist kein Schaden,
+	 * ein nicht geloeschter waere einer. */
+	r = osk_space_ensure_erased(OSK_AREA_BLOB_OFF, OSK_AREA_BLOB_LEN);
+	if (r == OSK_OK) {
+		r = osk_space_ensure_erased(OSK_AREA_BLOB2_OFF, OSK_AREA_BLOB2_LEN);
+	}
+	if (r == OSK_OK) {
+		r = osk_space_ensure_erased(OSK_AREA_IDX_OFF, OSK_AREA_IDX_LEN);
+	}
+	if (r == OSK_OK) {
+		r = osk_space_ensure_erased(OSK_AREA_IDX2_OFF, OSK_AREA_IDX2_LEN);
+	}
+	if (r == OSK_OK) {
+		r = osk_space_ensure_erased(OSK_AREA_LOG_OFF, OSK_AREA_LOG_LEN);
+	}
+	if (r != OSK_OK) {
+		return r;
+	}
+	osk_log_reset_mount();
+
+	memset(st->key_profile, 0, sizeof(st->key_profile));
+	memset(st->profile_open, 0, sizeof(st->profile_open));
+	r = osk_hdr_format(OSK_FMT_CURRENT);
+	if (r != OSK_OK) {
+		return r;
+	}
+	return OSK_OK;
+}
+
+/* ---- Signaturzaehler --------------------------------------------------
+ *
+ * Gezaehlt wird in CTAP (Strang B), gespeichert hier. Der Vertrag steht in
+ * osk_store.h, damit nicht zwei Zaehler entstehen, die gleich heissen und
+ * Verschiedenes messen - dieser hier geht an den Dienst, der `counter` im
+ * selben Satz zaehlt HOTP fuer den Nutzer.
+ *
+ * Erhoehen und Festschreiben sind EIN Vorgang, und der Wert kommt erst nach
+ * dem Kopfsatz heraus. Faellt der Strom dazwischen aus, gilt der alte Stand,
+ * und derselbe Wert wird noch einmal vergeben - er wurde aber auch nie
+ * benutzt, weil die Signatur danach kam. Umgekehrt (erst signieren, dann
+ * zaehlen) liesse sich derselbe Zaehlerstand zweimal unterschreiben. */
+
+static osk_result_t sigcount_rec(osk_item_id_t cred, uint8_t *profile_out, size_t *index_out,
+				 osk_idx_rec_t **rec_out)
+{
+	osk_result_t r = find_rec(cred, profile_out, index_out);
+
+	if (r != OSK_OK) {
+		return r;
+	}
+	return osk_index_rec(*profile_out, *index_out, rec_out);
+}
+
+osk_result_t osk_store_sigcount_get(osk_item_id_t cred, uint32_t *value_out)
+{
+	osk_idx_rec_t *rec = NULL;
+	uint8_t profile = 0;
+	size_t index = 0;
+	osk_result_t r;
+
+	if (value_out == NULL) {
+		return OSK_ERR_ARG;
+	}
+	r = sigcount_rec(cred, &profile, &index, &rec);
+	if (r != OSK_OK) {
+		return r;
+	}
+	*value_out = rec->sigcount;
+	return OSK_OK;
+}
+
+osk_result_t osk_store_sigcount_next(osk_item_id_t cred, uint32_t *value_out)
+{
+	osk_idx_rec_t *rec = NULL;
+	uint8_t profile = 0;
+	size_t index = 0;
+	osk_hdr_t snap;
+	osk_result_t r;
+
+	if (value_out == NULL) {
+		return OSK_ERR_ARG;
+	}
+	r = sigcount_rec(cred, &profile, &index, &rec);
+	if (r != OSK_OK) {
+		return r;
+	}
+	if (rec->sigcount == 0xFFFFFFFFu) {
+		/* Ueberlaufen darf er nicht: ein Zaehler, der wieder bei null
+		 * anfaengt, sieht fuer den Dienst aus wie ein Klon. */
+		return OSK_ERR_FULL;
+	}
+
+	osk_hdr_snapshot(&snap);
+	rec->sigcount += 1u;
+	r = osk_index_store(profile);
+	if (r == OSK_OK) {
+		r = osk_hdr_commit();
+	}
+	if (r != OSK_OK) {
+		osk_hdr_restore(&snap);
+		osk_index_drop();
+		return r;
+	}
+	*value_out = rec->sigcount;
 	return OSK_OK;
 }
 

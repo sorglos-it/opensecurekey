@@ -86,3 +86,32 @@ clean:
 	rm -rf $(BUILD)
 
 .PHONY: all run fuzz clean
+
+# ---------------------------------------------------------------------
+# Strang E - Yubico-HID-Protokoll.
+#
+# Dieser Teil laeuft nur auf einem Rechner mit gcc und make. Auf dem
+# Entwicklungsrechner (Windows) gibt es beides nicht; dort fuehrt
+# build_yk.ps1 denselben Satz mit den Visual Studio Build Tools.
+#
+# Die Quellen stehen in sources_yk_lib.txt und sources_yk_test.txt und
+# werden von BEIDEN Wegen daraus gelesen - nicht zweimal aufgezaehlt.
+# Begruendung in sources_yk_lib.txt.
+YK_LIB  := $(shell grep -v '^[[:space:]]*\#' sources_yk_lib.txt | grep -v '^[[:space:]]*$$')
+YK_TEST := $(shell grep -v '^[[:space:]]*\#' sources_yk_test.txt | grep -v '^[[:space:]]*$$')
+
+$(BUILD)/yk_tests: $(YK_TEST) $(YK_LIB) | $(BUILD)
+	$(CC) $(CFLAGS) $(SAN) -o $@ $^ $(LDFLAGS)
+
+$(BUILD)/fuzz_ykhid: fuzz_ykhid.c $(YK_LIB) | $(BUILD)
+	$(CC) $(CFLAGS) $(SAN) -o $@ $^ $(LDFLAGS)
+
+# Der Satz des Strangs E allein - mit Adress- und Verhaltenspruefer,
+# falls die Werkzeugkette sie hat (siehe SAN oben).
+yk: $(BUILD)/yk_tests
+	$(BUILD)/yk_tests
+
+fuzz-yk: $(BUILD)/fuzz_ykhid
+	$(BUILD)/fuzz_ykhid $(FUZZ_SECS)
+
+.PHONY: yk fuzz-yk

@@ -43,7 +43,15 @@
 	   * sich darum unveraendert als "kein        \
 	   * oeffentlicher Teil" - umzurechnen ist    \
 	   * nichts. */
-#define OSK_FMT_CURRENT OSK_FMT_V5
+#define OSK_FMT_V6 6
+/* Fassung 6: der Kopf hat ein Pruefmal je Profil fuer die Wisch-PIN, und der
+ * Protokollplatz traegt das Kettenglied zum vorhergehenden Satz. Der
+ * Indexsatz ist weiter 320 Byte lang - der Signaturzaehler liegt in Bytes,
+ * die in Fassung 5 als reserved auf 0 standen, und liest sich dort also als
+ * "noch nie signiert". Der KOPF dagegen waechst, darum wird der Kopf der
+ * Fassungen 4 und 5 beim Anmelden im RAM umgerechnet - genau wie der der
+ * Fassung 3. */
+#define OSK_FMT_CURRENT OSK_FMT_V6
 #define OSK_FMT_OLDEST_KNOWN OSK_FMT_V1
 
 /* ---- Grenzen ---------------------------------------------------------- */
@@ -132,6 +140,25 @@ static inline uint32_t osk_blob_addr(uint32_t slot)
 	return OSK_AREA_BLOB2_OFF + (slot - OSK_BLOB_SLOTS_SEG0) * OSK_BLOB_SLOT;
 }
 
+/* ---- Rueckdrehschutz -------------------------------------------------- */
+/* Der Stand des Tresors ist die Folgenummer des Kopfsatzes (seq). Sie steigt
+ * bei jedem Festschreiben um eins und ist damit schon da - eine zweite Zahl
+ * danebenzustellen hiesse, zwei Groessen zu fuehren, die dasselbe messen
+ * sollen und irgendwann auseinanderlaufen.
+ *
+ * Ihr Anker liegt NICHT im Flash, sondern als monotoner Zaehler im SE050. Ein
+ * Wert im Flash laesst sich mit dem Flash zurueckspielen, der im Chip nicht.
+ *
+ * Die REIHENFOLGE ist der ganze Trick: erst der Kopfsatz, dann der Chip.
+ * Faellt der Strom dazwischen aus, steht im Flash seq und im Chip seq-1 -
+ * der Tresor oeffnet und holt den Chip beim naechsten Oeffnen nach. Andersherum
+ * stuende im Chip ein Wert, den der Flash nie erreicht, und das Geraet waere
+ * durch einen Stromausfall unbrauchbar. */
+#define OSK_KEYID_VAULT_GEN 0x0000F101u
+
+/* Laenge des Wisch-PIN-Pruefmals. */
+#define OSK_WIPE_TAG_LEN 16u
+
 /* ---- Kopf ------------------------------------------------------------- */
 /* Der Kopf steht im Klartext, denn ohne ihn laesst sich nichts oeffnen. Er
  * enthaelt nichts Geheimes: Fassung, Zaehlerstand, Adressen und die Belegung
@@ -182,6 +209,9 @@ OSK_STATIC_ASSERT(sizeof(osk_hdr_v3_t) <= OSK_HDR_V3_SLOT, hdr_v3_fits_slot);
 #define OSK_HDR_SLOTS (OSK_AREA_HDR2_LEN / OSK_HDR_SLOT)
 #define OSK_HDR_SLOTS_PER_SECTOR (OSK_SECTOR / OSK_HDR_SLOT)
 
+/* Der Kopf der Fassungen 4 und 5. Beide hatten denselben Aufbau; nur die
+ * Fassungsnummer unterschied sie. Wird nur noch GELESEN - beim Umstieg auf
+ * Fassung 6. */
 typedef struct {
 	uint32_t magic;
 	uint16_t format;	 /* OSK_FMT_* */
@@ -211,6 +241,68 @@ typedef struct {
 	uint32_t blob_cursor;		       /* Suchzeiger im Datenbereich, laeuft im Kreis */
 	uint32_t item_next;		       /* naechste freie Eintragskennung, nie wiederholt */
 	uint8_t profile_used[OSK_PROFILE_MAX]; /* 1 = Profil eingerichtet */
+
+	/* Zum Protokoll steht hier nichts: sein Ringkopf wird beim Oeffnen im
+	 * Ring selbst gesucht. Stuende er im Kopf, kostete jeder
+	 * Protokolleintrag einen Kopfsatz - mitten in einer Transaktion.
+	 *
+	 * Die Groesse ist mit Bedacht gewaehlt: sie schiebt crc32 genau an das
+	 * Ende der Struktur. Die Pruefsumme wird ueber alles davor gerechnet,
+	 * und das Ende wird als sizeof minus vier Byte bestimmt - gaebe es
+	 * hinter crc32 eine Auffuellung des Uebersetzers, deckte die Pruefsumme
+	 * sich selbst mit und wuerde nie stimmen. Der Riegel darunter haelt
+	 * das fest. */
+	uint8_t reserved[16];
+
+	/* Belegung der Datenplaetze, ein Bit je Platz. Sie gehoert in den Kopf,
+	 * damit ein Platz auch dann als belegt gilt, wenn das Profil gesperrt
+	 * ist und sein Index nicht gelesen werden kann. Verraten wird dadurch
+	 * nur, wie viele Geheimnisse im Geraet liegen. */
+	uint8_t slot_used[OSK_BLOB_SLOTS / 8];
+
+	uint32_t crc32; /* ueber alle Felder davor */
+} osk_hdr_v5_t;
+
+OSK_STATIC_ASSERT(offsetof(osk_hdr_v5_t, crc32) == sizeof(osk_hdr_v5_t) - sizeof(uint32_t),
+		  hdr_v5_crc_is_last);
+
+typedef struct {
+	uint32_t magic;
+	uint16_t format;	 /* OSK_FMT_* */
+	uint16_t hdr_size;	 /* sizeof(osk_hdr_t), fuer spaetere Fassungen */
+	uint32_t seq;		 /* waechst mit jedem Satz, nie zurueck */
+	uint32_t sector_of_slot; /* in welchem Kopfsektor dieser Satz steht */
+
+	/* Naechste unbenutzte Nonce. Wird VOR dem Schreiben festgehalten, und
+	 * zwar in Schritten von OSK_NONCE_RESERVE, damit nicht jedes Geheimnis
+	 * einen eigenen Kopfsatz kostet. Beim Anmelden beginnt der Tresor bei
+	 * diesem Wert - die zwischendurch herausgegebenen Nonces gelten als
+	 * verbraucht. Ein Stromausfall verschenkt dadurch bis zu
+	 * OSK_NONCE_RESERVE Nonces und wiederholt keine einzige. */
+	uint64_t nonce_next;
+
+	/* Wo die Indexbloecke jedes Profils liegen. Die Adressen stehen im
+	 * Klartext, und das muss so sein: der Tresor muss Platz im Index-Ring
+	 * vergeben koennen, ohne die Bloecke eines GESPERRTEN Profils zu
+	 * ueberschreiben - deren Adressen darf er also auch dann kennen.
+	 * Verraten wird dadurch, wie viele Eintraege ein Profil hat; die Groesse
+	 * einer Indexfassung hat das schon in Fassung 3 ungefaehr gezeigt. */
+	uint32_t index_block[OSK_PROFILE_MAX][OSK_IDX_BLOCKS_MAX]; /* 0 = unbenutzt */
+	uint16_t index_count[OSK_PROFILE_MAX];			   /* Eintraege im Profil */
+	uint8_t index_blocks[OSK_PROFILE_MAX];			   /* belegte Bloecke */
+
+	uint32_t index_alloc;		       /* Suchzeiger im Index-Ring */
+	uint32_t blob_cursor;		       /* Suchzeiger im Datenbereich, laeuft im Kreis */
+	uint32_t item_next;		       /* naechste freie Eintragskennung, nie wiederholt */
+	uint8_t profile_used[OSK_PROFILE_MAX]; /* 1 = Profil eingerichtet */
+
+	/* Pruefmal der Wisch-PIN je Profil (ab Fassung 6). Alles 0 = keine
+	 * gesetzt. Es ist KEIN Abdruck der PIN allein: gerechnet wird ueber
+	 * den geraetegebundenen Wert aus dem SE050, darum nuetzt die Zahl auf
+	 * einem anderen Rechner nichts. Sie steht im Klartext-Kopf, weil sie
+	 * geprueft werden muss, waehrend das Profil noch zu ist - genau dann
+	 * wird die PIN ja eingegeben. */
+	uint8_t wipe_tag[OSK_PROFILE_MAX][OSK_WIPE_TAG_LEN];
 
 	/* Zum Protokoll steht hier nichts: sein Ringkopf wird beim Oeffnen im
 	 * Ring selbst gesucht. Stuende er im Kopf, kostete jeder
@@ -322,7 +414,19 @@ typedef struct {
 	uint32_t se050_key; /* 0 = kein Schluessel im Chip */
 	uint8_t pub_nonce[OSK_NONCE_LEN];
 
-	uint8_t reserved[12];
+	/* Signaturzaehler von FIDO2 (ab Fassung 6). Gezaehlt wird in CTAP
+	 * (Strang B), gespeichert hier - siehe osk_store_sigcount_next().
+	 *
+	 * ACHTUNG, das ist NICHT `counter` weiter oben: der zaehlt HOTP und
+	 * wird dem Nutzer angezeigt, dieser hier geht an den Dienst und
+	 * beweist, dass der Schluessel nicht geklont ist. Zwei Zaehler, zwei
+	 * Zwecke - sie heissen darum verschieden.
+	 *
+	 * In Fassung 5 lagen hier Nullen (Teil von reserved). Ein alter Satz
+	 * liest sich dadurch als "noch nie signiert", und das ist richtig. */
+	uint32_t sigcount;
+
+	uint8_t reserved[8];
 } osk_idx_rec_t;
 
 OSK_STATIC_ASSERT(sizeof(osk_idx_rec_t) == 320, idx_rec_320);
@@ -409,7 +513,7 @@ OSK_STATIC_ASSERT(sizeof(osk_blob_frame_t) == 20, blob_frame_20);
  * Klartext, damit der Kopf des Rings ohne Schluessel gefunden wird, und ist
  * zugleich zusaetzliche Daten der Verschluesselung - umschreiben faellt auf. */
 
-#define OSK_LOG_MAGIC 0x4C4B534Fu /* "OSKL" */
+#define OSK_LOG_MAGIC 0x434B534Fu /* "OSKC" - verkettet, ab Fassung 6 */
 #define OSK_LOG_SLOT OSK_PAGE
 #define OSK_LOG_SLOTS (OSK_AREA_LOG_LEN / OSK_LOG_SLOT)
 
@@ -428,15 +532,46 @@ OSK_STATIC_ASSERT(sizeof(osk_log_plain_t) == 64, log_plain_64);
 /* Die Pruefsumme steht hinten und deckt ALLES davor, auch den Kryptotext.
  * Nur so faellt ein Platz auf, der beim Stromausfall mitten entzwei gerissen
  * ist: sein Rahmen waere sonst heil und der Inhalt halb. */
+/* Laenge eines Kettenglieds: die ersten Byte des Pruefwerts des
+ * VORHERGEHENDEN Platzes. Der Pruefwert ist schon da und haengt am Schluessel
+ * des Protokolls - ein eigener Abdruck waere eine zweite Groesse fuer
+ * dieselbe Sache, und ein UNgeschluesselter waere wertlos: wer einen Satz
+ * herausnimmt, koennte eine offene Kette einfach neu rechnen. */
+#define OSK_LOG_CHAIN_LEN 16u
+
+typedef struct {
+	uint32_t magic;
+	uint32_t seq;
+	uint8_t nonce[OSK_NONCE_LEN];
+
+	/* Kettenglied zum vorhergehenden Satz (ab Fassung 6). Es steht im
+	 * Klartext, damit der Platz noch lesbar ist, wenn sein Vorgaenger im
+	 * Ring schon ueberschrieben wurde - und es ist zugleich zusaetzliche
+	 * Daten der Verschluesselung. Wer es umschreibt, macht den Satz
+	 * unlesbar; wer einen Satz herausnimmt, laesst das Glied des naechsten
+	 * ins Leere zeigen. Beides faellt auf. */
+	uint8_t chain[OSK_LOG_CHAIN_LEN];
+
+	uint8_t ct[sizeof(osk_log_plain_t) + OSK_TAG_LEN];
+	uint32_t crc32;
+} osk_log_slot_t;
+
+OSK_STATIC_ASSERT(sizeof(osk_log_slot_t) <= OSK_LOG_SLOT, log_slot_fits);
+OSK_STATIC_ASSERT(OSK_LOG_CHAIN_LEN <= OSK_TAG_LEN, chain_fits_tag);
+
+/* Saetze der Fassungen 1 bis 5 hatten kein Kettenglied und eine andere
+ * Kennung. Sie werden weiter gelesen, damit ein Firmware-Update das
+ * Geraeteprotokoll nicht wegwirft - geprueft werden kann die Kette ueber sie
+ * aber nicht, und genau das meldet osk_log_verify(). */
+#define OSK_LOG_MAGIC_V5 0x4C4B534Fu /* "OSKL" - bis Fassung 5 */
+
 typedef struct {
 	uint32_t magic;
 	uint32_t seq;
 	uint8_t nonce[OSK_NONCE_LEN];
 	uint8_t ct[sizeof(osk_log_plain_t) + OSK_TAG_LEN];
 	uint32_t crc32;
-} osk_log_slot_t;
-
-OSK_STATIC_ASSERT(sizeof(osk_log_slot_t) <= OSK_LOG_SLOT, log_slot_fits);
+} osk_log_slot_v5_t;
 
 /* ---- Anlaesse im Protokoll (shared/protocol.md) ----------------------- */
 
