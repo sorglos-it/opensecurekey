@@ -39,7 +39,6 @@
     "timeout": "Zeit abgelaufen"
   },
   "status": {
-    "battery": "Akku schwach",
     "busy": "Arbeitet",
     "error": "Fehler",
     "locked": "Gesperrt",

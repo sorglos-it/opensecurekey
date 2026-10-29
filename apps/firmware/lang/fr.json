@@ -39,7 +39,6 @@
     "timeout": "Temps écoulé"
   },
   "status": {
-    "battery": "Batterie faible",
     "busy": "Travaille",
     "error": "Erreur",
     "locked": "Verrouillé",

@@ -39,7 +39,6 @@
     "timeout": "Time ran out"
   },
   "status": {
-    "battery": "Battery low",
     "busy": "Working",
     "error": "Error",
     "locked": "Locked",
