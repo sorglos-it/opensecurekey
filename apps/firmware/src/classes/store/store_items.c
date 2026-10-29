@@ -586,9 +586,18 @@ osk_result_t osk_store_add(const osk_item_meta_t *meta, const uint8_t *secret, s
 	 * sein. Beim Anlegen faengt item_next bei 1 an; ein Kopf einer alten
 	 * Fassung bringt den Wert aber mit, und was dort steht, hat dieser
 	 * Strang nicht in der Hand. Also hier der Riegel, nicht nur die
-	 * Annahme. */
+	 * Annahme.
+	 *
+	 * Abgewiesen wird, nicht ausgewichen. Still auf 1 zu gehen waere der
+	 * gefaehrlichere Weg: steht item_next auf 0, gibt es womoeglich SCHON
+	 * einen Eintrag mit der Kennung 1, und dann laegen zwei Eintraege mit
+	 * derselben Kennung im Index. find_rec nimmt den ersten - danach
+	 * zaehlte der Signaturzaehler des einen fuer den anderen mit, und
+	 * osk_store_reveal() gaebe unter einer Kennung das Geheimnis des
+	 * falschen Eintrags heraus. Ein Kopf mit item_next == 0 ist kaputt,
+	 * und dann sagt der Tresor das, statt weiterzuarbeiten. */
 	if (id == 0u) {
-		id = 1u;
+		return OSK_ERR_FORMAT;
 	}
 	uint32_t ct_len = 0;
 	uint8_t nonce[OSK_NONCE_LEN];

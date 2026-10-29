@@ -16,6 +16,7 @@
 #include "test_util.h"
 #include "osk_store.h"
 #include "osk_store_profiles.h"
+#include "store_internal.h"
 #include "fake_flash.h"
 #include "fake_se050.h"
 #include "osk_vault_format.h"
@@ -71,6 +72,59 @@ void test_sigcount(void)
 		T_OK(osk_store_sigcount_next(0, &v));
 		T_EQ(v, 4);
 		T_OK(osk_store_profile_unlock(0, (const uint8_t *)T_PIN, strlen(T_PIN)));
+	}
+
+	osk_test_case("Ein Kopf mit item_next = 0 wird abgewiesen, nicht geraten");
+	{
+		/* Die 0 gehoert dem Zaehler des Geraets. Ein Kopf der
+		 * Fassungen 1 bis 3 bringt sein eigenes item_next mit, und
+		 * was dort steht, hat dieser Strang nicht in der Hand.
+		 *
+		 * Still auf 1 auszuweichen waere der gefaehrlichere Weg:
+		 * steht item_next auf 0, gibt es womoeglich SCHON einen
+		 * Eintrag 1, und dann liegen zwei Eintraege mit derselben
+		 * Kennung im Index. find_rec nimmt den ersten - danach zaehlt
+		 * der Signaturzaehler des einen fuer den anderen mit, und
+		 * osk_store_reveal() gibt unter einer Kennung das Geheimnis
+		 * des falschen Eintrags heraus. Ein kaputter Kopf soll
+		 * gemeldet werden, nicht ueberspielt. */
+		osk_store_state_t *st;
+		osk_item_id_t first = 0, zweit = 0;
+		size_t before;
+
+		t_device(0, 11, T_PIN);
+		T_OK(t_add(0, "Erster", "a.example", "geheim-a", 0, &first));
+		T_EQ(first, 1);
+
+		st = osk_store_state();
+		st->hdr.item_next = 0u;
+		T_OK(osk_hdr_commit());
+		t_reboot();
+
+		before = t_count(0);
+		T_RES(t_add(0, "Zweiter", "b.example", "geheim-b", 0, &zweit), OSK_ERR_FORMAT);
+
+		/* Und wirklich nichts angelegt - sonst waere die Abweisung
+		 * nur die halbe Wahrheit. */
+		T_EQ(t_count(0), before);
+
+		/* Die Kennung 1 gibt es genau einmal, und sie gehoert noch
+		 * immer dem ersten Eintrag. Das ist der Schaden, den der
+		 * Riegel verhindert. */
+		{
+			size_t doppelt = 0;
+
+			for (size_t i = 0; i < t_count(0); i++) {
+				osk_item_meta_t m;
+
+				T_OK(osk_store_list(0, i, &m));
+				if (m.id == first) {
+					doppelt++;
+				}
+			}
+			T_EQ(doppelt, 1);
+		}
+		T_TRUE(t_secret_is(first, "geheim-a"));
 	}
 
 	osk_test_case("Was eine Anmeldung kostet - gemessen, nicht geschaetzt");

@@ -475,10 +475,19 @@ is written down in both places (here and `osk_sigcount.h` in CTAP):
 | 0 | the **device's** counter | `sigcount_dev` in the header record |
 | anything else | that one item | `sigcount` in its index record |
 
-Id 0 is free because the vault hands out item ids from 1 (`item_next`), and
-`osk_store_add()` skips a 0 rather than trusting that — an old header brings
-its own `item_next` along, and what stands there is not this subsystem's to
-assume.
+Id 0 is free because the vault hands out item ids from 1 (`item_next`). An old
+header brings its own `item_next` along, though, and what stands there is not
+this subsystem's to assume — so `osk_store_add()` **refuses** with
+`OSK_ERR_FORMAT` when it would hand out a 0.
+
+It refuses rather than stepping to 1, and that is the whole point of the
+check. If `item_next` really is 0 there may already be an item with id 1, and
+two items with the same id in the index is a silent fault: `find_rec` takes
+the first, so one item's signature counter would count for the other and
+`osk_store_reveal()` would hand out the wrong secret under a given id. A
+header with `item_next == 0` is broken, and a broken header is worth saying
+out loud. The test builds exactly that header and checks that nothing is
+created and that id 1 still belongs to the first item.
 
 **Why the device needs one at all.** Most FIDO credentials have no index
 record to hang a counter on: non-discoverable credentials are derived and
