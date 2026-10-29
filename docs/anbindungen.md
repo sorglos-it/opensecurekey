@@ -395,12 +395,14 @@ against the same `ssh-keygen` vectors the agent uses. Listing objects costs
 
 - **macOS is untested.** The code builds (cross-compiled); nothing was run.
 - **No real device.** Every number on this page comes from the dummy.
-- **`list` now carries `pub`, and two routes do not use it yet.** The protocol
-  gained the field after this code was written (`shared/protocol.md`, command
-  4). The ssh agent and the PKCS#11 library still fetch every key once to
-  compute its public part — one button press per key that is no longer
-  necessary. Taking it out is a small change in `Agent.Identities` and
-  `Pkcs11Token.loadObjects`, and it needs the dummy to answer `pub` first.
+- **`list` carries `pub`, and both routes use it — this entry is done.** It
+  used to say that the ssh agent and the PKCS#11 library still fetched every key
+  once to compute its public part. They do not: the agent takes the public part
+  from `list`, and PKCS#11 does the same since 24.10.2026. `reveal` is only a
+  fallback for a device with an older protocol, and `Pkcs11Token.RevealFallbacks()`
+  counts it so it cannot creep back in unnoticed. **The approval counts are
+  stated once, in the section "Measured: how many approvals an operation costs"
+  above; do not repeat them here.**
 - The vault format has no field for a user name, so the extension offers the
   entry's **name** as the user name.
 

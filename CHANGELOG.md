@@ -68,9 +68,11 @@
   - **Device side of commands 14–18**, with the purpose strings kept apart, held
     in place by the forgery case the program side found.
   - **PKCS#11 now costs zero approvals** when listing, like the agent.
-  10 firmware test suites, 94,281 checks green. **Nothing has run on hardware,
-  and nothing has been compiled for ARM** — that is being set up separately and
-  has not succeeded yet.
+  10 firmware test suites, 94,281 checks green. **Nothing has run on hardware.**
+  The firmware **was** compiled for ARM on 25 October 2026 (`nrf52840dk/nrf52840`);
+  the measured sizes are stated in one place only, `docs/build.md`, section
+  "Der erste Bau für ARM". That is stage 2 of four — written / compiled / in the
+  image / run on the device.
 - Dongle and server use: software that only runs while the stick is plugged in,
   and servers that sign and encrypt through the stick instead of a key file on
   disk. **Two stages, and the documentation says what each is worth**: stage one

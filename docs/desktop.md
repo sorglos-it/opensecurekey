@@ -291,6 +291,6 @@ before it can become a key that a second program reads differently.
   and runs the `attest` check. Creating one needs the firmware side first.
 - The firmware does not answer command 19 yet. The wizard is played through
   against `tests/simulator -werkszustand`.
-- `docs/anbindungen.md` still says PKCS#11 reveals every key under "Measured:
-  how many approvals an operation costs". That is no longer true; the
-  paragraph belongs to another part and was left untouched.
+- (Done.) `docs/anbindungen.md` no longer claims that PKCS#11 reveals every
+  key; its loose-end entry was corrected and now points here. The approval
+  counts for PKCS#11 live in the section above and nowhere else.

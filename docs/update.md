@@ -1,7 +1,9 @@
 # Firmware-Update
 
-Status: Entwurf. **Nichts davon ist auf Hardware gelaufen, und nichts ist je
-fuer ARM uebersetzt worden.** Was gemessen ist, steht am Ende unter
+Status: Entwurf. **Nichts davon ist auf Hardware gelaufen.** Fuer ARM ist
+inzwischen uebersetzt worden - am 25.10.2026, nach dem Stand dieser Seite; die
+Zahlen stehen an genau einer Stelle, `docs/build.md`, Abschnitt "Der erste Bau
+fuer ARM". Was auf dieser Seite gemessen ist, steht am Ende unter
 "Was geprueft ist und was nicht".
 
 Dieser Teil entscheidet, ob ein Geraet im Feld reparierbar ist. Darum ist die
@@ -45,6 +47,14 @@ und Zephyr mit BLE, USB, NFC und der Kryptobibliothek ist davon schon ein
 grosser Teil. Im externen QSPI-Baustein sind es rund **960 kB**.
 Begruendung und Zahlen: `docs/architecture.md`, Abschnitt "How much room is
 there, really".
+
+**War das noetig? Nein - und der Platz bleibt trotzdem draussen.** Die
+Begruendung oben ist die Schaetzung von vor dem ersten ARM-Bau. Gemessen hat
+das Abbild 157 kB und haette auch in die rund 496 kB gepasst. Der Befund steht
+an einer Stelle: `docs/architecture.md`, Abschnitt "Measured, 25 October 2026".
+Die Auslagerung schadet nicht und bleibt, weil die Aufteilung festliegt und
+der eigene Code zu einem grossen Teil noch nicht erreichbar ist - sie ist
+Reserve, nicht Notwendigkeit.
 
 Die Aufteilung steht in `apps/firmware/boot/pm_static.yml`. Zwei Dinge daran
 sind keine Geschmacksfrage:
@@ -255,9 +265,10 @@ Drei Proben haben echte Luecken gezeigt und wurden behoben, nicht wegerklaert:
 
 **Nicht geprueft, weil es dafuer kein Mittel gab:**
 
-- **Nichts ist fuer ARM uebersetzt.** Es gibt keinen ARM-Bau in diesem
-  Projekt; dass der Code auf dem Ziel uebersetzt und hineinpasst, ist
-  ungeprueft. Die Pruefungen laufen mit einem PC-Uebersetzer.
+- **Dieser Teil ist nicht fuer ARM uebersetzt.** Die Pruefungen hier laufen mit
+  einem PC-Uebersetzer. Die Firmware als Ganzes ist am 25.10.2026 fuer
+  `nrf52840dk/nrf52840` uebersetzt worden (`docs/build.md`, "Der erste Bau fuer
+  ARM"), der Bootloader-Teil war dabei nicht mit im Bau.
 - **MCUboot lief nie mit.** Alle Einstellungen in
   `apps/firmware/boot/mcuboot.conf` sind nach der Dokumentation des SDK
   geschrieben, nicht nach einer Messung. Ob die Namen in der gebauten
@@ -275,8 +286,9 @@ Drei Proben haben echte Luecken gezeigt und wurden behoben, nicht wegerklaert:
 - **Ein Riegel ist unerreichbar und darum ungeprueft:** der Ueberlauf der
   Folgenummer des Zustands nach 4 Milliarden Schreibvorgaengen. Ein Mutant,
   der ihn entfernt, bleibt unentdeckt - erreichen kann ihn kein Test.
-- **Die Partitionsgroessen sind Datenblattzahlen.** Ob 960 kB fuer das
-  Abbild reichen, sagt der erste echte Bau und nur er.
+- **Die Partitionsgroessen sind Datenblattzahlen.** Ob 960 kB fuer das Abbild
+  reichen, ist seit dem 25.10.2026 gemessen: ja, mit Abstand - die Zahl steht
+  nur in `docs/build.md`.
 
 ## Was noch fehlt
 

@@ -515,7 +515,7 @@ Der Entwurf sieht **64 MByte** vor (`W25Q512JVEIQ`), also **achtmal so viel**.
 | --- | --- |
 | Tresor, Geräteprotokoll, Formatwanderung | **geht** — der Tresor braucht keine 64 MB |
 | MCUboot-Zweitplatz im externen Flash | **geht voraussichtlich**, Partitionsgrößen prüfen |
-| **USB-Laufwerk mit den portablen Programmen** | **geht nicht vollständig.** Das Abbild ist **27 MB** (`laufwerk.md`), gemessen sogar 29,10 MB. In 8 MB passt es nicht |
+| **USB-Laufwerk mit den portablen Programmen** | **geht nicht vollständig.** Das Abbild ist **weit größer als 8 MB** — die gemessene Größe steht an genau einer Stelle, `laufwerk.md`. In 8 MB passt es nicht |
 
 **Kein Nachkauf jetzt.** Das Laufwerk ist der letzte Prüfpunkt der Reihe; davor
 stehen Sicherheitschip, FIDO2, NFC, Smartcard und Tresor, und für alle reichen
