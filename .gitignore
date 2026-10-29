@@ -37,3 +37,13 @@ hardware/opensecurekey_backup/
 # Fuer den laufenden Stand gilt der Export ueber die Bruecke
 # (hardware/schematic-source-*.txt), der liegt im Repo.
 hardware/opensecurekey.eprj2
+
+# Von Python beim Uebersetzen abgelegt. Am 29.10.2026 versehentlich
+# mitgekommen, als ich die Platinen-Skripte nur auf Uebersetzbarkeit geprueft
+# habe - die Pruefung selbst hat die Dateien erzeugt.
+__pycache__/
+*.pyc
+
+# Legt der Windows-Explorer in Ordnern mit Bildern ab, auf dem NAS besonders
+# gern. Gehoert niemandem und sagt nichts.
+Thumbs.db
