@@ -8,10 +8,50 @@ durch eine Messung für den echten Befehlssatz.
 959 kB, gemessen, nicht geschätzt. Der **RAM passt nicht verlässlich**: der
 eigene Code allein belegt **134 kB fest** von 256 kB, und der tiefste
 Aufrufweg braucht **12 344 Byte Stapel** auf einem Faden, für den der Plan
-1–2 kB annahm. **Der RAM ist die Wand, nicht der Flash.**
+1–2 kB annahm.
+
+> **BERICHTIGT am 30.10.2026 am Geräteabbild — zwei Sätze dieser Seite
+> stimmen nicht, und ein dritter ist härter als er hier steht.**
+> Der Satz „der RAM ist die Wand, nicht der Flash" stand hier mit der Zahl
+> **246 865 Byte = 94 %**. Diese Zahl ist **doppelt gezählt**. Sie addiert
+> den eigenen festen RAM (137 421 B) auf den Abbild-RAM vom 25.10.
+> (97 100 B) — und der enthielt den gebundenen Teil desselben eigenen
+> `.bss` schon. Abschnitt 3 sagt diese Unsicherheit ausdrücklich
+> („wieviel davon, ist ohne das ELF nicht zu sagen") und addiert danach
+> trotzdem. **Das ELF gibt es seit dem 30.10.2026**, und es sagt:
+>
+> | am Abbild gemessen | Byte | Anteil 256 kB |
+> | --- | ---: | ---: |
+> | **RAM des Abbilds, gesamt** | **105 292** | **40,2 %** |
+> | davon eigener fester RAM | 71 706 | 27,3 % |
+> | davon Zephyr-Seite | 33 586 | 12,8 % |
+>
+> Die Zephyr-Seite ist also **33 586 B**, nicht „höchstens 97 kB". Die
+> ehrliche Hochrechnung, wenn aller eigene Code erreichbar wäre, lautet
+> 137 425 + 33 586 = **171 011 B = 65 %** — eng, aber **keine Wand**, und
+> USB, BLE und NFC sind darin nicht enthalten.
+>
+> **Die Wand steht an einer anderen Stelle, und dort ist sie echt:**
+> der tiefste gemessene Aufrufweg braucht **12 344 Byte**, der Hauptfaden
+> im Abbild ist **8 256 Byte** groß (`z_main_stack`, am ELF gemessen).
+> **Das sind 4 088 Byte zu wenig** — zwei gemessene Zahlen, die sich
+> direkt widersprechen, keine Hochrechnung. Am Gerät ist das der Absturz
+> oder die Stapelwächter-Meldung.
+>
+> **Und der doppelte Index-Block ist gemessen:** `g_idx` 20 512 B und
+> `g_idx_ct` 20 528 B, zusammen **41 040 B = 39 % des ganzen Abbild-RAMs**
+> — derselbe Block einmal im Klartext, einmal verschlüsselt. Der Kommentar
+> in `osk_vault_format.h:65` sagt „Im RAM ist immer nur EIN Block". Das
+> stimmt und führt doch in die Irre: ein Block, aber zweimal.
 
 Stufe **2 von 4**: übersetzt. Nichts davon ist im Geräteabbild gebunden,
 nichts ist am Gerät gelaufen.
+
+> **Auch dieser Satz ist überholt:** seit dem 30.10.2026 ist es gebunden.
+> Das Abbild steht, `nrf52840dk/nrf52840`, 113 Quelldateien, FLASH
+> **177 128 B (16,89 %)**, RAM **105 292 B (40,17 %)**. Gegengeprüft mit
+> `arm-zephyr-eabi-size`: 176 136 + 992 = 177 128, auf das Byte. Am Gerät
+> gelaufen ist es weiter nicht — Stufe **3 von 4**.
 
 ---
 
@@ -43,7 +83,7 @@ Die sechs Dateien, die nicht übersetzen, und warum:
 | --- | --- |
 | `src/main.c` | braucht `zephyr/kernel.h` — nur mit SDK |
 | `src/classes/se050/se050_crypto_openssl.c` | braucht OpenSSL; ist der PC-Weg, gehört nicht ins Gerät |
-| `src/views/view_pin.c`, `view_confirm.c`, `view_status.c`, `view_value.c` | `osk_pin_scheme_t` unbekannt. **Das ist ein Artefakt dieser Messung, kein Repo-Fehler:** es gibt zwei `osk_pin.h` (in `ctap/` und in `ui/`), und der flache `-I`-Satz dieser Messung erwischt den falschen. Der echte Bau hat getrennte Einbindepfade. |
+| `src/views/view_pin.c`, `view_confirm.c`, `view_status.c`, `view_value.c` | `osk_pin_scheme_t` unbekannt. **Hier stand „ein Artefakt dieser Messung, kein Repo-Fehler — der echte Bau hat getrennte Einbindepfade". Das war falsch, nachgemessen am 30.10.2026:** der echte Bau legt alle Klassenordner in EINEN `-I`-Satz, `ctap/` davon vor `ui/`. Es war ein Repo-Fehler, und er hat den ersten Gerätebau gebrochen. Dazu trugen beide Dateien denselben Wächter `OSK_PIN_H`, womit die zweite in derselben Übersetzungseinheit gar nicht mehr ladbar war. Behoben: die UI-Fassung heißt jetzt `osk_pin_entry.h`. |
 
 **Was diese Zahlen sind, und was sie nicht sind.** Sie sind echte
 ARM-Zahlen, mit derselben Architektur, derselben Fließkommaeinstellung und

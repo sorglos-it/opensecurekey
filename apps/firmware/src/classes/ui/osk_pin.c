@@ -1,11 +1,11 @@
-/* Die PIN am Geraet - siehe osk_pin.h.
+/* Die PIN am Geraet - siehe osk_pin_entry.h.
  *
  * Diese Datei kennt keinen Taster und keine Anzeige. Sie kennt Handlungen,
  * Ziffern und einen Chip, der die Ziffern haben will. Darum laeuft sie im
  * Pruefsatz am PC genauso wie am Geraet. */
 
 #include <string.h>
-#include "osk_pin.h"
+#include "osk_pin_entry.h"
 
 /* Ueberschreiben, das der Uebersetzer nicht wegwerfen darf. */
 static void scrub(volatile uint8_t *bytes, size_t len)

@@ -8,8 +8,14 @@ Entscheidung steht genau einmal; was offen ist, steht als offen.
 
 **Einordnung vorweg:** Nichts von diesem Gerät ist je auf Hardware gelaufen.
 Rund 12 000 Zeilen C sind geschrieben und übersetzt, Schaltplan und Platine sind
-gezeichnet. Die Teile für den Teststand sind bestellt. **Das Projekt steht auf
-Stufe 2 von 4** — geschrieben / übersetzt / im Abbild / am Gerät gelaufen.
+gezeichnet. Die Teile für den Teststand sind da.
+
+**Am 30.10.2026 ist das Projekt auf Stufe 3 von 4 gestiegen: es gibt ein
+Geräteabbild.** `nrf52840dk/nrf52840`, 113 Quelldateien, 309 eigene Funktionen
+darin, FLASH **177 128 B (16,89 %)**, RAM **105 292 B (40,17 %)**, gegengeprüft
+mit `arm-zephyr-eabi-size` auf das Byte. **Am Gerät gelaufen ist es nicht** —
+Stufe 4 bleibt offen. Stufen: geschrieben / übersetzt / im Abbild / am Gerät
+gelaufen.
 
 **Was am 29.10.2026 selbst nachgemessen wurde**, nicht aus Meldungen
 übernommen: sechs Prüfläufe der Stränge, jeder einzeln gestartet —
@@ -661,33 +667,58 @@ nur aufliegt.
    Kconfig-Richtungen), nicht geschätzt — `docs/flash-und-ram.md`.
    **Der Flash passt mit Luft: 297 kB von 959 kB, 662 kB frei.** Die
    Hochrechnung vom 23.10. lautete 264 kB und lag damit gut.
-   **Der RAM passt nicht.** Und das ist keine Richtungsschätzung, sondern eine
-   Addition gemessener Zahlen: 137 421 Byte eigener fester RAM plus 12 344
-   Byte für **einen** tiefen Fadenstapel sind **57 % der 256 kB** — bevor
-   Zephyr, der USB-Stapel, der BLE-Controller, NFC und der zweite, dritte und
-   vierte Fadenstapel mitgerechnet sind. Rechnet man die 97 100 Byte des
-   Abbilds vom 25.10. dazu, stehen **246 865 Byte = 94 %**, und der USB-Stapel
-   fehlt in dieser Zahl noch.
-   **Damit ist die Wand dieses Geräts nicht der Flash, sondern der RAM** — und
-   das ist eine neue Lage: der ganze Plan hat bisher über den Flash geredet.
+   **Und der RAM — hier stand bis zum 30.10.2026 abends „94 % der 256 kB,
+   der RAM ist die Wand". Diese Zahl ist zurückgenommen: sie war doppelt
+   gezählt.** Sie addierte den eigenen festen RAM (137 421 B) auf den
+   Abbild-RAM vom 25.10. (97 100 B), und der enthielt den gebundenen Teil
+   desselben eigenen `.bss` schon. `docs/flash-und-ram.md` benannte diese
+   Unsicherheit selbst — „wieviel davon, ist ohne das ELF nicht zu sagen" —
+   und addierte danach trotzdem. **Mit dem Abbild vom 30.10. gibt es das ELF**,
+   und es sagt:
 
-2a. **Der tiefste Stapelweg braucht 12 344 Byte.** Das ist derselbe offene
-    Punkt wie 4a, nur um Faktor 6 bis 12 schlimmer als dort geschätzt: dort
-    stehen 1,8 kB auf einem Faden, für den unter Zephyr oft 1–2 kB
-    vorgesehen sind. **Am Gerät ist das ein Absturz oder eine
-    Stapelwächter-Meldung**, und am PC fällt es nicht auf, weil der Stapel
-    dort groß ist. Zu entscheiden ist, ob die Puffer aus dem Stapel in einen
-    festen Bereich wandern oder die Fäden wachsen — das Erste kostet
-    Gleichzeitigkeit, das Zweite RAM, den es nach Punkt 2 nicht gibt.
-    **Gemessen wird es mit `CONFIG_THREAD_ANALYZER` am Gerät**, und das geht
-    jetzt: die Hardware ist da.
+   | am Abbild gemessen | Byte | Anteil 256 kB |
+   | --- | ---: | ---: |
+   | **RAM des Abbilds, gesamt** | **105 292** | **40,2 %** |
+   | davon eigener fester RAM | 71 706 | 27,3 % |
+   | davon Zephyr-Seite | 33 586 | 12,8 % |
 
-2b. **Ein Index-Block liegt zweimal im RAM.** `osk_vault_format.h:65` sagt
-    „64 × 320 B = 20 KiB RAM" für einen Index-Block — was dort nicht steht,
-    ist, dass der Block zweimal gehalten wird. **Der elfte Fall des Musters:
-    eine Zahl, die etwas anderes misst, als ihr Kommentar behauptet.**
-    Zu prüfen ist, ob das zweite Abbild nötig ist; 20 kB sind bei dieser
-    RAM-Lage kein Nebenbetrag.
+   Die ehrliche Hochrechnung, wäre aller eigene Code erreichbar: 137 425 +
+   33 586 = **171 011 B = 65 %** — eng, aber keine Wand, und USB, BLE und NFC
+   fehlen darin. **Der Flash bleibt die bequemere Seite, der RAM die knappe —
+   aber „die Wand" ist er nicht.**
+
+   **Das Muster dahinter ist mein eigenes und jetzt das zweite Mal da: eine
+   Unsicherheit wird aufgeschrieben und dann wegaddiert.** Wer sie hinschreibt,
+   hat sie nicht ausgeräumt. Dieselbe Regel wie bei Punkt 6 in Abschnitt 6:
+   ein Widerspruch, den man aufgeschrieben hat, ist nicht behoben.
+
+2a. **Der Hauptfaden ist 4 088 Byte zu klein. Das ist der harte Befund von
+    Punkt 2, und er steht nach der Berichtigung oben unverändert.**
+    Zwei gemessene Zahlen, die sich direkt widersprechen, keine Hochrechnung:
+    der tiefste Aufrufweg braucht **12 344 Byte** (`docs/flash-und-ram.md`,
+    Abschnitt 4), und `z_main_stack` im Abbild vom 30.10. ist **8 256 Byte**
+    groß — am ELF abgelesen, nicht aus `CONFIG_MAIN_STACK_SIZE` hergeleitet.
+    **Am Gerät ist das der Absturz oder die Stapelwächter-Meldung**, und am PC
+    fällt es nicht auf, weil der Stapel dort groß ist.
+    Zu entscheiden ist, ob die Puffer aus dem Stapel in einen festen Bereich
+    wandern oder der Faden wächst — das Erste kostet Gleichzeitigkeit, das
+    Zweite rund 4 kB RAM, die es nach der Berichtigung oben durchaus gibt.
+    **Bestätigt wird es mit `CONFIG_THREAD_ANALYZER` am Gerät**, und das geht
+    jetzt: die Hardware ist da und das Abbild steht.
+
+2b. **Ein Index-Block liegt zweimal im RAM — am 30.10.2026 am Abbild
+    gemessen, nicht mehr vermutet.** `g_idx` **20 512 B** und `g_idx_ct`
+    **20 528 B** in `store_space.c`, zusammen **41 040 B = 39 % des ganzen
+    Abbild-RAMs**: derselbe Block einmal im Klartext, einmal verschlüsselt.
+    `store_space.c` ist damit allein für fast die Hälfte des eigenen festen
+    RAMs gut (49 240 B von 71 706 B).
+    `osk_vault_format.h:65` sagt „Im RAM ist immer nur EIN Block - das ist der
+    ganze Grund dieser Einteilung". **Der Satz stimmt und führt trotzdem in
+    die Irre: ein Block, aber zweimal.** Der elfte Fall des Musters: eine Zahl,
+    die etwas anderes misst, als ihr Kommentar erwarten lässt.
+    Zu entscheiden, nicht zu rechnen: ob der verschlüsselte Block einen eigenen
+    Puffer braucht oder stückweise durch denselben laufen kann. 40 kB sind der
+    größte einzelne Posten, den dieses Gerät heute im RAM hat.
 3. **Wie viele RSA-4096-Schlüssel** in den Nutzspeicher passen — hängt an
    Widerspruch 4.
 4. **AES-256-GCM-Durchsatz am Gerät.** Liegt er unter 3 MB/s, ist er die neue
@@ -850,6 +881,36 @@ Entscheidung über den Fingerabdrucksensor gefolgt.
     **Regel daraus:** Testdaten ahmen kein Schlüsselformat nach. Ist der Wert
     echt, ist er geleakt; ist er erfunden, macht er die Sicherheitsmeldungen
     des Repos unbrauchbar, weil er jedes Mal wieder anschlägt.
+
+21. ~~**Der Datenträger-Abschnitt stand zweimal in derselben Datei.**~~
+    **ERLEDIGT am 30.10.2026.** `osk_crypto_psa.c` enthielt den Block
+    `#ifdef OSK_TARGET_DEVICE … #endif` **zweimal, Byte für Byte gleich** —
+    `import_chacha`, `osk_vol_aead_seal`, `osk_vol_aead_open` und
+    `osk_vol_sig_verify` je doppelt definiert, 112 Zeilen. Der erste Gerätebau
+    brach daran ab; 112 Zeilen heraus, danach grün.
+    **Warum es fünf Tage lag:** die Datei steht vollständig unter
+    `#ifdef OSK_TARGET_DEVICE` und wird **nur im Gerätebau** übersetzt. Kein
+    PC-Prüfsatz fasst sie an, und der Gerätebau lief vom 25.10. bis zum 30.10.
+    nicht. **215 038 grüne Prüffälle sagen über diese Datei nichts.**
+
+22. ~~**Zwei Dateien hießen `osk_pin.h` und meinten Verschiedenes.**~~
+    **ERLEDIGT am 30.10.2026 — und das ist der zwölfte Fall des Fehlermusters,
+    diesmal nicht bei Zahlen, sondern bei Dateien.**
+    Eine lag in `src/classes/ctap/` (das PIN-Protokoll zum Rechner), eine in
+    `src/classes/ui/` (die PIN-Eingabe am Gerät). **Beide trugen zusätzlich
+    denselben Include-Wächter `OSK_PIN_H`.** Der Gerätebau legt alle
+    Klassenordner in **einen** `-I`-Satz, `ctap/` davon vor `ui/`: wer
+    `#include "osk_pin.h"` schrieb, bekam die CTAP-Fassung, und der gleiche
+    Wächter machte die andere in derselben Übersetzungseinheit unladbar.
+    Vier Bildschirm-Dateien kannten darum `osk_pin_scheme_t` nicht.
+    Behoben: die UI-Fassung heißt `osk_pin_entry.h`, Wächter
+    `OSK_PIN_ENTRY_H`, sechs Einbindungen nachgezogen.
+    **Der eigentliche Fund steckt daneben:** `docs/flash-und-ram.md` hatte
+    diese Kollision am 30.10. früh schon gesehen und als **„Artefakt dieser
+    Messung, kein Repo-Fehler — der echte Bau hat getrennte Einbindepfade"**
+    abgetan. Der echte Bau hat sie nicht. **Eine Erklärung, die niemand
+    nachgemessen hat, ist eine Vermutung mit Haltung** — und sie hat einen
+    echten Repo-Fehler einen halben Tag länger liegen lassen.
 
 **Daraus neu offen, beides beim Nachmessen am 30.10.2026 gefunden:**
 

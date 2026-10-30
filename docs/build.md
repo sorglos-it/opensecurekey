@@ -268,6 +268,86 @@ $env:ZEPHYR_TOOLCHAIN_VARIANT = 'zephyr'
    die Gerätebeschreibung einen eigenen Parser in Python, und `gperf`
    braucht nur `CONFIG_USERSPACE` — das ist aus.
 
+### Der zweite Bau (30.10.2026) — und warum das SDK „weg" schien
+
+Am 30.10.2026 lautete der Befund dieser Sitzung zuerst **„das nRF Connect SDK
+ist nicht installiert"**. Das war falsch: es lag die ganze Zeit unter
+`D:\claude\sdk`. Nachgesehen worden war in `C:
+cs`, `D:
+cs` und
+`%LOCALAPPDATA%` — **nicht in dem Ordner, der laut Projektregel genau dafür
+da ist.** Gefunden wurde es erst beim Lesen dieser Seite. Fünf weitere Fallen
+lagen darunter, und jede hat einen Bauversuch gekostet:
+
+6. **`env.ps1` aktiviert das NCS nicht.** Für PHP, Go, Perl, Node, ESP-IDF
+   und die Übersetzer setzt `D:\claude\sdk\env.ps1` alles; für Zephyr setzt
+   es **nichts**. Darum ist `west` nach `. env.ps1` weiter nicht im PATH, und
+   das sieht wie „nicht installiert" aus. Die vier Variablen oben müssen von
+   Hand kommen.
+
+7. **Eine verschobene Python-Umgebung ist eine tote Python-Umgebung.**
+   `ncs-tools312\pyvenv.cfg` trug `home = D:\py312\python` und
+   `command = … D:\claude
+cs-tools312` — beide Pfade gibt es nicht mehr,
+   die Werkzeuge sind seither nach `D:\claude\sdk\…` gewandert.
+   **Der Fehler ist still:** `west.exe --version` und `cmake.exe --version`
+   geben **gar nichts** aus und enden mit Code 1. Behoben durch Neuanlegen am
+   heutigen Ort, mit denselben Fassungen (west 1.5.0, cmake 3.31.6,
+   ninja 1.13.2) **und** `pip install -r zephyr/scripts/requirements.txt` —
+   ohne das bricht CMake mit `Missing jsonschema dependency` ab.
+
+8. **Das `west update` vom 24.10. ist nie fertig geworden, und niemand hat es
+   gemerkt.** `modules/hal` war leer, `nrfxlib` meldete
+   `Unmet or cyclic dependencies: nrfxlib depends on hal_nordic`. Dazu lagen
+   zwei Reste des Abbruchs: eine **leere `index.lock` vom 25.10., 14:40 Uhr**
+   in `trusted-firmware-m`, und danach dieselbe Arbeitskopie **halb
+   ausgepackt** (`untracked working tree files would be overwritten`).
+   Behoben: Sperre weg, den Fremd-Checkout gelöscht, `west update` neu.
+   **Dass am 25.10. trotzdem ein Abbild entstand, hat beides verdeckt** — der
+   damalige Satz an Quelldateien brauchte die fehlenden Module nicht.
+
+9. **PowerShell zerlegt `-DOSK_VERSION=0.0.1.0`.** Unquotiert kommt bei CMake
+   `-DOSK_VERSION=0` und ein zweites Argument `.0.1.0` an; CMake meldet nur
+   `Ignoring extra path from command line: ".0.1.0"` und baut die falsche
+   Version. **Die `-D`-Argumente gehören in einfache Anführungszeichen**, oder
+   man nimmt `tools/build.py`, das es selbst richtig macht.
+
+10. **Ein nicht-frischer Bauordner erzeugt eigene Fehler.** Ein zweiter Lauf
+    ohne `--pristine` in denselben Ordner brach mit
+    `malformed string literal in assignment to TF_PSA_CRYPTO_USER_CONFIG_FILE`
+    ab — ein Fehler, den der frische Lauf nicht hat. Beim Suchen einer Ursache
+    also **immer `--pristine=always`**, sonst misst man den Bauordner statt
+    den Code.
+
+**Und eine Falle, die nicht am SDK liegt, sondern an mir:** die ersten drei
+Bauläufe liefen durch `| Select-Object -Last 50`. Der Fehler stand jedes Mal
+weiter oben, und dreimal habe ich das Protokoll weggeworfen, das ich lesen
+wollte. **Bauprotokolle ungekürzt in eine Datei, dann darin suchen.**
+
+### Was der erste Gerätebau nach fünf Tagen gefunden hat
+
+| | |
+| --- | --- |
+| **FLASH** | **177 128 B** von 1 MB, **16,89 %** |
+| **RAM** | **105 292 B** von 256 kB, **40,17 %** |
+| Quelldateien | 113 (am 25.10.: 79) |
+| eigene Funktionen im Abbild | 309 (am 25.10.: 243) |
+
+Gegengeprüft mit `arm-zephyr-eabi-size -B`: `text` 176 136 + `data` 992 =
+**177 128** — diesmal auf das Byte gleich, weil keine Ausrichtungslücke
+dazwischenliegt (am 25.10. waren es 12 Byte Unterschied, siehe oben).
+
+**Zwei echte Fehler im eigenen Code sind dabei herausgekommen**, und keiner
+von ihnen ist für einen PC-Prüfsatz sichtbar: ein doppelt eingefügter
+Datenträger-Abschnitt in `osk_crypto_psa.c` (nur im Gerätebau übersetzt) und
+zwei Dateien namens `osk_pin.h` mit demselben Include-Wächter. Beide stehen
+als Punkt 21 und 22 in `docs/plan.md`.
+
+**Die Lehre, die mehr wert ist als die beiden Fehler:** Ein Gerätebau, der
+fünf Tage nicht läuft, ist kein ruhender Prüfschritt, sondern ein blinder
+Fleck, der sich füllt. `tools/check.py` meldete `firmware/build` die ganze
+Zeit brav als **übersprungen** — und „übersprungen" sah aus wie „in Ordnung".
+
 ### Die Funde: elf Bauversuche, und was jeder gelehrt hat
 
 **Keiner der Funde lag im C-Code selbst.** Alle 77 Quelldateien haben beim

@@ -13,7 +13,7 @@
 #include <string.h>
 #include "osk_button.h"
 #include "osk_lang.h"
-#include "osk_pin.h"
+#include "osk_pin_entry.h"
 #include "osk_ui.h"
 #include "osk_ui_port.h"
 #include "osk_views.h"

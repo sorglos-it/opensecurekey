@@ -22,7 +22,7 @@ den Reset geworden. Ein zweiter Taster braucht Platz auf einer Platine, die
 schon zu kurz ist.
 
 Gerechnet, nicht geschätzt – sechsstellige PIN, alle Zahlen aus
-`osk_pin_cost()` in `apps/firmware/src/classes/ui/osk_pin.h`, nachgeprüft in
+`osk_pin_cost()` in `apps/firmware/src/classes/ui/osk_pin_entry.h`, nachgeprüft in
 `test_pin.c`:
 
 | Weg | Taster | Drücke schlimmster Fall | Drücke mittlerer Fall | Zeit schlimmster Fall | Zeit mittlerer Fall |
@@ -31,7 +31,7 @@ Gerechnet, nicht geschätzt – sechsstellige PIN, alle Zahlen aus
 | **B** Ein Taster: kurz = 0, lang = 1, vier Bits je Stelle | 1 | 24 | 24 | **22,8 s** | **18,8 s** |
 | **C** Zwei Taster: 1 blättert, 2 nimmt | 2 | 60 | 33 | **16,2 s** | **8,9 s** |
 
-Woher die Zeiten kommen (die Annahmen stehen nur in `osk_pin.h`, damit sie
+Woher die Zeiten kommen (die Annahmen stehen nur in `osk_pin_entry.h`, damit sie
 nicht zweimal behauptet werden):
 
 * kurzer Druck: 120 ms Taster unten + 150 ms loslassen
@@ -60,7 +60,7 @@ zwischen A (22,4 s) und C (8,9 s).
 braucht die Antwort nicht, um zu laufen (siehe unten); er braucht sie nur,
 damit die richtige Variante freigeschaltet wird.
 
-Zu ändern ist dann **eine** Zeile: `OSK_PIN_SCHEME_DEFAULT` in `osk_pin.h`.
+Zu ändern ist dann **eine** Zeile: `OSK_PIN_SCHEME_DEFAULT` in `osk_pin_entry.h`.
 Bei zwei Tastern kommt dazu, dass die Firmware beim Start `button2_down` in
 `osk_ui_port_t` einhängt. Hängt es nicht, lehnt die Anzeige den Zwei-Taster-Weg
 mit `OSK_ERR_UNSUPPORTED` ab, statt ihn still falsch zu bedienen.
@@ -181,7 +181,7 @@ Attrappen.
 ## Was offen ist
 
 1. **Wie viele Taster?** Die Rechnung oben liegt vor; die Entscheidung gehört
-   Thomas. Danach: eine Zeile in `osk_pin.h`, und bei zwei Tastern ein Griff
+   Thomas. Danach: eine Zeile in `osk_pin_entry.h`, und bei zwei Tastern ein Griff
    mehr beim Start der Firmware.
 2. **Soll die gewählte Ziffer sichtbar sein?** Standard ja, Begründung oben.
 3. **Der Chip fehlt.** `osk_pin_sink_t` ist der Vertrag; die langsame

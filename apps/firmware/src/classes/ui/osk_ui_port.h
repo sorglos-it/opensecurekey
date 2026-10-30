@@ -10,7 +10,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "osk_display.h"
-#include "osk_pin.h"
+#include "osk_pin_entry.h"
 #include "osk_result.h"
 
 /* Die LED sagt dasselbe wie die Anzeige noch einmal in Farbe - als

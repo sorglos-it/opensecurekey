@@ -20,8 +20,8 @@
  *
  * WAS DIE RECHNUNG DER DREI WEGE SAGT, steht in docs/pin-am-geraet.md und
  * kommt aus osk_pin_cost() - die Zahlen stehen nur dort. */
-#ifndef OSK_PIN_H
-#define OSK_PIN_H
+#ifndef OSK_PIN_ENTRY_H
+#define OSK_PIN_ENTRY_H
 
 #include <stdbool.h>
 #include <stddef.h>

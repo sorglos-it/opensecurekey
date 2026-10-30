@@ -11,7 +11,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "osk_gfx.h"
-#include "osk_pin.h"
+#include "osk_pin_entry.h"
 #include "osk_ui.h"
 
 /* Ein Stueck Inhalt: die Beschriftung kommt aus der Sprachdatei, der Wert
