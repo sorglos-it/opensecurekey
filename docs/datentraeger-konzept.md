@@ -1140,3 +1140,121 @@ keinen Code zu diesem Entwurf.**
    FAT-Verstaendnis, feste Abbildung), aber er ist neu und ungeprueft.
 10. **Nichts davon ist umgesetzt.** Es gibt keinen Code, und die beiden
     Chip-Funktionen, auf denen Fall A steht, fehlen bis heute.
+
+## Was davon gebaut ist (Stand 30.10.2026)
+
+Der Entwurf oben ist unveraendert; hier steht nur, was daraus Code geworden
+ist und was dabei anders kam. **Nichts ist an Hardware gelaufen** - es gibt
+weder Karte noch Chip noch Brett. Gelaufen ist es gegen Attrappen am PC.
+
+| | Datei |
+| --- | --- |
+| Vertrag: drei Arten, Baum, Pfadkosten, Auflage an die Anzeige | `apps/firmware/src/classes/store/osk_volume.h` |
+| Kartenschnittstelle | `apps/firmware/src/classes/store/osk_volume_card.h` |
+| ChaCha20-Poly1305 und Ed25519-Pruefung, Vertrag | `apps/firmware/src/classes/store/osk_volume_crypto.h` |
+| Oeffnen, Lesen, Schreiben, Festschreiben, Versiegeln | `volume_core.c` |
+| Empfaengerzeilen (geraet, wort, stick) | `volume_recv.c` |
+| Baumgroesse, Pfadkosten, Modustexte | `volume_tree.c` |
+| Krypto auf dem Geraet (PSA) | angehaengt an `osk_crypto_psa.c` |
+| Attrappen Karte und Krypto | `apps/firmware/test/store/fake_card.c`, `fake_vcrypto.c` |
+| Pruefsaetze | `test_volume.c`, `test_volume_modes.c` |
+
+**Wo der Code des Laufwerks liegt:** `apps/firmware/src/classes/transport/`
+(`usb_msc.c`, `usb_msc.h`) - nicht unter `classes/msc/`. Das ist der
+SCSI- und Bulk-Only-Weg des **schreibgeschuetzten Programm-Laufwerks**; er
+weist jeden Schreibbefehl ab. Der Datentraeger braucht dort eine zweite,
+schreibbare Einheit. Die Schnittstelle dazu ist `osk_volume.h`; gebaut ist
+die Anbindung nicht.
+
+### Gemessen statt geschaetzt
+
+Alles aus den Pruefsaetzen, nicht aus dem Kopf:
+
+| | Wert | woher |
+| --- | --- | --- |
+| Baum 8 GiB | 16 513 Seiten = 64,50 MiB = 0,79 % | `test_volume.c`, aus `osk_vol_layout` |
+| Baum 16 GiB | 33 027 Seiten = 129,01 MiB = 0,79 % | ebenda |
+| Ebenen 8 / 16 GiB | 2 / 3 | ebenda |
+| **Pfadpruefung** | **3 Lesevorgaenge** von der Karte, **8 KiB gehasht** | gezaehlt an der Karten-Attrappe |
+| davon Nutzdaten | 1 Block = 4 KiB | - |
+| vollstaendige Pruefung 16 GiB | 671 s = 11,2 min bei 25,8 MB/s | gerechnet, Hashleistung **ungeprueft** |
+| dieselbe in Software | 5,5 Stunden bei 870 kB/s | ebenda |
+
+**Was das auf dem Durchsatz obendrauf legt, ehrlich gerechnet.** Je
+ausgelieferten 4-KiB-Block liest der Stick 12 KiB von der Karte (Block,
+Stempelseite, Ebene-1-Seite) und hasht 8 KiB:
+
+- USB ist die Wand: 4 KiB bei 400 kB/s sind **10,2 ms**.
+- Die 8 KiB Aufschlag von der Karte sind bei 3 MB/s **2,7 ms** - also
+  **27 % des Zeitbudgets**, nicht Faktor drei. Es passt, aber nicht
+  bequem.
+- Das Hashen von 8 KiB kostet 0,32 ms im Beschleuniger (3 %) und 9,4 ms in
+  Software (**92 % des Budgets**). Faellt der Befund zum Beschleuniger
+  anders aus, ist der Baum und nicht USB der Engpass.
+- Beim Lesen hintereinanderliegender Bloecke faellt der Aufschlag fast
+  weg: 128 Bloecke teilen sich eine Stempelseite. **Diese Zwischenablage
+  ist NICHT gebaut** - gemessen sind die 3 Zugriffe je Block ohne sie.
+
+### Was anders kam als im Entwurf - meldepflichtig
+
+1. **Stempelfeld und Baumseiten liegen im Klartext.** Der Entwurf gibt
+   `K_baum` fuer die Baumseiten vor (Modus 1 und 2). Gebaut ist es nicht,
+   und der Grund ist das Format selbst: ein AEAD-Stempel je Baumseite hat
+   darin keinen Platz, und ohne Stempel ist die Verschluesselung einer
+   Seite, die der Baum ohnehin bindet, nur Verdeckung. Was dadurch
+   sichtbar bleibt: **wie oft welcher Block beschrieben wurde** - ein
+   Nutzungsmuster, keine Nutzdaten. `K_baum` wird darum nicht abgeleitet.
+   Wer das anders entscheidet, braucht ein eigenes Stempelfeld fuer
+   Baumseiten.
+2. **Festgeschrieben wird der GANZE Baum, nicht der Pfad.** Bei 16 GiB
+   sind das 129 MiB Hashen je Festschreibung, rund 5 Sekunden im
+   Beschleuniger - unvereinbar mit der Obergrenze von 1024 Bloecken. Das
+   Nachziehen nur der beruehrten Seiten ist dieselbe Rechnung von unten
+   nach oben und fehlt.
+3. **Formatieren geht einmal ueber die ganze Karte.** Jeder Block braucht
+   einen Stempel, sonst ist er unlesbar - und ein Betriebssystem liest
+   Sektoren, in die es nie geschrieben hat. Bei 16 GiB sind das etwa
+   1,5 Stunden. Die Anzeige muss diese Dauer vorher nennen, so wie die
+   vollstaendige Pruefung ihre nennt. Im Entwurf steht das nicht.
+4. **Der Empfaenger "anderer Stick" (X25519) ist nicht gebaut** und
+   meldet `OSK_ERR_UNSUPPORTED`. Grund: offener Punkt 6 - Curve25519 am
+   SE051C2 ist nicht bestaetigt. Eine Attrappe dafuer wuerde die eigene
+   Seite des Vertrags pruefen und nicht die des Chips. Modus 2 laeuft
+   darum heute auf Chipschluessel und Kartenwort.
+5. **Die Signatur eines fremden Sticks wird auf dem Rechenkern geprueft,
+   nicht im Chip.** `osk_se050.h` hat dafuer keine Funktion, und das ist
+   richtig: eine Rechnung auf oeffentlichen Daten gehoert nicht ueber den
+   I2C. Ob PSA auf dem nRF52840 `PSA_ALG_PURE_EDDSA` zum Pruefen anbietet,
+   ist **zu bestaetigen**.
+6. **Die Tabelle der bekannten Absender fehlt.** Sie liegt im Tresor und
+   gehoert dem store-Strang. Solange sie fehlt, antwortet
+   `osk_volume_sender()` fuer jeden fremden Stick **"unbekannt"** - das
+   ist die Wahrheit und keine Luecke, aber es heisst, dass Modus 2 und 3
+   heute nie "bekannter Absender" anzeigen koennen.
+
+### Was die Anzeige leisten muss
+
+Der Vertrag steht in `osk_volume.h` bei `osk_vol_ui_confirm_fn`. Ohne diese
+Rueckmeldung gibt es keinen Datentraeger: `osk_volume_init()` weist eine
+Einrichtung ohne Anzeige mit `OSK_ERR_ARG` ab, und ohne Zustimmung weist
+jeder Schreibbefehl mit `OSK_ERR_DENIED` ab. Verlangt wird:
+
+1. **Den Modus im Klartext nennen, bevor geschrieben wird.** Bei Modus 3
+   faengt der Text mit **OFFEN** an - `osk_vol_mode_text()` liefert
+   "OFFEN - nur gesiegelt, nicht geheim", und der Pruefsatz haelt fest,
+   dass das erste Wort dort steht.
+2. **Modus 3 bekommt eine deutlich andere Darstellung**, nicht dieselbe
+   Zeile mit einem anderen Wort darin. Die Rueckmeldung bekommt dafuer
+   `secret = false` ausdruecklich mitgegeben, damit die Anzeige nicht aus
+   der Nummer schliessen muss.
+3. **Der Tastendruck bestaetigt diesen Text**, nicht "weiter".
+4. **In Modus 2 die Zahl der Empfaenger nennen** - sie steht im Aufruf.
+5. **Ein Zeitablauf ist ein Fehler, keine Zustimmung** (`OSK_ERR_TIMEOUT`).
+6. **Nur die erlaubten Aussagen verwenden.** `osk_vol_claim_text()` gibt
+   sie vor. "dieser Block geprueft" gibt es, **"Karte geprueft" nicht** -
+   und zwar nicht, weil es unhoeflich waere, sondern weil es falsch ist.
+7. **Echtheit und Urheberschaft getrennt anzeigen.**
+   `osk_volume_root_unchanged()` und `osk_volume_sender()` sind zwei
+   Funktionen, und die Anzeige muss zwei Zeilen daraus machen:
+   "unveraendert" und daneben "Absender unbekannt".
+

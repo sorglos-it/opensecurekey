@@ -15,6 +15,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 /* Welches Geraet die Attrappe gerade ist. Jedes hat sein eigenes
  * Grundgeheimnis - ein Tresor von Geraet A ist auf Geraet B unlesbar. */
@@ -40,5 +41,10 @@ void fake_se050_counter_start_at(uint64_t value);
  * man sie je Anmeldung bezahlt. */
 uint32_t fake_se050_raises(void);
 void fake_se050_raises_reset(void);
+
+/* Signatur gegen einen oeffentlichen Teil pruefen - fuer den Datentraeger,
+ * der von einem ANDEREN Stick signiert sein kann. Naeheres in fake_se050.c. */
+bool fake_se050_sig_matches(const uint8_t *pub, const uint8_t *msg, size_t msg_len,
+			    const uint8_t *sig);
 
 #endif
