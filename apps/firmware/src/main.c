@@ -18,6 +18,7 @@
 
 #include "osk_result.h"
 #include "osk_se050.h"
+#include "osk_commission.h"
 #include "osk_store.h"
 #include "osk_ctap.h"
 #include "osk_transport.h"
@@ -50,6 +51,28 @@ static bool not_verified(void *ctx)
 {
 	ARG_UNUSED(ctx);
 	return false;
+}
+
+/* --- Erstlauf ------------------------------------------------------------
+ *
+ * Als ERSTES, vor allem anderen: die Werksschluessel des Sicherheitschips
+ * stehen im Klartext in NXP AN12973 Tabelle 6. Wer sie kennt, liest den
+ * I2C-Verkehr zum Chip mit und kann ihn stellen - dann ist der zweite Chip
+ * wertlos. Darum wird vor dem ersten Gebrauch getauscht
+ * (include/osk_commission.h, docs/erstlauf.md).
+ *
+ * Es stand nur das Werkzeug da und niemand rief es. Hier wird es gerufen.
+ * Dass es heute OSK_ERR_UNSUPPORTED meldet, ist der ehrliche Stand: der
+ * Platinenhaken ist ein Platzhalter (se050_commission_platform.c). */
+static osk_result_t walk_commission(void)
+{
+	const osk_commission_backend_t *be = NULL;
+	osk_result_t r = osk_commission_platform_backend(&be);
+
+	if (r != OSK_OK) {
+		return r;
+	}
+	return osk_commission_run(be);
 }
 
 /* --- se050 -------------------------------------------------------------- */
@@ -150,6 +173,7 @@ int main(void)
 {
 	LOG_INF("opensecurekey %s - Durchlauf durch die sieben Teile", OSK_VERSION);
 
+	step("erstlauf", walk_commission());
 	step("se050", walk_se050());
 	step("store", walk_store());
 	step("ctap", walk_ctap());

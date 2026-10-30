@@ -71,5 +71,6 @@ void test_errors(void);
 void test_contract(void);
 void test_rsa(void);
 void test_counter(void);
+void test_commission(void);
 
 #endif
