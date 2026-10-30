@@ -229,6 +229,26 @@ Ja/Nein-Abfrage lässt sich herausschneiden) · Bibliothek `osk-guard` für C, G
 PHP, .NET, Python · Knotenschlüssel im Chip statt auf der Platte ·
 Dauerbetriebsmodus für Server, ausdrücklich einzuschalten und protokolliert.
 
+> **Entschieden am 30.10.2026: ein Stick je Server.** Wird er im Betrieb
+> abgezogen, ist der laufende Auftrag verloren und die Freischaltung mit —
+> der Server braucht wieder einen Tastendruck am Gerät. **Ausfall, bis jemand
+> da ist.**
+>
+> Zwei Sticks je Server sind abgelehnt, und die Begründung ist die bessere
+> Hälfte der Entscheidung: **sie nehmen den Ausfall nicht weg, sie verschieben
+> ihn** — der zweite Stick lässt sich genauso abziehen. Dafür kosteten sie ein
+> zweites Gerät je Server **und zwei Kennungen je Server in NGC**, weil der
+> Chip eine Kennung nicht auf zwei Geräte legen kann.
+>
+> **Die Folge gehört nicht diesem Projekt:** Der verlorene Auftrag wird auf
+> NGCs Seite abgefangen — ein Auftrag bekommt den Zustand „wartet auf
+> Unterschrift" und wird erneut eingereicht. Das hilft gegen jeden Grund, aus
+> dem eine Unterschrift ausfällt, nicht nur gegen das Abziehen. **Es ist nicht
+> gebaut, und es kann hier nicht gebaut werden** — es ist eine Änderung am
+> Auftragsprotokoll von NextGenCloud und gehört dem, der es führt.
+> *(Der erste offene Punkt dieses Projekts, der in einem anderen Repo liegt.
+> Er steht hier, damit er nicht dazwischen verloren geht.)*
+
 ### Datenträger — drei Betriebsarten
 
 Die microSD wird **nur in unseren eigenen Sticks** gelesen, nie in einem fremden
