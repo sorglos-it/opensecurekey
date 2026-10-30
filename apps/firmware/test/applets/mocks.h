@@ -60,6 +60,36 @@ const uint8_t *mock_rsa_last_hash_val(size_t *len_out);
 unsigned mock_rsa_sign_count(void);
 unsigned mock_rsa_decrypt_count(void);
 
+/* Was beim letzten osk_se050_sign() wirklich ankam. Daran haengt die
+ * Pruefung, dass die Unterschrift ueber GENAU die Bytes geht, die das
+ * Modul zusammengesetzt hat - bei RSA sagt das mock_rsa_last_hash_val(),
+ * bei einer Kurve gab es dafuer bis zum 30.10.2026 nichts. 0 Faelle heisst
+ * "noch kein Aufruf". */
+const uint8_t *mock_sign_last_hash(size_t *len_out);
+unsigned mock_sign_count(void);
+
+/* ---- Echtes Schluesselmaterial in die Attrappe legen ------------------- */
+
+/* WOFUER DAS DA IST, und es ist der Kern des Belegs: die Attrappe rechnet
+ * keine Kurve und kein RSA. Eine Zertifikatsanfrage, die nur das eigene
+ * Leseprogramm versteht, ist aber nichts wert - sie muss von einem FREMDEN
+ * Programm gelesen und ihre Unterschrift bestaetigt werden.
+ *
+ * Darum kann hier echtes Material hineingelegt werden: ein oeffentlicher
+ * Schluessel, den openssl erzeugt hat, und eine Unterschrift, die openssl
+ * mit dem passenden privaten Teil ueber GENAU die Bytes gerechnet hat, die
+ * die Firmware zusammengesetzt hat. Was dabei geprueft wird, ist der
+ * Aufbau der Anfrage und dass die Unterschrift ueber den richtigen Teil
+ * geht. Was NICHT geprueft wird, ist die Rechnung des Chips - die ist nicht
+ * da.
+ *
+ * Gesetzt wird immer nur EIN Schluessel: die Werkzeuge bauen eine Anfrage
+ * je Aufruf. NULL loescht die Vorgabe wieder. */
+void mock_se050_set_public(const uint8_t *point, size_t len);
+void mock_se050_set_rsa_public(const uint8_t *mod, size_t mod_len, const uint8_t *exp,
+			       size_t exp_len);
+void mock_se050_set_signature(const uint8_t *sig, size_t len);
+
 /* ---- Tresor ------------------------------------------------------------ */
 size_t mock_store_count(void);
 /* Wie oft ein Eintrag geoeffnet wurde - jedes Oeffnen fragt am Display. */

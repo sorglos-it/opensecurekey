@@ -16,6 +16,7 @@ The device does not exist yet and nobody has used it. The manual says what is pl
 - [threat-model.md](threat-model.md) — what it protects against, and what it does not
 - [display.md](display.md) — the display, the button, and how approval works
 - [hardware.md](hardware.md) — parts, test setup, target board
+- [pqc.md](pqc.md) — post-quantum: ML-KEM-768 together with X25519 (German)
 - [integration.md](integration.md) — how other programs reach the key
 - [../shared/protocol.md](../shared/protocol.md) — device ↔ program protocol
 - [../shared/vault-format.md](../shared/vault-format.md) — how the vault is stored
