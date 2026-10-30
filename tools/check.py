@@ -25,8 +25,11 @@ if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import build
 import common
+import keyguard
+import repro
 import set_version
 import symbols
+import variant as variant_mod
 from common import OK, SKIPPED, FAILED, Result
 
 LANGUAGES = ('de', 'en', 'fr', 'it', 'es')
@@ -59,6 +62,100 @@ def check_tools(root):
     if count == 0:
         return fail('tools', 'tests', 'keine Werkzeug-Tests gefunden')
     return Result('tools', 'tests', OK, 'unittest', count)
+
+
+def check_keys(root):
+    """Liegt ein privater Schluessel im Projektordner? Das ist nie 'uebersprungen'.
+
+    Dieser Schritt kann nicht uebersprungen werden und braucht kein Werkzeug:
+    er liest Dateien. Ein Schluessel, der einmal in einem Commit steckt, ist
+    aus der Geschichte nicht mehr herauszuholen - diese Pruefung muss darum
+    auf JEDEM Rechner laufen, auch auf dem ohne SDK.
+    """
+    wrong, lines = keyguard.selftest()
+    if wrong:
+        common.say('\n'.join(lines))
+        return fail('repo', 'schluessel', 'die Schluesselpruefung selbst ist nicht in Ordnung '
+                                          '(%d von %d Faellen falsch)' % (wrong, len(lines)))
+    hits = keyguard.scan(root)
+    if hits:
+        for where, why in hits:
+            common.say('  %s  -  %s' % (where, why))
+        return Result('repo', 'schluessel', FAILED,
+                      'privater Schluessel im Projektordner: '
+                      + ', '.join(where for where, _ in hits))
+    return Result('repo', 'schluessel', OK,
+                  'kein privater Schluessel im Projektordner', len(lines))
+
+
+def check_variants(root):
+    """Sind die zwei Fassungen auseinanderzuhalten - in BEIDEN Richtungen?
+
+    Geprueft wird die Tafel der AAGUIDs, beide Fassungen, und der Fall, gegen
+    den das Ganze da ist: ein Abbild ohne RSA mit dem AAGUID der Fassung mit
+    RSA. Dazu, dass beide Baudateien da sind und ausdruecklich sagen, welche
+    Fassung sie meinen - eine Fassung, die nur durch das Weglassen einer Zeile
+    entsteht, ist von einem Versehen nicht zu unterscheiden.
+    """
+    part, step = 'firmware', 'fassungen'
+    source = common.part_dir(part, root)
+    if not common.has_sources(part, root):
+        return Result(part, step, SKIPPED, 'apps/firmware ist noch leer')
+    problems = []
+    if not os.path.isfile(os.path.join(source, 'Kconfig')):
+        problems.append('apps/firmware/Kconfig fehlt - dann kennt Kconfig den Namen '
+                        'CONFIG_OSK_RSA nicht und JEDER Bau wird die Fassung ohne RSA')
+    if not os.path.isfile(os.path.join(root, variant_mod.AAGUID_SOURCE)):
+        # Die Tafel der AAGUIDs gehoert dem CTAP-Teil. Ist er nicht da, gibt es
+        # nichts zu vergleichen - das ist ein Ueberspringen mit Grund und kein
+        # Fehler, und vor allem kein Absturz.
+        return Result(part, step, SKIPPED, '%s fehlt - dort stehen die beiden AAGUIDs'
+                      % variant_mod.AAGUID_SOURCE)
+    for which in variant_mod.VARIANTS:
+        path = os.path.join(source, 'variant-%s.conf' % which)
+        if not os.path.isfile(path):
+            problems.append('apps/firmware/variant-%s.conf fehlt' % which)
+            continue
+        with io.open(path, encoding='utf-8') as handle:
+            got, why = variant_mod.variant_from_config(handle.read())
+        if got != which:
+            problems.append('variant-%s.conf meint die Fassung "%s" (%s)'
+                            % (which, got or 'keine', why))
+    try:
+        wrong, lines = variant_mod.selftest(root)
+    except variant_mod.VariantError as error:
+        return Result(part, step, FAILED, 'die AAGUID-Tafel ist nicht lesbar: %s' % error)
+    if wrong:
+        common.say('\n'.join(lines))
+        problems.append('%d von %d Faellen falsch' % (wrong, len(lines)))
+    if problems:
+        return Result(part, step, FAILED, '; '.join(problems))
+    return Result(part, step, OK, 'beide Fassungen, AAGUIDs und die Verwechslung geprueft',
+                  len(lines))
+
+
+def check_repro(root):
+    """Ergibt zweimaliges Verpacken dasselbe Paket?
+
+    Nur der Teil, der ohne SDK messbar ist. Das ARM-Abbild gehoert nicht
+    hierher: ein Schritt, der auf diesem Rechner immer 'uebersprungen' sagt,
+    verschwindet aus der Aufmerksamkeit. Fuer das Abbild gibt es
+    'python tools/repro.py --firmware', und docs/signatur.md sagt, dass es
+    nicht gemessen ist.
+    """
+    try:
+        ok, lines = repro.check_pack(root)
+    except variant_mod.VariantError as error:
+        # Kein Absturz: ein Schritt, der run_all mitreisst, nimmt auch alle
+        # Schritte danach mit - und dann steht nichts mehr im Bericht.
+        # Gemessen am 30.10.2026 gegen einen Baum ohne apps/firmware/src/.
+        return Result('tools', 'repro', SKIPPED, 'die AAGUID-Tafel fehlt: %s' % error)
+    if not ok:
+        common.say('\n'.join(lines))
+        return Result('tools', 'repro', FAILED,
+                      'zweimal verpacken ergibt nicht dasselbe - siehe die Abweichung oben')
+    return Result('tools', 'repro', OK,
+                  'Paket und beide Abbildkoepfe: zweimal gleiche Bytes (git hash-object)', 3)
 
 
 def check_python_syntax(root):
@@ -427,12 +524,46 @@ def check_format(root):
     return results
 
 
+def check_guard(root=common.ROOT):
+    """Der Vertrag der fuenf osk-guard-Fassungen gegen die Quellen.
+
+    Braucht keinen Chip, keinen Uebersetzer und keine Attrappe - er liest
+    die Dateien. Darum gehoert er hierher und nicht in run.py: er laeuft
+    immer, auch auf einem Rechner ohne Werkzeugkette.
+
+    Siehe docs/dongle-bau.md."""
+    script = os.path.join(root, 'shared', 'osk-guard', 'tests', 'vertrag.py')
+    if not os.path.isfile(script):
+        return [Result('guard', 'vertrag', SKIPPED,
+                       'shared/osk-guard/tests/vertrag.py fehlt')]
+    code, out = common.run([sys.executable, script], cwd=root, capture=True)
+    count = 0
+    for line in (out or '').splitlines():
+        if line.startswith('vertrag: '):
+            parts = line.split()
+            if len(parts) > 1 and parts[1].isdigit():
+                count = int(parts[1])
+    if code != 0:
+        return [fail('guard', 'vertrag', 'der Vertrag ist verletzt', out)]
+    if count == 0:
+        return [fail('guard', 'vertrag', 'kein einziger Fall geprueft', out)]
+    return [Result('guard', 'vertrag', OK,
+                   'contract.json gegen fuenf Sprachen (%d Faelle)' % count,
+                   count)]
+
+
 # --- Gesamt -----------------------------------------------------------------------
 
 def run_all(root=common.ROOT):
-    results = [check_versions(root), check_tools(root), check_python_syntax(root)]
+    # Die Schluesselpruefung steht ABSICHTLICH an erster Stelle: sie braucht
+    # kein Werkzeug, laeuft auf jedem Rechner, und ein Schluessel im
+    # Projektordner ist der einzige Fehler hier, der sich nicht mehr
+    # zurueckdrehen laesst.
+    results = [check_keys(root), check_versions(root), check_tools(root),
+               check_python_syntax(root), check_repro(root), check_variants(root)]
     results += check_firmware(root) + check_desktop(root) + check_web(root)
     results += check_lang(root) + check_format(root)
+    results += check_guard(root)
     return results
 
 

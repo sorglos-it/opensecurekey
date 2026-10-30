@@ -280,6 +280,48 @@ public sealed class Guard
     }
 
     /// <summary>
+    /// Verschliesst einen Programmteil. Der erwartete Hash geht als
+    /// zusaetzlich gepruefte Daten mit hinein, damit ein Behaelter fuer einen
+    /// anderen Teil sich hier nicht oeffnen laesst. Zurueck kommen Behaelter
+    /// und Hash; der Hash wird ins Programm eingetragen.
+    /// </summary>
+    public byte[] SealCode(string label, ReadOnlySpan<byte> code, out byte[] codeHash)
+    {
+        if (code.Length == 0)
+        {
+            throw Fail("error.guard.size");
+        }
+        codeHash = SHA256.HashData(code);
+        return Seal(label, codeHash, code);
+    }
+
+    /// <summary>
+    /// Macht einen verschluesselten Programmteil auf und haelt ihn gegen den
+    /// Hash, den der Hersteller eingetragen hat. Das ist der starke Weg, und
+    /// er ist der bequemste: es gibt keinen Aufruf, der nur Ja sagt.
+    ///
+    /// Ohne Stick kommt ein Fehler und KEINE Bytes - der Programmteil ist
+    /// dann nicht da, nicht bloss abgelehnt. Genau darin unterscheidet sich
+    /// Stufe 2 von Present: hier gibt es keinen Zweig, den jemand
+    /// herausschneiden kann.
+    /// </summary>
+    public byte[] UnsealCode(string label, ReadOnlySpan<byte> blob,
+                             ReadOnlySpan<byte> codeHash)
+    {
+        if (codeHash.Length != HashLen)
+        {
+            throw Fail("error.guard.codehash");
+        }
+        byte[] code = Unseal(label, codeHash, blob);
+        if (!CryptographicOperations.FixedTimeEquals(SHA256.HashData(code), codeHash))
+        {
+            CryptographicOperations.ZeroMemory(code);
+            throw Fail("error.guard.codehash");
+        }
+        return code;
+    }
+
+    /// <summary>
     /// Holt die Lizenz fuer ein Produkt und prueft ihre Unterschrift SELBST.
     ///
     /// Der Dienst liefert nur den ganzen unterschriebenen Block; fertige

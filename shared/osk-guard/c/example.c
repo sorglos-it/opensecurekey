@@ -212,6 +212,62 @@ static int load_stand(const char *path, stand *out)
     return 1;
 }
 
+/* step_seal_code macht einen verschluesselten PROGRAMMTEIL auf. Das ist
+ * der starke Weg: ohne Stick fehlt dem Angreifer nicht die Antwort, sondern
+ * der Teil selbst. Mit einem anderen Hash kommen KEINE Bytes heraus. */
+static int step_seal_code(osk_guard *guard, const stand *s)
+{
+    static const char code[] = "die Regeln, nach denen dieses Programm rechnet";
+    unsigned char code_hash[OSK_GUARD_HASH_LEN];
+    unsigned char other[OSK_GUARD_HASH_LEN];
+    unsigned char *blob = NULL;
+    unsigned char *back = NULL;
+    unsigned char *wrong = NULL;
+    size_t blob_len = 0, back_len = 0, wrong_len = 0;
+    const char *problem;
+    int good = 0;
+
+    problem = osk_guard_seal_code(guard, s->label,
+                                  (const unsigned char *)code,
+                                  sizeof(code) - 1, &blob, &blob_len,
+                                  code_hash);
+    if (problem != NULL) {
+        complain("programmteil verschliessen ging nicht", problem);
+        return 0;
+    }
+    problem = osk_guard_unseal_code(guard, s->label, blob, blob_len,
+                                    code_hash, sizeof(code_hash),
+                                    &back, &back_len);
+    if (problem != NULL) {
+        complain("programmteil oeffnen ging nicht", problem);
+    } else if (back_len != sizeof(code) - 1 ||
+               memcmp(back, code, back_len) != 0) {
+        complain("der programmteil kam anders zurueck", NULL);
+    } else {
+        memcpy(other, code_hash, sizeof(other));
+        other[0] = (unsigned char)(other[0] ^ 0x01u);
+        problem = osk_guard_unseal_code(guard, s->label, blob, blob_len,
+                                        other, sizeof(other), &wrong,
+                                        &wrong_len);
+        if (problem == NULL) {
+            complain("ein fremder programmteil ging auf", NULL);
+        } else if (wrong != NULL || wrong_len != 0u) {
+            complain("abgewiesen, aber es kamen bytes heraus", problem);
+        } else {
+            printf("ergebnis: programmteil %zu byte, nur mit stick lesbar "
+                   "(%s)\n", blob_len, problem);
+            good = 1;
+        }
+    }
+    if (back != NULL) {
+        memset(back, 0, back_len);
+    }
+    free(blob);
+    free(back);
+    free(wrong);
+    return good;
+}
+
 /* step_seal verschliesst etwas und macht es wieder auf - und zeigt, dass es
  * mit dem falschen Zusatz NICHT aufgeht. */
 static int step_seal(osk_guard *guard, const stand *s)
@@ -391,7 +447,9 @@ static int run(const char *path)
     }
     printf("ergebnis: praesenz ok\n");
 
-    if (!step_seal(guard, &s) || !step_license(guard, &s) ||
+    if (!step_seal(guard, &s) || !step_seal_code(guard, &s) ||
+        !step_license(guard, &s) ||
+        !step_job(guard, &s) || !step_agree(guard, &s)) {    if (!step_seal(guard, &s) || !step_license(guard, &s) ||
         !step_job(guard, &s) || !step_agree(guard, &s)) {
         osk_guard_close(guard);
         return 0;
@@ -400,7 +458,13 @@ static int run(const char *path)
     /* Weiterlaufen und beim Abziehen abbrechen - hier nur eine Runde, damit
      * das Beispiel von selbst endet. Ein geschuetztes Programm fragt in
      * festem Abstand weiter und beendet sich, sobald eine Runde scheitert. */
-    nap(200);
+    problem = osk_guard_watch(guard, 200ul, NULL, 1ul, NULL, NULL);
+    if (problem != NULL) {
+        complain("abgebrochen", problem);
+        osk_guard_close(guard);
+        return 0;
+    }
+    printf("ergebnis: ueberwachung laeuft\n");    nap(200);
     problem = osk_guard_present(guard, NULL);
     if (problem != NULL) {
         complain("abgebrochen", problem);

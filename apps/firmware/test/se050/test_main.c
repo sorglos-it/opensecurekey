@@ -40,6 +40,9 @@ int main(void)
 	printf("\nMonotone Zaehler\n");
 	test_counter();
 
+	printf("\nErstlauf: Werksschluessel ersetzen\n");
+	test_commission();
+
 	/* Diese Zeile liest tools/check.py aus (Muster
 	 * "<name>: N Faelle, M Fehler"). Ohne sie zaehlt der Lauf dort als
 	 * "keine Pruefung ausgefuehrt" - und gruener Code ohne eine einzige

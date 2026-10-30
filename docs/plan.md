@@ -14,7 +14,9 @@ Stufe 2 von 4** — geschrieben / übersetzt / im Abbild / am Gerät gelaufen.
 **Was am 29.10.2026 selbst nachgemessen wurde**, nicht aus Meldungen
 übernommen: sechs Prüfläufe der Stränge, jeder einzeln gestartet —
 `se050` 1066, `authz` 255, `ctap` 1425, `store` 88 631, `transport` 232,
-`applets` 1384 Fälle, **zusammen 92 993, kein Fehler**. Die Fassung **ohne**
+`applets` 1384 Fälle, **zusammen 92 993, kein Fehler**. *(Die 232 bei
+`transport` waren der Umfang von damals; heute sind es 1367 — der Satz ist
+seit dem 29.10. gewachsen, und dazwischen war er zeitweise rot, siehe unten.)* Die Fassung **ohne**
 RSA ist mitgemessen: `applets` 1222 Fälle, 0 Fehler — eine Option, die nur in
 einer Richtung geprüft ist, ist keine. Dazu `tools/check.py`:
 14 Schritte ok, 308 Tests, 0 Fehler.
@@ -23,7 +25,25 @@ einer Richtung geprüft ist, ist keine. Dazu `tools/check.py`:
 14 ok, 3 übersprungen, **330 Tests, 0 Fehler**; der UI-Prüfsatz
 **4074 Prüfungen, 0 Fehler** (gemessen auf `C:`, weil die WSL Netzlaufwerke
 nicht übersetzt); die Höhenrechnung `cad/tools/budget.py` **9 von 9
-Kontrollpunkten, 4 davon mussten anschlagen**. **Drei Schritte sind übersprungen und
+Kontrollpunkten, 4 davon mussten anschlagen**. **Und ein Befund, der die Zahlen oben relativiert:** die C-Prüfsätze `ctap`
+und `transport` waren vom 29.10.2026, 17:38 Uhr bis zum 30.10.2026 **rot** —
+niemandem aufgefallen, auch mir nicht. Strang E hat `transport/Makefile` um
+17:19 zuletzt angefasst, Strang B hat um 17:38 drei Dateien zum CTAP-Kern
+hinzugefügt (`osk_sigcount.c`, `osk_ctap_cm.c`, `osk_ctap_config.c`) und sie
+nur in **seinem** Makefile nachgetragen. Dazu waren beide AAGUID-Konstanten
+unbedingt definiert, so dass in **jeder** Baurichtung eine davon unbenutzt
+blieb und `-Werror=unused-const-variable` abbrach — **dieser Code konnte in
+keiner Richtung übersetzen.**
+Behoben am 30.10.2026, danach gemessen: **ctap 1425 Fälle, transport 1367,
+je 0 Fehler, und beides in BEIDEN Richtungen der RSA-Option** (`make RSA=0`
+gibt es jetzt auch hier, wie bei `applets`).
+**Zwei Lehren, die teurer waren als die Behebung:**
+**Ein Strang, der nur seinen eigenen Prüfsatz messen kann, bricht den des
+Nachbarn unbemerkt** — und ich habe die sechs Prüfläufe *vor* dem
+Zusammenführen gemessen, nicht danach. **Nachgemessen wird am Ergebnis, nicht
+an den Teilen.**
+
+**Drei Schritte sind übersprungen und
 damit NICHT geprüft:** `firmware/build` (kein nRF Connect SDK),
 `firmware/tests` und `firmware/format`. Die C-Prüfläufe der Stränge laufen
 deshalb ausdrücklich nicht über `check.py`, sondern über die Skripte in
@@ -110,9 +130,22 @@ sprechen 512 KB RAM statt 256 und 2 MB Flash statt 1 dafür — und eine Zahl, d
 heute fehlt, entscheidet mit: **wie schnell AES-256-GCM am Gerät läuft.** Liegt
 sie unter 3 MB/s, wäre auch nach einem Wechsel nichts gewonnen.
 
-> **Folge fürs Handbuch:** Die 27 MB portabler Programme brauchen beim Lesen
-> rund **68 Sekunden**. „Einstecken, starten" ist einstecken, über eine Minute
-> warten, starten.
+> **Folge fürs Handbuch:** Die **29,10 MB** portabler Programme brauchen beim
+> Lesen rund **73 Sekunden**. „Einstecken, starten" ist einstecken, über eine
+> Minute warten, starten. **Die Zahl steht in `docs/laufwerk.md`**, alles
+> andere verweist dorthin.
+>
+> Hier standen bis zum 30.10.2026 „27 MB" und „68 Sekunden" — die
+> **gerechneten** Werte vom 23.10., während die **gemessenen** 29,10 MB
+> längst daneben lagen. Abschnitt 6 dieses Plans führte den Widerspruch
+> ausdrücklich als Punkt 6 auf, und dieser Absatz benutzte trotzdem die alte
+> Zahl weiter. **Ein Widerspruch, den man aufgeschrieben hat, ist nicht
+> behoben** — das ist der Grund für die Regel „eine Zahl nur an einer Stelle",
+> und sie hat den Autor dieses Plans erneut erwischt.
+>
+> *(Die 400 kB/s, mit denen gerechnet wird, sind an einem nRF5340-DK gemessen,
+> nicht am nRF52840 dieses Geräts — `docs/rechenkern-durchsatz.md` sagt das
+> ausdrücklich und nennt es die einzige echte Messung.)*
 
 ---
 
@@ -699,6 +732,27 @@ Entscheidung über den Fingerabdrucksensor gefolgt.
     einen Kommentar in `osk_views.h`, der den Akku weiterführte — der Code war
     richtig, der Kommentar nicht.
 
+18. **Der Akku ist im Repo-Stand NICHT entfernt.** Nebenbefund von Strang K,
+    von mir nachgemessen: der Schaltplan-Export trägt **16 × `VBAT`, 3 × `CHG`,
+    3 × `STAT`**, die Netzliste **19 × `VBAT`** und 5 × `CHG`. Abschnitt 2
+    dieses Plans sagt seit dem 25.10.2026 „14 Bauteile sind aus Schaltplan und
+    Platine entfernt", und `hardware/layout-notes.md` nennt die Zellen
+    „entfällt seit 25.10.2026". **Beweisbar ist nur: der Stand im Repo trägt
+    ihn** — die Exporte sind vom 24./25.10., und was heute in EasyEDA liegt,
+    konnte ich nicht sehen (die Brücke antwortete die ganze Runde NO_EDA).
+    Zu prüfen ist also zuerst, ob der Eingriff nie geschehen oder nur nie
+    exportiert worden ist. **Solange das offen ist, darf keine Stückliste und
+    kein Gerber als Fertigungsstand gelten.**
+
+> **Das Muster hinter Punkt 18, und es ist ein anderes als die zwei gleich
+> benannten Größen: eine Entscheidung wird als ausgeführt weitergereicht.**
+> Dreimal in zwei Tagen gefunden — `status.battery` war entschieden und stand
+> noch im Code; der SCP03-Schlüsseltausch war gebaut und wurde nie gerufen;
+> der Akku ist entschieden und steht noch im Schaltplan. **Jedes Mal war die
+> Unterlage richtig und die Wirklichkeit nicht.** Wer eine Entscheidung
+> einträgt, hat sie nicht ausgeführt, und wer sie ausführt, hat sie nicht
+> angeschlossen. Die Gegenprobe gehört an die Sache, nicht an das Papier.
+
 **Daraus neu offen, beides beim Nachmessen am 30.10.2026 gefunden:**
 
 15. ~~**`hardware/layout-notes.md` trägt den Akku noch im laufenden Text.**~~
@@ -730,9 +784,24 @@ Entscheidung über den Fingerabdrucksensor gefolgt.
     hat, sagt ausdrücklich „die Platine ist nicht angefaßt, der Umriss
     unverändert". **Weitergereicht wurde trotzdem nur die Zahl**, in diesen
     Plan (Abschnitt 2) und in `cad/parameters.csv`.
-    **Gegenprobe:** hinter `y` = 59,55 mm liegen noch **vier Pads**, das
-    hinterste bei `y` = 66,0 mm. Die kürzere Platine ist also nicht bloß
-    ungezeichnet, sondern mit der heutigen Platzierung unvereinbar.
+    **Gegenprobe, und sie ist am 30.10.2026 von Strang K berichtigt worden:**
+    Hinter `y` = 59,55 mm liegen **vier Bauteile mit zwölf Pads** — D1 (die
+    RGB-LED, 6 Pads) und R10/R11/R12 (je 2). **Hier standen vorher „vier
+    Pads", und das war mein eigener Messfehler:** ich hatte Bauteil-MITTEN
+    gezählt, nicht Pads. Dieselbe Verwechslung noch einmal bei der hintersten
+    Kante — die 66,0 mm sind die **Mitte** von D1, die **Kupferkante** liegt
+    bei **66,985 mm**. Am Gerber gemessen, nicht am Platinen-Export; der
+    Export nennt die Pads gar nicht, und mein Werkzeug hat das nicht gemerkt.
+    *(Padmitten gegen Kupfer — der erste der acht Fälle in Abschnitt 6, und
+    ich bin ihm selbst hineingelaufen.)*
+    Die kürzere Platine ist also nicht bloß ungezeichnet, sondern mit der
+    heutigen Platzierung unvereinbar.
+    **Drei Wege, von Strang K gerechnet** (`hardware/layout-notes.md`):
+    **A** auf 59,55 mm — 16 Pads neu, vier Gießflächen neu, DRC; kostet die
+    NFC-Zone **42 % Fläche**, reißt aber keine schon gemessene Auflage.
+    **B** auf 70,0 mm — eine Zahl in `cad/parameters.csv`, +10,45 mm Gehäuse,
+    +1,23 ml Verguss. **C1** auf **67,30 mm** — die kürzeste Platine, bei der
+    **kein Bauteil wandert**.
     **Folge: das neu gezeichnete Gehäuse ist 10,45 mm zu kurz** für die
     Platine, die im Repo liegt. Die Höhenrechnung bleibt gültig — Lagensummen
     laufen in `z`, dort ändert die Länge nichts.

@@ -62,6 +62,28 @@ def step_seal(guard, label):
     print("ergebnis: verschlossen %d byte, wieder offen" % len(blob))
 
 
+def step_seal_code(guard, label):
+    """2b. Ein verschluesselter PROGRAMMTEIL - der starke Weg: ohne Stick
+    fehlt dem Angreifer nicht die Antwort, sondern der Teil selbst."""
+    code = "die Regeln, nach denen dieses Programm rechnet".encode("utf-8")
+    code_blob, code_hash = guard.seal_code(label, code)
+    back = guard.unseal_code(label, code_blob, code_hash)
+    if back != code:
+        raise RuntimeError("der Programmteil kam anders zurueck")
+    # Mit einem anderen Hash gibt es KEINE Bytes.
+    other = bytearray(code_hash)
+    other[0] ^= 0x01
+    try:
+        guard.unseal_code(label, code_blob, bytes(other))
+    except osk_guard.OskGuardError as error:
+        if not error.code:
+            raise RuntimeError("kein Fehlerschluessel")
+    else:
+        raise RuntimeError("ein fremder Programmteil ging auf")
+    print("ergebnis: programmteil %d byte, nur mit stick lesbar"
+          % len(code_blob))
+
+
 def step_license(guard, product):
     """3. Die Lizenz - die Bibliothek prueft die Unterschrift des
     Herstellers selbst und liest die Felder erst danach."""
@@ -143,6 +165,7 @@ def run(path):
     stand, device_key, issuer_key = read_stand(path)
     guard = step_present(stand, device_key, issuer_key)
     step_seal(guard, stand["label"])
+    step_seal_code(guard, stand["label"])
     step_license(guard, stand["product"])
     step_sign(guard, stand["nodeKey"])
     step_agree(guard, stand["nodeKey"])

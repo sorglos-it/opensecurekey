@@ -19,10 +19,11 @@ PANEL   ?=
 SAN ?= -fsanitize=address,undefined -fno-omit-frame-pointer
 
 SRC := $(UI)/osk_gfx.c $(UI)/osk_font_data.c $(UI)/osk_text.c $(UI)/osk_lang.c \
-       $(UI)/osk_ssd1306.c $(UI)/osk_button.c $(UI)/osk_ui.c \
-       $(VIEWS)/view_layout.c $(VIEWS)/view_confirm.c $(VIEWS)/view_status.c
+       $(UI)/osk_ssd1306.c $(UI)/osk_button.c $(UI)/osk_ui.c $(UI)/osk_pin.c \
+       $(VIEWS)/view_layout.c $(VIEWS)/view_confirm.c $(VIEWS)/view_status.c \
+       $(VIEWS)/view_pin.c $(VIEWS)/view_value.c
 TESTS := fake_panel.c test_gfx.c test_font.c test_text.c test_lang.c test_button.c \
-         test_panel.c test_confirm.c test_flow.c test_main.c
+         test_panel.c test_confirm.c test_flow.c test_pin.c test_main.c
 
 BUILD := build
 

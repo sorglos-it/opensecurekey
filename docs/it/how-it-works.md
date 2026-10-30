@@ -142,8 +142,88 @@ Se perdi insieme la chiave, la seconda chiave, il file della copia di sicurezza 
 - Il **contatore di firme** dell'accesso riparte da zero a ogni accensione. Alcuni siti potrebbero scambiarlo per una chiave copiata.
 - La chiave invia un'**auto-attestazione**, non un certificato del produttore. Va bene per la privacy, ma alcuni siti aziendali richiedono di più.
 - Se il chip fornito permetta lo **scambio di chiavi** (ECDH) dipende dalla sua impostazione di fabbrica. Se non lo permette, **la modalità server con la chiave nel chip viene meno.** La firma continua a funzionare. Il programma lo dice allora onestamente, invece di sembrare un errore di PIN.
+- **La chiave privata non esiste come file.** I programmi che pretendono un file di chiave non possono lavorare con la chiave. Vedi [usage.md](usage.md), sezione «Software che pretende un file di chiave».
 - **Mac:** mai provato.
 - Lo **spazio nel firmware** è scarso. Se tutte le funzioni ci stiano è aperto.
+
+## L’unità con i programmi si prende il suo tempo
+
+**Stato:** calcolato, non misurato sull’apparecchio. L’unità è prevista e non è costruita.
+
+Quando la si inserisce, la chiave mostra una piccola unità di sola lettura con i programmi di amministrazione. Chi la apre aspetta.
+
+**Le tre cifre su questo stanno qui. Tutti gli altri punti del manuale rimandano qui.**
+
+| Che cosa | Cifra |
+| --- | ---: |
+| Quanto il chip radio fa passare sull’USB | circa **400 kB al secondo** |
+| Quanto sono grandi i programmi | **29,10 MB** (misurato il 23.10.2026 sull’immagine finita) |
+| Quanto dura dunque la lettura | circa **73 secondi** |
+
+«Inserire e avviare» vuol dire in realtà: inserire, **aspettare più di un minuto,** avviare. Chi non lo sa crede che la chiave sia rotta e la stacca.
+
+Perché così lento? Il chip radio sta su una porta USB del vecchio standard 1.1. Sulla carta ne vengono 1,5 MB al secondo, ma la chiave deve prima tirare ogni pezzo dalla sua memoria e rispondere. Quello che resta sono i 400 kB. I 400 kB sono **misurati** su una scheda di sviluppo; le altre due cifre sono calcolate da quelli.
+
+I programmi crescono. Se cresce il file, cresce l’attesa nella stessa proporzione.
+
+## Il supporto dati cifrato
+
+**Stato: carta.** Non c’è nessun chip, nessuna scheda e nemmeno una riga di programma per questo. Questa sezione sta qui perché nessuno creda poi qualcosa di falso, non perché esista.
+
+È prevista una scheda di memoria sulla chiave, da 8 a 16 GB, per i tuoi file.
+
+**La scheda ha sempre bisogno di un openSecureKey.** In un normale lettore di schede non ci si fa nulla. Porta un formato suo, non un formato di Windows. **Non** è un supporto da mettere in mano a qualcuno che non ha una chiave.
+
+### Tre modi di funzionamento, e uno di essi non è segreto
+
+Questo è il punto in cui è più facile farsi male da sé. Ecco quindi i tre uno accanto all’altro:
+
+| Modo | Nome | Chi può leggere | Contenuto segreto? |
+| --- | --- | --- | --- |
+| 1 | **solo questa chiave** | solo la chiave che ha scritto | **sì** |
+| 2 | **qualunque delle nostre chiavi, con la parola della scheda** | qualunque openSecureKey che abbia la parola della scheda | **sì** |
+| 3 | **qualunque delle nostre chiavi, solo sigillato** | **qualunque** openSecureKey, senza password | **no** |
+
+**Il modo 3 non cifra nulla.** Sigilla soltanto: si riconosce se qualcuno ha cambiato il contenuto. Leggerlo può chiunque abbia un openSecureKey qualsiasi.
+
+**Chi crede di aver cifrato e ha solo sigillato regala i suoi segreti.** È il peggiore errore che questo apparecchio possa fare, e non nasce da un attacco ma da una confusione.
+
+Per questo è previsto:
+
+- Il display dice il modo in parole chiare **prima** di scrivere, e la tua pressione conferma esattamente quel testo. Nel modo 3 vi è scritto «**APERTO — solo sigillato**».
+- Il modo 3 si presenta in modo chiaramente diverso sul display, non la stessa riga con un’altra parola dentro.
+- Finché la scheda è inserita, il modo resta sul display.
+- **Cambiare modo vuol dire riscrivere la scheda.** Non esiste un «cifrare dopo».
+
+### L’autenticità non è la paternità
+
+La firma sulla scheda dimostra: **il contenuto è inalterato** da quando è stato firmato.
+
+**Non** dimostra da chi viene.
+
+Che una scheda venga da una persona precisa segue dalla firma **soltanto** se conosci **in anticipo** la chiave pubblica di quella persona: da un incontro, da un biglietto da visita, da un’altra via. Altrimenti sai solo questo: qui ha firmato un openSecureKey qualsiasi.
+
+| Affermazione | coperta dalla firma? |
+| --- | --- |
+| «Questo contenuto è inalterato.» | **sì** |
+| «L’ha firmato un openSecureKey.» | sì |
+| «L’ha firmato *questo* apparecchio.» | sì |
+| «Questo apparecchio appartiene a una persona precisa.» | **no** |
+| «Il contenuto viene da quella persona.» | **no** |
+
+È previsto quindi: all’inserimento il display dice la chiave del mittente come una breve sequenza di caratteri e aggiunge «**mittente sconosciuto**» o il nome che una volta hai dato a quel mittente.
+
+### Si controlla alla lettura, non all’inserimento
+
+Controllare **del tutto** una scheda da 16 GB vuol dire leggerla per intero. Questo dura **circa un’ora e mezza** (calcolato con la velocità della scheda stessa, non con quella della porta USB della sezione sopra: sono due strade diverse). Nessuno aspetta tanto all’inserimento, e perciò la chiave non lo fa.
+
+Al suo posto controlla **ogni blocco nel momento in cui lo legge.**
+
+Il lato buono: nessun file che apri ti arriva non controllato.
+
+Il lato cattivo: **un blocco cambiato in un file che nessuno apre non si nota.**
+
+Per questo la chiave non dice mai «scheda controllata». Sarebbe una bugia. Dice «questo blocco controllato», e questa è la verità.
 
 ## Programma e chiave parlano tra loro
 

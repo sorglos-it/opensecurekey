@@ -49,6 +49,121 @@ void sim_objects_live(se050_sim_t *sim, bool on)
 	sim->objects_live = on;
 }
 
+void sim_scp_sets_live(se050_sim_t *sim, const osk_scp03_static_keys_t *main_set,
+		       const osk_scp03_static_keys_t *rescue)
+{
+	sim->scp_sets_live = true;
+	sim->scp_set[0] = *main_set;
+	sim->scp_set[1] = *rescue;
+	sim->scp_replaced[0] = false;
+	sim->scp_replaced[1] = false;
+	sim->scp_required = false;
+	sim->put_key_calls = 0;
+	sim->put_key_rejected = 0;
+	/* Die Sitzung laeuft gegen Satz 11 - das ist die Annahme, die
+	 * se050_sim.h bei sim_scp_sets_live() nennt. */
+	sim->next_auth_keys = *main_set;
+}
+
+/* PUT KEY auspacken und pruefen, wie es die Gegenseite tun muesste.
+ *
+ * Erwartet wird das Datenfeld nach GPCS Tabelle 11-67: ein Byte neue
+ * Schluesselfassung, dann dreimal ein Eintrag nach Amendment D Tabelle
+ * 7-10 (0x88 | 0x11 | 0x10 | 16 Byte Chiffrat | 0x03 | 3 Byte Pruefwert).
+ *
+ * Der Nachbau nimmt den Eintrag NICHT auf Wort: er entschluesselt mit dem
+ * Key-DEK des Satzes, der im Nachbau gerade gilt, und rechnet den Pruefwert
+ * des Ergebnisses nach (Amendment D 7.2.2: die ersten drei Byte von
+ * AES(neuer Schluessel, sechzehn 0x01). Stimmt der nicht, hat die
+ * Gegenseite mit dem falschen Schluessel verpackt - abgelehnt.
+ *
+ * Rueckgabe: das Statuswort, das der Nachbau sendet. */
+static uint16_t sim_put_key(se050_sim_t *sim, uint8_t p1, uint8_t p2, const uint8_t *data,
+			    size_t len)
+{
+	static const uint8_t zero_iv[OSK_AES_BLOCK] = {0};
+	static const uint8_t kcv_input[OSK_AES_BLOCK] = {
+	    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+	    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+	};
+	const size_t entry = 1u + 1u + 1u + OSK_AES_KEY_LEN + 1u + 3u;
+
+	sim->put_key_calls++;
+
+	/* P2 nennt die Kennung des ersten Schluessels mit dem Bit fuer
+	 * "mehrere Schluessel" - drei Schluessel ab Kennung 1. */
+	if (p2 != 0x81u) {
+		sim->put_key_rejected++;
+		return SW_WRONG_DATA;
+	}
+
+	size_t idx = 0;
+	if (p1 == 0x0Bu) {
+		idx = 0u;
+	} else if (p1 == 0x0Cu) {
+		idx = 1u;
+	} else {
+		/* Ein Satz, den dieser Baustein nicht fuehrt. */
+		sim->put_key_rejected++;
+		return SW_WRONG_DATA;
+	}
+
+	if (len != 1u + 3u * entry || data[0] != p1) {
+		sim->put_key_rejected++;
+		return SW_WRONG_DATA;
+	}
+
+	/* Mit dem Key-DEK, der JETZT gilt - nicht mit dem, den die
+	 * Gegenseite gern haette. */
+	const uint8_t *dek = sim->scp_set[idx].dek;
+	uint8_t plain[3][OSK_AES_KEY_LEN];
+
+	for (size_t i = 0; i < 3u; i++) {
+		const uint8_t *e = &data[1u + i * entry];
+
+		if (e[0] != 0x88u || e[1] != 0x11u || e[2] != (uint8_t)OSK_AES_KEY_LEN ||
+		    e[3 + OSK_AES_KEY_LEN] != 3u) {
+			sim->put_key_rejected++;
+			return SW_WRONG_DATA;
+		}
+		if (osk_aes_cbc_decrypt(dek, zero_iv, &e[3], plain[i], OSK_AES_KEY_LEN) != OSK_OK) {
+			sim->put_key_rejected++;
+			return SW_DATA_INVALID;
+		}
+
+		uint8_t kcv[OSK_AES_BLOCK];
+		if (osk_aes_ecb_encrypt_block(plain[i], kcv_input, kcv) != OSK_OK) {
+			sim->put_key_rejected++;
+			return SW_DATA_INVALID;
+		}
+		if (memcmp(kcv, &e[3 + OSK_AES_KEY_LEN + 1u], 3u) != 0) {
+			/* Entweder war der Key-DEK falsch oder der
+			 * Pruefwert. Beides heisst: so nicht. */
+			sim->put_key_rejected++;
+			return SW_DATA_INVALID;
+		}
+	}
+
+	if (sim->put_key_lies) {
+		/* Alles richtig gebaut - und der Baustein tauscht trotzdem
+		 * nicht. Er sagt es nur nicht. */
+		return SW_NO_ERROR;
+	}
+
+	memcpy(sim->scp_set[idx].enc, plain[0], OSK_AES_KEY_LEN);
+	memcpy(sim->scp_set[idx].mac, plain[1], OSK_AES_KEY_LEN);
+	memcpy(sim->scp_set[idx].dek, plain[2], OSK_AES_KEY_LEN);
+	sim->scp_replaced[idx] = true;
+
+	/* Ab jetzt gilt der neue Satz 11 auch fuer den Sitzungsaufbau. Die
+	 * LAUFENDE Sitzung bleibt stehen - ihre Sitzungsschluessel sind
+	 * schon abgeleitet. */
+	if (idx == 0u) {
+		sim->next_auth_keys = sim->scp_set[0];
+	}
+	return SW_NO_ERROR;
+}
+
 void sim_set_reply(se050_sim_t *sim, const uint8_t *body, size_t len, uint16_t sw)
 {
 	sim->next_body_len = 0;
@@ -742,6 +857,39 @@ static size_t handle_apdu(se050_sim_t *sim, const uint8_t *apdu, size_t len, uin
 		}
 		memcpy(sim->last_payload, &apdu[phead], pl);
 		sim->last_payload_len = pl;
+	}
+
+	/* PUT KEY und SetPlatformSCPRequest, wenn der Nachbau die Saetze
+	 * wirklich fuehrt. Vor objects_live, weil es nicht um Objekte im
+	 * Applet geht, sondern um die Schluessel des Kanals selbst. */
+	if (sim->scp_sets_live && cap >= 2u) {
+		uint16_t sw = 0;
+		bool handled = false;
+
+		if (ins == 0xD8u) {
+			sw = sim_put_key(sim, apdu[2], apdu[3], sim->last_payload,
+					 sim->last_payload_len);
+			handled = true;
+		} else if (ins == INS_MGMT && apdu[3] == P2_SCP) {
+			/* Angekommen heisst hier: der Nachbau merkt sich es.
+			 * Dass er danach jeden offenen Befehl ablehnen
+			 * muesste, stellt dieser Nachbau NICHT nach - er
+			 * verlangt den Kanal ohnehin immer. */
+			if (sim->last_payload_len == 3u &&
+			    sim->last_payload[2] == SE050_SCP_REQUIRED) {
+				sim->scp_required = true;
+				sw = SW_NO_ERROR;
+			} else {
+				sw = SW_WRONG_DATA;
+			}
+			handled = true;
+		}
+
+		if (handled) {
+			out[0] = (uint8_t)(sw >> 8);
+			out[1] = (uint8_t)(sw & 0xFFu);
+			return 2u;
+		}
 	}
 
 	if (sim->objects_live) {

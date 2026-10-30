@@ -75,4 +75,9 @@ unsigned mock_log_count(void);
 /* Anlass des n-ten Eintrags, oder 0. */
 uint16_t mock_log_what(unsigned index);
 
+/* Wer den Satz ausgeloest hat (Feld asked_by), und wann (Geraetezeit in
+ * Sekunden). NULL bzw. 0, wenn es den Satz nicht gibt. */
+const char *mock_log_who(unsigned index);
+uint64_t mock_log_when(unsigned index);
+
 #endif

@@ -4,7 +4,9 @@ This describes the private channel (USB vendor HID, and the same messages over
 BLE). It does **not** describe FIDO2, PIV or OpenPGP — those are public standards
 and the device simply follows them.
 
-Status: design. Nothing has been implemented or measured yet.
+Status: design. Nothing has been implemented or measured yet, with one
+exception: the mathematics behind command 20 exists and is checked against the
+official NIST test vectors at the PC — see `docs/pqc.md`.
 
 ## Frame
 
@@ -25,7 +27,7 @@ the program then says in plain words which function is missing.
 
 | `c` | Name | Needs approval on device |
 | --- | --- | --- |
-| 1 | `hello` — version, serial, which transports are on; plus `factory` (true while nothing is set up) and `modes`, one entry per profile | no |
+| 1 | `hello` — version, serial, which transports are on; plus `factory` (true while nothing is set up), `modes`, one entry per profile, and `kem`, the key agreements this firmware can do (see below) | no |
 | 2 | `unlock` — PIN or fingerprint session | yes |
 | 3 | `lock` | no |
 | 4 | `list` — item metadata, never secrets; carries `pub` for SSH keys, certificates and PGP keys | after unlock |
@@ -40,6 +42,7 @@ the program then says in plain words which function is missing.
 | 16 | `agree` — `k` label, `pub` peer(32) → `sec`; may answer `OSK_ERR_UNSUPPORTED` on a part without ECDH | yes, or grant |
 | 17 | `session` — `on`, `k` labels, `ttl`, or `ask` → state (the server grant) | yes, to switch on |
 | 18 | `sign` — `k` label, `h` hash(32) → `sig`; or `pub`+`cv` for the public part | yes, or grant |
+| 20 | `kemagree` — the hybrid key agreement: `k` label, `ek` peer public (1216) → `ct` (1120); or `ct` from the peer → the session key stays on the device. **Never returns a shared secret that only ML-KEM carried** — see `docs/pqc.md` | yes, or grant |
 | 19 | `setup` — `mode` (**1** = mirrored, **2** = this device only; 0 and absent are errors), `pin` → ok. **Only while `factory` is true, and only once per profile.** | yes |
 
 **Not built yet: the firmware side of 14–18.** The management program and
@@ -88,6 +91,65 @@ to be given first and cannot be changed afterwards; see `docs/architecture.md`.
 The program must put this in plain words, say that it is final, and not offer a
 default that quietly decides it. `hello` reports the mode of each profile so the
 interface can show it without asking the device to reveal anything.
+
+## Which key agreement, and why it cannot be talked down
+
+Stick-to-stick and server-to-server both end in a shared key. There are two
+ways to reach one, and from 2026 on the device prefers the second:
+
+| `kem` | Name | What it is |
+| --- | --- | --- |
+| 1 | `x25519` | command 16 `agree`: X25519 alone, computed in the security chip |
+| 2 | `x25519-mlkem768` | command 20 `kemagree`: X25519 **together with** ML-KEM-768 |
+
+`hello` reports which of these the firmware can do. Two things follow that the
+program must not get wrong.
+
+**2 is not "1 plus an option".** In `x25519-mlkem768` both parts are always
+present. There is no setting that leaves ML-KEM out and none that leaves X25519
+out; the firmware has no code path on which one part alone carries the secret.
+The reason is not caution about new mathematics: X25519 comes out of the
+security chip and ML-KEM is computed in the processor core, whose read-out lock
+has already been defeated with voltage glitches. A pure ML-KEM path would move
+the key out of the chip, which is a step **backwards**. `docs/pqc.md` has the
+argument in full.
+
+**A fallback an attacker can force is not a fallback, it is the hole.** Three
+rules keep that from happening, and all three sit on the device:
+
+1. **The method is fixed when the key is created, not per message.** A key
+   label carries its `kem` from the moment it exists, the way a profile carries
+   its `mode`. Asking for `agree` on a label created as `x25519-mlkem768` gets
+   `OSK_ERR_DENIED`, not a weaker answer. So an attacker who strips the
+   ML-KEM part out of a later message does not get a weaker session; he gets
+   a refusal the user sees.
+2. **Numbering starts at 1 here as well.** CBOR reads a missing field as zero,
+   so with `0 = x25519` a request that simply forgot `kem` would have silently
+   chosen the weaker method. Both `0` and an absent `kem` are errors. Same
+   lesson as `setup.mode`, same reason.
+3. **What both sides claimed is in the number the user compares.** `pair`
+   already shows a number on both devices. That number is computed over the
+   pairing transcript, and the `kem` lists from both `hello` answers are part
+   of it. An attacker sitting in the middle who rewrites a `hello` to say
+   "this one can only do X25519" changes the number on one side, and the
+   comparison fails. Without this, a man in the middle could talk two
+   hybrid-capable devices down to X25519 and neither would notice.
+
+On top of that, the agreed method is part of the key derivation: the label
+`openSecureKey hybrid-kem v1 ML-KEM-768+X25519` goes into the hash that mixes
+the two parts. A session that really ran as `x25519` and one that ran as
+`x25519-mlkem768` therefore never share a key, so a secret cannot be carried
+from one into the other.
+
+Genuine fallback stays possible exactly where it is honest: a peer that never
+reported `kem: 2` gets `agree`, and the program says in plain words that this
+connection is not post-quantum. A peer that reported `2` once is remembered as
+such.
+
+**Not built yet: the firmware side of 20.** The mathematics is written and
+checked against the official NIST test vectors at the PC (`docs/pqc.md`); the
+command, the stored `kem` per label and the pairing number are not. Nothing of
+this has run on hardware.
 
 ## How much room is left
 

@@ -470,6 +470,22 @@ uint16_t mock_log_what(unsigned index)
 	return index < g_log_count ? g_log[index].what : 0u;
 }
 
+const char *mock_log_who(unsigned index)
+{
+	if (index >= g_log_count) {
+		return NULL;
+	}
+	return g_log[index].asked_by;
+}
+
+uint64_t mock_log_when(unsigned index)
+{
+	if (index >= g_log_count) {
+		return 0u;
+	}
+	return g_log[index].when_utc;
+}
+
 osk_result_t osk_log_add(const osk_log_entry_t *e)
 {
 	if (e == NULL) {

@@ -62,6 +62,17 @@ L'ordine della tua sicurezza:
 - Solo la seconda chiave: un incendio o il furto della borsa le porta via entrambe.
 - Niente di tutto questo: una chiave persa è una perdita totale.
 
+## La chiave è lenta e la credo rotta
+
+Probabilmente non lo è.
+
+- L’unità con i programmi **non** si apre subito. Conta più di un minuto finché i programmi sono letti.
+- Dipende da quanto la chiave fa passare sulla porta USB. Le cifre e il motivo stanno in [how-it-works.md](how-it-works.md), sezione «L’unità con i programmi si prende il suo tempo».
+- **Non staccare la chiave in quel tempo.** Sembra un blocco e non lo è.
+- Copia il programma **una volta** sul disco rigido. Così aspetti solo la prima volta.
+
+**Stato:** l’unità è prevista e non è costruita. L’attesa è calcolata, non misurata sull’apparecchio.
+
 ## La chiave non viene riconosciuta
 
 Nel programma, sotto **Dispositivi**, c'è scritto "Nessun dispositivo trovato."
@@ -186,6 +197,32 @@ Così non cerchi a lungo:
 - **Accedere al computer,** sbloccare il disco, la chiave come tastiera
 - un foglio di emergenza già stampato dal programma
 - **macOS**
+
+## Volevo cifrare e ho solo sigillato
+
+**Allora i dati sono aperti, e aperti per chiunque abbia un openSecureKey qualsiasi.**
+
+Questo riguarda la scheda di memoria prevista. Uno dei suoi tre modi di funzionamento **non** cifra. Sigilla soltanto, perché si riconosca un cambiamento.
+
+Che cosa fare:
+
+1. Parti dal presupposto che sia stato letto. Le password o le chiavi che stavano là, **cambiale**, non solo la scheda.
+2. Non esiste un «cifrare dopo». La scheda va **riscritta,** in uno dei due modi segreti.
+3. Controlla prima sul display quale modo vi è scritto. Resta sul display finché la scheda è inserita.
+
+I tre modi uno accanto all’altro: [how-it-works.md](how-it-works.md), sezione «Il supporto dati cifrato».
+
+**Stato:** la scheda non esiste. Questa sezione sta qui perché l’errore non accada quando esisterà.
+
+## La chiave non dice «scheda controllata»
+
+È voluto, e sarebbe una bugia se lo dicesse.
+
+- Controllare **del tutto** una scheda vuol dire leggerla per intero. Quanto dura sta in [how-it-works.md](how-it-works.md): troppo per aspettarlo all’inserimento.
+- La chiave controlla perciò **ogni blocco nel momento in cui lo legge.** Quello che apri è controllato.
+- **Un blocco cambiato in un file che nessuno apre non si nota.** Questo è il prezzo, e sta qui perché ti spetta saperlo.
+
+Di più su questo in [how-it-works.md](how-it-works.md), sezione «Il supporto dati cifrato».
 
 ## Se non lo trovi
 

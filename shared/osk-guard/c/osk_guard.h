@@ -97,6 +97,49 @@ const char *osk_guard_unseal(osk_guard *guard, const char *label,
                              const unsigned char *blob, size_t blob_len,
                              unsigned char **plain, size_t *plain_len);
 
+/* osk_guard_seal_code verschliesst einen Programmteil. Der erwartete Hash
+ * geht als zusaetzlich gepruefte Daten mit hinein, damit ein Behaelter fuer
+ * einen anderen Teil sich hier nicht oeffnen laesst. Heraus kommen der
+ * Behaelter (*blob, mit free() zurueckgeben) und in code_hash der Hash, den
+ * der Hersteller in sein Programm eintraegt. */
+const char *osk_guard_seal_code(osk_guard *guard, const char *label,
+                                const unsigned char *code, size_t code_len,
+                                unsigned char **blob, size_t *blob_len,
+                                unsigned char code_hash[OSK_GUARD_HASH_LEN]);
+
+/* osk_guard_unseal_code macht einen verschluesselten Programmteil auf und
+ * haelt ihn gegen den eingetragenen Hash. DAS IST DER STARKE WEG, und er ist
+ * hier der bequemste: es gibt keinen Aufruf, der nur "ja" sagt.
+ *
+ * Ohne Stick kommt ein Fehler und KEINE Bytes - der Programmteil ist dann
+ * nicht da, nicht bloss abgelehnt. Genau darin unterscheidet sich Stufe 2
+ * von osk_guard_present: hier gibt es keinen Zweig zum Herausschneiden.
+ *
+ * Passt der Hash nicht, wird *code ueberschrieben und freigegeben, und es
+ * kommt "error.guard.codehash". Der Aufrufer gibt *code sonst mit free()
+ * zurueck und ueberschreibt es vorher am besten. */
+const char *osk_guard_unseal_code(osk_guard *guard, const char *label,
+                                  const unsigned char *blob, size_t blob_len,
+                                  const unsigned char *code_hash,
+                                  size_t code_hash_len,
+                                  unsigned char **code, size_t *code_len);
+
+/* osk_guard_watch fragt in festem Abstand weiter und ruft lost genau einmal
+ * auf, sobald eine Runde scheitert - beim Abziehen also beim naechsten
+ * Durchgang, denn das Geraet sperrt sofort. Danach kehrt watch mit demselben
+ * Fehlerschluessel zurueck.
+ *
+ * Ein laufender Auftrag ist damit abgebrochen; es gibt keine Warteschlange
+ * und kein Wiederaufsetzen. Was der Anwender zu tun hat, steht in
+ * docs/dongle-bau.md.
+ *
+ * every_ms == 0 heisst 2000. rounds == 0 heisst: endlos. Es wird kein Strang
+ * aufgemacht - wer einen will, ruft watch in seinem eigenen. */
+const char *osk_guard_watch(osk_guard *guard, unsigned long every_ms,
+                            const char *binary_path, unsigned long rounds,
+                            void (*lost)(const char *problem, void *user),
+                            void *user);
+
 /* osk_guard_license holt den unterschriebenen Lizenzblock fuer ein Produkt
  * und prueft ihn SELBST: Aufbau, Fassung, dann die Ed25519-Unterschrift
  * gegen den Herstellerschluessel aus osk_guard_open. Erst danach werden die

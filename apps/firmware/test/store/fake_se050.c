@@ -205,19 +205,25 @@ osk_result_t osk_se050_random(uint8_t *out, size_t len)
 
 /* Das Grundgeheimnis verlaesst den Chip nie - herausgegeben wird nur die
  * Ableitung. Genau das stellt diese Funktion nach. */
-osk_result_t osk_se050_hkdf(osk_key_id_t id, const uint8_t *info, size_t info_len, uint8_t *out,
-			    size_t out_len)
+static osk_result_t derive_from(uint32_t device, osk_key_id_t id, const uint8_t *info,
+				size_t info_len, uint8_t *out, size_t out_len)
 {
 	uint8_t ikm[8];
 
-	if (out == NULL) {
-		return OSK_ERR_ARG;
-	}
 	for (int i = 0; i < 4; i++) {
-		ikm[i] = (uint8_t)(g_device >> (8 * i));
+		ikm[i] = (uint8_t)(device >> (8 * i));
 		ikm[4 + i] = (uint8_t)(id >> (8 * i));
 	}
 	return osk_crypto_hkdf(ikm, sizeof(ikm), NULL, 0, info, info_len, out, out_len);
+}
+
+osk_result_t osk_se050_hkdf(osk_key_id_t id, const uint8_t *info, size_t info_len, uint8_t *out,
+			    size_t out_len)
+{
+	if (out == NULL) {
+		return OSK_ERR_ARG;
+	}
+	return derive_from(g_device, id, info, info_len, out, out_len);
 }
 
 osk_result_t osk_se050_hmac(osk_key_id_t id, const uint8_t *msg, size_t msg_len, uint8_t *mac_out,
@@ -365,4 +371,47 @@ osk_result_t osk_se050_sign(osk_key_id_t id, const uint8_t *hash, size_t hash_le
 		*len_out = 64u;
 	}
 	return r;
+}
+
+/* Eine Signatur dieser Attrappe gegen einen oeffentlichen Teil pruefen.
+ *
+ * HINZUGEFUEGT vom datentraeger-Strang. Gebraucht, weil ein weitergegebener
+ * Datentraeger von einem ANDEREN Stick signiert ist: dessen Signatur muss
+ * sich gegen seinen oeffentlichen Teil pruefen lassen, und osk_se050.h hat
+ * dafuer keine Funktion - zu Recht, denn eine Pruefung auf oeffentlichen
+ * Daten gehoert nicht ueber den I2C in den Chip.
+ *
+ * Gesucht wird das Geraet, dessen oeffentlicher Teil passt; dann wird seine
+ * Signatur nachgerechnet. Das echte Ed25519 tut etwas voellig anderes. Was
+ * sich damit pruefen laesst, ist der ABLAUF: die Signatur eines fremden
+ * Sticks geht gegen seinen oeffentlichen Teil auf und gegen einen anderen
+ * nicht. Die Mathematik prueft das nicht - die kommt vom Rechenkern, und am
+ * Geraet ist davon nichts gelaufen. */
+bool fake_se050_sig_matches(const uint8_t *pub, const uint8_t *msg, size_t msg_len,
+			    const uint8_t *sig)
+{
+	if (pub == NULL || msg == NULL || sig == NULL) {
+		return false;
+	}
+	for (int i = 0; i < DEVICES; i++) {
+		uint8_t theirs[PUB_LEN];
+		uint8_t expect[64];
+
+		if (!g_dev[i].used || !g_dev[i].have_key) {
+			continue;
+		}
+		if (osk_crypto_hkdf(g_dev[i].priv, PRIV_LEN, NULL, 0, (const uint8_t *)INFO_PUB,
+				    sizeof(INFO_PUB) - 1, theirs, PUB_LEN) != OSK_OK) {
+			continue;
+		}
+		if (memcmp(theirs, pub, PUB_LEN) != 0) {
+			continue;
+		}
+		if (derive_from(g_dev[i].id, g_dev[i].key_id, msg, msg_len, expect,
+				sizeof(expect)) != OSK_OK) {
+			continue;
+		}
+		return memcmp(expect, sig, sizeof(expect)) == 0;
+	}
+	return false;
 }

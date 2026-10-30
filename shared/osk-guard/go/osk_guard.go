@@ -406,3 +406,44 @@ func hexOrDash(raw []byte) string {
 	}
 	return hex.EncodeToString(raw)
 }
+
+// SealCode verschliesst einen Programmteil. Der erwartete Hash des Teils
+// geht als zusaetzlich gepruefte Daten mit hinein, damit ein Behaelter fuer
+// einen anderen Teil sich hier nicht oeffnen laesst. Zurueck kommen der
+// Behaelter und der Hash, den der Anwender in sein Programm eintraegt.
+func (g *Guard) SealCode(label string, code []byte) (blob, codeHash []byte, err error) {
+	if len(code) == 0 {
+		return nil, nil, fail("error.guard.size")
+	}
+	sum := sha256.Sum256(code)
+	blob, err = g.Seal(label, sum[:], code)
+	if err != nil {
+		return nil, nil, err
+	}
+	return blob, sum[:], nil
+}
+
+// UnsealCode macht einen verschluesselten Programmteil auf und haelt ihn
+// gegen den Hash, den der Hersteller eingetragen hat. Das ist der starke
+// Weg, und er ist der bequemste: es gibt keinen Aufruf, der nur "ja" sagt.
+//
+// Ohne Stick kommt ein Fehler und KEINE Bytes - der Programmteil ist dann
+// nicht da, nicht bloss abgelehnt. Genau darin unterscheidet sich Stufe 2
+// von Present: hier gibt es keinen Zweig, den jemand herausschneiden kann.
+func (g *Guard) UnsealCode(label string, blob, codeHash []byte) ([]byte, error) {
+	if len(codeHash) != HashLen {
+		return nil, fail("error.guard.codehash")
+	}
+	code, err := g.Unseal(label, codeHash, blob)
+	if err != nil {
+		return nil, err
+	}
+	sum := sha256.Sum256(code)
+	if !equal(sum[:], codeHash) {
+		for i := range code {
+			code[i] = 0
+		}
+		return nil, fail("error.guard.codehash")
+	}
+	return code, nil
+}

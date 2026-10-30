@@ -205,6 +205,7 @@
   "error.frame.size": "A report from the device has the wrong length.",
   "error.guard.answer": "The answer from the device does not match the protocol.",
   "error.guard.binary": "The program file could not be read.",
+  "error.guard.codehash": "The decrypted program part is not the one expected.",
   "error.guard.curve": "There is no such key type (ed25519 or x25519).",
   "error.guard.internal": "Internal error in the dongle protection.",
   "error.guard.issuer": "The key for checking the licence is missing or unusable.",

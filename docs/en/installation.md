@@ -17,6 +17,10 @@ You need **no installation** and **no administrator rights** for the program `os
 - It keeps its settings **next to itself**, not in the system.
 - A finished program to download does not exist yet. No release has been built. If you want to build it yourself, read [development.md](development.md).
 
+**Planned** is that the key brings the programs along itself: when plugged in it shows a small, read-only drive.
+
+**Then this holds: "plug in and start" means waiting more than a minute.** The key hands out its data slowly. That is normal and not a fault. How long exactly and why is in [how-it-works.md](how-it-works.md), section "The program drive needs its time".
+
 ## Step 2: Plug in the key, start the program
 
 1. Plug the key into a USB port.
@@ -58,6 +62,7 @@ Neither way is safer in general. It depends on what you fear more: the one momen
 
 - This is only possible this way: **create a new profile** and **sign in again at every service.**
 - One key holds up to **four profiles.** Each has its own PIN.
+- It **has** to be this way: signing in with passkeys knows no profiles. Even on a plain switch from one profile to another you sign in at the services again. See [usage.md](usage.md), section "Several people on one key".
 
 Before you can continue, you must tick: "I understand that this cannot be changed later"
 
@@ -77,7 +82,9 @@ This is the most important step. Do it **right away**, not "later".
 2. **Save a backup.** See below.
 3. **Write an emergency sheet.** See below.
 
-It is planned that the setup assistant forces you to make a second key **or** a printed emergency sheet. It is not built yet. Do both.
+**Why this cannot wait for "later":** whoever forgets their main passphrase and loses both keys **has lost everything.** Not "almost everything" and not "recoverable with some effort". There is no back door, no fallback procedure and nobody who can help. That is why the emergency sheet in the setup assistant **cannot be skipped:** no "skip", no "remind me later". Either a second key is paired, or the sheet is written.
+
+**Status:** this obligation is planned and **not built.** Until the assistant exists, nobody forces you. Do both anyway, and do it now.
 
 ### Pair the second key
 

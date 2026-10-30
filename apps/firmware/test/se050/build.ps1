@@ -35,6 +35,7 @@ $sources = @(
     (Join-Path $src 'se050_counter.c'),
     (Join-Path $src 'se050_crypto_common.c'),
     (Join-Path $src 'se050_crypto_cng.c'),
+    (Join-Path $src 'se050_commission.c'),
     # osk_mem.c gehoert dazu: osk_wipe() liegt dort, und der Treiber ruft es
     # an sechs Stellen. Die Datei fehlte hier, waehrend das Makefile sie
     # fuehrt - zwei Baubeschreibungen derselben Pruefung, die sich
@@ -44,6 +45,7 @@ $sources = @(
     (Join-Path $firmware 'src\osk_mem.c'),
     (Join-Path $here 'fake_bus.c'),
     (Join-Path $here 'se050_sim.c'),
+    (Join-Path $here 'test_platform.c'),
     (Join-Path $here 'test_crc.c'),
     (Join-Path $here 'test_tlv.c'),
     (Join-Path $here 'test_t1.c'),
@@ -52,6 +54,7 @@ $sources = @(
     (Join-Path $here 'test_contract.c'),
     (Join-Path $here 'test_rsa.c'),
     (Join-Path $here 'test_counter.c'),
+    (Join-Path $here 'test_commission.c'),
     (Join-Path $here 'test_main.c')
 )
 

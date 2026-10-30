@@ -109,6 +109,37 @@ typedef struct {
 	bool objects_live;
 	sim_counter_t counters[SIM_MAX_COUNTERS];
 	sim_rsa_t rsa[SIM_MAX_RSA];
+
+	/* Die zwei Platform-SCP-Saetze, 11 und 12 - vom Nachbau wirklich
+	 * gefuehrt, nicht nur mitgeschrieben. [0] ist Satz 11, [1] ist
+	 * Satz 12.
+	 *
+	 * WARUM DAS SEIN MUSS: ein Nachbau, der PUT KEY nur mitschreibt und
+	 * 0x9000 antwortet, prueft die EIGENE Seite des Vertrags. Ein
+	 * Erstlauf waere dann gruen, auch wenn er den neuen Schluessel mit
+	 * dem falschen Key-DEK verpackt - und am Geraet wuerde nichts
+	 * getauscht. Dieser Nachbau packt deshalb AUS, was hereinkommt: mit
+	 * dem Key-DEK des Satzes, der GERADE GILT, und prueft den
+	 * Pruefwert gegen den Schluessel, der dabei herauskommt. Passt es
+	 * nicht, lehnt er ab - so wie der Chip es tun muesste.
+	 *
+	 * Danach gilt der neue Satz auch fuer den Sitzungsaufbau. Ein
+	 * zweiter Anlauf mit dem Werkssatz scheitert damit AM NACHBAU und
+	 * nicht erst am Zettel des Erstlaufs. */
+	bool scp_sets_live;
+	osk_scp03_static_keys_t scp_set[2];
+	bool scp_replaced[2];
+	/* SetPlatformSCPRequest mit SCP_REQUIRED ist angekommen. */
+	bool scp_required;
+	/* Wie oft PUT KEY kam und wie oft der Nachbau abgelehnt hat. Der
+	 * Test zaehlt mit: "genau einmal je Satz" ist eine Zahl, kein
+	 * Gefuehl. */
+	size_t put_key_calls;
+	size_t put_key_rejected;
+	/* Ein Baustein, der 0x9000 antwortet und NICHTS tauscht. Genau die
+	 * Falle vom 29.10.2026, nur umgedreht: hier luegt die Gegenseite,
+	 * und der Erstlauf muss es merken, statt zufrieden zu sein. */
+	bool put_key_lies;
 } se050_sim_t;
 
 /* Nachbau an den Testbus haengen. */
@@ -129,6 +160,17 @@ void sim_reattach(se050_sim_t *sim, fake_bus_t *fb);
  * Schluessel liegen vor. Ein Lesen auf eine unbekannte Kennung wird dann
  * abgelehnt statt beantwortet. */
 void sim_objects_live(se050_sim_t *sim, bool on);
+
+/* Den Nachbau die zwei Platform-SCP-Saetze wirklich fuehren lassen.
+ * `main_set` ist Satz 11, `rescue` Satz 12; im Erstlauf-Test sind das die
+ * Werkssaetze. Danach wird PUT KEY ausgepackt und geprueft statt
+ * mitgeschrieben, und der Sitzungsaufbau laeuft gegen Satz 11.
+ *
+ * ANNAHME DIESES NACHBAUS, am echten Chip offen: dass die Sitzung auf
+ * Satz 11 laeuft und PUT KEY ueber DIESEN Kanal angenommen wird. Siehe
+ * docs/erstlauf.md, Abschnitt "Was am echten Chip offen ist". */
+void sim_scp_sets_live(se050_sim_t *sim, const osk_scp03_static_keys_t *main_set,
+		       const osk_scp03_static_keys_t *rescue);
 
 /* Die festen Schluessel, die Nachbau und Testhaken gemeinsam benutzen. */
 const osk_scp03_static_keys_t *sim_keys(void);

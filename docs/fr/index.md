@@ -34,6 +34,7 @@ La clé a son propre petit écran. Il y est écrit **ce que** tu autorises à l�
 - **Une question lors de la configuration ne pourra plus jamais être modifiée :** une clé de rechange doit-elle rester possible plus tard ? Lis-la tranquillement. Voir [installation.md](installation.md).
 - **Sans clé de rechange et sans sauvegarde, une clé perdue est une perte totale.**
 - **Qui perd la phrase secrète principale et toutes les clés perd tout.** Il n’y a pas de porte dérobée pour cela. Voir [troubleshooting.md](troubleshooting.md).
+- **La feuille de secours lors de la configuration ne peut pas être sautée.** Justement pour cela. Voir [installation.md](installation.md).
 - Il n’y a **aucun contrôle extérieur** et **aucun test sur du vrai matériel.** Ne compte encore sur rien que tu ne peux pas remplacer.
 
 ## Ce que la clé ne sait pas faire
@@ -44,6 +45,10 @@ Détaillé dans [how-it-works.md](how-it-works.md). En bref :
 - Elle ne te protège **pas** si quelqu’un te force à appuyer sur le bouton.
 - Elle ne protège **pas** contre un micrologiciel modifié.
 - Elle ne te sauve **pas** si la phrase secrète principale et toutes les clés ont disparu.
+- **Elle ne donne aucune clé privée sous forme de fichier. Jamais.** Un logiciel qui exige impérativement un fichier de clé (`.pem`, `.pfx`) ne peut fondamentalement pas s’en servir. Le certificat peut sortir, la clé non. Voir [usage.md](usage.md).
+- Elle ne connaît **aucun profil pour les passkeys.** Au changement de profil, tu te réinscris auprès des services.
+- **« Brancher et démarrer » veut dire attendre plus d’une minute.** La clé donne ses données lentement.
+- Sur la carte mémoire prévue, **un des trois modes de fonctionnement ne chiffre pas.** Et une signature prouve que le contenu est inchangé, pas sa paternité. Voir [how-it-works.md](how-it-works.md).
 
 ## État des différentes parties
 

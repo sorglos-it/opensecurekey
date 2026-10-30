@@ -34,6 +34,7 @@ La chiave ha un piccolo schermo tutto suo. Lì c'è scritto **che cosa** stai au
 - **Una domanda durante la configurazione non si può più cambiare:** in futuro deve poter esistere una chiave di riserva? Leggila con calma. Vedi [installation.md](installation.md).
 - **Senza una seconda chiave e senza una copia di sicurezza, una chiave persa è una perdita totale.**
 - **Chi perde la frase segreta principale e tutte le chiavi perde tutto.** Non esiste una porta di servizio. Vedi [troubleshooting.md](troubleshooting.md).
+- **Il foglio di emergenza durante la configurazione non si può saltare.** Proprio per questo. Vedi [installation.md](installation.md).
 - Non c'è **nessuna verifica dall'esterno** e **nessuna prova su hardware vero.** Per ora non fidarti di niente che non puoi sostituire.
 
 ## Che cosa la chiave non sa fare
@@ -44,6 +45,10 @@ Spiegato in dettaglio in [how-it-works.md](how-it-works.md). In breve:
 - **Non** ti protegge se qualcuno ti costringe a premere il pulsante.
 - **Non** protegge da un firmware modificato.
 - **Non** ti salva se la frase segreta principale e tutte le chiavi sono perse.
+- **Non dà nessuna chiave privata come file. Mai.** Il software che pretende per forza un file di chiave (`.pem`, `.pfx`) non può in alcun modo servirsene. Il certificato può uscire, la chiave no. Vedi [usage.md](usage.md).
+- Non conosce **nessun profilo per le passkey.** Al cambio di profilo ti registri di nuovo presso i servizi.
+- **«Inserire e avviare» vuol dire aspettare più di un minuto.** La chiave dà i suoi dati piano.
+- Sulla scheda di memoria prevista, **uno di tre modi di funzionamento non cifra.** E una firma dimostra che il contenuto è inalterato, non la sua paternità. Vedi [how-it-works.md](how-it-works.md).
 
 ## Stato delle parti
 

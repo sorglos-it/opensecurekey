@@ -1,6 +1,7 @@
 {
   "error.guard.answer": "Die Antwort des Geräts passt nicht zum Protokoll.",
   "error.guard.binary": "Die Programmdatei konnte nicht gelesen werden.",
+  "error.guard.codehash": "Der entschlüsselte Programmteil ist nicht der erwartete.",
   "error.guard.curve": "Dieses Schlüsselverfahren gibt es nicht (ed25519 oder x25519).",
   "error.guard.internal": "Innerer Fehler im Dongle-Schutz.",
   "error.guard.issuer": "Der Schlüssel zum Prüfen der Lizenz fehlt oder ist unbrauchbar.",

@@ -7,7 +7,9 @@
 #include "osk_text.h"
 
 #define CMD_MAX 256
-#define SCRIPT_MAX 32
+/* Lang genug fuer eine ganze PIN-Eingabe: sechs Stellen sind mit einem
+ * Taster bis zu 60 Druecke, also 120 Abschnitte. */
+#define SCRIPT_MAX 160
 
 struct segment {
 	bool down;
@@ -35,6 +37,13 @@ static size_t g_script_count;
 static size_t g_script_at;
 static uint32_t g_in_segment;
 
+/* Der zweite Taster hat sein eigenes Drehbuch - auf derselben Uhr. So laesst
+ * sich der Weg mit zwei Tastern pruefen, ohne dass es einen zweiten gibt. */
+static struct segment g_script2[SCRIPT_MAX];
+static size_t g_script2_count;
+static size_t g_script2_at;
+static uint32_t g_in_segment2;
+
 void fake_panel_reset(void)
 {
 	memset(g_cmds, 0, sizeof(g_cmds));
@@ -54,6 +63,10 @@ void fake_panel_reset(void)
 	g_script_count = 0;
 	g_script_at = 0;
 	g_in_segment = 0;
+	memset(g_script2, 0, sizeof(g_script2));
+	g_script2_count = 0;
+	g_script2_at = 0;
+	g_in_segment2 = 0;
 }
 
 static osk_result_t bus_cmd(void *ctx, const uint8_t *bytes, size_t len)
@@ -131,6 +144,15 @@ static bool port_button(void *ctx)
 	return false;
 }
 
+static bool port_button2(void *ctx)
+{
+	(void)ctx;
+	if (g_script2_at < g_script2_count) {
+		return g_script2[g_script2_at].down;
+	}
+	return false;
+}
+
 static uint32_t port_now(void *ctx)
 {
 	(void)ctx;
@@ -153,6 +175,13 @@ static void port_idle(void *ctx)
 		if (g_in_segment >= g_script[g_script_at].ms) {
 			g_script_at++;
 			g_in_segment = 0;
+		}
+	}
+	if (g_script2_at < g_script2_count) {
+		g_in_segment2 += FAKE_PANEL_STEP_MS;
+		if (g_in_segment2 >= g_script2[g_script2_at].ms) {
+			g_script2_at++;
+			g_in_segment2 = 0;
 		}
 	}
 }
@@ -185,9 +214,41 @@ static const osk_ui_port_t PORT = {
     .ctx = NULL,
 };
 
+/* Dieselben Griffe, aber mit zweitem Taster - die Hardwarefrage als
+ * Schalter im Pruefsatz. */
+static const osk_ui_port_t PORT_TWO = {
+    .display = {.cmd = bus_cmd,
+		.data = bus_data,
+		.reset = bus_reset,
+		.power = bus_power,
+		.delay_ms = bus_delay,
+		.ctx = NULL},
+    .button_down = port_button,
+    .button2_down = port_button2,
+    .now_ms = port_now,
+    .led = port_led,
+    .idle = port_idle,
+    .user_verified = port_verified,
+    .ctx = NULL,
+};
+
 const osk_ui_port_t *fake_panel_port(void)
 {
 	return &PORT;
+}
+
+const osk_ui_port_t *fake_panel_port_two(void)
+{
+	return &PORT_TWO;
+}
+
+void fake_panel_push2(bool down, uint32_t ms)
+{
+	if (g_script2_count < SCRIPT_MAX) {
+		g_script2[g_script2_count].down = down;
+		g_script2[g_script2_count].ms = ms;
+		g_script2_count++;
+	}
 }
 
 size_t fake_panel_cmd_count(void)
