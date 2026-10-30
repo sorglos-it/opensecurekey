@@ -30,6 +30,8 @@ internal static class TestGuard
     private const int WantLicense = 24;
     private const int WantLicenseValid = 3;
     private const int WantLicenseInvalid = 21;
+    private const int WantReplay = 6;
+    private const int WantReplayValid = 1;
 
     /// <summary>Einstieg. 0 heisst: alles gruen.</summary>
     internal static int Main(string[] args)
@@ -62,7 +64,10 @@ internal static class TestGuard
                 + CheckLicenseForm()
                 + CheckLicenseVectors(Path.Combine(
                     Path.GetDirectoryName(Path.GetFullPath(path)) ?? ".",
-                    "license-vectors.json"));
+                    "license-vectors.json"))
+                + CheckReplay(Path.Combine(
+                    Path.GetDirectoryName(Path.GetFullPath(path)) ?? ".",
+                    "replay-vectors.json"));
         }
         catch (JsonException error)
         {
@@ -80,6 +85,86 @@ internal static class TestGuard
 
         Console.WriteLine("ergebnis: alles gruen");
         return 0;
+    }
+
+    /// <summary>
+    /// Die eine Pruefung, um die es bei Stufe 1 geht: eine AUFGEZEICHNETE
+    /// Antwort darf nicht wiederverwendbar sein. "Jede Frage ist neu" ist
+    /// nicht dasselbe.
+    ///
+    /// Gelesen wird tests/replay-vectors.json - dieselben Bytes pruefen
+    /// alle fuenf Sprachen. Die Bytefolge wird hier gebaut, genau wie die
+    /// Bibliothek sie baut. Der erste Fall MUSS gelten; ohne ihn beweist
+    /// kein abgewiesener Fall etwas.
+    /// </summary>
+    private static int CheckReplay(string path)
+    {
+        if (!File.Exists(path))
+        {
+            Console.Error.WriteLine("FEHLER: replay-vectors.json fehlt: " + path);
+            return 1;
+        }
+
+        int failed = 0;
+        int seen = 0;
+        int valid = 0;
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllBytes(path));
+        JsonElement root = document.RootElement;
+        if (!root.TryGetProperty("device_pub", out JsonElement pubText) ||
+            !root.TryGetProperty("cases", out JsonElement list) ||
+            list.ValueKind != JsonValueKind.Array)
+        {
+            Console.Error.WriteLine("FEHLER: replay-vectors.json unbrauchbar");
+            return 1;
+        }
+
+        byte[] devicePub = Hex(pubText.GetString() ?? string.Empty);
+        foreach (JsonElement item in list.EnumerateArray())
+        {
+            string name = item.GetProperty("name").GetString() ?? "?";
+            byte[] nonce = Hex(item.GetProperty("nonce").GetString() ?? string.Empty);
+            byte[] binHash = Hex(item.GetProperty("binhash").GetString() ?? string.Empty);
+            byte[] signature = Hex(item.GetProperty("sig").GetString() ?? string.Empty);
+            bool wanted = item.GetProperty("valid").GetBoolean();
+
+            byte[] domain = Encoding.ASCII.GetBytes("osk-guard/attest/1");
+            byte[] signed = new byte[domain.Length + 1 + nonce.Length + binHash.Length];
+            domain.CopyTo(signed, 0);
+            signed[domain.Length] = 0;
+            nonce.CopyTo(signed, domain.Length + 1);
+            binHash.CopyTo(signed, domain.Length + 1 + nonce.Length);
+
+            bool got = Ed25519Verify.Verify(devicePub, signed, signature);
+            if (got != wanted)
+            {
+                Console.Error.WriteLine("FEHLER: " + name + ": " +
+                    (wanted ? "haette gelten muessen"
+                            : "haette abgewiesen werden muessen"));
+                failed++;
+            }
+
+            if (wanted)
+            {
+                valid++;
+            }
+
+            seen++;
+        }
+
+        Console.WriteLine("aufgezeichnete antworten: " +
+            seen.ToString(CultureInfo.InvariantCulture) + " geprueft, " +
+            valid.ToString(CultureInfo.InvariantCulture) + " gueltig");
+        if (seen != WantReplay || valid != WantReplayValid)
+        {
+            Console.Error.WriteLine("FEHLER: erwartet " +
+                WantReplay.ToString(CultureInfo.InvariantCulture) +
+                " Faelle, davon " +
+                WantReplayValid.ToString(CultureInfo.InvariantCulture) +
+                " gueltig");
+            failed++;
+        }
+
+        return failed;
     }
 
     /// <summary>Prueft die Hashwerte: SHA-256 und SHA-512 je Fall.</summary>

@@ -123,6 +123,48 @@ internal static class Example
         CryptographicOperations.ZeroMemory(back);
         CryptographicOperations.ZeroMemory(plain);
 
+        // 2b. Ein verschluesselter PROGRAMMTEIL - der starke Weg: ohne Stick
+        // fehlt dem Angreifer nicht die Antwort, sondern der Teil selbst.
+        byte[] code = Encoding.UTF8.GetBytes(
+            "die Regeln, nach denen dieses Programm rechnet");
+        byte[] codeBlob = guard.SealCode(stand.Label, code, out byte[] codeHash);
+        byte[] gotCode = guard.UnsealCode(stand.Label, codeBlob, codeHash);
+        if (!gotCode.AsSpan().SequenceEqual(code))
+        {
+            throw new InvalidOperationException(
+                "der Programmteil kam anders zurueck");
+        }
+
+        // Mit einem anderen Hash gibt es KEINE Bytes.
+        byte[] otherHash = (byte[])codeHash.Clone();
+        otherHash[0] ^= 0x01;
+        bool codeOpened = true;
+        try
+        {
+            byte[] nope = guard.UnsealCode(stand.Label, codeBlob, otherHash);
+            CryptographicOperations.ZeroMemory(nope);
+        }
+        catch (OskGuardException error)
+        {
+            codeOpened = false;
+            if (error.Code.Length == 0)
+            {
+                throw new InvalidOperationException("kein Fehlerschluessel");
+            }
+        }
+
+        if (codeOpened)
+        {
+            throw new InvalidOperationException(
+                "ein fremder Programmteil ging auf");
+        }
+
+        Console.WriteLine("ergebnis: programmteil " +
+            codeBlob.Length.ToString(CultureInfo.InvariantCulture) +
+            " byte, nur mit stick lesbar");
+        CryptographicOperations.ZeroMemory(gotCode);
+        CryptographicOperations.ZeroMemory(code);
+
         // 3. Die Lizenz - Aufbau und Unterschrift hier geprueft, die Werte
         // kommen aus der geprueften Nutzlast.
         License license = guard.License(stand.Product);

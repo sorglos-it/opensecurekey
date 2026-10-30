@@ -122,6 +122,7 @@
   "error.frame.size": "Un rapporto del dispositivo ha la lunghezza errata.",
   "error.guard.answer": "La risposta del dispositivo non corrisponde al protocollo.",
   "error.guard.binary": "Non è stato possibile leggere il file del programma.",
+  "error.guard.codehash": "La parte di programma decifrata non è quella attesa.",
   "error.guard.curve": "Questo tipo di chiave non esiste (ed25519 o x25519).",
   "error.guard.internal": "Errore interno della protezione dongle.",
   "error.guard.issuer": "La chiave per verificare la licenza manca o non è utilizzabile.",

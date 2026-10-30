@@ -1,6 +1,7 @@
 {
   "error.guard.answer": "La réponse de l’appareil ne correspond pas au protocole.",
   "error.guard.binary": "Le fichier du programme n’a pas pu être lu.",
+  "error.guard.codehash": "La partie de programme déchiffrée n'est pas celle attendue.",
   "error.guard.curve": "Ce type de clé n’existe pas (ed25519 ou x25519).",
   "error.guard.internal": "Erreur interne de la protection par dongle.",
   "error.guard.issuer": "La clé de vérification de la licence manque ou est inutilisable.",

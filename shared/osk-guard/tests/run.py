@@ -259,8 +259,14 @@ def languages():
                           'build': build, 'binary': 'example.exe',
                           'clean': stale_objects(folder)}, None))
     else:
+        # Jeder Ort nur einmal: eine Liste, die denselben Ordner zweimal
+        # nennt, sieht nach mehr Suche aus, als stattgefunden hat.
+        looked = []
+        for folder in make_dirs + cc_dirs:
+            if folder not in looked:
+                looked.append(folder)
         out.append(('c', None, 'kein make und kein C-Uebersetzer gefunden; '
-                    'gesucht in ' + ', '.join(make_dirs + cc_dirs[1:])))
+                    'gesucht in ' + ', '.join(looked)))
 
     # .NET
     folder = os.path.join(GUARD, 'dotnet')

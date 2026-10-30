@@ -209,6 +209,63 @@ try {
 }
 echo "adressen und laengen: geprueft\n";
 
+// --- aufgezeichnete Antworten --------------------------------------------
+//
+// Die eine Pruefung, um die es bei Stufe 1 geht: eine AUFGEZEICHNETE
+// Antwort darf nicht wiederverwendbar sein. "Jede Frage ist neu" ist nicht
+// dasselbe. Dieselben Bytes pruefen alle fuenf Sprachen.
+
+const WANT_REPLAY_CASES = 6;
+const WANT_REPLAY_VALID = 1;
+
+$path = __DIR__ . '/../tests/replay-vectors.json';
+$raw = @file_get_contents($path);
+if ($raw === false) {
+    fwrite(STDERR, "FEHLER: $path nicht lesbar\n");
+    exit(1);
+}
+$replay = json_decode($raw, true);
+if (!is_array($replay) || !isset($replay['cases'], $replay['device_pub'])) {
+    fwrite(STDERR, "FEHLER: $path ist kein brauchbares JSON\n");
+    exit(1);
+}
+$devicePub = hex2bin((string) $replay['device_pub']);
+if ($devicePub === false || strlen($devicePub) !== 32) {
+    fwrite(STDERR, "FEHLER: device_pub unbrauchbar\n");
+    exit(1);
+}
+$replayChecked = 0;
+$replayValid = 0;
+foreach ($replay['cases'] as $case) {
+    $nonce = hex2bin((string) $case['nonce']);
+    $binHash = hex2bin((string) $case['binhash']);
+    $signature = hex2bin((string) $case['sig']);
+    if ($nonce === false || $binHash === false || $signature === false
+        || strlen($nonce) !== 32 || strlen($binHash) !== 32
+        || strlen($signature) !== 64) {
+        fail('replay: eine Laenge passt nicht - ' . (string) $case['name']);
+        continue;
+    }
+    // Dieselbe Bytefolge, die die Bibliothek baut.
+    $signed = 'osk-guard/attest/1' . chr(0) . $nonce . $binHash;
+    $got = sodium_crypto_sign_verify_detached($signature, $signed, $devicePub);
+    $wanted = (bool) $case['valid'];
+    if ($got !== $wanted) {
+        fail(sprintf('%s: %s (%s)', (string) $case['name'],
+            $wanted ? 'haette gelten muessen'
+                    : 'haette abgewiesen werden muessen',
+            (string) $case['why']));
+    }
+    if ($wanted) {
+        $replayValid++;
+    }
+    $replayChecked++;
+}
+want('aufgezeichnete Antworten', $replayChecked, WANT_REPLAY_CASES);
+want('davon gueltig', $replayValid, WANT_REPLAY_VALID);
+printf("aufgezeichnete antworten: %d geprueft, %d gueltig\n",
+    $replayChecked, $replayValid);
+
 if ($errors > 0) {
     fwrite(STDERR, sprintf("\n%d Fehler.\n", $errors));
     exit(1);
