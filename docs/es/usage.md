@@ -131,6 +131,30 @@ Procedimiento:
 2. Introduce el PIN cuando te lo pidan.
 3. En la llave lee el nombre, **pulsa largo**, **pulsa largo.**
 
+### Software que exige un archivo de clave
+
+**Aquí es donde fracasa la mayoría. Léelo antes de buscar.**
+
+**El certificado sí lo entrega la llave.** Un certificado es público: pasarlo no cuesta nada. Para todo lo que solo necesita el justificante, basta con eso.
+
+**La clave privada no existe como archivo. Nunca.** No hay exportación, no hay una casilla para ello, no hay contraseña que la libere. No la busques.
+
+Eso **no es una carencia, sino el propósito del aparato:** lo que existe como archivo se puede copiar. Una clave que se puede copiar ya no es una clave de hardware.
+
+**La consecuencia, dicha abiertamente:** el software que exige obligatoriamente un archivo de clave (un `.pem` con `PRIVATE KEY` dentro, o un `.pfx` con contraseña) **no puede manejar este aparato de ninguna manera.** Ni con un rodeo ni con un ajuste.
+
+**La salida se llama PKCS#11.** Es una interfaz fijada para claves que se quedan dentro de un aparato. Los programas que la conocen aceptan, en lugar de una ruta de archivo, una **dirección de clave**, y tiene este aspecto:
+
+```
+pkcs11:object=mi-clave
+```
+
+Esto saben hacerlo, entre otros, `openssl`, el servidor web nginx, Java, muchos programas de VPN y las herramientas de firma habituales. Quien sabe PKCS#11 no necesita archivo.
+
+**Quien no sabe, se queda fuera.** Entonces solo ayuda: tomar un programa que hable PKCS#11, o quedarse para ese único fin con un archivo de clave en el disco duro, con todo lo que eso significa.
+
+La biblioteca para ello se llama `osk-pkcs11` (como `.dll` y `.so`). **Estado:** con el simulador, `openssl` comprobó así una firma como «Verified OK». Con una llave de verdad, nunca.
+
 ### Por SSH y Git
 
 **Estado:** Comprobado con el dispositivo de prueba. `git push` a través del agente funcionó en Windows y Linux.
@@ -206,6 +230,16 @@ Los secretos nunca están en el registro.
 
 Una llave tiene hasta **cuatro perfiles**, cada uno con su propio PIN. El PIN de uno no abre ningún otro. Un perfil bloqueado no muestra nada, ni siquiera los nombres de las entradas. Espacio: **768 entradas por perfil**, **3072 en la llave.**
 
+**Un límite que no es culpa de la llave:** el inicio de sesión con passkeys (FIDO) no conoce **ningún perfil.** Esa técnica da por supuesto que una llave pertenece a una persona. La llave no puede cambiar eso.
+
+Lo que significa en el día a día:
+
+- Si cambias de perfil, tienes que **registrarte otra vez en los servicios.** Los passkeys del otro perfil no están disponibles allí.
+- Un perfil no es, pues, una segunda cara para el mismo servicio, sino un conjunto de accesos separado.
+- Quien quiera ir y venir a menudo entre dos perfiles va mejor con **dos llaves**.
+
+**Estado:** nunca probado en un navegador.
+
 ## Tipos de entrada
 
 Acceso, Código único (tiempo), Código único (contador), Clave SSH, Certificado, Clave PGP, Clave API, Códigos de recuperación, Frase de cartera, Clave de licencia, Tarjeta bancaria, Identidad, Wi-Fi, Nota, Archivo.
@@ -217,3 +251,14 @@ Cada entrada lleva tres marcas que pones tú mismo:
 | se puede replicar | pasa a tu segunda llave, y solo allí |
 | solo ordenadores emparejados | solo se entrega a un ordenador emparejado |
 | protegido contra escritura | no se puede cambiar ni borrar, ni siquiera por ti, hasta que lo levantes |
+
+## Una tarjeta de memoria en la llave
+
+**Esto todavía no existe.** Está prevista una tarjeta de memoria para tus propios archivos.
+
+Dos cosas sobre ella deberías conocer **antes** de que exista, porque las dos pueden costarte secretos:
+
+- De **tres modos de funcionamiento**, uno **no** cifra. Solo sella, y cualquier openSecureKey puede leer.
+- Una firma demuestra que el contenido **no ha cambiado**, no **de quién** viene.
+
+Las dos cosas por extenso en [how-it-works.md](how-it-works.md), sección «El soporte de datos cifrado».

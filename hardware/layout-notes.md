@@ -3787,3 +3787,287 @@ Die Vorschrift *Board Outline ↔ SMD Pad* lautet **0,29999940 mm**.
 > Das ist kein Spielraum, das ist ein Haar. **Wer `J1` später um auch nur ein
 > Hundertstel nach unten schiebt oder den Umriss nachzieht, reißt diese Regel.**
 > Bei jeder Änderung an `J1` oder am Umriss zuerst hier nachsehen.
+
+# Die Längenentscheidung: beide Wege mit Zahlen
+
+Stand 30.10.2026, Strang K. **Hier wird nichts entschieden und nichts
+geändert** — kein Umriss, kein Bauteil. Dieser Abschnitt legt die Zahlen hin,
+an denen die Entscheidung in einer Minute fällt.
+
+## 0. Womit gemessen wurde, und wie es zum Anschlagen gebracht wurde
+
+Die Brücke war die ganze Runde über tot: `eda_status` antwortet `NO_EDA`,
+**kein EasyEDA-Fenster ist verbunden**, über vier Versuche hinweg. Also kein
+`pcb_pads_list` am lebenden Stand. Gemessen ist deshalb an zwei Dateien:
+
+| Quelle | Stand | was sie ist |
+| --- | --- | --- |
+| `pcb-source-PCB1.txt` | **24.10.2026, 19:56:52 Z** (`updateTime` im `DOCHEAD`) | der Export, der im Repo liegt |
+| `Gerber_PCB1_2026-10-25_20261025T110352Z.zip` | **25.10.2026, 11:03 Z** | letzter Gerber-Export, im Ablagefach der Brücke |
+
+Die Repo-Datei ist byteweise dieselbe wie der Brücken-Export
+`354378381b3ee21c.source_20261024T195652Z.txt` (`git hash-object` beidemal
+`98d86f36…`). **Sie ist nicht von heute.**
+
+**`gerber-kupfer.py` zum Anschlagen gebracht, in beide Richtungen**, auf
+`Gerber_TopLayer.GTL`:
+
+| Punkt | Antwort | war vorher klar |
+| --- | --- | --- |
+| 14,25 / 66,76 (Padmitte D1_1) | **KUPFER** | ja |
+| 13,50 / 68,50 (Gießfläche hinter D1) | **KUPFER** | ja |
+| −5 / −5 | frei | ja |
+| 100 / 100 | frei | ja |
+
+> **Eine Grenze des Skripts, die dabei herausgefallen ist:** 12,75 / 65,24 ist
+> die Mitte von Pad D1_6 und wird als **„frei"** gemeldet. Das Skript liest
+> nur die **erste** gefüllte Region (`break` beim ersten `G37`) — also die
+> Gießfläche. Ein Pad, das nicht an der Fläche hängt, liegt nicht darin.
+> **„frei" heißt bei diesem Skript „nicht in der Gießfläche", nicht „kein
+> Kupfer".** Für Pads ist es das falsche Messmittel.
+>
+> Für Pads genommen: `FlyingProbeTesting.json` aus dem Gerber-ZIP. Die Datei
+> trägt zu jedem Pad `PIN_X`, `PIN_Y`, `PAD_SIZEX`, `PAD_SIZEY`, `LAYER` und
+> `NET_NAME` — dasselbe Maß wie `extent_mm`, nur aus dem Gerber statt aus der
+> Brücke, und es ist das Maß **nach** der Drehung.
+
+**Längsachse bestätigt**, unabhängig von der Lesart des `"R"`-Pfades im
+Export: `Gerber_BoardOutlineLayer.GKO` zeichnet das Rechteck
+`X0 Y0 → X0 Y7000000 → X2700000 Y7000000 → X2700000 Y0`, in Millimetern bei
+`%FSLAX45Y45`. **27,000 mm in `x`, 70,000 mm in `y`.** Die 70,0 mm stehen
+damit auf zwei unabhängigen Quellen.
+
+## 1. Die vier Teile hinter y = 59,55 mm — es sind vier Teile und zwölf Pads
+
+**„Vier Pads" ist dreimal daneben, und jedesmal um dieselbe Art von Unschärfe.**
+
+| | Zahl | was sie wirklich ist |
+| --- | --- | --- |
+| „vier Pads" | **4** | **vier Bauteil-MITTEN**. Der Repo-Export enthält überhaupt keine Pad-Geometrie — 251 `PAD_NET`-Sätze tragen nur Netznamen, keine Koordinaten. Gezählt wurden `COMPONENT`-Mitten |
+| Pads | **12** | 6 an D1, je 2 an R10, R11, R12 |
+| „das hinterste bei y = 66,0" | 66,0 | das ist die **Mitte von D1**. Die Padmitte dahinter liegt bei **66,760**, die **Kupferkante bei 66,985** |
+
+Die Probe-Liste meldet 24 Treffer hinter 59,55 — das sind dieselben zwölf
+Pads zweimal, einmal unter dem Bauteilpin (`D1_1`), einmal als Prüfpunkt
+(`PAD31_2`). **Zwölf verschiedene Pads.**
+
+| Teil | was es ist | Pads | Kupfer in `y` | Netze | wofür es da ist |
+| --- | --- | --- | --- | --- | --- |
+| **D1** | RGB-LED 1,6 × 1,6 × 0,5 mm | **6** | **65,015 … 66,985** | `LED_R`, `LED_G`, `LED_B`, 3 × `GND` | zeigt Betrieb und Fehler. Bleibt ausdrücklich, auch ohne Akku (`schematic.md`) |
+| **R10** | Vorwiderstand rot | 2 | 62,730 … 63,270 | `LED_R_A` → `LED_R` | begrenzt den Strom des roten Chips |
+| **R11** | Vorwiderstand grün | 2 | 62,730 … 63,270 | `LED_G_A` → `LED_G` | dasselbe, grün |
+| **R12** | Vorwiderstand blau | 2 | 62,730 … 63,270 | `LED_B_A` → `LED_B` | dasselbe, blau |
+
+**Es ist eine einzige Gruppe**: die LED und ihre drei Vorwiderstände, Kupfer
+zusammen `x` 10,284 … 16,716 und `y` 62,730 … 66,985 — **6,431 × 4,255 mm,
+27,4 mm²**.
+
+**Diese vier stehen in beiden Quellen auf genau denselben Koordinaten.** Von
+54 Teilen sind 27 zwischen den beiden Ständen verschoben; D1, R10, R11, R12
+und J3 sind **nicht** darunter. Der Befund hängt also nicht daran, welche der
+beiden Dateien die jüngere ist.
+
+> **Das Tagebuch wusste es schon.** Der Abschnitt „Die Bänder, neu" trägt die
+> Zeile „R10–R12, D1 (LED) | 63,0 … 66,759 | sitzen an der Spitze, wandern
+> mit". **Weitergereicht wurde auch hier nur die Zahl, nicht die Zeile.** Die
+> 66,759 ist dabei eine Pad**mitte**; die Kupferkante liegt 0,226 mm weiter
+> hinten bei 66,985.
+
+### Was noch hinter 59,55 liegt und kein Pad ist
+
+**Die Gießflächen.** Auf allen vier Lagen (TOP, INNER_1, INNER_2, BOTTOM)
+reicht Kupfer bis `y` = **69,7435**, gemessen an der höchsten Kante der
+Füllzüge. Zwischen dem hintersten Pad (66,985) und dem hintersten Kupfer
+(69,744) liegen **2,759 mm Platine, auf der nichts sitzt außer Fläche.**
+
+## 2. Weg A — Platine auf 59,55 mm kürzen
+
+### Was wandern muss
+
+| Teil | von `y` | nach `y` | woher die Zielzahl |
+| --- | --- | --- | --- |
+| D1 | 66,0 | **55,55** | `cad/parameters.csv`, `led_back` = 4,0 mm von der Hinterkante |
+| R10, R11, R12 | 63,0 | **≈ 52,55** | derselbe Abstand mitgenommen |
+| J3 NFC-Anschluss | 52,5 | nach vorn, mit der Schleife | Tagebuch: „wandert mit der Schleife" |
+
+Dazu: **16 Pads neu verlegen** (12 der LED-Gruppe, 4 an J3), **Umriss von
+Hand kürzen** (Projektregel: Umriss nur von Hand), **alle vier Gießflächen neu
+aufbauen** — 10,45 mm Fläche fallen weg —, und **DRC neu**. Der Flächenaufbau
+braucht nach Erfahrung dieser Datei zweimal: direkt und nach `doc_reload`.
+
+### Was es dem Antennenfeld nimmt
+
+| | Zone `y` | Zonenlänge | Fläche der Zone |
+| --- | --- | --- | --- |
+| heute gezeichnet, 70,0 mm | 45,05 … 70,00 | **24,95 mm** | 24,95 × 24,6 = **614 mm²** |
+| Weg A, 59,55 mm | 45,05 … 59,55 | **14,50 mm** | 14,50 × 24,6 = **357 mm²** |
+
+**Weg A nimmt der NFC-Zone 10,45 mm Länge und 257 mm² Fläche — 42 %.**
+
+> **Die 357 mm² sind brutto, nicht die Schleifenfläche.** In diese Zone muss
+> die LED-Gruppe mit ihren **27,4 mm²** hinein, und J3 mit 4,540 × 2,000 mm
+> dazu. **7,7 % der Zone sind vor der ersten Windung vergeben**, Leiterbahnen
+> noch nicht gerechnet. Das Tagebuch sagt an zwei Stellen ausdrücklich, dass
+> **nicht gezeigt ist, dass 14,50 mm reichen**. Die 357 mm² sind also nicht
+> nur unbelegt — sie sind auch zu groß angesetzt.
+
+### Reißt die Kürzung eine Auflage, die schon gemessen wurde?
+
+**Nein, keine einzige.** Gemessen und nachgewiesen sind: die Freihaltezone der
+Modulantenne von U1 (Körper `y` 12,0499 … 22,5499), der Randabstand von J1
+(0,303 mm bei Vorschrift 0,300), die Abstände der Wandlerschleife um L1
+(`y` ≈ 23,9), die Taster- und Steckermaße. **Alles davon liegt vor `y` = 26,5
+und wird von einem Schnitt bei 59,55 nicht berührt.**
+
+Was die Kürzung trifft, ist nichts davon: es sind die **Gießflächen** und die
+**Verlegung hinter 45,05**, und beides ist Arbeit, keine verletzte Auflage.
+
+## 3. Weg B — Gehäuse auf 70 mm
+
+**An der Platine ändert sich nichts.** Kein Pad wandert, keine Fläche wird neu
+gebaut, kein DRC-Lauf.
+
+In `cad/parameters.csv` ändert sich **eine Zahl**: `pcb_len` 59,55 → 70,0.
+`led_back` = 4,0 mm **stimmt dann von selbst** — D1 sitzt bei `y` = 66,0, die
+Platine endet bei 70,0, das sind genau 4,0 mm. **Weg B macht das Gehäuse
+widerspruchsfrei; Weg A verlangt, dass D1 wandert, damit es widerspruchsfrei
+bleibt.**
+
+### Was es kostet
+
+Gerechnet aus `cad/parameters.csv`: `pcb_fit` 0,3 je Seite, `wall_t` 1,6,
+`skin_t` 1,0, Dicke 7,03, Breite 27,0, `eye_len` 8,0. **Die Formel ist gegen
+die Datei geprüft**: 59,55 + 2 × 0,3 + 2 × 1,6 = 63,35 mm, und 63,35 mm ist
+genau die Zahl, die `masse.md` in Abschnitt 2 nennt.
+
+| | Weg A (59,55) | Weg B (70,0) | Mehr |
+| --- | --- | --- | --- |
+| Länge ohne Öse | 63,35 mm | **73,80 mm** | +10,45 |
+| **Länge mit Öse** | 71,35 mm | **81,80 mm** | +10,45 |
+| Dicke | 7,03 mm | **7,03 mm** | **0** |
+| Breite | 30,80 mm | **30,80 mm** | **0** |
+
+Querschnitt außen 216,52 mm², Hohlraum innen 27,6 × 5,03 = 138,83 mm²,
+Wandstoff 77,70 mm². Auf 10,45 mm Mehrlänge:
+
+| | Weg B mehr |
+| --- | --- |
+| Außenvolumen | +2263 mm³ |
+| **PETG** (Wandstoff) | **+812 mm³** |
+| **Verguss** (Hohlraum ohne Platinenquerschnitt) | **+1225 mm³ = 1,23 ml** |
+
+> **Massen sind gerechnet, nicht gemessen, und die Dichten stehen in keiner
+> Projektunterlage.** Mit 1,27 g/cm³ für PETG und 1,15 g/cm³ für ein
+> ungefülltes Epoxid wären es **+1,03 g Gehäuse und +1,41 g Verguss, zusammen
+> rund 2,4 g**. Wird eine gefüllte Masse genommen, steigt der Vergussanteil.
+> **Die Volumina sind der belastbare Teil dieser Zeile, nicht die Gramm.**
+
+**Die Öse kostet nichts.** 8,0 × 12,0 mm mit Ø 4,0 bleibt, wie sie ist; sie
+sitzt nur 10,45 mm weiter hinten.
+
+**Die Höhenrechnung ist nicht betroffen.** Alle Lagensummen laufen in `z`, und
+dort ändert die Länge nichts — das sagt `masse.md` selbst.
+
+## 4. Weg C — ja, es gibt einen, und er ist nicht das Zwischenmaß
+
+### C1: 67,30 mm — die kürzeste Platine, bei der NICHTS wandert
+
+Das hinterste Kupfer, das zu einem Bauteil gehört, endet bei `y` = **66,985**.
+Der Randabstand, den dieses Projekt für Pads einhält, ist **0,300 mm** (die
+Zahl aus dem J1-Abschnitt: gemessen 0,303 bei Vorschrift 0,300).
+
+> **66,985 + 0,300 = 67,285 → 67,30 mm.**
+
+| | |
+| --- | --- |
+| gegenüber 70,0 mm | **−2,70 mm** |
+| Gehäuse ohne Öse / mit Öse | **71,10 / 79,10 mm** |
+| Bauteile, die wandern | **keines** |
+| Arbeit | Umriss von Hand, vier Gießflächen neu, DRC |
+| Verlegung | bleibt — es fällt nur Fläche weg |
+| NFC-Zone | 45,05 … 67,30 = **22,25 mm**, 547 mm² |
+| was im Gehäuse nachzuziehen ist | `pcb_len` **und** `led_back` 4,0 → **1,30** |
+
+**Der Haken steckt in `led_back`.** Bei 1,30 mm liegt die Mitte des Ø 2,5-mm-
+Lichtfensters 1,30 + 0,30 + 1,60 = 3,20 mm von der hinteren Außenfläche; um das
+Fenster bleiben 3,20 − 1,25 = **1,95 mm Dach**. Das sieht tragfähig aus, ist
+aber **am Gehäusemodell nachzurechnen und nicht von mir geprüft** — `cad/`
+gehört mir nicht.
+
+### C2: 64,05 mm — das Zwischenmaß aus dem Tagebuch
+
+19,00 mm NFC-Zone. Nach derselben Rechnung wie oben 19,00 × 24,6 = **467 mm²**;
+die 448 mm², die weiter oben in dieser Datei stehen, sind **nicht**
+nachgerechnet. **−5,95 mm** gegenüber 70,0; Gehäuse 67,85 / 75,85 mm.
+
+**Die Arbeit ist dieselbe wie bei Weg A** — D1 nach 60,05, R10–R12 nach
+≈ 57,05, J3 nach vorn, 16 Pads neu, Flächen neu, DRC. **Weg C2 kostet die
+ganze Arbeit von Weg A und bringt nur 5,95 der 10,45 mm.**
+
+### C3: erst die Zone, dann die Länge
+
+Diese Datei trägt unter „Was als nächstes fehlt" den Punkt: **„Die NFC-Zone
+entscheiden. Erst dann der Umriss. Länge = 45,05 mm + Zone."**
+
+Jede Längenzahl in dieser Vorlage ist 45,05 + Zone. **Die Länge ist keine
+eigene Entscheidung — sie ist die Zone, in anderer Einheit.**
+
+| Zone | Platine | Gehäuse mit Öse |
+| --- | --- | --- |
+| 14,50 mm | 59,55 | 71,35 |
+| 19,00 mm | 64,05 | 75,85 |
+| 22,25 mm | **67,30** (nichts wandert) | 79,10 |
+| 24,95 mm | **70,00** (gezeichnet) | 81,80 |
+
+### C4: 56,55 mm
+
+Steht schon in dieser Datei: 59,55 mm **plus** SW2 aus dem USB-Band heraus.
+Neuplatzierung der ganzen unteren Partie, eigene Runde. **Nicht gemessen.**
+
+## 5. Zwei Befunde, die keiner der Wege ist, und die beide offen bleiben
+
+### Die 14 entfallenen Bauteile stehen in beiden Platinenständen noch drin
+
+`docs/plan.md` und der Kopf dieser Datei sagen, die 14 Teile seien „aus
+Schaltplan **und Platine**" entfernt. **In beiden Dateien, die ich messen
+kann, sind alle 14 platziert:** U4, J2, Q1, Q2, Q3, R1–R5, R13, R14, C17, C2
+— nachgezählt in der Bauteilliste des Gerbers vom 25.10. und in den
+`COMPONENT`-Sätzen des Repo-Exports. Beide Stände haben **54 Teile**, dieselben
+54 Namen.
+
+Dreizehn davon stehen **auf** der Platine (`y` 0,9 … 18,9, überwiegend
+Unterseite), nur J2 ist bei `x` = 33 geparkt.
+
+### Beide Dateien sind älter als die Platine, die das Tagebuch beschreibt
+
+Der J1-Abschnitt dieser Datei (Stand 25.10.) misst J1 auf 13,50 / 1,55 mit
+B-Reihe bei `y` 0,303 … 1,103. **Im Gerber vom 25.10. liegen die 40 J1-Pads
+bei `y` 1,305 … 5,665** — anderer Stecker, andere Lage. Und 27 der 54 Teile
+stehen in den beiden Dateien verschieden.
+
+> **Folge:** es gibt **keinen Dateistand der Platine nach dem 25.10. 11:03 Z**.
+> Was heute im Editor steht, weiß ich nicht — die Brücke ist tot und EasyEDA
+> ist nicht offen. **Die 70,0 mm und die vier Teile hinter 59,55 stehen auf
+> zwei übereinstimmenden Quellen und sind belastbar. Alles, was sich seit dem
+> 25.10. bewegt hat, ist von hier aus unsichtbar.** Vor dem Schnitt gehört
+> der Umriss am lebenden Stand nachgemessen.
+
+## 6. Empfehlung — Begründung, kein Befund
+
+**Getrennt vom Befund, und ausdrücklich keine Entscheidung.**
+
+Ich würde **Weg B** nehmen, und wenn drei Millimeter zählen, **C1 (67,30 mm)**.
+
+Begründung: die Länge hängt allein an einer Zahl, die **nicht gemessen und
+nicht gezeigt ist** — dass 14,50 mm NFC-Zone reichen. Weg A gibt 42 % des
+Antennenfelds her, bevor jemand gerechnet hat, ob der Rest trägt, und legt
+dafür 16 Pads, vier Gießflächen und einen DRC-Lauf an. Wird die Zone später
+doch größer gebraucht, ist die Arbeit zweimal zu machen — und die Platine
+wächst wieder, das Gehäuse mit.
+
+Weg B kostet dagegen **eine Zahl in einer CSV-Datei**, +10,45 mm Länge,
+1,23 ml Verguss und etwa 2,4 g. Dicke und Breite bleiben, und das Gehäuse wird
+dabei widerspruchsfrei statt widersprüchlich.
+
+**Was die Empfehlung nicht wiegt:** wie wichtig 10,45 mm Baulänge an einem
+Schlüsselbund sind. Das ist das Maß von Thomas, nicht meins.

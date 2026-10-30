@@ -185,3 +185,13 @@ footer p {
     background: #262626;
   }
 }
+
+/* Der Hinweis auf gleich aussehende Zeichen. Kein Schliessknopf, keine
+   Blende darueber: er steht in der Kopfzeile, und er bleibt. */
+.foreign {
+  margin: 6px 0 0;
+  padding: 6px 8px;
+  border-left: 3px solid var(--warn);
+  font-size: 12px;
+  line-height: 1.35;
+}

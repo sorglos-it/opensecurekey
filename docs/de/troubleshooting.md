@@ -62,6 +62,17 @@ Die Reihenfolge deiner Sicherheit:
 - Nur Zweitstick: Brand oder Diebstahl der Tasche nimmt beide mit.
 - Nichts davon: Ein verlorener Stick ist ein Totalverlust.
 
+## Der Stick ist langsam, und ich halte ihn für kaputt
+
+Ist er wahrscheinlich nicht.
+
+- Das Laufwerk mit den Programmen öffnet sich **nicht sofort.** Rechne mit über einer Minute, bis die Programme gelesen sind.
+- Das liegt daran, wie viel der Stick am USB-Anschluss durchbringt. Die Zahlen und der Grund stehen in [how-it-works.md](how-it-works.md), Abschnitt „Das Laufwerk mit den Programmen braucht seine Zeit“.
+- **Zieh den Stick in dieser Zeit nicht ab.** Es sieht aus wie ein Hänger und ist keiner.
+- Kopiere das Programm **einmal** auf die Festplatte. Dann wartest du nur beim ersten Mal.
+
+**Stand:** Das Laufwerk ist geplant und nicht gebaut. Die Wartezeit ist gerechnet, nicht am Gerät gemessen.
+
 ## Der Stick wird nicht erkannt
 
 Im Programm unter **Geräte** steht „Kein Gerät gefunden.“
@@ -186,6 +197,32 @@ Damit du nicht lange suchst:
 - **Anmelden am Rechner,** Festplatte entsperren, der Stick als Tastatur
 - ein fertig gedrucktes Notfallblatt vom Programm
 - **macOS**
+
+## Ich wollte verschlüsseln und habe nur gesiegelt
+
+**Dann sind die Daten offen, und zwar für jeden, der irgendeinen openSecureKey hat.**
+
+Das betrifft die geplante Speicherkarte. Eine ihrer drei Betriebsarten verschlüsselt **nicht.** Sie siegelt nur, damit man eine Veränderung erkennt.
+
+Was zu tun ist:
+
+1. Geh davon aus, dass gelesen wurde. Was dort an Kennwörtern oder Schlüsseln lag, **ändere** — nicht nur die Karte.
+2. Es gibt kein „nachträglich verschlüsseln“. Die Karte muss **neu beschrieben** werden, in einer der beiden geheimen Betriebsarten.
+3. Prüf vorher am Bildschirm, welche Betriebsart dort steht. Sie steht an, solange die Karte steckt.
+
+Die drei Betriebsarten nebeneinander: [how-it-works.md](how-it-works.md), Abschnitt „Der verschlüsselte Datenträger“.
+
+**Stand:** Die Karte gibt es nicht. Dieser Abschnitt steht hier, damit der Fehler nicht passiert, wenn es sie gibt.
+
+## Der Stick sagt nicht „Karte geprüft“
+
+Das ist Absicht, und es wäre eine Lüge, wenn er es sagte.
+
+- Eine Karte **ganz** zu prüfen heißt, sie ganz zu lesen. Wie lange das dauert, steht in [how-it-works.md](how-it-works.md) — zu lange, um es beim Einstecken abzuwarten.
+- Der Stick prüft deshalb **jeden Block in dem Moment, in dem er ihn liest.** Was du öffnest, ist geprüft.
+- **Ein veränderter Block in einer Datei, die niemand öffnet, fällt nicht auf.** Das ist der Preis, und er steht hier, weil er dir zusteht.
+
+Mehr dazu in [how-it-works.md](how-it-works.md), Abschnitt „Der verschlüsselte Datenträger“.
 
 ## Wenn du es nicht findest
 

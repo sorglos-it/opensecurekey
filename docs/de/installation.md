@@ -17,6 +17,10 @@ Du brauchst **keine Installation** und **keine Administrator-Rechte** für das P
 - Es legt seine Einstellungen **neben sich** ab, nicht im System.
 - Ein fertiges Programm zum Herunterladen gibt es noch nicht. Es ist kein Release gebaut. Wer es selbst bauen will, liest [development.md](development.md).
 
+**Geplant** ist, dass der Stick die Programme selbst mitbringt: Er zeigt beim Einstecken ein kleines, nur lesbares Laufwerk.
+
+**Dann gilt: „Einstecken und starten“ heißt über eine Minute warten.** Der Stick gibt seine Daten langsam heraus. Das ist normal und kein Fehler. Wie lange genau und warum, steht in [how-it-works.md](how-it-works.md), Abschnitt „Das Laufwerk mit den Programmen braucht seine Zeit“.
+
 ## Schritt 2: Stick einstecken, Programm starten
 
 1. Stick in einen USB-Anschluss stecken.
@@ -58,6 +62,7 @@ Keiner der beiden Wege ist grundsätzlich der sicherere. Es hängt davon ab, was
 
 - Das geht nur so: **neues Profil anlegen** und dich bei **jedem Dienst neu anmelden.**
 - Ein Stick fasst bis zu **vier Profile.** Jedes hat eine eigene PIN.
+- Das **muss** so sein: Die Anmeldung mit Passkeys kennt keine Profile. Auch beim bloßen Wechsel von einem Profil zum anderen meldest du dich bei den Diensten neu an. Siehe [usage.md](usage.md), Abschnitt „Mehrere Personen an einem Stick“.
 
 Bevor es weitergeht, musst du ankreuzen: „Ich habe verstanden, dass sich das nicht mehr ändern lässt.“
 
@@ -77,7 +82,9 @@ Das ist der wichtigste Schritt. Tu ihn **gleich**, nicht „später“.
 2. **Sicherung speichern.** Siehe unten.
 3. **Notfallzettel schreiben.** Siehe unten.
 
-Dass der Einrichtungsassistent dich zu einem Zweitstick **oder** einem gedruckten Notfallzettel zwingt, ist geplant. Gebaut ist es noch nicht. Mach beides.
+**Warum das nicht „später“ geht:** Wer sein Hauptkennwort vergisst und beide Sticks verliert, **hat alles verloren.** Nicht „fast alles“ und nicht „mit Aufwand wiederherstellbar“. Es gibt keine Hintertür, kein Ersatzverfahren und niemanden, der helfen kann. Darum ist der Notfallzettel im Einrichtungsassistenten **nicht überspringbar:** kein „Überspringen“, kein „später erinnern“. Entweder ein Zweitstick ist gekoppelt, oder der Zettel ist geschrieben.
+
+**Stand:** Dieser Zwang ist geplant und **nicht gebaut.** Bis es den Assistenten gibt, zwingt dich niemand. Mach beides trotzdem, und mach es jetzt.
 
 ### Zweitstick koppeln
 

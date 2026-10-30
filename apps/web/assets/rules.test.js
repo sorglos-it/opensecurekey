@@ -133,6 +133,9 @@ function fakeInput(type, options) {
 function buildDocument(order, origin) {
   const url = new URL(origin);
   const matches = (node, selector) => {
+    if (selector.includes('iframe')) {
+      return node.type === 'iframe';
+    }
     if (selector.includes('password')) {
       return node.type === 'password';
     }
@@ -140,7 +143,15 @@ function buildDocument(order, origin) {
   };
   const query = (list) => (selector) => list.filter((n) => matches(n, selector));
 
-  global.location = { protocol: url.protocol, hostname: url.hostname };
+  global.location = {
+    protocol: url.protocol, hostname: url.hostname, href: origin,
+  };
+  // Das Fenster. Im Hauptdokument ist top dasselbe wie self; ein Rahmen
+  // wird weiter unten eigens gebaut.
+  global.window = {};
+  global.window.top = global.window;
+  global.window.self = global.window;
+  global.URL = URL;
   global.Node = { DOCUMENT_POSITION_PRECEDING: 2 };
   global.Event = class {
     constructor(type) { this.type = type; }
@@ -243,4 +254,81 @@ test('ein Feld hinter dem Passwortfeld ist kein Namensfeld', () => {
   const got = oskFillForm('https://example.org', 'thomas', 'geheim');
   assert.deepStrictEqual(got, { ok: true, name: false });
   assert.strictEqual(danach.value, '');
+});
+
+// --- Fremde Rahmen -----------------------------------------------------------
+//
+// Das Geraet zeigt immer, WELCHE Software gerade fragt. Fuer die Erweiterung
+// heisst das: eine Abfrage aus einem eingebetteten Rahmen darf nicht als die
+// Hauptseite auftreten. Sie wird nicht gefuellt, und sie wird benannt.
+
+function fakeFrame(src) {
+  const node = fakeInput('iframe');
+  node.src = src;
+  return node;
+}
+
+test('in einem Rahmen wird ueberhaupt nicht gefuellt', () => {
+  const password = fakeInput('password');
+  buildDocument([password], 'https://example.org');
+  // Jetzt steht das Skript in einem Rahmen: top ist nicht self.
+  global.window.top = { fremd: true };
+  const got = oskFillForm('https://example.org', 'anna', 'gehe1m');
+  assert.strictEqual(got.ok, false);
+  assert.strictEqual(got.reason, 'frame');
+  assert.strictEqual(password.value, '',
+    'im Rahmen darf nichts im Feld stehen');
+  global.window.top = global.window;
+});
+
+test('ein Anmeldefeld in einem fremden Rahmen wird benannt, nicht gefuellt', () => {
+  // Das Hauptdokument hat kein Passwortfeld - das steckt im Rahmen eines
+  // Dritten. Still "nichts gefunden" zu melden waere falsch: der Anwender
+  // SIEHT ein Anmeldefeld.
+  buildDocument([fakeFrame('https://anmeldung.fremd.example/form')],
+    'https://example.org');
+  const got = oskFillForm('https://example.org', 'anna', 'gehe1m');
+  assert.strictEqual(got.ok, false);
+  assert.strictEqual(got.reason, 'frame');
+  assert.strictEqual(got.frame, 'anmeldung.fremd.example');
+});
+
+test('ein Rahmen derselben Seite macht aus nichts kein Problem', () => {
+  // Ein Rahmen, der zur Seite selbst gehoert, ist kein fremder Rahmen. Der
+  // Fall bleibt "frame" - gefuellt wird dort auch nicht -, aber es wird
+  // kein fremder Name genannt, den es nicht gibt.
+  buildDocument([fakeFrame('https://example.org/teil')], 'https://example.org');
+  const got = oskFillForm('https://example.org', 'anna', 'gehe1m');
+  assert.strictEqual(got.reason, 'frame');
+  assert.strictEqual(got.frame, '');
+});
+
+test('ohne Rahmen und ohne Feld bleibt es bei nofield', () => {
+  buildDocument([fakeInput('text')], 'https://example.org');
+  const got = oskFillForm('https://example.org', 'anna', 'gehe1m');
+  assert.strictEqual(got.reason, 'nofield');
+});
+
+test('ein Passwortfeld im Hauptdokument gewinnt gegen einen Rahmen daneben', () => {
+  const password = fakeInput('password');
+  buildDocument([fakeFrame('https://werbung.fremd.example/'), password],
+    'https://example.org');
+  const got = oskFillForm('https://example.org', 'anna', 'gehe1m');
+  assert.strictEqual(got.ok, true);
+  assert.strictEqual(password.value, 'gehe1m');
+});
+
+test('passt die Adresse nicht, bleibt das Feld leer', () => {
+  // EINE WARNUNG, DIE MAN WEGKLICKEN KANN, WAEHREND DAS FELD SCHON GEFUELLT
+  // IST, IST KEINE. Darum wird hier nicht die Meldung geprueft, sondern das
+  // Feld: es muss leer bleiben, und zwar bevor irgendjemand etwas sieht.
+  const password = fakeInput('password');
+  const name = fakeInput('text');
+  buildDocument([name, password], 'https://boese.tld');
+  const got = oskFillForm('https://example.org', 'anna', 'gehe1m');
+  assert.strictEqual(got.ok, false);
+  assert.strictEqual(got.reason, 'moved');
+  assert.strictEqual(password.value, '');
+  assert.strictEqual(name.value, '');
+  assert.strictEqual(password.focused, 0, 'nicht einmal angefasst');
 });

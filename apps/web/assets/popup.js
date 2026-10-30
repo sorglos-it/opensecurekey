@@ -39,7 +39,14 @@ function ask(request) {
 // refresh holt den Zustand und baut das Fenster neu.
 async function refresh() {
   const answer = await ask({ was: 'state' });
+  // GEZEIGT WIRD, WAS VERGLICHEN WIRD. shown ist die ASCII-Form des Namens
+  // aus der Adresszeile - bei einem Namen mit fremden Zeichen also
+  // "xn--bnk-dcd.de" und nicht das huebsche "bank.de", das daneben auf dem
+  // Bildschirm steht. Das sieht sperrig aus und ist der Punkt: ein Fenster,
+  // das den huebschen Namen zeigt, waehrend ein anderer Rechner gemeint
+  // ist, luegt den Anwender an.
   el('site').textContent = answer.shown || '';
+  el('foreign').hidden = !answer.foreign;
   el('device').textContent = '';
   el('claim').textContent = '';
 
@@ -166,6 +173,15 @@ async function doCopy(item) {
 
 function fillTrouble(answer) {
   switch (answer.reason) {
+    case 'frame':
+      // Das Anmeldefeld steckt in einem eingebetteten Rahmen. Der gehoert
+      // einer anderen Software als der Seite in der Adresszeile, und der
+      // Anwender erfaehrt, welcher.
+      return answer.frame
+        ? t('popup.frameFrom', answer.frame)
+        : t('popup.frame');
+    case 'wrongsite':
+      return t('popup.wrongsite');
     case 'nofield':
       return t('popup.nofield');
     case 'moved':
