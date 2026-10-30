@@ -272,7 +272,13 @@ Rechenkern**.
 
 - Schlüssel entstehen im Sicherheitschip und verlassen ihn nie
 - Leitung dorthin verschlüsselt (SCP03) — **die Werksschlüssel sind öffentlich
-  bekannt, der Austausch beim ersten Start ist Pflicht und fehlt heute**
+  bekannt, der Austausch beim ersten Start ist Pflicht.** Genauer gemessen am
+  30.10.2026: `osk_se050_rotate_scp_keys()` **ist gebaut und geprüft**, aber
+  **niemand ruft sie** — Fundstellen gibt es nur in der Deklaration, in zwei
+  Attrappen, im Prüfsatz und im CHANGELOG. Das Werkzeug ist da, der Ablauf
+  fehlt. „Fehlt" klang nach „nicht gebaut" und hätte den falschen Aufwand
+  geschätzt; ein Gerät, das so ausgeliefert wird, läuft trotzdem mit öffentlich
+  bekannten Schlüsseln
 - Fehlversuchszähler im Chip, nicht im Flash
 - Jede Herausgabe: PIN (je Sitzung) **und** Tastendruck (je Vorgang)
 - **Automatisches Sperren** nach Zeit, **sofortiges Sperren beim Abziehen**
