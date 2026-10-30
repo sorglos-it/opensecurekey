@@ -14,7 +14,9 @@ Stufe 2 von 4** — geschrieben / übersetzt / im Abbild / am Gerät gelaufen.
 **Was am 29.10.2026 selbst nachgemessen wurde**, nicht aus Meldungen
 übernommen: sechs Prüfläufe der Stränge, jeder einzeln gestartet —
 `se050` 1066, `authz` 255, `ctap` 1425, `store` 88 631, `transport` 232,
-`applets` 1384 Fälle, **zusammen 92 993, kein Fehler**. Die Fassung **ohne**
+`applets` 1384 Fälle, **zusammen 92 993, kein Fehler**. *(Die 232 bei
+`transport` waren der Umfang von damals; heute sind es 1367 — der Satz ist
+seit dem 29.10. gewachsen, und dazwischen war er zeitweise rot, siehe unten.)* Die Fassung **ohne**
 RSA ist mitgemessen: `applets` 1222 Fälle, 0 Fehler — eine Option, die nur in
 einer Richtung geprüft ist, ist keine. Dazu `tools/check.py`:
 14 Schritte ok, 308 Tests, 0 Fehler.
@@ -23,7 +25,25 @@ einer Richtung geprüft ist, ist keine. Dazu `tools/check.py`:
 14 ok, 3 übersprungen, **330 Tests, 0 Fehler**; der UI-Prüfsatz
 **4074 Prüfungen, 0 Fehler** (gemessen auf `C:`, weil die WSL Netzlaufwerke
 nicht übersetzt); die Höhenrechnung `cad/tools/budget.py` **9 von 9
-Kontrollpunkten, 4 davon mussten anschlagen**. **Drei Schritte sind übersprungen und
+Kontrollpunkten, 4 davon mussten anschlagen**. **Und ein Befund, der die Zahlen oben relativiert:** die C-Prüfsätze `ctap`
+und `transport` waren vom 29.10.2026, 17:38 Uhr bis zum 30.10.2026 **rot** —
+niemandem aufgefallen, auch mir nicht. Strang E hat `transport/Makefile` um
+17:19 zuletzt angefasst, Strang B hat um 17:38 drei Dateien zum CTAP-Kern
+hinzugefügt (`osk_sigcount.c`, `osk_ctap_cm.c`, `osk_ctap_config.c`) und sie
+nur in **seinem** Makefile nachgetragen. Dazu waren beide AAGUID-Konstanten
+unbedingt definiert, so dass in **jeder** Baurichtung eine davon unbenutzt
+blieb und `-Werror=unused-const-variable` abbrach — **dieser Code konnte in
+keiner Richtung übersetzen.**
+Behoben am 30.10.2026, danach gemessen: **ctap 1425 Fälle, transport 1367,
+je 0 Fehler, und beides in BEIDEN Richtungen der RSA-Option** (`make RSA=0`
+gibt es jetzt auch hier, wie bei `applets`).
+**Zwei Lehren, die teurer waren als die Behebung:**
+**Ein Strang, der nur seinen eigenen Prüfsatz messen kann, bricht den des
+Nachbarn unbemerkt** — und ich habe die sechs Prüfläufe *vor* dem
+Zusammenführen gemessen, nicht danach. **Nachgemessen wird am Ergebnis, nicht
+an den Teilen.**
+
+**Drei Schritte sind übersprungen und
 damit NICHT geprüft:** `firmware/build` (kein nRF Connect SDK),
 `firmware/tests` und `firmware/format`. Die C-Prüfläufe der Stränge laufen
 deshalb ausdrücklich nicht über `check.py`, sondern über die Skripte in
