@@ -753,6 +753,46 @@ Entscheidung über den Fingerabdrucksensor gefolgt.
 > einträgt, hat sie nicht ausgeführt, und wer sie ausführt, hat sie nicht
 > angeschlossen. Die Gegenprobe gehört an die Sache, nicht an das Papier.
 
+19. **Fünf vollständige private Schlüssel stehen im öffentlichen Repo**, als
+    Konstanten in Quellcode: vier in `apps/desktop/classes/agent_golden_test.go`,
+    einer in `apps/desktop/tests/freigaben_test.go`, zusammen 58 Zeilen
+    Schlüsselmaterial. Es sind Testschlüssel, und sie stehen dort aus einem
+    nachvollziehbaren Grund — ein Golden Test braucht feste Werte, keine neu
+    erzeugten. **Die Projektregel sagt trotzdem: Signaturschlüssel gehören nie
+    ins Repo.**
+    **Der eigentliche Befund ist, dass der eigene Schutz sie nicht sieht:**
+    `tools/keyguard.py` meldet „Kein privater Schlüssel im Projektordner", und
+    das ist aus seiner Sicht richtig — es prüft, ob **eine Datei** ein
+    Schlüssel ist (Muster am Dateianfang), nicht, ob ein Schlüssel **in** einer
+    Datei steckt. Sein eigener Selbsttest stuft `const key = "-----BEGIN
+    PRIVATE KEY-----"` ausdrücklich als *keinen* Schlüssel ein, um Fehlalarme
+    zu vermeiden. **Beides zusammen ist die Lücke: der Fall, den der Schutz
+    bewusst auslässt, ist genau der Fall, der eingetreten ist.**
+    **Zu entscheiden, nicht zu rechnen:** Schlüssel zur Laufzeit erzeugen
+    (dann ist es kein Golden Test mehr), nur die öffentlichen Teile fest
+    hinterlegen, oder es so lassen und ausdrücklich begründen. Den Schutz
+    strenger zu machen erzeugt Fehlalarme in `keyguard.py` selbst.
+
+20. **Ein schlüsselartiger Wert in Testdaten hat GitHubs Scanner ausgelöst**
+    (Alert 1, „publicly leaked"): `apps/desktop/tests/vektoren/cxf-fido-beispiel.json`
+    trug in einem erfundenen CXF-Beispieldatensatz einen Wert im exakten
+    Format eines Google-API-Schlüssels. Am 30.10.2026 ersetzt durch einen, der
+    kein Format nachahmt; kein Test hing daran.
+    **Zwei Dinge bleiben offen.** Erstens: ob der Wert echt war, ist nicht
+    geklärt — GitHub sagt `validity: unknown`. War er aus einem fremden
+    Beispiel übernommen, hat dieses Repo einen fremden Schlüssel
+    veröffentlicht. Zweitens: **er steht weiter in der Geschichte.** Ein
+    öffentliches Repo vergisst nichts, solange die Geschichte nicht
+    umgeschrieben wird, und das ist eine Entscheidung mit Folgen für jeden
+    Klon.
+    **Bemerkenswert:** Push Protection war am Repo **aktiviert** und hat den
+    Push nicht verhindert (`push_protection_bypassed: false`). Ein Schutz, auf
+    den man sich verlässt, ohne ihn zum Anschlagen gebracht zu haben, ist
+    keiner — dieselbe Regel, die für die eigenen Prüfungen gilt.
+    **Regel daraus:** Testdaten ahmen kein Schlüsselformat nach. Ist der Wert
+    echt, ist er geleakt; ist er erfunden, macht er die Sicherheitsmeldungen
+    des Repos unbrauchbar, weil er jedes Mal wieder anschlägt.
+
 **Daraus neu offen, beides beim Nachmessen am 30.10.2026 gefunden:**
 
 15. ~~**`hardware/layout-notes.md` trägt den Akku noch im laufenden Text.**~~
