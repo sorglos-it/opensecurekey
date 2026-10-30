@@ -57,6 +57,11 @@
 #    war. Ich hatte in 7 gemessen.
 # ---------------------------------------------------------------------
 #
+#   .\run.ps1 -Openssl  - dazu den Beleg mit einem FREMDEN Programm:
+#                         openssl liest die Zertifikatsanfrage und
+#                         bestaetigt ihre Unterschrift (docs/csr.md).
+#                         Braucht openssl und python3 in der WSL.
+#
 #   .\run.ps1           - die Fassung MIT RSA
 #   .\run.ps1 -NoRsa    - die Fassung OHNE RSA (CONFIG_OSK_RSA nicht gesetzt)
 #   .\run.ps1 -Both      - beide hintereinander
@@ -74,6 +79,7 @@ param(
     [switch]$NoRsa,
     [switch]$Both,
     [switch]$Fuzz,
+    [switch]$Openssl,
     [string]$Cc = 'gcc',
     [int]$FuzzSecs = 20
 )
@@ -164,6 +170,19 @@ if (($r.Lines -join '').Trim() -ne 'ja') {
     throw "In der WSL fehlt $Cc oder make. Nachinstallieren: sudo apt install build-essential"
 }
 
+# Der Beleg mit dem fremden Programm braucht zwei weitere Werkzeuge. Hier
+# wird ABGEBROCHEN und nicht uebersprungen: wer -Openssl angibt, will den
+# Beleg, und ein stillschweigend uebersprungener Beleg sieht aus wie ein
+# erbrachter.
+if ($Openssl) {
+    $r = Invoke-Native -Exe 'wsl.exe' -Arguments @('-e', 'bash', '-lc',
+        'command -v openssl >/dev/null && command -v python3 >/dev/null && echo ja')
+    if (($r.Lines -join '').Trim() -ne 'ja') {
+        throw ('In der WSL fehlt openssl oder python3 - ohne die ist der Beleg ' +
+               'nicht zu erbringen. Nachinstallieren: sudo apt install openssl python3')
+    }
+}
+
 $wslHere = Get-WslPath $here
 $mirrored = $false
 
@@ -215,6 +234,9 @@ function Invoke-Run([string]$rsa, [string]$what) {
     $cmd = "cd '$wslHere' && make clean >/dev/null && make CC=$Cc RSA=$rsa"
     if ($Fuzz) {
         $cmd += " && make CC=$Cc RSA=$rsa fuzz FUZZ_SECS=$FuzzSecs"
+    }
+    if ($Openssl) {
+        $cmd += " && make CC=$Cc RSA=$rsa openssl"
     }
     # Der Ausstiegscode der WSL ist nicht verlaesslich durchgereicht -
     # darum wird er auf der Linux-Seite in eine Zeile geschrieben und

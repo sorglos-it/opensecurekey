@@ -45,13 +45,13 @@ endif
 CORE := $(APP)/osk_apdu.c $(APP)/osk_applets.c $(APP)/osk_card.c $(APP)/osk_piv.c \
         $(APP)/osk_openpgp.c $(APP)/osk_otp.c $(APP)/osk_otp_crypto.c \
         $(APP)/osk_rsa_card.c $(APP)/osk_serial.c $(APP)/osk_static_pw.c \
-        $(APP)/osk_attest.c \
+        $(APP)/osk_attest.c $(APP)/osk_der.c $(APP)/osk_spki.c $(APP)/osk_csr.c \
         $(CTAP)/osk_crypto.c ../../src/osk_mem.c \
         $(TRANS)/usb_ccid.c
 MOCKS := mocks.c
 
 TESTS := test_crypto test_apdu test_ccid test_piv test_openpgp test_otp \
-         test_rsa_card test_attest test_static_pw test_serial
+         test_rsa_card test_attest test_csr test_static_pw test_serial
 FUZZERS := fuzz_apdu fuzz_ccid
 FUZZ_SECS ?= 20
 
@@ -85,7 +85,25 @@ fuzz: $(addprefix $(BUILD)/,$(FUZZERS))
 	 if [ $$fail -eq 0 ]; then echo "fuzzlauf: ok"; else echo "FUZZLAUF ROT"; fi; \
 	 exit $$fail
 
+# --- Beleg mit einem FREMDEN Programm ----------------------------------
+#
+# Eine selbstgebaute Zertifikatsanfrage, die nur das eigene Leseprogramm
+# versteht, ist nichts wert. `make openssl` baut tool_csr und laesst
+# csr_openssl.py openssl darueber laufen: openssl erzeugt die Schluessel,
+# unterschreibt den von der Firmware gebauten Teil und bestaetigt
+# hinterher die Unterschrift in der fertigen Anfrage.
+#
+# Das laeuft NICHT bei `make` mit: es braucht openssl und python3 daneben
+# und schreibt Dateien. Ein Pruefsatz, der ohne Werkzeuge nicht laeuft,
+# wuerde sonst still uebersprungen - und ein uebersprungener Beleg sieht
+# aus wie ein erbrachter.
+$(BUILD)/tool_csr: tool_csr.c $(CORE) $(MOCKS) | $(BUILD)
+	$(CC) $(CFLAGS) $(SAN) -o $@ $^ $(LDFLAGS)
+
+openssl: $(BUILD)/tool_csr
+	python3 csr_openssl.py --tool $(BUILD)/tool_csr --out $(BUILD)/csr
+
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all run fuzz clean
+.PHONY: all run fuzz openssl clean
