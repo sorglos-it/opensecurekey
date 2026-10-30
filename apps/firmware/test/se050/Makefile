@@ -25,10 +25,10 @@ SAN ?= -fsanitize=address,undefined -fno-omit-frame-pointer
 # se050_crypto_cng.c ebenso: das ist der Windows-Weg.
 DRIVER := $(SRC)/se050_crc.c $(SRC)/se050_tlv.c $(SRC)/se050_t1.c $(SRC)/se050_scp03.c \
           $(SRC)/se050_apdu.c $(SRC)/se050.c $(SRC)/se050_rsa.c $(SRC)/se050_counter.c $(SRC)/se050_crypto_common.c \
-          $(SRC)/se050_crypto_openssl.c ../../src/osk_mem.c
-HARNESS := fake_bus.c se050_sim.c
+          $(SRC)/se050_crypto_openssl.c $(SRC)/se050_commission.c ../../src/osk_mem.c
+HARNESS := fake_bus.c se050_sim.c test_platform.c
 TESTS   := test_crc.c test_tlv.c test_t1.c test_scp03.c test_errors.c test_contract.c \
-           test_rsa.c test_counter.c test_main.c
+           test_rsa.c test_counter.c test_commission.c test_main.c
 
 BUILD := build
 

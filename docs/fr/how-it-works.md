@@ -142,8 +142,88 @@ Si tu perds en même temps la clé, la seconde clé, le fichier de sauvegarde et
 - Le **compteur de signatures** de la connexion repart de zéro à chaque mise sous tension. Certains sites pourraient y voir une clé copiée.
 - La clé envoie une **auto-attestation**, pas un certificat du fabricant. C’est bon pour la protection des données, mais certains sites d’entreprise exigent plus.
 - Le fait que la puce livrée autorise l’**accord de clé** (ECDH) dépend de son réglage d’usine. Si elle ne l’autorise pas, **le mode serveur avec la clé dans la puce disparaît.** La signature continue de marcher. Le programme le dit alors honnêtement, au lieu de ressembler à une erreur de code PIN.
+- **La clé privée n’existe pas comme fichier.** Les programmes qui exigent un fichier de clé ne peuvent pas travailler avec la clé. Voir [usage.md](usage.md), section « Un logiciel qui exige un fichier de clé ».
 - **Mac :** jamais essayé.
 - **La place dans le micrologiciel** est limitée. On ne sait pas encore si toutes les fonctions y tiennent.
+
+## Le lecteur avec les programmes prend son temps
+
+**État :** calculé, pas mesuré sur l’appareil. Le lecteur est prévu et n’est pas construit.
+
+Quand on la branche, la clé montre un petit lecteur en lecture seule avec les programmes d’administration. Qui l’ouvre attend.
+
+**Les trois chiffres à ce sujet sont ici. Tous les autres endroits du manuel renvoient ici.**
+
+| Quoi | Chiffre |
+| --- | ---: |
+| Ce que la puce radio fait passer par l’USB | environ **400 kB par seconde** |
+| La taille des programmes | **29,10 Mo** (mesuré le 23.10.2026 sur l’image terminée) |
+| Donc la durée de la lecture | environ **73 secondes** |
+
+« Brancher et démarrer » veut dire en réalité : brancher, **attendre plus d’une minute,** démarrer. Qui ne le sait pas croit que la clé est cassée et la débranche.
+
+Pourquoi si lent ? La puce radio est sur un port USB de l’ancien standard 1.1. Sur le papier cela donne 1,5 Mo par seconde, mais la clé doit d’abord sortir chaque morceau de sa mémoire et répondre. Ce qui reste, ce sont les 400 kB. Les 400 kB sont **mesurés** sur une carte de développement ; les deux autres chiffres en sont calculés.
+
+Les programmes grossissent. Si le fichier grossit, l’attente grossit dans la même proportion.
+
+## Le support de données chiffré
+
+**État : du papier.** Il n’y a pas de puce, pas de carte et pas une ligne de programme pour cela. Cette section est ici pour que personne ne croie plus tard quelque chose de faux, pas parce que cela existe.
+
+Une carte mémoire sur la clé est prévue, de 8 à 16 Go, pour tes propres fichiers.
+
+**La carte a toujours besoin d’un openSecureKey.** Dans un lecteur de cartes ordinaire, on n’en fait rien. Elle porte un format qui lui est propre, pas un format Windows. Ce **n’est pas** un support que l’on met dans la main de quelqu’un qui n’a pas de clé.
+
+### Trois modes de fonctionnement, et l’un d’eux n’est pas secret
+
+C’est l’endroit où il est le plus facile de se nuire à soi-même. Voici donc les trois côte à côte :
+
+| Mode | Nom | Qui peut lire | Contenu secret ? |
+| --- | --- | --- | --- |
+| 1 | **seulement cette clé** | seulement la clé qui a écrit | **oui** |
+| 2 | **n’importe laquelle de nos clés, avec le mot de la carte** | toute openSecureKey qui a le mot de la carte | **oui** |
+| 3 | **n’importe laquelle de nos clés, seulement scellé** | **toute** openSecureKey, sans mot de passe | **non** |
+
+**Le mode 3 ne chiffre rien.** Il scelle seulement : on reconnaît si quelqu’un a modifié le contenu. Le lire, n’importe qui le peut dès lors qu’il a une openSecureKey quelconque.
+
+**Qui croit avoir chiffré et n’a que scellé donne ses secrets.** C’est la pire faute que cet appareil puisse commettre, et elle ne naît pas d’une attaque mais d’une confusion.
+
+C’est pourquoi il est prévu :
+
+- L’affichage nomme le mode en clair **avant** d’écrire, et ton appui confirme exactement ce texte. Au mode 3 il y est écrit « **OUVERT — seulement scellé** ».
+- Le mode 3 se présente nettement autrement à l’écran, pas la même ligne avec un autre mot dedans.
+- Tant que la carte est en place, le mode reste à l’écran.
+- **Changer de mode veut dire réécrire la carte.** Il n’existe pas de « chiffrer après coup ».
+
+### L’authenticité n’est pas la paternité
+
+La signature sur la carte prouve : **le contenu est inchangé** depuis qu’il a été signé.
+
+Elle ne prouve **pas** de qui il vient.
+
+Qu’une carte vienne d’une personne précise ne découle de la signature **que** si tu connais **à l’avance** la clé publique de cette personne : d’une rencontre, d’une carte de visite, d’une autre voie. Sinon tu sais seulement ceci : une openSecureKey quelconque a signé ici.
+
+| Affirmation | couverte par la signature ? |
+| --- | --- |
+| « Ce contenu est inchangé. » | **oui** |
+| « Une openSecureKey l’a signé. » | oui |
+| « *Cet* appareil l’a signé. » | oui |
+| « Cet appareil appartient à une personne précise. » | **non** |
+| « Le contenu vient de cette personne. » | **non** |
+
+Il est donc prévu : au branchement, l’affichage nomme la clé de l’expéditeur sous forme d’une courte suite de caractères et ajoute « **expéditeur inconnu** » ou le nom que tu as donné une fois à cet expéditeur.
+
+### La vérification se fait à la lecture, pas au branchement
+
+Vérifier **entièrement** une carte de 16 Go veut dire la lire en entier. Cela dure **environ une heure et demie** (calculé avec la vitesse de la carte elle-même, pas celle du port USB de la section au-dessus : ce sont deux chemins différents). Personne n’attend cela au branchement, et c’est pourquoi la clé ne le fait pas.
+
+À la place, elle vérifie **chaque bloc au moment où elle le lit.**
+
+Le bon côté : aucun fichier que tu ouvres ne te parvient sans vérification.
+
+Le mauvais côté : **un bloc modifié dans un fichier que personne n’ouvre ne se remarque pas.**
+
+C’est pourquoi la clé ne dit jamais « carte vérifiée ». Ce serait un mensonge. Elle dit « ce bloc vérifié », et c’est la vérité.
 
 ## Le programme et la clé se parlent
 

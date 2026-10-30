@@ -131,6 +131,30 @@ Déroulement :
 2. Saisis le code PIN quand il est demandé.
 3. Sur la clé, lis le nom, **appuie longtemps**, **appuie longtemps.**
 
+### Un logiciel qui exige un fichier de clé
+
+**C’est là que la plupart échouent. Lis ceci avant de chercher.**
+
+**Le certificat, la clé le donne.** Un certificat est public : le transmettre ne coûte rien. Pour tout ce qui n’a besoin que de l’attestation, cela suffit.
+
+**La clé privée n’existe pas comme fichier. Jamais.** Il n’y a pas d’export, pas de case à cocher pour cela, pas de mot de passe qui la libère. Ne cherche pas.
+
+Ce **n’est pas un manque mais le but de l’appareil :** ce qui existe comme fichier est copiable. Une clé que l’on peut copier n’est plus une clé matérielle.
+
+**La conséquence, dite franchement :** un logiciel qui exige impérativement un fichier de clé — un `.pem` avec `PRIVATE KEY` dedans, ou un `.pfx` avec mot de passe — **ne peut fondamentalement pas se servir de cet appareil.** Ni par un détour, ni par un réglage.
+
+**L’issue s’appelle PKCS#11.** C’est une interface fixée pour les clés qui restent dans un appareil. Les programmes qui la connaissent acceptent, au lieu d’un chemin de fichier, une **adresse de clé**, et elle a cette allure :
+
+```
+pkcs11:object=ma-cle
+```
+
+Savent le faire, entre autres, `openssl`, le serveur web nginx, Java, beaucoup de programmes VPN et les outils de signature habituels. Qui sait faire du PKCS#11 n’a pas besoin de fichier.
+
+**Qui ne sait pas reste dehors.** Alors il n’y a qu’une aide : prendre un programme qui parle PKCS#11, ou rester pour ce seul usage avec un fichier de clé sur le disque dur, avec tout ce que cela veut dire.
+
+La bibliothèque pour cela s’appelle `osk-pkcs11` (en `.dll` et `.so`). **État :** avec le simulateur, `openssl` a ainsi vérifié une signature comme « Verified OK ». Avec une vraie clé, jamais.
+
 ### Avec SSH et Git
 
 **État :** Vérifié avec l’appareil de test. `git push` via l’agent a fonctionné sous Windows et Linux.
@@ -206,6 +230,16 @@ Les secrets ne figurent jamais dans le journal.
 
 Une clé a jusqu’à **quatre profils**, chacun avec son propre code PIN. Le code PIN de l’un n’en ouvre aucun autre. Un profil verrouillé ne montre rien, pas même les noms des entrées. Place : **768 entrées par profil**, **3072 dans la clé.**
 
+**Une limite qui ne vient pas de la clé :** la connexion avec des passkeys (FIDO) ne connaît **aucun profil.** Cette technique part du principe qu’une clé appartient à une personne. La clé n’y peut rien changer.
+
+Ce que cela veut dire au quotidien :
+
+- Si tu changes de profil, tu dois **te réinscrire auprès des services.** Les passkeys de l’autre profil n’y sont pas disponibles.
+- Un profil n’est donc pas un second visage pour le même service, mais un jeu d’accès séparé.
+- Qui veut passer souvent d’un profil à l’autre s’en sort mieux avec **deux clés**.
+
+**État :** jamais essayé dans un navigateur.
+
 ## Types d’entrées
 
 Identifiant, Code unique (temps), Code unique (compteur), Clé SSH, Certificat, Clé PGP, Clé API, Codes de récupération, Phrase de portefeuille, Clé de licence, Carte bancaire, Identité, Wi-Fi, Note, Fichier.
@@ -217,3 +251,14 @@ Chaque entrée porte trois marques, que tu règles toi-même :
 | peut être copié | va sur ta seconde clé, et seulement là |
 | seulement ordinateurs appairés | n’est donné qu’à un ordinateur appairé |
 | protégé en écriture | ne peut être ni modifié ni supprimé, pas même par toi, jusqu’à ce que tu le lèves |
+
+## Une carte mémoire sur la clé
+
+**Cela n’existe pas encore.** Une carte mémoire pour tes propres fichiers est prévue.
+
+Deux choses à son sujet, à connaître **avant** qu’elle existe, car les deux peuvent te coûter des secrets :
+
+- Sur **trois modes de fonctionnement**, un **ne** chiffre **pas**. Il scelle seulement, et toute openSecureKey peut lire.
+- Une signature prouve que le contenu est **inchangé**, pas **de qui** il vient.
+
+Les deux en détail dans [how-it-works.md](how-it-works.md), section « Le support de données chiffré ».

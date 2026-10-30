@@ -34,6 +34,7 @@ Der Stick hat einen eigenen kleinen Bildschirm. Dort steht, **was** du gerade fr
 - **Eine Frage bei der Einrichtung lässt sich nie mehr ändern:** Soll es später einen Ersatz-Stick geben können? Lies sie in Ruhe. Siehe [installation.md](installation.md).
 - **Ohne Ersatz-Stick und ohne Sicherung ist ein verlorener Stick ein Totalverlust.**
 - **Wer Hauptkennwort und alle Sticks verliert, verliert alles.** Dafür gibt es keine Hintertür. Siehe [troubleshooting.md](troubleshooting.md).
+- **Der Notfallzettel bei der Einrichtung ist nicht überspringbar.** Genau deswegen. Siehe [installation.md](installation.md).
 - Es gibt **keine Prüfung von außen** und **keinen Test an echter Hardware.** Verlass dich noch auf nichts, was du nicht ersetzen kannst.
 
 ## Was der Stick nicht kann
@@ -44,6 +45,10 @@ Ausführlich in [how-it-works.md](how-it-works.md). Kurz:
 - Er schützt **nicht** davor, dass dich jemand zwingt, den Knopf zu drücken.
 - Er schützt **nicht** vor veränderter Firmware.
 - Er rettet dich **nicht**, wenn Hauptkennwort und alle Sticks weg sind.
+- **Er gibt keinen privaten Schlüssel als Datei heraus. Nie.** Software, die zwingend eine Schlüsseldatei (`.pem`, `.pfx`) verlangt, kann ihn grundsätzlich nicht bedienen. Das Zertifikat darf heraus, der Schlüssel nicht. Siehe [usage.md](usage.md).
+- Er kennt **keine Profile für Passkeys.** Beim Profilwechsel meldest du dich bei den Diensten neu an.
+- **„Einstecken und starten“ heißt über eine Minute warten.** Der Stick gibt seine Daten langsam heraus.
+- Bei der geplanten Speicherkarte verschlüsselt **eine von drei Betriebsarten nicht.** Und eine Unterschrift beweist Unverändertheit, nicht Urheberschaft. Siehe [how-it-works.md](how-it-works.md).
 
 ## Stand der Teile
 

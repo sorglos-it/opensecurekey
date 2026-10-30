@@ -15,35 +15,12 @@
 #include "se050_cmd.h"
 #include "se050_scp03.h"
 #include "se050_crypto.h"
+#include "test_platform.h"
 
-/* Die Platinenhaken fuer den Testlauf. Auf dem Geraet erfuellt sie die
- * Platinen- bzw. Tresorschicht. */
-static fake_bus_t *g_bus;
-
-osk_result_t osk_se050_platform_bus(osk_se050_bus_t **bus_out)
-{
-	if (g_bus == NULL) {
-		return OSK_ERR_IO;
-	}
-	*bus_out = &g_bus->bus;
-	return OSK_OK;
-}
-
-osk_result_t osk_se050_platform_scp_keys(osk_scp03_static_keys_t *keys_out)
-{
-	*keys_out = *sim_keys();
-	return OSK_OK;
-}
-
-/* Kennung des Anmeldeobjekts fuer den Geraetekanal. Auf dem Geraet legt das
- * die Platine fest; hier ein fester Wert, den der Test nachprueft. */
-#define TEST_CHANNEL_OBJ 0x0F0000FFu
-
-osk_result_t osk_se050_platform_channel_obj(uint32_t *obj_id_out)
-{
-	*obj_id_out = TEST_CHANNEL_OBJ;
-	return OSK_OK;
-}
+/* Die drei Platinenhaken liegen in test_platform.c, nicht mehr hier: der
+ * Erstlauf-Test braucht dieselben und muss zusaetzlich steuern, welche
+ * Schluessel der Treiber nimmt - auf dem Geraet tut das die Tresorschicht.
+ * Von dort kommen auch g_bus und TEST_CHANNEL_OBJ. */
 
 /* Den Schluessel aus der PIN nachrechnen - derselbe Weg wie in se050.c.
  * Absichtlich hier noch einmal und nicht aus dem Treiber geholt: so prueft
