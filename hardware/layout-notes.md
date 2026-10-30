@@ -1,5 +1,54 @@
 # Layout-Vorgaben
 
+## Was gilt — gemessen am 30.10.2026
+
+**Diese Datei ist ein Arbeitstagebuch, kein Maßblatt.** Sie ist chronologisch
+gewachsen, über 90 Abschnitte, und berichtigt sich fortlaufend selbst: der
+Akku entfällt erst in einem Abschnitt weit unten, und alles davor rechnet
+noch mit ihm. **Das ist kein Fehler, das ist die Geschichte** — man kann ihr
+ablesen, warum eine Zahl so wurde, wie sie ist. Was man ihr *nicht* ablesen
+kann, ist, welche Zahl heute gilt. Darum dieser Kopf.
+
+**Gemessen aus `pcb-source-PCB1.txt`, dem Export der gezeichneten Platine**
+(`polyType: BOARD_OUTLINE`, Rechteck, 2755,9055 × 1062,9921 mil):
+
+| | Wert | Stand |
+| --- | --- | --- |
+| **Platine, gezeichnet** | **27,0 × 70,0 mm**, 0,8 mm, 4 Lagen | **das ist, was im Repo liegt** |
+| Platine, gerechnete obere Schranke ohne Akku | 27,0 × **59,55 mm** | gerechnet 25.10.2026, **nicht gezeichnet** |
+| dickstes Bauteil der Oberseite | U1 mit **2,05 mm** über der Platinenoberseite | gemessen |
+| Höhe der Steckerhülle J1 über alles | **2,90 mm**, symmetrisch zur Mittelebene | aus `../docs/usb-stecker.md` |
+| Gehäusedicke | **7,03 mm** | gerechnet, `../cad/masse.md` |
+
+> **Die Platine ist 70,0 mm lang, nicht 59,55.** Das sind zwei Größen
+> gleichen Namens: die eine ist *gezeichnet*, die andere *gerechnet*. Der
+> Abschnitt, der die 59,55 mm ausgerechnet hat, sagt das selbst und
+> ausdrücklich — „die Platine ist nicht angefaßt, nichts verschoben, der
+> Umriss unverändert". **Weitergereicht wurde trotzdem nur die Zahl.**
+>
+> **Gegenprobe am 30.10.2026:** hinter `y` = 59,55 mm liegen noch **vier
+> Pads**, das hinterste bei `y` = 66,0 mm. Die kürzere Platine ist also nicht
+> bloß ungezeichnet — sie ist mit der heutigen Platzierung unvereinbar,
+> solange diese Teile nicht wandern.
+>
+> **Folge, die eine Entscheidung braucht:** `../cad/parameters.csv` setzt
+> `pcb_len` auf 59,55 mm. Das Gehäuse ist damit auf eine Platine gerechnet,
+> die es nicht gibt, und **10,45 mm zu kurz** für die, die im Repo liegt.
+
+**Was hier NICHT gilt**, auch wenn es weiter unten steht: die Bauform
+26 × 70 mm (die Breite ist 27 mm), jede Lagensumme mit Zellenraum, jede
+Höhenaussage, die die 2,90 mm als erlaubte Gehäusedicke liest, und die
+Begründungen, die mit dem Akku gefallen sind — Ferritfolie zwischen Zelle und
+Platine, Ladepfad, Akkustecker J2, Abstand Zelle zur Antenne. Der Abschnitt
+„Der Akku entfällt" unten zählt auf, was elektrisch verwaist ist.
+
+**Was weiter gilt, obwohl der Akku weg ist:** der Abstand der NFC-Schleife zu
+leitfähigen Flächen (die Zelle war nur *ein* solcher Untergrund), die
+Freihaltezone der Modulantenne, die Taster- und Steckermaße, und alles, was am
+Gerber oder an den Pads gemessen wurde.
+
+---
+
 Stand 23.10.2026. Vorgaben auf Papier, **nichts gezeichnet, nichts gefertigt**.
 
 Die Teilemaße stammen aus `../docs/parts.md`, die Netze aus `schematic.md`.
@@ -55,9 +104,13 @@ Platinenrand-Stecker passen nur auf 0,8 mm. Auch wenn in Stufe 1 die Buchse
 verbaut wird, lohnt es, die Dicke gleich festzulegen. Dazu: **ENIG statt HASL**,
 weil die dickere HASL-Schicht das erste Stecken erschwert.
 
-Gesamthöhe grob: 0,8 mm Platine + 3,8 mm Akku + 2,05 mm Modul auf der anderen
-Seite ≈ **6,7 mm plus Gehäuse**, also etwa 8–9 mm fertig. Das ist für einen
-Schlüsselanhänger vertretbar. **Nicht gerechnet**, nur zusammengezählt.
+~~Gesamthöhe grob: 0,8 mm Platine + 3,8 mm Akku + 2,05 mm Modul auf der anderen
+Seite ≈ 6,7 mm plus Gehäuse, also etwa 8–9 mm fertig.~~
+
+**→ ÜBERHOLT, der Akku ist weg.** Gerechnet, nicht überschlagen, steht die
+Gehäusedicke bei **7,03 mm** (`../cad/masse.md`, Fall `stufe1-b`) — also fast
+dasselbe Ergebnis aus völlig anderen Lagen. Dass die alte Schätzung ungefähr
+hinkam, ist Zufall und kein Beleg.
 
 ## Akku gegen NFC-Antenne: Trennung UND Ferritfolie
 
@@ -72,9 +125,17 @@ mit NFC und Akku geht; die Folie kostet wenige Cent und einen halben
 Millimeter. Weil die Abstimmung ohnehin am Netzwerkanalysator gemessen wird und
 nicht gerechnet werden kann, planen wir mit Reserve statt auf Kante.
 
-**NFC in Stufe 1 weglassen kommt nicht in Frage:** Der Akku ist überhaupt nur
+~~**NFC in Stufe 1 weglassen kommt nicht in Frage:** Der Akku ist überhaupt nur
 deshalb im Gerät, weil NFC und Bluetooth ohne Rechner laufen sollen. Ein Gerät
-mit Akku und ohne NFC hätte den Akku umsonst.
+mit Akku und ohne NFC hätte den Akku umsonst.~~
+
+**→ Die Begründung ist mit dem Akku gefallen, die Entscheidung nicht.** Ohne
+Zelle laufen NFC und Bluetooth **nur am Rechner** — der Rechenkern kann sich
+nicht aus dem NFC-Feld versorgen. Das ist in `../docs/plan.md` ausdrücklich in
+Kauf genommen. NFC bleibt also gebaut, aber **nicht mehr aus diesem Grund**:
+die Antennenfläche steht weiter im Plan, und was sie kostet, entscheidet jetzt
+allein die Platinenlänge. *(Befund und Begründung sind zwei Dinge — fällt die
+Begründung, fällt der Befund nicht mit.)*
 
 ### Die Aufteilung
 

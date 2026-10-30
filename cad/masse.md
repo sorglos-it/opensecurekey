@@ -34,7 +34,7 @@ Gleich wie in `../hardware/`, damit es nur **eine** Lesart gibt:
 | | Richtung | Bereich |
 | --- | --- | --- |
 | `x` | **quer** | 0 … 27,00 mm |
-| `y` | **längs**, 0 = USB-Kante | 0 … 59,55 mm |
+| `y` | **längs**, 0 = USB-Kante | 0 … 59,55 mm — **aber siehe den Kasten unter Abschnitt 2** |
 | `z` | **Dicke**, 0 = **Mittelebene der Platine** | — |
 
 Der alte Entwurf hatte `x` als Längsrichtung. Das war die zweite Lesart, aus
@@ -55,7 +55,25 @@ die es gibt.
 | Länge ohne Öse | 63,35 mm | Außenfläche vorn bis Außenfläche hinten, **ohne** den herausragenden Stecker |
 | Breite außen | 30,80 mm | Außenfläche links bis rechts |
 | **Länge mit Öse** | **71,35 mm** | dasselbe samt Ösenanbau |
-| Steckerversatz | +0,435 mm | Steckermittelebene gegen Gehäusemittelebene |
+| Steckerversatz | +0,435 mm | Steckermittelebene gegen Gehäusemittelebene; erlaubt sind ± 0,50 mm (`usb_center_tol`, **gesetzt, nicht gemessen**, am Muster zu prüfen) |
+
+> **Diese Länge gilt für eine Platine, die noch nicht gezeichnet ist.**
+> Gefunden beim Nachmessen am 30.10.2026.
+>
+> Das Gehäuse rechnet mit `pcb_len` = 59,55 mm. Das ist die **gerechnete**
+> obere Schranke, nachdem der Akku entfiel. **Die gezeichnete Platine im Repo
+> ist 70,0 mm lang** — gemessen am `BOARD_OUTLINE` in
+> `../hardware/pcb-source-PCB1.txt` (2755,9055 mil), und hinter `y` = 59,55
+> liegen noch vier Pads, das hinterste bei `y` = 66,0 mm.
+>
+> **Dieses Gehäuse ist damit 10,45 mm zu kurz für die Platine, die es
+> umschließen soll.** Die Höhenrechnung ist davon nicht betroffen: alle
+> Lagensummen laufen in `z`, und dort ändert die Länge nichts. Betroffen sind
+> die Länge, die Öse, die Lage der LED und das Antennenfeld.
+>
+> **Welche der beiden Längen gilt, ist eine Entscheidung und keine Rechnung** —
+> entweder wandern vier Pads und die Platine wird gekürzt, oder das Gehäuse
+> wird länger. Beides ist Arbeit an der Platine, nicht am Gehäuse.
 | Übertemperatur | 6,5 K | Oberfläche gegen Umgebung bei Spitzenlast, gerechnet |
 
 Dazu kommt der Stecker, der **vor** der Frontfläche steht. Wie weit, ist

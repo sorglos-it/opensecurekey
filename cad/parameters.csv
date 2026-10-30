@@ -1,6 +1,6 @@
 name;value_mm;comment
-pcb_len;59.55;Platinenlaenge in LAENGSrichtung y, Kante bei y=0 ist die USB-Kante. Obere Schranke aus hardware/layout-notes.md
-pcb_wid;27.0;Platinenbreite in QUERrichtung x. Aus hardware/layout-notes.md
+pcb_len;59.55;Platinenlaenge in LAENGSrichtung y, Kante bei y=0 ist die USB-Kante. ACHTUNG, zwei Groessen gleichen Namens: das ist die GERECHNETE obere Schranke ohne Akku. Die GEZEICHNETE Platine ist 70,0 mm lang (gemessen 30.10.2026 am BOARD_OUTLINE in hardware/pcb-source-PCB1.txt), und hinter y=59,55 liegen noch vier Pads, das hinterste bei y=66,0. Dieses Gehaeuse ist damit 10,45 mm zu kurz fuer die Platine, die im Repo liegt - OFFEN, siehe hardware/layout-notes.md Kopf
+pcb_wid;27.0;Platinenbreite in QUERrichtung x. Bestaetigt 30.10.2026 am BOARD_OUTLINE des Platinen-Exports: 1062,9921 mil = 27,0 mm
 pcb_th;0.8;Platinendicke in z. Die Mittelebene der Platine ist z=0 und gleichzeitig die Mittelebene des Steckers
 pcb_fit;0.3;Spiel zwischen Platinenkante und Innenwand, je Seite, IN DER PLATINENEBENE - keine Hoehe
 pcb_corner_r;1.5;Eckenradius der Platine in der Platinenebene - Vorgabe ans Layout
@@ -23,6 +23,7 @@ join_lap_t;0.8;Dicke des Klebefalzes - halbe Seitenwand, in der Platinenebene
 usb_shell_w;8.7;Breite der Steckerhuelle von J1 in x. UNGEPRUEFT, am Muster zu messen - die Zeichnung bemasst sie nicht
 usb_shell_h;2.9;Hoehe der Steckerhuelle von J1 ueber alles in z, SYMMETRISCH zur Platinenmittelebene. Aus docs/usb-stecker.md
 usb_collar_fit;0.1;Spiel des Gehaeusekragens um die Steckerhuelle, je Seite
+usb_center_tol;0.5;Wie weit die Gehaeusemitte aus der Steckerachse wandern darf, in z. GESETZT, NICHT GEMESSEN - so viel darf es sein, bevor das Geraet an der Blende einer versenkten USB-Buchse streifen koennte; am Muster zu pruefen. Entscheidet, welche Datentraeger-Variante zulaessig ist (0,435 besteht, 0,525 nicht), siehe cad/tools/budget.py
 usb_pad_depth;3.303;Tiefe des LOETBILDS von J1 ab der Platinenkante in +y. KEINE Hoehe. Aus hardware/layout-notes.md
 oled_act_x;10.54;aktive Flaeche der Anzeige in x
 oled_act_y;14.7;aktive Flaeche der Anzeige in y

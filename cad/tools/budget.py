@@ -146,13 +146,20 @@ def pruefe_bauteil(p, r):
                         ", ".join("%s %.2f" % t for t in zu_hoch) or "alle darunter"))
 
 
-def pruefe_mittig(p, r, toleranz=0.5):
+def pruefe_mittig(p, r, toleranz=None):
     """Steht die Steckermittelebene mittig genug im Gehaeuse?
 
-    Die Toleranz ist 0,50 mm, und sie ist gesetzt, nicht gemessen: so viel
-    darf das Gehaeuse aus der Steckerachse wandern, bevor es an der Blende
-    einer versenkten USB-Buchse streifen koennte. Am Muster zu pruefen.
+    Die Toleranz ist gesetzt, nicht gemessen: so viel darf das Gehaeuse aus
+    der Steckerachse wandern, bevor es an der Blende einer versenkten
+    USB-Buchse streifen koennte. Am Muster zu pruefen.
+
+    Sie stand bis zum 30.10.2026 als Vorgabewert hier im Code, obwohl der
+    Dateikopf sagt, alle Zahlen kaemen aus parameters.csv - und sie
+    entscheidet, welche Datentraeger-Variante zulaessig ist. Jetzt steht sie
+    als usb_center_tol dort, wo man nach Massen sucht, und nur dort.
     """
+    if toleranz is None:
+        toleranz = p["usb_center_tol"]
     ok = abs(r["versatz"]) <= toleranz + TOL
     return ("Stecker mittig (+/- %.2f mm)" % toleranz, ok,
             "%s: Versatz %+.3f mm" % (r["name"], r["versatz"]))

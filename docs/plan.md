@@ -61,7 +61,7 @@ Betragsanzeige, Dongle-Betrieb, und ein Datenträger zum Weitergeben.
 | **USB** | GCT **USB4155-03-C** (LCSC C5183853) | Randstecker, für 0,8 mm belegt, Lötbildtiefe **3,303 mm** (gemessen, nicht 2,50 — die Schirmstifte reichen tiefer) |
 | **Fingerabdruck** | FPC2534, **Bestückungsstufe 2** | Stiftreihe J5 liegt auf der Platine |
 | **Energie** | **kein Akku** | siehe unten |
-| **Platine** | **27 × 59,55 mm**, 0,8 mm, 4 Lagen, beidseitig | obere Schranke; mit versetztem Taster wären ~56,55 mm möglich |
+| **Platine** | **gezeichnet 27 × 70,0 mm**; gerechnete Schranke 59,55 mm | 0,8 mm, 4 Lagen, beidseitig. **Die beiden Längen sind nicht dasselbe** — siehe offener Punkt 17 |
 
 ### Kein Akku
 
@@ -695,19 +695,45 @@ Entscheidung über den Fingerabdrucksensor gefolgt.
 
 **Daraus neu offen, beides beim Nachmessen am 30.10.2026 gefunden:**
 
-15. **`hardware/layout-notes.md` trägt den Akku noch im laufenden Text.** Die
-    Tabellen oben sind berichtigt und durchgestrichen, aber darunter stehen
-    über hundert Zeilen, die mit ihm rechnen: Abstand zur NFC-Antenne,
-    Ferritfolie zwischen Zelle und Platine, Ladepfad U4/C1/C2, Akkustecker J2,
-    „die Anzeige kommt gegenüber dem Akku". **Das ist die Quelle, aus der
-    Platine und Gehäuse ihre Maße lesen** — sie darf keine Zahl zu einem
-    Bauteil führen, das es nicht gibt. Wer sie aufräumt, muss bei jeder Stelle
-    entscheiden, ob die Begründung mit dem Akku fällt (Ferritfolie, Ladepfad)
-    oder ohne ihn weiter gilt (Abstand zur Antenne).
-16. **Die Grenze „Stecker mittig ± 0,50 mm" ist nirgends belegt.** Sie steht
-    nur in `cad/tools/budget.py` und entscheidet, welche Datenträger-Variante
-    zulässig ist (0,435 mm besteht, 0,525 mm nicht). Eine Grenze, die nur im
-    Prüfskript steht, ist eine Behauptung des Prüfskripts.
+15. ~~**`hardware/layout-notes.md` trägt den Akku noch im laufenden Text.**~~
+    **ERLEDIGT am 30.10.2026 — und der Befund lag anders, als er hier stand.**
+    Die Datei ist **ein Arbeitstagebuch von 3728 Zeilen in 90 Abschnitten**,
+    chronologisch, das sich fortlaufend selbst berichtigt. Die Akku-Stellen
+    sind deshalb nicht falsch, sondern **Geschichte**: man liest ihnen ab,
+    warum eine Zahl so wurde. Sie zu löschen wäre der Fehler gewesen.
+    **Was wirklich fehlte, war ein geltender Stand** — man konnte 3728 Zeilen
+    nicht ansehen, um eine Zahl von heute zu erfahren, obwohl dieser Plan und
+    `cad/parameters.csv` die Datei als Quelle führen. Sie hat jetzt einen
+    Kopf: was gilt, was nicht gilt, und was trotz des Akkus weiter gilt. Zwei
+    Stellen im laufenden Text, die sich nicht selbst als Geschichte zu erkennen
+    gaben, sind gekennzeichnet.
+16. ~~**Die Grenze „Stecker mittig ± 0,50 mm" ist nirgends belegt.**~~
+    **ZURÜCKGENOMMEN am 30.10.2026, der Vorwurf war zu scharf.** Sie ist
+    begründet, im Kopf von `pruefe_mittig`: gesetzt, nicht gemessen, am Muster
+    zu prüfen. Sie stand nur nicht dort, wo man nach Maßen sucht. Jetzt steht
+    sie als `usb_center_tol` in `cad/parameters.csv` und das Skript liest sie
+    von dort — vorher war sie ein Vorgabewert im Code, obwohl der Dateikopf
+    sagt, alle Zahlen kämen aus der Parameterdatei.
+
+**Und der Punkt, der beim Aufräumen herauskam — der schwerste von heute:**
+
+17. **Die Platine ist 70,0 mm lang, nicht 59,55.** Gemessen am `BOARD_OUTLINE`
+    in `hardware/pcb-source-PCB1.txt` (2755,9055 mil = 70,0 mm; die Breite
+    bestätigt sich mit 27,0 mm). Die 59,55 mm sind die **gerechnete** obere
+    Schranke, nachdem der Akku entfiel — der Abschnitt, der sie ausgerechnet
+    hat, sagt ausdrücklich „die Platine ist nicht angefaßt, der Umriss
+    unverändert". **Weitergereicht wurde trotzdem nur die Zahl**, in diesen
+    Plan (Abschnitt 2) und in `cad/parameters.csv`.
+    **Gegenprobe:** hinter `y` = 59,55 mm liegen noch **vier Pads**, das
+    hinterste bei `y` = 66,0 mm. Die kürzere Platine ist also nicht bloß
+    ungezeichnet, sondern mit der heutigen Platzierung unvereinbar.
+    **Folge: das neu gezeichnete Gehäuse ist 10,45 mm zu kurz** für die
+    Platine, die im Repo liegt. Die Höhenrechnung bleibt gültig — Lagensummen
+    laufen in `z`, dort ändert die Länge nichts.
+    **Zu entscheiden, nicht zu rechnen:** entweder wandern die vier Pads und
+    die Platine wird gekürzt, oder das Gehäuse wird länger. Beides ist Arbeit
+    an der Platine. **Das ist der zehnte Fall des Fehlermusters: Platinenlänge
+    gezeichnet gegen Platinenlänge gerechnet.**
 
 ---
 
