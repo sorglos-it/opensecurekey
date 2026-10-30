@@ -62,7 +62,8 @@ gegen Attrappen im RAM, nicht gegen Hardware.
 
 ## Die Saetze
 
-11 Saetze plus `wallet` (das baut Strang S; von diesem Lauf ausgenommen).
+12 Saetze. Die folgende Tabelle hat 11; `wallet` steht darunter einzeln,
+weil daran zur Messzeit noch gearbeitet wurde.
 Alle Zahlen vom 30.10.2026, gcc 14.2.0 (Debian) in der WSL, mit
 AddressSanitizer und UndefinedBehaviorSanitizer, wo die Baubeschreibung sie
 einschaltet.
@@ -83,6 +84,21 @@ einschaltet.
 | | **Gesamt** | | **106334** | **106058** | **0** | **0** |
 
 Insgesamt **212 392 Faelle, 0 Fehler, Ausstiegscode 0.**
+
+### `wallet` - gemessen, aber nicht aus diesem Lauf
+
+| Satz | prueft | Bau | Faelle RSA=1 | Faelle RSA=0 | Fehler | Code |
+|---|---|---|---|---|---|---|
+| `wallet` | Geldboerse (BIP32, BIP39, Bitcoin, Ethereum, PSBT, RLP, Bestaetigung, APDU, Wortliste) | Makefile | 1323 | 1323 | 0 | 0 |
+
+`wallet` steht hier getrennt, weil daran gleichzeitig gearbeitet wurde.
+Gemessen wurde nicht der Arbeitsstand jenes Strangs, sondern der Stand, der
+beim Einfuehren von `main` in diesem Arbeitsbaum lag - eine Momentaufnahme,
+die mit dem naechsten Commit der Geldboerse ueberholt ist. `alle.sh` findet
+den Satz von allein und misst ihn ab sofort mit; er braucht nichts
+Besonderes.
+
+Mit `wallet` sind es **213 715 Faelle, 0 Fehler** in beiden Richtungen.
 
 Nur `applets` zaehlt in den beiden Richtungen verschieden (1818 gegen 1542):
 dort haengen 276 Faelle an der RSA-Karte. `ctap` und `transport` zaehlen
