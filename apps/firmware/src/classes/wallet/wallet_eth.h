@@ -88,20 +88,20 @@ osk_result_t osk_eth_address(const osk_bip32_priv_t *key, uint8_t out[OSK_ETH_AD
  * Fragt vorher die Freigabe ueber wallet_confirm. */
 osk_result_t osk_eth_sign_tx(const uint8_t *raw, size_t len, osk_item_id_t seed_id,
 			     const char *asked_by, const char *path, const char *unit,
-			     bool allow_blind, uint8_t r_out[32], uint8_t s_out[32],
+			     uint8_t r_out[32], uint8_t s_out[32],
 			     uint64_t *v_out);
 
 /* Eine Nachricht unterschreiben (EIP-191). Ist der Text druckbar, steht er
  * auf dem Schirm und gilt als lesbar; sonst braucht es die Extrafreigabe. */
 osk_result_t osk_eth_sign_message(const uint8_t *message, size_t len, osk_item_id_t seed_id,
-				  const char *asked_by, const char *path, bool allow_blind,
+				  const char *asked_by, const char *path,
 				  uint8_t r_out[32], uint8_t s_out[32], uint64_t *v_out);
 
 /* Eine typisierte Nachricht unterschreiben (EIP-712). Immer mit
  * Extrafreigabe - siehe oben. */
 osk_result_t osk_eth_sign_typed(const uint8_t domain[32], const uint8_t message[32],
 				osk_item_id_t seed_id, const char *asked_by, const char *path,
-				bool allow_blind, uint8_t r_out[32], uint8_t s_out[32],
+				uint8_t r_out[32], uint8_t s_out[32],
 				uint64_t *v_out);
 
 #endif

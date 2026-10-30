@@ -236,7 +236,7 @@ static void test_sign(void)
 
 	mock_ui_answer(OSK_OK);
 	T_EQ("unterschrieben",
-	     osk_eth_sign_tx(raw, len, id, "test", "m/44'/60'/0'/0/0", "ETH", false, r, s, &v),
+	     osk_eth_sign_tx(raw, len, id, "test", "m/44'/60'/0'/0/0", "ETH", r, s, &v),
 	     OSK_OK);
 	/* EIP-155: v = Kennziffer + 35 + 2 * Kettennummer, also 37 oder 38. */
 	T_TRUE("v ist 37 oder 38", v == 37u || v == 38u);
@@ -285,39 +285,57 @@ static void test_sign_refusals(void)
 		      raw, sizeof(raw));
 	mock_ui_answer(OSK_OK);
 	T_EQ("Vertragsaufruf abgelehnt",
-	     osk_eth_sign_tx(raw, len, id, "test", "m/44'/60'/0'/0/0", "ETH", false, r, s, &v),
+	     osk_eth_sign_tx(raw, len, id, "test", "m/44'/60'/0'/0/0", "ETH", r, s, &v),
 	     OSK_ERR_DENIED);
 	T_EQ("Chip nicht gefragt", mock_se050_imports(), 0);
 	T_TRUE("Grund stand auf dem Schirm",
 	       strcmp(mock_ui_status_key(), "wallet.vertragsaufruf") == 0);
 
-	/* Mit Extrafreigabe geht es - und die Frage ist eine andere. */
-	id = prepare();
-	mock_ui_answer(OSK_OK);
-	T_EQ("mit Extrafreigabe",
-	     osk_eth_sign_tx(raw, len, id, "test", "m/44'/60'/0'/0/0", "ETH", true, r, s, &v),
-	     OSK_OK);
-	T_TRUE("Blindfrage gestellt", strcmp(mock_ui_subject(), "wallet.blind-unterschrift") == 0);
+	/* Und es bleibt dabei. Ein Vertragsaufruf mit Daten, die das Geraet
+	 * nicht aufschluesseln kann, wird abgelehnt - immer, nicht nur beim
+	 * ersten Mal und nicht nur ohne Freigabe. Es gibt keine Freigabe.
+	 *
+	 * Das ist der Fall aus dem Auftrag: lieber ablehnen als
+	 * naeherungsweise anzeigen. Eine Anzeige, die "ungefaehr" stimmt,
+	 * ist schlimmer als eine Ablehnung, weil der Nutzer ihr glaubt. */
+	for (unsigned i = 0; i < 5u; i++) {
+		id = prepare();
+		mock_ui_reset();
+		mock_ui_answer(OSK_OK); /* der Nutzer WUERDE ja sagen */
+		T_EQ("Vertragsaufruf bleibt abgelehnt",
+		     osk_eth_sign_tx(raw, len, id, "test", "m/44'/60'/0'/0/0", "ETH", r, s, &v),
+		     OSK_ERR_DENIED);
+		T_EQ("Chip blieb unangetastet", mock_se050_imports(), 0);
+		T_EQ("es wurde nicht gefragt", (long long)mock_ui_calls(), 0);
+	}
 
-	/* EIP-712 ist immer blind - der Inhalt ist dem Geraet unbekannt. */
-	id = prepare();
+	/* EIP-712 in dieser Form ist immer blind: der Aufruf bekommt zwei
+	 * Hashes - Bereichstrenner und Strukturhash - und aus Hashes kann
+	 * niemand zurueckrechnen, was da stand. Also wird nicht
+	 * unterschrieben, und zwar nie.
+	 *
+	 * Das kostet Vertraeglichkeit mit MetaMask; der Preis steht in
+	 * docs/wallet-bau.md. */
 	{
 		uint8_t domain[32], message[32];
 
 		memset(domain, 1, sizeof(domain));
 		memset(message, 2, sizeof(message));
-		mock_ui_answer(OSK_OK);
-		T_EQ("EIP-712 ohne Extrafreigabe abgelehnt",
-		     osk_eth_sign_typed(domain, message, id, "test", "m/44'/60'/0'/0/0", false, r,
-					s, &v),
-		     OSK_ERR_DENIED);
-		T_TRUE("Grund genannt",
-		       strcmp(mock_ui_status_key(), "wallet.eip712-inhalt-unbekannt") == 0);
-		T_EQ("mit Extrafreigabe",
-		     osk_eth_sign_typed(domain, message, id, "test", "m/44'/60'/0'/0/0", true, r, s,
-					&v),
-		     OSK_OK);
-		T_TRUE("v ist 27 oder 28", v == 27u || v == 28u);
+
+		for (unsigned i = 0; i < 5u; i++) {
+			id = prepare();
+			mock_ui_reset();
+			mock_ui_answer(OSK_OK); /* der Nutzer WUERDE ja sagen */
+			T_EQ("EIP-712 abgelehnt",
+			     osk_eth_sign_typed(domain, message, id, "test",
+						"m/44'/60'/0'/0/0", r, s, &v),
+			     OSK_ERR_DENIED);
+			T_TRUE("Grund genannt",
+			       strcmp(mock_ui_status_key(),
+				      "wallet.eip712-inhalt-unbekannt") == 0);
+			T_EQ("Chip blieb unangetastet", mock_se050_imports(), 0);
+			T_EQ("es wurde nicht gefragt", (long long)mock_ui_calls(), 0);
+		}
 	}
 
 	/* Eine lesbare Nachricht steht im Klartext auf dem Schirm. */
@@ -325,7 +343,7 @@ static void test_sign_refusals(void)
 	mock_ui_answer(OSK_OK);
 	T_EQ("Nachricht unterschrieben",
 	     osk_eth_sign_message((const uint8_t *)"Hello, Sorglos!", 15, id, "test",
-				  "m/44'/60'/0'/0/0", false, r, s, &v),
+				  "m/44'/60'/0'/0/0", r, s, &v),
 	     OSK_OK);
 	T_TRUE("Text stand da", strcmp(mock_ui_subject(), "Hello, Sorglos!") == 0);
 	T_TRUE("v ist 27 oder 28", v == 27u || v == 28u);
@@ -335,7 +353,7 @@ static void test_sign_refusals(void)
 	mock_ui_answer(OSK_OK);
 	T_EQ("unlesbare Nachricht abgelehnt",
 	     osk_eth_sign_message((const uint8_t *)"a\x01b", 3, id, "test", "m/44'/60'/0'/0/0",
-				  false, r, s, &v),
+				  r, s, &v),
 	     OSK_ERR_DENIED);
 }
 

@@ -7,9 +7,18 @@
  *
  * Die harte Regel, hier umgesetzt: **was das Geraet nicht lesbar anzeigen
  * kann, unterschreibt es nicht.** Fehlt der Empfaenger, der Betrag oder die
- * Gebuehr, kommt OSK_ERR_DENIED - es sei denn, der Aufrufer verlangt
- * ausdruecklich die Blindunterschrift, und die bekommt ihre eigene,
- * deutlich andere Frage auf dem Schirm.
+ * Gebuehr, kommt OSK_ERR_DENIED. Es gibt keinen Weg daran vorbei: keine
+ * Blindunterschrift, keine Extrafreigabe, keinen Schalter. Ein Schalter,
+ * der die Regel abschaltet, ist in einem Geraet, dessen ganzer Zweck
+ * diese Regel ist, kein Zugestaendnis an den Nutzer, sondern die Stelle,
+ * auf die ein Angreifer ihn hinredet.
+ *
+ * Die Adresse wird NIE gekuerzt. Anfang und Ende zu zeigen und die Mitte
+ * durch "..." zu ersetzen ist der uebliche Weg - und der uebliche Angriff:
+ * ein Angreifer sucht sich so lange eine Adresse, bis Anfang und Ende
+ * passen, und die Mitte sieht niemand. Darum steht hier die ganze
+ * Adresse, in Gruppen von vier Zeichen, und dazu eine Pruefzahl ueber
+ * ALLE Zeichen. Passt die ganze Adresse nicht, wird nicht unterschrieben.
  *
  * Betraege werden nie als Fliesskommazahl gerechnet. Satoshi und Wei sind
  * ganze Zahlen, und sie bleiben es bis in den Text. */
@@ -24,9 +33,37 @@
 #define OSK_WALLET_TEXT_MAX 96
 #define OSK_WALLET_AMOUNT_MAX 48
 
+/* Die laengste Adresse, die vorkommen kann: Bech32 darf nach BIP173 90
+ * Zeichen haben. Ethereum braucht 42, Base58 35. Wer laenger ist, ist
+ * keine Adresse, die dieses Geraet anzeigen kann - und wird abgelehnt. */
+#define OSK_WALLET_ADDR_MAX 91
+
+/* Dieselbe Adresse in Vierergruppen, mit Leerzeichen dazwischen: 90
+ * Zeichen werden 23 Gruppen, also 22 Leerzeichen dazu. */
+#define OSK_WALLET_ADDR_SHOWN_MAX (OSK_WALLET_ADDR_MAX + 23)
+
+/* So viele Stellen hat die Pruefzahl ueber die ganze Adresse. */
+#define OSK_WALLET_FINGERPRINT_DIGITS 8
+
+/* Was in `recipient` steht - und damit, wie es angezeigt wird.
+ *
+ * Das ist kein Schoenheitsfehler, sondern notwendig: eine Adresse wird
+ * gegliedert und bekommt eine Pruefzahl, weil ein Mensch sie Zeichen fuer
+ * Zeichen vergleichen muss. Ein Satz, den ein Mensch LIEST, wird dadurch
+ * schlechter lesbar, nicht besser. Beides gleich zu behandeln waere eine
+ * Anzeige, die "ungefaehr" stimmt. */
+typedef enum {
+	/* Eine Adresse: in Vierergruppen, mit Pruefzahl, nie gekuerzt. */
+	OSK_WALLET_SUBJECT_ADDRESS,
+	/* Ein Text, den ein Mensch liest (EIP-191): woertlich, wie er ist. */
+	OSK_WALLET_SUBJECT_TEXT,
+} osk_wallet_subject_t;
+
 /* Was auf dem Schirm steht. Leere Felder heissen "nicht darstellbar". */
 typedef struct {
-	char recipient[OSK_WALLET_TEXT_MAX]; /* Adresse oder Konto, woertlich */
+	/* Die Adresse oder der Text, woertlich und UNGEKUERZT. */
+	char recipient[OSK_WALLET_TEXT_MAX];
+	osk_wallet_subject_t subject_kind;
 	char amount[OSK_WALLET_AMOUNT_MAX];
 	char fee[OSK_WALLET_AMOUNT_MAX];
 	char extra[OSK_WALLET_TEXT_MAX]; /* Kette, Vertragsaufruf, darf leer sein */
@@ -53,16 +90,37 @@ osk_result_t osk_wallet_format_amount(uint64_t value, unsigned decimals, const c
 osk_result_t osk_wallet_format_amount256(const uint8_t value[32], unsigned decimals,
 					 const char *unit, char *out, size_t cap);
 
-/* Adresse kuerzen, wenn sie nicht auf den Schirm passt: Anfang und Ende
- * bleiben stehen, die Mitte wird zu "...". Beide Enden sind das, was ein
- * Mensch wirklich vergleicht. Weniger als 12 Zeichen Platz heisst: nicht
- * darstellbar, und dann wird nicht unterschrieben. */
-osk_result_t osk_wallet_shorten(const char *text, char *out, size_t cap);
+/* Die Adresse uebernehmen - ganz oder gar nicht. Laenger als
+ * OSK_WALLET_ADDR_MAX heisst OSK_ERR_FORMAT, und dann wird nicht
+ * unterschrieben. Es gibt absichtlich keine Funktion, die kuerzt. */
+osk_result_t osk_wallet_set_address(osk_wallet_view_t *view, const char *address);
 
-/* Fragt den Nutzer. `allow_blind` nur, wenn er die Blindunterschrift
- * vorher ausdruecklich eingeschaltet hat.
+/* Die Adresse so aufschreiben, wie ein Mensch sie vergleichen kann: in
+ * Gruppen von vier Zeichen. Das Auge verliert in einer Reihe aus 42
+ * gleich aussehenden Zeichen die Stelle; in Vierergruppen nicht. Der
+ * Inhalt wird dabei nicht angetastet, nur gegliedert. */
+osk_result_t osk_wallet_group_address(const char *address, char *out, size_t cap);
+
+/* Pruefzahl ueber die GANZE Adresse, als Text aus
+ * OSK_WALLET_FINGERPRINT_DIGITS Ziffern.
+ *
+ * Wozu: sie ist der zweite, unabhaengige Vergleich. Wer die Adresse nur
+ * ueberfliegt, faellt auf eine vertauschte Mitte herein; die Pruefzahl
+ * aendert sich bei jedem einzelnen vertauschten Zeichen.
+ *
+ * Was sie NICHT ist: der Schutz. Der Schutz ist, dass die ganze Adresse
+ * dasteht. Acht Ziffern sind rund 27 Bit, und 27 Bit kann ein Angreifer
+ * durchprobieren. Wer nur die Pruefzahl liest und die Adresse nicht, ist
+ * nicht geschuetzt - das steht so in docs/wallet-bau.md. */
+osk_result_t osk_wallet_fingerprint(const char *address, char *out, size_t cap);
+
+/* Fragt den Nutzer.
+ *
+ * Es gibt kein `allow_blind`. Ist die Ansicht nicht lesbar - fehlt der
+ * Empfaenger, der Betrag oder die Gebuehr -, kommt OSK_ERR_DENIED, und
+ * zwar immer.
+ *
  * OSK_ERR_DENIED: der Nutzer wollte nicht, oder es war nichts anzuzeigen. */
-osk_result_t osk_wallet_confirm(const osk_wallet_view_t *view, const char *asked_by,
-				bool allow_blind);
+osk_result_t osk_wallet_confirm(const osk_wallet_view_t *view, const char *asked_by);
 
 #endif

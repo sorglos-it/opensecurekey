@@ -116,7 +116,7 @@ osk_result_t osk_psbt_view(const osk_psbt_t *psbt, uint32_t master_fp, const cha
  * kein Fehler: dann gehoerte keine Eingabe zu uns. */
 osk_result_t osk_psbt_sign(const osk_psbt_t *psbt, osk_item_id_t seed_id, const char *asked_by,
 			   const char *hrp, uint8_t p2pkh_version, uint8_t p2sh_version,
-			   bool allow_blind, uint8_t *out, size_t cap, size_t *len_out,
+			   uint8_t *out, size_t cap, size_t *len_out,
 			   size_t *signed_out);
 
 #endif

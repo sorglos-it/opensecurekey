@@ -160,7 +160,7 @@ static uint16_t cmd_sign_tx(osk_apdu_state_t *state, uint8_t *out, size_t cap, s
 	if (cap < 65u)
 		return OSK_SW_WRONG_LENGTH;
 	res = osk_eth_sign_tx(state->assembly, state->assembly_len, state->seed_id, "apdu",
-			      state->path, state->eth_unit, state->allow_blind, r, s, &v);
+			      state->path, state->eth_unit, r, s, &v);
 	if (res != OSK_OK)
 		return sw_for(res);
 	/* Antwort: v, r, s. v wird als ein Byte gesendet; passt es nicht
@@ -185,7 +185,7 @@ static uint16_t cmd_sign_message(osk_apdu_state_t *state, uint8_t *out, size_t c
 	if (cap < 65u)
 		return OSK_SW_WRONG_LENGTH;
 	res = osk_eth_sign_message(state->assembly, state->assembly_len, state->seed_id, "apdu",
-				   state->path, state->allow_blind, r, s, &v);
+				   state->path, r, s, &v);
 	if (res != OSK_OK)
 		return sw_for(res);
 	out[0] = (uint8_t)(v & 0xFFu);
@@ -214,7 +214,7 @@ static uint16_t cmd_sign_typed(osk_apdu_state_t *state, const uint8_t *data, siz
 	if (len != used + 64u)
 		return OSK_SW_WRONG_LENGTH;
 	res = osk_eth_sign_typed(data + used, data + used + 32u, state->seed_id, "apdu", path,
-				 state->allow_blind, r, s, &v);
+				 r, s, &v);
 	if (res != OSK_OK)
 		return sw_for(res);
 	out[0] = (uint8_t)(v & 0xFFu);
@@ -236,7 +236,7 @@ static uint16_t cmd_sign_psbt(osk_apdu_state_t *state, uint8_t *out, size_t cap,
 	if (res != OSK_OK)
 		return sw_for(res);
 	res = osk_psbt_sign(&psbt, state->seed_id, "apdu", state->btc_hrp, state->btc_p2pkh_version,
-			    state->btc_p2sh_version, state->allow_blind, out, cap, out_len,
+			    state->btc_p2sh_version, out, cap, out_len,
 			    &signed_count);
 	if (res != OSK_OK)
 		return sw_for(res);
@@ -284,11 +284,41 @@ osk_result_t osk_apdu_handle(osk_apdu_state_t *state, const uint8_t *in, size_t 
 
 	switch (ins) {
 	case OSK_APDU_INS_GET_CONFIG:
+		/* Verlangt der Rechner hier etwas, statt nur zu fragen, dann
+		 * wird das NICHT still ueberlesen.
+		 *
+		 * GET_CONFIG hat keine Eingabe. Schickt jemand trotzdem
+		 * Daten, dann will er Eigenschaften SETZEN - und die einzige,
+		 * die es hier je gab, ist das Blindsignieren. Das wird
+		 * abgewiesen, mit eigenem Fehler, der sagt warum. Die Daten
+		 * einfach wegzuwerfen waere der stille Riegel aus der
+		 * Vorbemerkung: der Rechner haette dann eine Antwort mit
+		 * 0x9000 in der Hand und glaubte, es sei eingeschaltet. */
+		if (data != NULL && data_len > 0u) {
+			*sw_out = ((data[0] & OSK_APDU_FLAG_BLIND) != 0u)
+				      ? OSK_SW_BLIND_REFUSED
+				      : OSK_SW_WRONG_DATA;
+			return OSK_OK;
+		}
+		/* Dasselbe fuer P1 und P2: GET_CONFIG kennt keine Varianten.
+		 * Ein gesetztes Bit ist eine Bitte, die dieses Geraet nicht
+		 * erfuellt - und keine, die es verschweigt. */
+		if (p1 != 0x00u || p2 != 0x00u) {
+			*sw_out = (((p1 | p2) & OSK_APDU_FLAG_BLIND) != 0u)
+				      ? OSK_SW_BLIND_REFUSED
+				      : OSK_SW_WRONG_DATA;
+			return OSK_OK;
+		}
 		if (cap < 4u)
 			return OSK_OK;
-		/* Erstes Byte sind Eigenschaften; 0 heisst: keine
-		 * Besonderheiten, blind nur nach Freigabe am Geraet. */
-		out[0] = state->allow_blind ? 0x01u : 0x00u;
+		/* Erstes Byte sind Eigenschaften. Das Bit OSK_APDU_FLAG_BLIND
+		 * hiess einmal "blind unterschreiben ist moeglich". Es ist auf
+		 * 0 festgenagelt und bleibt es: dieses Geraet unterschreibt
+		 * nichts, was es nicht lesbar anzeigen kann, und ein Rechner
+		 * soll das erfahren, BEVOR er es versucht. Das Byte bleibt im
+		 * Drahtformat stehen, damit eine Gegenstelle, die es liest,
+		 * nicht ins Leere greift. */
+		out[0] = 0x00u;
 		out[1] = APDU_VERSION_MAJOR;
 		out[2] = APDU_VERSION_MINOR;
 		out[3] = APDU_VERSION_PATCH;
@@ -299,6 +329,15 @@ osk_result_t osk_apdu_handle(osk_apdu_state_t *state, const uint8_t *in, size_t 
 	case OSK_APDU_INS_GET_PUBKEY:
 		if (data == NULL) {
 			*sw_out = OSK_SW_WRONG_LENGTH;
+			return OSK_OK;
+		}
+		/* P2 heisst hier genau zweierlei: 0 = nicht anzeigen,
+		 * 1 = am Geraet anzeigen. Alles andere ist KEINE der beiden
+		 * Bedeutungen und wird nicht auf eine davon zurechtgebogen -
+		 * sonst bekaeme ein Rechner, der 0x02 schickt, stillschweigend
+		 * das Verhalten von 0x00. */
+		if (p2 > 0x01u) {
+			*sw_out = OSK_SW_WRONG_DATA;
 			return OSK_OK;
 		}
 		*sw_out = cmd_get_pubkey(state, data, data_len, p2 == 0x01u, out, cap, out_len);
@@ -315,6 +354,17 @@ osk_result_t osk_apdu_handle(osk_apdu_state_t *state, const uint8_t *in, size_t 
 			return OSK_OK;
 		}
 		if (!first && p1 != 0x80u) {
+			*sw_out = OSK_SW_WRONG_DATA;
+			return OSK_OK;
+		}
+		/* P2 heisst 0 = das war das letzte Stueck, 1 = es kommt noch
+		 * mehr. Ein dritter Wert wird nicht als 0 gelesen: "es kommt
+		 * noch mehr" versehentlich als "jetzt unterschreiben" zu
+		 * verstehen waere der gefaehrlichste stille Riegel in dieser
+		 * ganzen Schicht - dann wuerde ein halbes PSBT unterschrieben.
+		 * Ein angefangener Zusammenbau wird dabei verworfen. */
+		if (p2 > 0x01u) {
+			forget(state);
 			*sw_out = OSK_SW_WRONG_DATA;
 			return OSK_OK;
 		}
@@ -408,7 +458,6 @@ osk_result_t osk_apdu_handle(osk_apdu_state_t *state, const uint8_t *in, size_t 
 		return OSK_OK;
 
 	default:
-		(void)p1;
 		*sw_out = OSK_SW_INS_UNKNOWN;
 		return OSK_OK;
 	}

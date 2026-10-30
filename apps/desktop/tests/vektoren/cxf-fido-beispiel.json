@@ -532,7 +532,7 @@
                             "type": "api-key",
                             "key": {
                                 "fieldType": "concealed-string",
-                                "value": "AIzaSyAyRofL-VJHZofHc-qOSkqVOdhvgQoJADk",
+                                "value": "BEISPIELWERT-KEIN-ECHTER-SCHLUESSEL",
                                 "label": "API Key"
                             },
                             "username": {

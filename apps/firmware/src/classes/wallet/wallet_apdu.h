@@ -20,7 +20,35 @@
  *    angestecktes Ledger-Geraet. Das steht so in docs/wallet.md.
  *
  * Diese Schicht entscheidet nichts: sie liest Bytes, ruft die Module und
- * schreibt Bytes zurueck. Jede Freigabe faellt weiter in wallet_confirm. */
+ * schreibt Bytes zurueck. Jede Freigabe faellt weiter in wallet_confirm.
+ *
+ * Es gibt KEINEN Schalter fuer die Blindunterschrift - nicht in dieser
+ * Schicht und nirgends sonst. Ein Rechner kann sie nicht erbitten, und
+ * der Nutzer kann sie nicht einschalten. GET_CONFIG sagt das im ersten
+ * Byte der Antwort, damit eine Gegenstelle es vorher weiss.
+ *
+ * Und wer sie trotzdem VERLANGT, bekommt einen Fehler - keine
+ * Stillschweigen.
+ *
+ * Das ist der Unterschied, auf den es ankommt. Ein gesetztes Feld still
+ * zu ueberlesen oder auf 0 zurechtzubiegen waere schlimmer als gar keine
+ * Pruefung: dann glaubt die Gegenstelle, sie habe das Blindsignieren
+ * eingeschaltet, der Nutzer glaubt es sei aus, und beide haetten recht
+ * in ihrer eigenen Vorstellung. Ein stiller Riegel ist schlimmer als ein
+ * laut krachender.
+ *
+ * Genau dieser Fehler ist in diesem Projekt am 29.10.2026 schon einmal
+ * gebaut worden: osk_store_add() machte eine Kennung 0 klammheimlich zu
+ * 1, statt einen Fehler zu geben. Folge waeren zwei Eintraege mit
+ * derselben Kennung gewesen - und osk_store_reveal haette unter einer
+ * Kennung das Geheimnis des falschen Eintrags herausgegeben.
+ *
+ * Darum: OSK_APDU_FLAG_BLIND in einer Anfrage heisst
+ * OSK_SW_BLIND_REFUSED, nicht "na gut, dann eben ohne".
+ *
+ * Diese Schicht ist die Stelle, die ein Angreifer unmittelbar erreicht:
+ * sie liest Bytes von einem Rechner, dem niemand vertraut. Darum wird
+ * sie gefuzzt - test/wallet/fuzz_apdu.c. */
 #ifndef WALLET_APDU_H
 #define WALLET_APDU_H
 
@@ -50,6 +78,17 @@
 #define OSK_SW_CLA_UNKNOWN 0x6E00u
 #define OSK_SW_LOCKED 0x6982u
 #define OSK_SW_BUSY 0x6F00u
+/* "Funktion nicht unterstuetzt" nach ISO 7816-4. Hier heisst es genau
+ * eines: ein Rechner hat das Blindsignieren VERLANGT. Eigener Code und
+ * nicht OSK_SW_DENIED, damit eine Gegenstelle den Unterschied sieht
+ * zwischen "der Nutzer hat nein gesagt" (6985) und "danach zu fragen
+ * ist in diesem Geraet nicht vorgesehen" (6A81). */
+#define OSK_SW_BLIND_REFUSED 0x6A81u
+
+/* Das Bit im Eigenschaftsbyte, das einmal "blind unterschreiben ist
+ * moeglich" hiess. GET_CONFIG liefert es fest als 0. Setzt ein Rechner
+ * es in einer Anfrage, wird die Anfrage abgewiesen - siehe oben. */
+#define OSK_APDU_FLAG_BLIND 0x01u
 
 /* So viel darf eine Transaktion oder ein PSBT zusammen haben. Mehr wird
  * abgelehnt, nicht teilweise bearbeitet. */
@@ -58,9 +97,6 @@
 typedef struct {
 	/* Der Tresoreintrag mit dem Seed. Wird vom Aufrufer gesetzt. */
 	osk_item_id_t seed_id;
-	/* Darf blind unterschrieben werden? Das schaltet der Nutzer am
-	 * Geraet ein, nicht der Rechner. */
-	bool allow_blind;
 	/* Netzangaben fuer die Anzeige. */
 	const char *btc_hrp;
 	uint8_t btc_p2pkh_version;

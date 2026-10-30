@@ -8,6 +8,7 @@
 #include "wallet_codec.h"
 #include "wallet_signer.h"
 #include "osk_crypto.h"
+#include "osk_ui.h"
 
 static const uint8_t PSBT_MAGIC[5] = {0x70u, 0x73u, 0x62u, 0x74u, 0xFFu};
 
@@ -514,7 +515,7 @@ osk_result_t osk_psbt_view(const osk_psbt_t *psbt, uint32_t master_fp, const cha
 
 	if (have_address) {
 		osk_result_t res =
-		    osk_wallet_shorten(address, view_out->recipient, sizeof(view_out->recipient));
+		    osk_wallet_set_address(view_out, address);
 
 		if (res != OSK_OK)
 			values_known = false;
@@ -691,7 +692,7 @@ static void emit_varint(struct emit *e, uint64_t v)
 
 osk_result_t osk_psbt_sign(const osk_psbt_t *psbt, osk_item_id_t seed_id, const char *asked_by,
 			   const char *hrp, uint8_t p2pkh_version, uint8_t p2sh_version,
-			   bool allow_blind, uint8_t *out, size_t cap, size_t *len_out,
+			   uint8_t *out, size_t cap, size_t *len_out,
 			   size_t *signed_out)
 {
 	osk_wallet_view_t view;
@@ -727,13 +728,36 @@ osk_result_t osk_psbt_sign(const osk_psbt_t *psbt, osk_item_id_t seed_id, const 
 	}
 	master_fp = osk_bip32_fingerprint(master_pub.pub);
 
+	/* Taproot: erkennen und ablehnen, BEVOR gefragt wird.
+	 *
+	 * Taproot (BIP341) ist ein eigenes Hashverfahren und ein eigener
+	 * Signaturtyp. Eine halbe Umsetzung waere gefaehrlicher als keine:
+	 * sie wuerde unterschreiben, und niemand wuesste, was. Darum wird
+	 * hier abgebrochen - und der Nutzer erfaehrt den Grund, statt eine
+	 * Ablehnung ohne Erklaerung zu sehen.
+	 *
+	 * Das steht vor der Frage und nicht danach: den Nutzer etwas
+	 * freigeben zu lassen, das anschliessend scheitert, waere eine
+	 * Freigabe, die nichts bedeutet. */
+	for (size_t i = 0; i < psbt->in_count; i++) {
+		const osk_psbt_input_t *in = &psbt->in[i];
+
+		if (in->utxo_script == NULL)
+			continue;
+		if (osk_btc_script_kind(in->utxo_script, in->utxo_script_len) == OSK_BTC_P2TR) {
+			osk_ui_status("wallet.taproot-nicht-unterstuetzt");
+			osk_bip32_wipe(&master);
+			return OSK_ERR_UNSUPPORTED;
+		}
+	}
+
 	res = osk_psbt_view(psbt, master_fp, hrp, p2pkh_version, p2sh_version, &view);
 	if (res != OSK_OK) {
 		osk_bip32_wipe(&master);
 		return res;
 	}
 	/* Anzeigen und fragen - vor jeder Unterschrift, immer. */
-	res = osk_wallet_confirm(&view, asked_by, allow_blind);
+	res = osk_wallet_confirm(&view, asked_by);
 	if (res != OSK_OK) {
 		osk_bip32_wipe(&master);
 		return res;

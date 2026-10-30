@@ -6,6 +6,7 @@
 #include "wallet_apdu.h"
 #include "wallet_eth.h"
 #include "wallet_seed.h"
+#include "psbt_vectors.h"
 #include "mocks.h"
 
 static const char *const MNEMONIC =
@@ -289,19 +290,33 @@ static void test_sign_typed(void)
 	memset(apdu + 26, 0x11, 32);
 	memset(apdu + 58, 0x22, 32);
 
-	/* Ohne Extrafreigabe: nein, denn der Inhalt ist unbekannt. */
-	T_EQ("bearbeitet",
-	     osk_apdu_handle(&state, apdu, 5u + 21u + 64u, out, sizeof(out), &out_len, &sw),
-	     OSK_OK);
-	T_EQ("abgelehnt", sw, OSK_SW_DENIED);
-
-	/* Mit Extrafreigabe geht es. */
-	state.allow_blind = true;
-	T_EQ("bearbeitet",
-	     osk_apdu_handle(&state, apdu, 5u + 21u + 64u, out, sizeof(out), &out_len, &sw),
-	     OSK_OK);
-	T_EQ("ok", sw, OSK_SW_OK);
-	T_EQ("65 Byte", out_len, 65);
+	/* EIP-712 ueber diesen Befehl wird IMMER abgelehnt, und daran gibt
+	 * es nichts zu drehen.
+	 *
+	 * Warum: der Befehl uebergibt zwei Hashes - den Bereichstrenner und
+	 * den Hash der Struktur. Aus zwei Hashes kann das Geraet nicht
+	 * zurueckrechnen, was da eigentlich steht. Es koennte also nur
+	 * "unterschreibe etwas" anzeigen, und das ist die Blindunterschrift
+	 * mit einem hoeflichen Namen.
+	 *
+	 * Das kostet echte Vertraeglichkeit: MetaMask kann ueber diesen Weg
+	 * keine typisierte Nachricht unterschreiben lassen. Das ist der
+	 * Preis der Regel, und er ist in docs/wallet-bau.md aufgeschrieben.
+	 *
+	 * Auch beim zehnten Versuch bleibt es dabei - es gibt keinen
+	 * Zustand, der sich dabei aufweicht. */
+	for (unsigned i = 0; i < 10u; i++) {
+		mock_ui_reset();
+		mock_ui_answer(OSK_OK); /* der Nutzer WUERDE ja sagen */
+		T_EQ("bearbeitet",
+		     osk_apdu_handle(&state, apdu, 5u + 21u + 64u, out, sizeof(out), &out_len,
+				     &sw),
+		     OSK_OK);
+		T_EQ("abgelehnt", sw, OSK_SW_DENIED);
+		T_EQ("nichts herausgegeben", (long long)out_len, 0);
+		/* Und es wurde nicht einmal gefragt. */
+		T_EQ("nicht gefragt", (long long)mock_ui_calls(), 0);
+	}
 
 	/* Falsche Laenge: nicht 64 Byte hinter dem Pfad. */
 	apdu[4] = (uint8_t)(21u + 60u);
@@ -309,6 +324,227 @@ static void test_sign_typed(void)
 	     osk_apdu_handle(&state, apdu, 5u + 21u + 60u, out, sizeof(out), &out_len, &sw),
 	     OSK_OK);
 	T_EQ("Laenge falsch", sw, OSK_SW_WRONG_LENGTH);
+}
+
+/* Wer das Blindsignieren VERLANGT, bekommt einen Fehler - kein
+ * Stillschweigen und kein stilles Zurechtbiegen auf 0.
+ *
+ * Warum das eine eigene Pruefung ist: dass GET_CONFIG eine 0 MELDET,
+ * heisst noch nicht, dass eine Bitte abgewiesen wird. Wird sie still
+ * ueberlesen, bekommt der Rechner ein 0x9000 und glaubt, er habe das
+ * Blindsignieren eingeschaltet, waehrend der Nutzer glaubt, es sei aus.
+ * Beide haetten recht in ihrer eigenen Vorstellung, und niemand merkt
+ * den Unterschied - bis etwas unterschrieben ist.
+ *
+ * Genau dieser Fehler ist am 29.10.2026 in osk_store_add() gebaut
+ * worden: Kennung 0 wurde klammheimlich zu 1 gemacht statt einen Fehler
+ * zu geben. Ein stiller Riegel ist schlimmer als ein laut krachender. */
+static void test_blind_wird_laut_abgewiesen(void)
+{
+	osk_apdu_state_t st;
+	uint8_t out[256];
+	uint8_t apdu[16];
+	size_t out_len;
+	uint16_t sw;
+
+	osk_apdu_init(&st);
+	st.seed_id = 1u;
+	st.btc_hrp = "bc";
+	st.eth_unit = "ETH";
+
+	/* Zur Gegenprobe zuerst: die reine Frage wird beantwortet, und das
+	 * Eigenschaftsbyte ist 0. Ohne diese Zeile wuesste niemand, ob die
+	 * Abweisungen unten am Blind-Bit haengen oder daran, dass
+	 * GET_CONFIG ueberhaupt nicht mehr geht. */
+	apdu[0] = (uint8_t)OSK_APDU_CLA;
+	apdu[1] = (uint8_t)OSK_APDU_INS_GET_CONFIG;
+	apdu[2] = 0x00u;
+	apdu[3] = 0x00u;
+	out_len = 0;
+	sw = 0;
+	T_EQ("Gegenprobe bearbeitet",
+	     osk_apdu_handle(&st, apdu, 4u, out, sizeof(out), &out_len, &sw), OSK_OK);
+	T_EQ("Gegenprobe ok", sw, OSK_SW_OK);
+	T_EQ("vier Byte", (long long)out_len, 4);
+	T_EQ("Blind-Bit ist aus", (long long)(out[0] & OSK_APDU_FLAG_BLIND), 0);
+
+	/* Jetzt die Bitte ueber P1. */
+	apdu[2] = (uint8_t)OSK_APDU_FLAG_BLIND;
+	apdu[3] = 0x00u;
+	out_len = 99;
+	sw = 0;
+	T_EQ("bearbeitet", osk_apdu_handle(&st, apdu, 4u, out, sizeof(out), &out_len, &sw),
+	     OSK_OK);
+	T_EQ("laut abgewiesen", sw, OSK_SW_BLIND_REFUSED);
+	T_TRUE("nicht einfach ok", sw != OSK_SW_OK);
+	T_EQ("nichts herausgegeben", (long long)out_len, 0);
+
+	/* Dieselbe Bitte ueber P2. */
+	apdu[2] = 0x00u;
+	apdu[3] = (uint8_t)OSK_APDU_FLAG_BLIND;
+	out_len = 99;
+	sw = 0;
+	T_EQ("bearbeitet", osk_apdu_handle(&st, apdu, 4u, out, sizeof(out), &out_len, &sw),
+	     OSK_OK);
+	T_EQ("auch ueber P2 abgewiesen", sw, OSK_SW_BLIND_REFUSED);
+	T_EQ("nichts herausgegeben", (long long)out_len, 0);
+
+	/* Und ueber ein Datenbyte: GET_CONFIG hat keine Eingabe, wer eine
+	 * schickt, will etwas SETZEN. */
+	apdu[2] = 0x00u;
+	apdu[3] = 0x00u;
+	apdu[4] = 0x01u;
+	apdu[5] = (uint8_t)OSK_APDU_FLAG_BLIND;
+	out_len = 99;
+	sw = 0;
+	T_EQ("bearbeitet", osk_apdu_handle(&st, apdu, 6u, out, sizeof(out), &out_len, &sw),
+	     OSK_OK);
+	T_EQ("auch als Datenbyte abgewiesen", sw, OSK_SW_BLIND_REFUSED);
+	T_EQ("nichts herausgegeben", (long long)out_len, 0);
+
+	/* Ein anderes gesetztes Bit ist keine Blind-Bitte, aber auch nicht
+	 * stillschweigend in Ordnung: GET_CONFIG kennt keine Varianten. */
+	apdu[4] = 0x01u;
+	apdu[5] = 0x02u;
+	out_len = 99;
+	sw = 0;
+	T_EQ("bearbeitet", osk_apdu_handle(&st, apdu, 6u, out, sizeof(out), &out_len, &sw),
+	     OSK_OK);
+	T_EQ("fremdes Bit: falsche Daten", sw, OSK_SW_WRONG_DATA);
+	T_TRUE("und nicht ok", sw != OSK_SW_OK);
+	T_EQ("nichts herausgegeben", (long long)out_len, 0);
+
+	/* Das Statuswort ist ein anderes als das des Nutzer-Neins. Eine
+	 * Gegenstelle soll "du hast nein gesagt" von "danach zu fragen ist
+	 * hier nicht vorgesehen" unterscheiden koennen. */
+	T_TRUE("eigener Code", OSK_SW_BLIND_REFUSED != OSK_SW_DENIED);
+}
+
+/* Ein dritter Wert in P2 wird nicht als 0 gelesen.
+ *
+ * Bei den Sign-Befehlen heisst P2=1 "es kommt noch mehr" und P2=0 "das
+ * war das letzte Stueck". Wuerde 0x02 still als 0 gelesen, waere das der
+ * gefaehrlichste stille Riegel in dieser Schicht.
+ *
+ * Diese Pruefung ist mit Absicht mit einem ECHTEN, gueltigen PSBT
+ * gebaut, nicht mit Unsinnsbytes. Mit Unsinn wuerde sie nichts beweisen:
+ * ein halbes oder kaputtes PSBT wird ohnehin mit "falsche Daten"
+ * abgewiesen, ob P2 geprueft wird oder nicht - die Pruefung waere leer
+ * und ich haette sie fuer bestanden gehalten. Mit dem echten PSBT ist
+ * der Unterschied eindeutig: wird P2 geprueft, kommt eine Abweisung;
+ * wird es zurechtgebogen, wird WIRKLICH unterschrieben. */
+static void test_p2_wird_nicht_zurechtgebogen(void)
+{
+	uint8_t psbt[512];
+	uint8_t out[1024];
+	size_t len, out_len;
+	uint16_t sw;
+	size_t erstes, zweites;
+
+	len = t_unhex(OWN_PSBT, psbt, sizeof(psbt));
+	T_TRUE("echtes PSBT gelesen", len > 64u);
+	erstes = len / 2u;
+	zweites = len - erstes;
+	T_TRUE("beide Stuecke passen in ein Laengenbyte", erstes < 256u && zweites < 256u);
+
+	/* Gegenprobe zuerst: mit richtigem P2 wird unterschrieben. Ohne sie
+	 * wuesste niemand, ob die Abweisung unten an P2 haengt oder daran,
+	 * dass dieser Weg ueberhaupt nicht funktioniert. */
+	{
+		uint8_t apdu[5 + 256];
+
+		prepare();
+		mock_ui_answer(OSK_OK);
+
+		apdu[0] = (uint8_t)OSK_APDU_CLA;
+		apdu[1] = (uint8_t)OSK_APDU_INS_SIGN_PSBT;
+		apdu[2] = 0x00u; /* erstes Stueck */
+		apdu[3] = 0x01u; /* es kommt noch mehr */
+		apdu[4] = (uint8_t)erstes;
+		memcpy(apdu + 5, psbt, erstes);
+		out_len = 99;
+		sw = 0;
+		T_EQ("erstes Stueck bearbeitet",
+		     osk_apdu_handle(&state, apdu, 5u + erstes, out, sizeof(out), &out_len, &sw),
+		     OSK_OK);
+		T_EQ("erstes Stueck angenommen", sw, OSK_SW_OK);
+
+		apdu[2] = 0x80u; /* Folgestueck */
+		apdu[3] = 0x00u; /* das war das letzte */
+		apdu[4] = (uint8_t)zweites;
+		memcpy(apdu + 5, psbt + erstes, zweites);
+		out_len = 0;
+		sw = 0;
+		T_EQ("letztes Stueck bearbeitet",
+		     osk_apdu_handle(&state, apdu, 5u + zweites, out, sizeof(out), &out_len,
+				     &sw),
+		     OSK_OK);
+		T_EQ("Gegenprobe: unterschrieben", sw, OSK_SW_OK);
+		T_TRUE("Gegenprobe: es kam etwas heraus", out_len > 64u);
+		T_EQ("Gegenprobe: der Nutzer wurde gefragt", (long long)mock_ui_calls(), 1);
+	}
+
+	/* Und jetzt dasselbe, nur mit P2 = 0x02 im letzten Stueck. */
+	{
+		uint8_t apdu[5 + 256];
+
+		prepare();
+		mock_ui_answer(OSK_OK); /* der Nutzer WUERDE ja sagen */
+
+		apdu[0] = (uint8_t)OSK_APDU_CLA;
+		apdu[1] = (uint8_t)OSK_APDU_INS_SIGN_PSBT;
+		apdu[2] = 0x00u;
+		apdu[3] = 0x01u;
+		apdu[4] = (uint8_t)erstes;
+		memcpy(apdu + 5, psbt, erstes);
+		out_len = 0;
+		sw = 0;
+		T_EQ("erstes Stueck bearbeitet",
+		     osk_apdu_handle(&state, apdu, 5u + erstes, out, sizeof(out), &out_len, &sw),
+		     OSK_OK);
+		T_EQ("erstes Stueck angenommen", sw, OSK_SW_OK);
+
+		apdu[2] = 0x80u;
+		apdu[3] = 0x02u; /* weder 0 noch 1 */
+		apdu[4] = (uint8_t)zweites;
+		memcpy(apdu + 5, psbt + erstes, zweites);
+		out_len = 99;
+		sw = 0;
+		T_EQ("bearbeitet",
+		     osk_apdu_handle(&state, apdu, 5u + zweites, out, sizeof(out), &out_len,
+				     &sw),
+		     OSK_OK);
+		T_EQ("dritter Wert abgewiesen", sw, OSK_SW_WRONG_DATA);
+		T_TRUE("NICHT unterschrieben", sw != OSK_SW_OK);
+		T_EQ("nichts herausgegeben", (long long)out_len, 0);
+		/* Der entscheidende Nachweis: es wurde nicht unterschrieben,
+		 * und der Chip wurde nicht angefasst. */
+		T_EQ("der Nutzer wurde nicht gefragt", (long long)mock_ui_calls(), 0);
+		T_EQ("Chip unangetastet", mock_se050_imports(), 0);
+		/* Und der angefangene Zusammenbau ist verworfen, nicht halb
+		 * liegen geblieben. */
+		T_EQ("nichts liegen geblieben", (long long)state.assembly_len, 0);
+	}
+
+	/* Bei GET_PUBKEY heisst P2 ebenfalls nur 0 oder 1. */
+	{
+		uint8_t apdu[32];
+
+		prepare();
+		apdu[0] = (uint8_t)OSK_APDU_CLA;
+		apdu[1] = (uint8_t)OSK_APDU_INS_GET_PUBKEY;
+		apdu[2] = 0x00u;
+		apdu[3] = 0x05u;
+		apdu[4] = 0x01u;
+		apdu[5] = 0x00u; /* Pfad: null Schritte */
+		out_len = 99;
+		sw = 0;
+		T_EQ("bearbeitet",
+		     osk_apdu_handle(&state, apdu, 5u + 1u, out, sizeof(out), &out_len, &sw),
+		     OSK_OK);
+		T_EQ("P2 bei GET_PUBKEY streng", sw, OSK_SW_WRONG_DATA);
+		T_EQ("nichts herausgegeben", (long long)out_len, 0);
+	}
 }
 
 int main(void)
@@ -319,5 +555,7 @@ int main(void)
 	test_sign_tx();
 	test_sign_message();
 	test_sign_typed();
+	test_blind_wird_laut_abgewiesen();
+	test_p2_wird_nicht_zurechtgebogen();
 	return t_report("apdu");
 }

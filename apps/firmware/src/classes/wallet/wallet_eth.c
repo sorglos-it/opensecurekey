@@ -244,7 +244,7 @@ osk_result_t osk_eth_view(const osk_eth_tx_t *tx, const char *unit, osk_wallet_v
 		view_out->missing_key = "wallet.ausgang-ohne-adresse";
 		return OSK_OK;
 	}
-	res = osk_wallet_shorten(address, view_out->recipient, sizeof(view_out->recipient));
+	res = osk_wallet_set_address(view_out, address);
 	if (res != OSK_OK) {
 		view_out->missing_key = "wallet.adresse-zu-lang";
 		return OSK_OK;
@@ -382,7 +382,7 @@ osk_result_t osk_eth_address(const osk_bip32_priv_t *key, uint8_t out[OSK_ETH_AD
 /* Gemeinsamer Weg: Schluessel holen, fragen, unterschreiben, Kennziffer
  * bilden, alles loeschen. */
 static osk_result_t sign_hash_with(osk_item_id_t seed_id, const char *asked_by, const char *path,
-				   const osk_wallet_view_t *view, bool allow_blind,
+				   const osk_wallet_view_t *view,
 				   const uint8_t hash[32], uint64_t v_base, bool eip155,
 				   uint64_t chain_id, uint8_t r_out[32], uint8_t s_out[32],
 				   uint64_t *v_out)
@@ -393,7 +393,7 @@ static osk_result_t sign_hash_with(osk_item_id_t seed_id, const char *asked_by, 
 	uint8_t recid = 0;
 	osk_result_t res;
 
-	res = osk_wallet_confirm(view, asked_by, allow_blind);
+	res = osk_wallet_confirm(view, asked_by);
 	if (res != OSK_OK)
 		return res;
 	res = osk_wallet_seed_derive(seed_id, asked_by, OSK_BIP32_SECP256K1, path, &key);
@@ -432,7 +432,7 @@ static osk_result_t sign_hash_with(osk_item_id_t seed_id, const char *asked_by, 
 
 osk_result_t osk_eth_sign_tx(const uint8_t *raw, size_t len, osk_item_id_t seed_id,
 			     const char *asked_by, const char *path, const char *unit,
-			     bool allow_blind, uint8_t r_out[32], uint8_t s_out[32],
+			     uint8_t r_out[32], uint8_t s_out[32],
 			     uint64_t *v_out)
 {
 	osk_eth_tx_t tx;
@@ -451,12 +451,12 @@ osk_result_t osk_eth_sign_tx(const uint8_t *raw, size_t len, osk_item_id_t seed_
 	res = osk_eth_tx_hash(raw, len, hash);
 	if (res != OSK_OK)
 		return res;
-	return sign_hash_with(seed_id, asked_by, path, &view, allow_blind, hash, 0,
+	return sign_hash_with(seed_id, asked_by, path, &view, hash, 0,
 			      tx.kind == OSK_ETH_LEGACY, tx.chain_id, r_out, s_out, v_out);
 }
 
 osk_result_t osk_eth_sign_message(const uint8_t *message, size_t len, osk_item_id_t seed_id,
-				  const char *asked_by, const char *path, bool allow_blind,
+				  const char *asked_by, const char *path,
 				  uint8_t r_out[32], uint8_t s_out[32], uint64_t *v_out)
 {
 	osk_wallet_view_t view;
@@ -478,6 +478,8 @@ osk_result_t osk_eth_sign_message(const uint8_t *message, size_t len, osk_item_i
 	if (printable) {
 		memcpy(view.recipient, message, len);
 		view.recipient[len] = '\0';
+		/* Ein Satz, kein Konto: woertlich anzeigen, nicht gliedern. */
+		view.subject_kind = OSK_WALLET_SUBJECT_TEXT;
 		/* Eine Nachricht hat keinen Betrag und keine Gebuehr. Damit
 		 * die Regel aus wallet_confirm.h nicht ins Leere greift,
 		 * stehen hier Striche - der Nutzer sieht, dass nichts
@@ -488,13 +490,13 @@ osk_result_t osk_eth_sign_message(const uint8_t *message, size_t len, osk_item_i
 	} else {
 		view.missing_key = "wallet.nachricht-nicht-lesbar";
 	}
-	return sign_hash_with(seed_id, asked_by, path, &view, allow_blind, hash, 27u, false, 0,
+	return sign_hash_with(seed_id, asked_by, path, &view, hash, 27u, false, 0,
 			      r_out, s_out, v_out);
 }
 
 osk_result_t osk_eth_sign_typed(const uint8_t domain[32], const uint8_t message[32],
 				osk_item_id_t seed_id, const char *asked_by, const char *path,
-				bool allow_blind, uint8_t r_out[32], uint8_t s_out[32],
+				uint8_t r_out[32], uint8_t s_out[32],
 				uint64_t *v_out)
 {
 	osk_wallet_view_t view;
@@ -510,6 +512,6 @@ osk_result_t osk_eth_sign_typed(const uint8_t domain[32], const uint8_t message[
 	/* Bewusst nicht lesbar: wir haben nur zwei Hashes, nicht den Inhalt. */
 	view.missing_key = "wallet.eip712-inhalt-unbekannt";
 	view.readable = false;
-	return sign_hash_with(seed_id, asked_by, path, &view, allow_blind, hash, 27u, false, 0,
+	return sign_hash_with(seed_id, asked_by, path, &view, hash, 27u, false, 0,
 			      r_out, s_out, v_out);
 }

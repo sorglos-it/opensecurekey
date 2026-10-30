@@ -113,20 +113,6 @@ static size_t mutate(const uint8_t *in, size_t len, uint8_t *out, size_t cap)
 	return n;
 }
 
-/* Das eigene PSBT aus test_psbt.c - mit ihm kommt der Lauf bis ins
- * Unterschreiben, denn der Seed dazu liegt im Tresor. */
-static const char *const OWN_PSBT =
-    "70736274ff0100710200000001aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-    "aa0000000000feffffff0260ea000000000000160014751e76e8199196d454941c45d1b3a323f1433bd63075"
-    "0000000000001600143e34985dca6fddc9fb369940e4c7d8e2873f529c000000000001011fa0860100000000"
-    "00160014c0cebcd6c3d3ca8c75dc5ec62ebe55330ef910e222060330d54fd0dd420a6e5f8d3624f5f3482cae"
-    "350f79d5f0753bf5beef9c2d91af3c1873c5da0a540000800000008000000080000000000000000000002202"
-    "03025324888e429ab8e3dbaf1f7802648b9cd01e9b418485c5fa4c1b9b5700e1a61873c5da0a540000800000"
-    "008000000080010000000000000000";
-static const char *const MNEMONIC =
-    "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon"
-    " about";
-
 #define TEMPLATES (sizeof(PSBT_VALID) / sizeof(PSBT_VALID[0]) + 1u)
 
 int main(int argc, char **argv)
@@ -148,7 +134,7 @@ int main(int argc, char **argv)
 	mock_se050_reset();
 	mock_ui_reset();
 	mock_ui_answer(OSK_OK);
-	if (osk_wallet_seed_store(0, "fuzz", MNEMONIC, NULL, &seed_id) != OSK_OK) {
+	if (osk_wallet_seed_store(0, "fuzz", OWN_MNEMONIC, NULL, &seed_id) != OSK_OK) {
 		printf("FEHLER: Seed laesst sich nicht ablegen\n");
 		return 1;
 	}
@@ -207,7 +193,7 @@ int main(int argc, char **argv)
 		{
 			size_t out_len = 0, signed_count = 0;
 			osk_result_t res =
-			    osk_psbt_sign(&psbt, seed_id, "fuzz", "bc", 0x00u, 0x05u, true, out,
+			    osk_psbt_sign(&psbt, seed_id, "fuzz", "bc", 0x00u, 0x05u, out,
 					  sizeof(out), &out_len, &signed_count);
 
 			if (res == OSK_OK && signed_count > 0) {

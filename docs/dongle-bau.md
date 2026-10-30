@@ -158,10 +158,20 @@ The three ways out, and none of them is the library's call:
 | Two keys per server, the job goes to the second one | Needs a second device per server and a decision about which key NGC accepts — two identities, or one identity on two devices, which the chip cannot do. |
 | NGC retries the job itself, and the signature arrives later | Moves the problem into NGC: a job then has a state "waiting for a signature", and that is a change to the order protocol, not to the dongle. |
 
-**The question for Thomas:** should a server be allowed to run with two keys,
-or does an unplug mean an outage until somebody is there? Everything else in
-this strand is built; this one is not decided, and the library deliberately
-does not pretend either way.
+**Decided on 30 October 2026: one key per server.** An unplug means an
+outage until somebody is at the device. Two keys were rejected because they
+do not remove the outage, they move it — the second key can be pulled out
+too — and they would cost a second device per server plus two identities per
+server inside NGC, because the chip cannot put one identity on two devices.
+
+Where the lost job is caught is therefore **NGC's side, not the dongle's**: a
+job gets a state "waiting for a signature" and is submitted again. That is a
+change to the order protocol, and it also helps for every other reason a
+signature can fail. It is not built, and this strand does not build it — it
+belongs with whoever owns the order protocol.
+
+So the library stays as it is: the round in flight fails, `watch()` reports it
+once, and nothing pretends the job got signed.
 
 ## No foreign code, no dependencies
 

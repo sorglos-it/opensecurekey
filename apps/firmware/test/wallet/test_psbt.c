@@ -96,18 +96,6 @@ static void test_valid(void)
 	}
 }
 
-/* Das PSBT aus der Vorbemerkung. */
-static const char *const OWN_PSBT =
-    "70736274ff0100710200000001aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-    "aa0000000000feffffff0260ea000000000000160014751e76e8199196d454941c45d1b3a323f1433bd63075"
-    "0000000000001600143e34985dca6fddc9fb369940e4c7d8e2873f529c000000000001011fa0860100000000"
-    "00160014c0cebcd6c3d3ca8c75dc5ec62ebe55330ef910e222060330d54fd0dd420a6e5f8d3624f5f3482cae"
-    "350f79d5f0753bf5beef9c2d91af3c1873c5da0a540000800000008000000080000000000000000000002202"
-    "03025324888e429ab8e3dbaf1f7802648b9cd01e9b418485c5fa4c1b9b5700e1a61873c5da0a540000800000"
-    "008000000080010000000000000000";
-static const char *const OWN_MNEMONIC =
-    "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon"
-    " about";
 static const char *const OWN_SIGHASH =
     "de1130606e7551f3c3c7e0573fe547ba0b13c2fb3d900fb5fd80a82415d30f55";
 static const char *const OWN_PUB =
@@ -180,14 +168,30 @@ static void test_sign(void)
 
 	mock_ui_answer(OSK_OK);
 	T_EQ("unterschrieben",
-	     osk_psbt_sign(&psbt, id, "test", "bc", 0x00u, 0x05u, false, out, sizeof(out), &out_len,
+	     osk_psbt_sign(&psbt, id, "test", "bc", 0x00u, 0x05u, out, sizeof(out), &out_len,
 			   &signed_count),
 	     OSK_OK);
 	T_EQ("eine Eingabe unterschrieben", signed_count, 1);
 	T_EQ("Freigabe wurde gefragt", mock_ui_calls(), 1);
 	T_EQ("es war eine Unterschrift", mock_ui_kind(), OSK_ASK_SIGN);
-	T_TRUE("Empfaenger stand auf dem Schirm",
-	       strcmp(mock_ui_subject(), "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4") == 0);
+	/* Der Empfaenger stand GANZ auf dem Schirm - gegliedert, mit der
+	 * Pruefzahl dahinter, und ohne Punkte in der Mitte. */
+	T_TRUE("keine Punkte in der Mitte", strstr(mock_ui_subject(), "...") == NULL);
+	T_TRUE("Pruefzahl dabei", strchr(mock_ui_subject(), '#') != NULL);
+	{
+		/* Jedes Zeichen der Adresse stand da, in der Reihenfolge. */
+		const char *want = "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4";
+		const char *got = mock_ui_subject();
+		size_t j = 0;
+
+		for (size_t i = 0; got[i] != 0 && got[i] != '#'; i++) {
+			if (got[i] != ' ')
+				j += (want[j] != 0 && got[i] == want[j]) ? 1u : 0u;
+		}
+		T_EQ("ganze Adresse stand da", (long long)j, (long long)strlen(want));
+		if (j != strlen(want))
+			printf("  Betreff: %s\n", got);
+	}
 	T_TRUE("Betrag und Gebuehr standen auf dem Schirm",
 	       strcmp(mock_ui_detail(), "0.0006 BTC + 0.0001 BTC") == 0);
 	if (strcmp(mock_ui_detail(), "0.0006 BTC + 0.0001 BTC") != 0)
@@ -244,7 +248,7 @@ static void test_refusals(void)
 	T_EQ("gelesen", osk_psbt_parse(raw, len, &psbt), OSK_OK);
 	mock_ui_answer(OSK_ERR_DENIED);
 	T_EQ("Nutzer sagt nein",
-	     osk_psbt_sign(&psbt, id, "test", "bc", 0x00u, 0x05u, false, out, sizeof(out), &out_len,
+	     osk_psbt_sign(&psbt, id, "test", "bc", 0x00u, 0x05u, out, sizeof(out), &out_len,
 			   &signed_count),
 	     OSK_ERR_DENIED);
 	T_EQ("nichts unterschrieben", signed_count, 0);
@@ -254,7 +258,7 @@ static void test_refusals(void)
 	id = prepare_seed();
 	mock_store_deny(true);
 	T_EQ("Tresor verweigert",
-	     osk_psbt_sign(&psbt, id, "test", "bc", 0x00u, 0x05u, false, out, sizeof(out), &out_len,
+	     osk_psbt_sign(&psbt, id, "test", "bc", 0x00u, 0x05u, out, sizeof(out), &out_len,
 			   &signed_count),
 	     OSK_ERR_DENIED);
 	T_EQ("Freigabe nicht gefragt", mock_ui_calls(), 0);
@@ -265,7 +269,7 @@ static void test_refusals(void)
 	mock_se050_set_curves(1u << OSK_CURVE_P256);
 	mock_ui_answer(OSK_OK);
 	T_EQ("Chip kann die Kurve nicht",
-	     osk_psbt_sign(&psbt, id, "test", "bc", 0x00u, 0x05u, false, out, sizeof(out), &out_len,
+	     osk_psbt_sign(&psbt, id, "test", "bc", 0x00u, 0x05u, out, sizeof(out), &out_len,
 			   &signed_count),
 	     OSK_ERR_UNSUPPORTED);
 	T_EQ("nichts in den Chip gegeben", mock_se050_imports(), 0);
@@ -275,7 +279,7 @@ static void test_refusals(void)
 	mock_se050_corrupt_sign(true);
 	mock_ui_answer(OSK_OK);
 	T_EQ("verfaelschte Unterschrift erkannt",
-	     osk_psbt_sign(&psbt, id, "test", "bc", 0x00u, 0x05u, false, out, sizeof(out), &out_len,
+	     osk_psbt_sign(&psbt, id, "test", "bc", 0x00u, 0x05u, out, sizeof(out), &out_len,
 			   &signed_count),
 	     OSK_ERR_INTERNAL);
 
@@ -283,7 +287,7 @@ static void test_refusals(void)
 	id = prepare_seed();
 	mock_ui_answer(OSK_OK);
 	T_EQ("Puffer zu klein",
-	     osk_psbt_sign(&psbt, id, "test", "bc", 0x00u, 0x05u, false, out, 32, &out_len,
+	     osk_psbt_sign(&psbt, id, "test", "bc", 0x00u, 0x05u, out, 32, &out_len,
 			   &signed_count),
 	     OSK_ERR_ARG);
 }
@@ -303,13 +307,158 @@ static void test_foreign_key(void)
 	T_EQ("gelesen", osk_psbt_parse(raw, len, &psbt), OSK_OK);
 	mock_ui_answer(OSK_OK);
 	{
-		osk_result_t res = osk_psbt_sign(&psbt, id, "test", "bc", 0x00u, 0x05u, true, out,
+		osk_result_t res = osk_psbt_sign(&psbt, id, "test", "bc", 0x00u, 0x05u, out,
 						 sizeof(out), &out_len, &signed_count);
 
 		T_TRUE("kein Fehler oder klare Ablehnung", res == OSK_OK || res == OSK_ERR_DENIED);
 		if (res == OSK_OK) {
 			T_EQ("nichts unterschrieben", signed_count, 0);
 			T_EQ("Chip nicht gefragt", mock_se050_imports(), 0);
+		}
+	}
+}
+
+/* --- Was NICHT unterschrieben wird ------------------------------------- */
+
+/* Taproot wird erkannt und abgelehnt - nicht halb unterschrieben.
+ *
+ * Gebaut aus dem eigenen PSBT, bei dem nur das Skript des Eingangs auf
+ * ein Taproot-Skript getauscht wird (OP_1 und 32 Byte Schluessel). Die
+ * Wertlaenge geht dabei von 0x1f auf 0x2b: acht Byte Betrag, ein Byte
+ * Skriptlaenge, 34 Byte Skript. Alles andere bleibt, wie es war. */
+static void test_taproot_abgelehnt(void)
+{
+	static const char *const TAPROOT_PSBT =
+	    "70736274ff0100710200000001aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	    "aa0000000000feffffff0260ea000000000000160014751e76e8199196d454941c45d1b3a323f1433bd63075"
+	    "0000000000001600143e34985dca6fddc9fb369940e4c7d8e2873f529c000000000001012ba0860100000000"
+	    "0022512079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f8179822060330d54fd0dd"
+	    "420a6e5f8d3624f5f3482cae350f79d5f0753bf5beef9c2d91af3c1873c5da0a540000800000008000000080"
+	    "000000000000000000002202" "03025324888e429ab8e3dbaf1f7802648b9cd01e9b418485c5fa4c1b9b57"
+	    "00e1a61873c5da0a540000800000008000000080010000000000000000";
+	uint8_t psbt_raw[1024];
+	uint8_t out[2048];
+	size_t len, out_len = 0, signed_count = 0;
+	osk_psbt_t psbt;
+	osk_item_id_t id;
+
+	/* Erst die Gegenprobe: dasselbe PSBT OHNE den Tausch geht durch.
+	 * Ohne sie wuesste niemand, ob die Ablehnung am Taproot haengt
+	 * oder an einem Tippfehler in der Zeichenkette. */
+	len = big_unhex(OWN_PSBT, psbt_raw, sizeof(psbt_raw));
+	T_TRUE("Gegenprobe gelesen", len > 0);
+	T_EQ("Gegenprobe zerlegt", osk_psbt_parse(psbt_raw, len, &psbt), OSK_OK);
+	id = prepare_seed();
+	mock_ui_reset();
+	mock_ui_answer(OSK_OK);
+	T_EQ("Gegenprobe unterschrieben",
+	     osk_psbt_sign(&psbt, id, "test", "bc", 0x00u, 0x05u, out, sizeof(out), &out_len,
+			   &signed_count),
+	     OSK_OK);
+	T_EQ("Gegenprobe: eine Unterschrift", (long long)signed_count, 1);
+
+	/* Und nun mit Taproot. */
+	len = big_unhex(TAPROOT_PSBT, psbt_raw, sizeof(psbt_raw));
+	T_TRUE("Taproot-PSBT gelesen", len > 0);
+	T_EQ("Taproot-PSBT zerlegt", osk_psbt_parse(psbt_raw, len, &psbt), OSK_OK);
+	T_EQ("es ist wirklich Taproot",
+	     osk_btc_script_kind(psbt.in[0].utxo_script, psbt.in[0].utxo_script_len),
+	     OSK_BTC_P2TR);
+
+	id = prepare_seed();
+	mock_ui_reset();
+	mock_ui_answer(OSK_OK); /* der Nutzer WUERDE ja sagen */
+	signed_count = 99;
+	T_EQ("Taproot abgelehnt",
+	     osk_psbt_sign(&psbt, id, "test", "bc", 0x00u, 0x05u, out, sizeof(out), &out_len,
+			   &signed_count),
+	     OSK_ERR_UNSUPPORTED);
+	T_EQ("nichts unterschrieben", (long long)signed_count, 0);
+	/* Es wurde nicht gefragt: eine Freigabe, die anschliessend
+	 * scheitert, ist eine Freigabe fuer nichts. */
+	T_EQ("nicht gefragt", (long long)mock_ui_calls(), 0);
+	T_EQ("Chip unangetastet", mock_se050_imports(), 0);
+	/* Und der Grund steht auf dem Schirm - eine Ablehnung ohne
+	 * Erklaerung ist am Geraet nicht zu verstehen. */
+	T_TRUE("Grund genannt",
+	       strcmp(mock_ui_status_key(), "wallet.taproot-nicht-unterstuetzt") == 0);
+	if (strcmp(mock_ui_status_key(), "wallet.taproot-nicht-unterstuetzt") != 0)
+		printf("  Meldung: %s\n", mock_ui_status_key());
+}
+
+/* Mehr Ausgaenge, als das Geraet anzeigen kann: ABGELEHNT, nicht zum
+ * Teil angezeigt.
+ *
+ * Neun Ausgaenge teilweise zu zeigen waere die gefaehrlichste Anzeige von
+ * allen - der Nutzer saehe acht richtige Zeilen und wuesste nicht, dass
+ * eine fehlt. Die Transaktion wird von Hand zusammengesetzt, damit die
+ * Zahl der Ausgaenge die einzige Groesse ist, die sich aendert. */
+static void test_zu_viele_ausgaenge(void)
+{
+	for (unsigned n = 1; n <= OSK_PSBT_MAX_OUT + 2u; n++) {
+		uint8_t psbt_raw[4096];
+		uint8_t tx[1024];
+		osk_psbt_t psbt;
+		size_t k = 0, t = 0;
+		osk_result_t res;
+
+		/* Die unsignierte Transaktion. */
+		tx[t++] = 0x02; tx[t++] = 0x00; tx[t++] = 0x00; tx[t++] = 0x00;
+		tx[t++] = 0x01; /* ein Eingang */
+		for (unsigned i = 0; i < 32u; i++)
+			tx[t++] = 0xaa;
+		tx[t++] = 0x00; tx[t++] = 0x00; tx[t++] = 0x00; tx[t++] = 0x00;
+		tx[t++] = 0x00; /* leeres Skript */
+		tx[t++] = 0xfe; tx[t++] = 0xff; tx[t++] = 0xff; tx[t++] = 0xff;
+
+		tx[t++] = (uint8_t)n; /* so viele Ausgaenge */
+		for (unsigned i = 0; i < n; i++) {
+			tx[t++] = 0x60; tx[t++] = 0xea;
+			for (unsigned b = 0; b < 6u; b++)
+				tx[t++] = 0x00;
+			tx[t++] = 0x16; tx[t++] = 0x00; tx[t++] = 0x14;
+			for (unsigned b = 0; b < 20u; b++)
+				tx[t++] = (uint8_t)(0x10u + i);
+		}
+		tx[t++] = 0x00; tx[t++] = 0x00; tx[t++] = 0x00; tx[t++] = 0x00;
+
+		/* Und das PSBT darum herum. */
+		psbt_raw[k++] = 0x70; psbt_raw[k++] = 0x73; psbt_raw[k++] = 0x62; psbt_raw[k++] = 0x74;
+		psbt_raw[k++] = 0xff;
+		psbt_raw[k++] = 0x01; psbt_raw[k++] = 0x00; /* unsignierte Transaktion */
+		/* Die Laenge als compact size, richtig und nicht geraten: ab
+		 * 253 Byte steht 0xfd davor und dann zwei Byte niederwertiges
+		 * zuerst. Mit acht Ausgaengen ist die Transaktion laenger als
+		 * 253 Byte - ein einzelnes Laengenbyte waere hier still
+		 * falsch geworden. */
+		if (t < 253u) {
+			psbt_raw[k++] = (uint8_t)t;
+		} else {
+			psbt_raw[k++] = 0xfd;
+			psbt_raw[k++] = (uint8_t)(t & 0xffu);
+			psbt_raw[k++] = (uint8_t)((t >> 8) & 0xffu);
+		}
+		memcpy(psbt_raw + k, tx, t);
+		k += t;
+		psbt_raw[k++] = 0x00;	       /* Ende des Kopfteils */
+		psbt_raw[k++] = 0x00;	       /* ein leerer Eingangsteil */
+		for (unsigned i = 0; i < n; i++)
+			psbt_raw[k++] = 0x00;       /* je Ausgang ein leerer Teil */
+
+		res = osk_psbt_parse(psbt_raw, k, &psbt);
+		if (n <= OSK_PSBT_MAX_OUT) {
+			/* Bis zur Grenze MUSS es gehen, sonst prueft der Fall
+			 * darueber nichts. */
+			T_EQ("bis zur Grenze gelesen", res, OSK_OK);
+			if (res == OSK_OK)
+				T_EQ("Zahl der Ausgaenge", (long long)psbt.out_count,
+				     (long long)n);
+			else
+				printf("  %u Ausgaenge gingen nicht\n", n);
+		} else {
+			T_TRUE("darueber abgelehnt", res != OSK_OK);
+			if (res == OSK_OK)
+				printf("  %u Ausgaenge wurden angenommen - zu viele\n", n);
 		}
 	}
 }
@@ -322,5 +471,7 @@ int main(void)
 	test_sign();
 	test_refusals();
 	test_foreign_key();
+	test_taproot_abgelehnt();
+	test_zu_viele_ausgaenge();
 	return t_report("psbt");
 }
