@@ -198,6 +198,12 @@ zurueckgedreht:
 | eine Pruefung fehlschlagen lassen (`T_TRUE(..., 1 == 2)`) | `msc/test_msc.c` | 224 Faelle, **1 Fehler**, Code 2, ROT in beiden Richtungen, Ausstiegscode 1 |
 | Quelldatei `boot_state.c` aus der CMake-Liste entfernt | `boot/CMakeLists.txt` | undefined reference to osk_boot_state_store, Code 2, ROT, Ausstiegscode 1 |
 
+Auch der PowerShell-Mantel ist in beiden Richtungen geprueft: `alle.ps1`
+gibt bei gruen 0 und bei rot 1 weiter (nachgestellt mit demselben Bruch in
+`msc/test_msc.c`). Und die Netzlaufwerk-Sperre schlaegt an: eine Kopie von
+`alle.ps1` auf `Z:` bricht mit der Meldung "liegt auf einem Netzlaufwerk"
+und Ausstiegscode 2 ab, statt die WSL erfolglos uebersetzen zu lassen.
+
 Der dritte Bruch war noetig, weil CMake-Saetze in `alle.sh` einen anderen
 Weg nehmen als Makefile-Saetze - ein Weg, den man nicht zum Anschlagen
 gebracht hat, ist keiner.
