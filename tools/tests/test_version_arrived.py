@@ -94,6 +94,32 @@ class Aufruf(unittest.TestCase):
         with io.open(os.path.join(self.root, 'apps', 'firmware', 'CMakeLists.txt'),
                      'w', encoding='utf-8', newline='\n') as handle:
             handle.write('# Platzhalter\n')
+        # Seit dem 30.10.2026 verlangt build_firmware zwei Dinge, bevor west
+        # ueberhaupt gestartet wird: die Baudatei der Fassung und einen
+        # Signaturschluessel von aussen (siehe build.mcuboot_key - ohne ihn
+        # baut MCUboot mit seinem oeffentlich bekannten Beispielschluessel).
+        # Dieser Test misst weiter nur, WAS uebergeben wird.
+        with io.open(os.path.join(self.root, 'apps', 'firmware', 'variant-norsa.conf'),
+                     'w', encoding='utf-8', newline='\n') as handle:
+            handle.write('CONFIG_OSK_RSA=n\n')
+        # Und die Tafel der beiden AAGUIDs - tools/ liest sie im Quelltext,
+        # und ohne sie koennte der Bau die Fassung nicht in den Abbildkopf
+        # schreiben (er bricht dann zu Recht ab).
+        ctap = os.path.join(self.root, 'apps', 'firmware', 'src', 'classes', 'ctap')
+        os.makedirs(ctap, exist_ok=True)
+        with io.open(os.path.join(ctap, 'osk_ctap_core.c'), 'w',
+                     encoding='utf-8', newline='\n') as handle:
+            handle.write('static const uint8_t OSK_AAGUID_RSA[16] = {\n'
+                         '    0x6f, 0x73, 0x6b, 0x2d, 0x6f, 0x70, 0x65, 0x6e,\n'
+                         '    0x73, 0x65, 0x63, 0x6b, 0x65, 0x79, 0x00, 0x01,\n'
+                         '};\n'
+                         'static const uint8_t OSK_AAGUID_NO_RSA[16] = {\n'
+                         '    0x6f, 0x73, 0x6b, 0x2d, 0x6f, 0x70, 0x65, 0x6e,\n'
+                         '    0x73, 0x65, 0x63, 0x6b, 0x65, 0x79, 0x00, 0x02,\n'
+                         '};\n')
+        self.key = os.path.join(tempfile.gettempdir(), 'osk-test-attrappe.pem')
+        with io.open(self.key, 'w', encoding='utf-8', newline='\n') as handle:
+            handle.write('kein echter Schluessel\n')
         self.calls = []
         # 'west' gibt es auf diesem Rechner nicht - fuer diesen Test wird nur
         # geprueft, WAS build.py uebergibt, nicht ob ein Bau zustande kommt.
@@ -109,13 +135,22 @@ class Aufruf(unittest.TestCase):
 
     def test_umgebungsvariable_und_beide_schreibweisen(self):
         build.build_firmware('0.0.1.0', self.root,
-                             environ={'PATH': 'x', 'ZEPHYR_BASE': '/zephyr'},
+                             environ={'PATH': 'x', 'ZEPHYR_BASE': '/zephyr',
+                                      'OSK_MCUBOOT_KEY': self.key},
                              runner=self.runner)
         self.assertEqual(len(self.calls), 1, 'west wurde nicht aufgerufen')
         args, env = self.calls[0]
         self.assertIn('-DOSK_VERSION=0.0.1.0', args)
         self.assertIn('-Dfirmware_OSK_VERSION=0.0.1.0', args)
         self.assertEqual((env or {}).get('OSK_VERSION'), '0.0.1.0')
+        # Und die Fassung muss genauso mitgehen - auf allen Wegen, aus
+        # demselben Grund: bei einem Sysbuild laeuft cmake zweimal.
+        self.assertTrue(any(a.startswith('-DEXTRA_CONF_FILE=') for a in args), args)
+        self.assertTrue(any(a.startswith('-DOSK_AAGUID_TLV=0x') for a in args), args)
+        self.assertEqual((env or {}).get('OSK_MCUBOOT_KEY'), self.key)
+        # Der Schluesselpfad darf in keiner Befehlszeile stehen: die landet in
+        # Bauprotokollen, und der Pfad verraet, wo der Schluessel liegt.
+        self.assertFalse(any(self.key in a for a in args), args)
 
     def test_ohne_abbild_bleibt_es_ein_fehler(self):
         """Der Laeufer meldet Erfolg, im Bauordner liegt aber nichts - das

@@ -1,11 +1,25 @@
 # -*- coding: utf-8 -*-
 """Teilprogramme bauen, Version hineinstempeln, Ergebnis nach dist/ legen.
 
-    python tools/build.py firmware            # nRF52840-DK (Standard-Board)
-    python tools/build.py firmware --board nrf52840dongle/nrf52840
+    python tools/build.py firmware --variant norsa    # ohne RSA
+    python tools/build.py firmware --variant rsa      # mit RSA
+    python tools/build.py firmware --variant rsa --board nrf52840dongle/nrf52840
     python tools/build.py desktop             # fuer diesen Rechner
     python tools/build.py web
     python tools/build.py all
+
+ZWEI FASSUNGEN DER FIRMWARE, mit und ohne RSA (--variant). Welche gebaut
+wurde, steht danach an drei Stellen, und sie muss ueberall dieselbe sein:
+im Dateinamen, im Abbildkopf (AAGUID als geschuetztes TLV) und in der
+.config des Baus. Geprueft wird das gleich nach dem Bau von
+tools/variant.py - stimmt es nicht, ist der Schritt FEHLER und nicht
+"ok mit Warnung". Ein Abbild ohne RSA mit dem AAGUID der Fassung MIT RSA
+verspricht dem Browser Faehigkeiten, die das Geraet nicht hat.
+
+DER SIGNATURSCHLUESSEL kommt von aussen (OSK_MCUBOOT_KEY) und liegt nie im
+Projektordner. Fehlt er, bricht der Bau ab, BEVOR west startet: ohne ihn
+nimmt MCUboot seinen eigenen, oeffentlich bekannten Beispielschluessel, und
+der Bau waere gruen. Siehe docs/signatur.md.
 
 Die Version kommt aus apps/<typ>/VERSION und wird beim Bauen eingestempelt:
   firmware  OSK_VERSION - als Umgebungsvariable UND als cmake-Variable (die
@@ -24,6 +38,7 @@ SDK), steht 'uebersprungen' mit Grund da, der Ausstiegscode ist dann 2 (nichts
 gebaut) - nie 0 fuer einen Bau, der nicht stattgefunden hat. Standardbibliothek.
 """
 import argparse
+import binascii
 import glob
 import io
 import json
@@ -37,9 +52,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import common
+import variant as variant_mod
 from common import OK, SKIPPED, FAILED, Result
 
 DEFAULT_BOARD = 'nrf52840dk/nrf52840'
+DEFAULT_VARIANT = 'norsa'
 WEB_EXCLUDE = ('tests', 'node_modules', 'data', 'config', '__pycache__')
 
 
@@ -50,6 +67,48 @@ def dist_dir(root):
 
 
 # --- Firmware -----------------------------------------------------------------
+
+def mcuboot_key(environ=None, root=common.ROOT, isfile=None):
+    """Der MCUboot-Signaturschluessel von aussen. (Pfad, None) oder (None, Grund).
+
+    DIE WICHTIGSTE PRUEFUNG DIESER DATEI. Fehlt der Schluessel, nimmt MCUboot
+    seinen EIGENEN Beispielschluessel - und der ist oeffentlich bekannt. Ein
+    Geraet, das damit gebaut ist, nimmt Firmware von jedem an, der die Datei
+    aus dem Netz laedt. Es gibt dafuer keine Warnung: der Bau wird gruen.
+
+    Darum wird hier abgebrochen, BEVOR west startet. Dieselbe Regel steht
+    noch einmal in apps/firmware/CMakeLists.txt - zwei Waende, weil ein Bau
+    von Hand die hier nicht sieht, und ein Bau ohne Schluessel schlimmer ist
+    als kein Bau.
+
+    Drei Gruende fuer ein Nein, und alle drei werden unterschieden: nicht
+    gesetzt, liegt nicht da, liegt im Projektordner. Der Pfad kommt in keine
+    Meldung, die weitergegeben wird - er verraet, wo der Schluessel liegt.
+    """
+    env = os.environ if environ is None else environ
+    isfile = os.path.isfile if isfile is None else isfile
+    given = (env.get('OSK_MCUBOOT_KEY') or '').strip()
+    if not given:
+        return None, ('OSK_MCUBOOT_KEY ist nicht gesetzt. Ohne Schluessel baut MCUboot mit '
+                      'seinem oeffentlich bekannten Beispielschluessel - dann nimmt das Geraet '
+                      'Firmware von jedem an. Setzen (PowerShell): '
+                      '$env:OSK_MCUBOOT_KEY = "$env:USERPROFILE\\.osk-keys\\mcuboot-ed25519.pem". '
+                      'Siehe docs/signatur.md.')
+    path = os.path.abspath(given)
+    repo = os.path.abspath(root)
+    try:
+        inside = os.path.commonpath([path, repo]) == repo
+    except ValueError:
+        inside = False      # verschiedene Laufwerke
+    if inside:
+        return None, ('Der MCUboot-Schluessel liegt IM Projektordner. Er gehoert ausserhalb - '
+                      'verschieben, nicht nur in .gitignore eintragen: ignoriert ist nicht weg '
+                      '(tools/keyguard.py sieht beides).')
+    if not isfile(path):
+        return None, ('OSK_MCUBOOT_KEY zeigt auf eine Datei, die nicht da ist. Der Pfad steht '
+                      'hier absichtlich nicht - er verraet, wo der Schluessel liegt.')
+    return path, None
+
 
 def find_sdk(environ=None, which=None):
     """Wie startet man 'west'? Gibt (Vorsatz, Beschreibung) oder (None, Grund).
@@ -132,17 +191,46 @@ def version_arrived(build_dir, version, name='OSK_VERSION'):
                       ', '.join(os.path.relpath(p, build_dir) for p in inner)))
 
 
-def build_firmware(version, root=common.ROOT, board=DEFAULT_BOARD, environ=None, runner=common.run):
+def build_firmware(version, root=common.ROOT, board=DEFAULT_BOARD, environ=None,
+                   runner=common.run, osk_variant=DEFAULT_VARIANT, build_dir=None):
     part = 'firmware'
+    if osk_variant not in variant_mod.VARIANTS:
+        return Result(part, 'build', FAILED,
+                      '--variant %s kennt niemand; es gibt %s'
+                      % (osk_variant, ' und '.join(variant_mod.VARIANTS)))
     if not common.has_sources(part, root):
         return Result(part, 'build', SKIPPED, 'apps/firmware ist noch leer')
     source = common.part_dir(part, root)
     if not os.path.isfile(os.path.join(source, 'CMakeLists.txt')):
         return Result(part, 'build', SKIPPED, 'apps/firmware/CMakeLists.txt fehlt - noch nicht baubar')
+    conf = os.path.join(source, 'variant-%s.conf' % osk_variant)
+    if not os.path.isfile(conf):
+        return Result(part, 'build', FAILED,
+                      'Die Baudatei der Fassung fehlt: apps/firmware/variant-%s.conf. Ohne sie '
+                      'entscheidet die Vorgabe von Kconfig, und niemand weiss, welche Fassung '
+                      'herauskam.' % osk_variant)
+
+    # Der Schluessel wird VOR der Suche nach dem SDK geprueft. Sonst heisst es
+    # auf einem Rechner ohne SDK "uebersprungen", und dass der Schluessel
+    # fehlt, erfaehrt man erst auf dem Rechner, der wirklich baut.
+    key, why = mcuboot_key(environ, root)
+    if key is None:
+        return Result(part, 'build', FAILED, 'Kein Signaturschluessel: ' + why)
+
+    try:
+        aaguid = variant_mod.aaguid_for(osk_variant, root)
+    except variant_mod.VariantError as error:
+        return Result(part, 'build', FAILED, 'AAGUID der Fassung nicht lesbar: %s' % error)
+
     prefix, info = find_sdk(environ)
     if prefix is None:
         return Result(part, 'build', SKIPPED, info)
-    build_dir = os.path.join(root, 'build', 'firmware-' + board.replace('/', '-'))
+    # Jede Fassung hat ihren EIGENEN Bauordner. Zwei Fassungen in einem Ordner
+    # heisst: der zweite Bau laeuft auf den Resten des ersten, und welche
+    # Fassung im Abbild steckt, haengt daran, was --pristine gerade raeumt.
+    if build_dir is None:
+        build_dir = os.path.join(root, 'build', 'firmware-%s-%s'
+                                 % (board.replace('/', '-'), osk_variant))
     # Die Version wird auf drei Wegen mitgegeben, weil nur einer gemessen
     # ankommt: '-DOSK_VERSION' erreicht den aeusseren Lauf (und bei
     # --no-sysbuild ist der aeussere der einzige), '-Dfirmware_OSK_VERSION'
@@ -153,10 +241,24 @@ def build_firmware(version, root=common.ROOT, board=DEFAULT_BOARD, environ=None,
     #   if(NOT OSK_VERSION AND DEFINED ENV{OSK_VERSION})
     #     set(OSK_VERSION "$ENV{OSK_VERSION}" CACHE STRING "")
     #   endif()
+    #
+    # Die Fassung geht auf drei Wegen mit, und jeder hat einen Grund:
+    #   EXTRA_CONF_FILE  setzt CONFIG_OSK_RSA im Bau selbst
+    #   OSK_AAGUID_TLV   gibt den AAGUID an imgtool weiter - in den Abbildkopf
+    #   OSK_MCUBOOT_KEY  in der Umgebung, damit auch der innere CMake-Lauf ihn
+    #                    sieht (derselbe Grund wie bei OSK_VERSION)
     args = prefix + ['build', '-b', board, '-d', build_dir, source, '--pristine=auto',
-                     '--', '-DOSK_VERSION=' + version, '-Dfirmware_OSK_VERSION=' + version]
-    env = dict(os.environ if environ is None else environ, OSK_VERSION=version)
-    common.say('Firmware: OSK_VERSION=%s ' % version + ' '.join(args))
+                     '--', '-DOSK_VERSION=' + version, '-Dfirmware_OSK_VERSION=' + version,
+                     '-DEXTRA_CONF_FILE=' + conf,
+                     '-Dfirmware_EXTRA_CONF_FILE=' + conf,
+                     '-DOSK_AAGUID_TLV=0x' + binascii.hexlify(aaguid).decode('ascii'),
+                     '-Dfirmware_OSK_AAGUID_TLV=0x' + binascii.hexlify(aaguid).decode('ascii')]
+    env = dict(os.environ if environ is None else environ, OSK_VERSION=version,
+               OSK_MCUBOOT_KEY=key)
+    # Der Schluesselpfad steht ABSICHTLICH nicht in dieser Zeile: Bauprotokolle
+    # wandern in Fehlerberichte, und der Pfad verraet, wo der Schluessel liegt.
+    common.say('Firmware: OSK_VERSION=%s Fassung=%s (Schluessel von aussen) '
+               % (version, osk_variant) + ' '.join(args))
     code, _ = runner(args, cwd=root, env=env)
     if code != 0:
         return Result(part, 'build', FAILED, 'west build endete mit Code %d (%s)' % (code, info))
@@ -168,15 +270,56 @@ def build_firmware(version, root=common.ROOT, board=DEFAULT_BOARD, environ=None,
     if not arrived:
         return Result(part, 'build', FAILED,
                       'west meldet Erfolg, aber die Version kam im Abbild nicht an: ' + how)
+
+    # Kam die FASSUNG an? Dieselbe Frage wie bei der Version, und aus demselben
+    # Grund: west meldet Erfolg, auch wenn Kconfig die Zeile still verworfen
+    # hat (siehe apps/firmware/prj.conf - 21 verworfene Zeilen, und der Bau
+    # lief weiter). Gelesen wird die .config, die Kconfig WIRKLICH geschrieben
+    # hat, nicht die .conf, die wir hineingegeben haben.
+    got, why = variant_mod.variant_from_build(build_dir)
+    if got != osk_variant:
+        return Result(part, 'build', FAILED,
+                      'west meldet Erfolg, aber gebaut wurde die Fassung "%s" statt "%s" (%s). '
+                      'Ein Abbild, dessen Fassung nicht die gewuenschte ist, gehoert in kein '
+                      'Geraet.' % (got or 'unbestimmt', osk_variant, why))
+
     tag = board.split('/')[0]
     copied = []
     for name, path in outputs.items():
         if name == 'zephyr.hex' and 'merged.hex' in outputs:
             continue
-        target = os.path.join(dist_dir(root), 'osk-firmware-%s-%s%s' % (version, tag, os.path.splitext(name)[1]))
+        # Der Dateiname wird an EINER Stelle gebildet (variant.name_for),
+        # damit er nicht hier und in tools/release.py auseinanderlaeuft.
+        target = os.path.join(dist_dir(root),
+                              variant_mod.name_for(version, tag, osk_variant,
+                                                   os.path.splitext(name)[1]))
         shutil.copyfile(path, target)
         copied.append(os.path.basename(target))
-    return Result(part, 'build', OK, 'Board %s -> dist/%s' % (board, ', '.join(copied)))
+
+    # Und jetzt das Abbild gegen sich selbst: Dateiname, Abbildkopf und .config
+    # muessen dieselbe Fassung nennen. Ohne diesen Schritt steht die Fassung
+    # dreimal da und niemand hat sie je verglichen.
+    #
+    # Geprueft wird die .bin, falls es eine gibt: nur sie traegt den
+    # MCUboot-Kopf mit dem AAGUID-TLV. Eine .hex ist Text und hat ihn nicht;
+    # fehlt die .bin, sagt die Meldung das, statt den Schritt still
+    # durchzulassen.
+    checked = [n for n in copied if n.endswith('.bin')]
+    if not checked:
+        return Result(part, 'build', OK,
+                      'Board %s, Fassung %s -> dist/%s (Fassung im Abbildkopf NICHT geprueft: '
+                      'keine .bin im Bau, nur dort steht der MCUboot-Kopf)'
+                      % (board, osk_variant, ', '.join(copied)))
+    good, lines = variant_mod.check(os.path.join(dist_dir(root), checked[0]),
+                                    expect=osk_variant, build_dir=build_dir, root=root)
+    if not good:
+        common.say('\n'.join(lines))
+        return Result(part, 'build', FAILED,
+                      'Das Abbild ist gebaut, aber die Fassung stimmt nicht ueberall: %s'
+                      % lines[-1])
+    return Result(part, 'build', OK,
+                  'Board %s, Fassung %s (Dateiname, Abbildkopf und .config stimmen) -> dist/%s'
+                  % (board, osk_variant, ', '.join(copied)))
 
 
 # --- Desktop ------------------------------------------------------------------
@@ -261,7 +404,8 @@ def build(part, root=common.ROOT, **options):
     except (OSError, ValueError) as error:
         return Result(part, 'build', FAILED, 'VERSION unbrauchbar: %s' % error)
     if part == 'firmware':
-        return build_firmware(version, root, board=options.get('board') or DEFAULT_BOARD)
+        return build_firmware(version, root, board=options.get('board') or DEFAULT_BOARD,
+                              osk_variant=options.get('osk_variant') or DEFAULT_VARIANT)
     if part == 'desktop':
         return build_desktop(version, root, targets=options.get('targets'))
     return build_web(version, root)
@@ -271,9 +415,11 @@ def main(argv=None, root=common.ROOT):
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     parser.add_argument('part', choices=common.PARTS + ('all',))
     parser.add_argument('--board', default=DEFAULT_BOARD, help='nur Firmware (Standard: %(default)s)')
+    parser.add_argument('--variant', default=DEFAULT_VARIANT, choices=variant_mod.VARIANTS,
+                        help='nur Firmware: Fassung mit oder ohne RSA (Standard: %(default)s)')
     args = parser.parse_args(argv)
     parts = common.PARTS if args.part == 'all' else (args.part,)
-    results = [build(p, root, board=args.board) for p in parts]
+    results = [build(p, root, board=args.board, osk_variant=args.variant) for p in parts]
     common.print_results(results)
     if any(r.status == FAILED for r in results):
         return 1
