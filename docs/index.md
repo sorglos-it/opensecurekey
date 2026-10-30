@@ -18,6 +18,7 @@ The device does not exist yet and nobody has used it. The manual says what is pl
 - [hardware.md](hardware.md) — parts, test setup, target board
 - [pqc.md](pqc.md) — post-quantum: ML-KEM-768 together with X25519 (German)
 - [integration.md](integration.md) — how other programs reach the key
+- [pruefsaetze.md](pruefsaetze.md) — the firmware test suites: what each one proves, how to run them all with one command (German)
 - [../shared/protocol.md](../shared/protocol.md) — device ↔ program protocol
 - [../shared/vault-format.md](../shared/vault-format.md) — how the vault is stored
 
