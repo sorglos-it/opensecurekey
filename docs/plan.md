@@ -21,6 +21,13 @@ RSA ist mitgemessen: `applets` 1222 Fälle, 0 Fehler — eine Option, die nur in
 einer Richtung geprüft ist, ist keine. Dazu `tools/check.py`:
 14 Schritte ok, 308 Tests, 0 Fehler.
 
+**Am 30.10.2026 selbst nachgemessen, am Ende des Tages und in einem Zug:**
+`apps/firmware/test/alle.sh` baut alle **12** C-Prüfsätze in **beiden**
+Richtungen der RSA-Option — **215 038 Fälle, 0 Fehler, Ausstiegscode 0.**
+Diesen einen Befehl gab es heute morgen nicht; es gab zwölf Makefiles, und
+wer eines laufen ließ, sah die anderen elf nicht. **Genau daran sind ctap und
+transport 19 Stunden unbemerkt rot gewesen.**
+
 **Am 30.10.2026 nachgemessen**, nach vier weiteren Strängen: `check.py`
 14 ok, 3 übersprungen, **330 Tests, 0 Fehler**; der UI-Prüfsatz
 **4074 Prüfungen, 0 Fehler** (gemessen auf `C:`, weil die WSL Netzlaufwerke
@@ -648,8 +655,39 @@ nur aufliegt.
 1. **Händler-Bestellnummer des SE051C2.** Die Variante ist belegt (AN12973
    Tab. 3), die Nummer für die Serie nicht. Eine Typnummer aus der Wildnis:
    `SE051C2HQ1/Z01XD` (`ungeprueft`, aus einer Boardbeschreibung).
-2. **Flash-Rechnung.** Passen RSA, ML-KEM, age, OpenPGP, CXF, CSR und die
-   CA-Verwaltung neben MCUboot in 1 MB? Hochrechnung heute: 264 kB von 960.
+2. ~~**Flash-Rechnung.**~~ **GEMESSEN am 30.10.2026, und die Antwort ist
+   nicht die, nach der gefragt war.** Echt für ARM übersetzt
+   (`arm-none-eabi-gcc` 14.2.1 aus der WSL, 108 von 114 Dateien, beide
+   Kconfig-Richtungen), nicht geschätzt — `docs/flash-und-ram.md`.
+   **Der Flash passt mit Luft: 297 kB von 959 kB, 662 kB frei.** Die
+   Hochrechnung vom 23.10. lautete 264 kB und lag damit gut.
+   **Der RAM passt nicht.** Und das ist keine Richtungsschätzung, sondern eine
+   Addition gemessener Zahlen: 137 421 Byte eigener fester RAM plus 12 344
+   Byte für **einen** tiefen Fadenstapel sind **57 % der 256 kB** — bevor
+   Zephyr, der USB-Stapel, der BLE-Controller, NFC und der zweite, dritte und
+   vierte Fadenstapel mitgerechnet sind. Rechnet man die 97 100 Byte des
+   Abbilds vom 25.10. dazu, stehen **246 865 Byte = 94 %**, und der USB-Stapel
+   fehlt in dieser Zahl noch.
+   **Damit ist die Wand dieses Geräts nicht der Flash, sondern der RAM** — und
+   das ist eine neue Lage: der ganze Plan hat bisher über den Flash geredet.
+
+2a. **Der tiefste Stapelweg braucht 12 344 Byte.** Das ist derselbe offene
+    Punkt wie 4a, nur um Faktor 6 bis 12 schlimmer als dort geschätzt: dort
+    stehen 1,8 kB auf einem Faden, für den unter Zephyr oft 1–2 kB
+    vorgesehen sind. **Am Gerät ist das ein Absturz oder eine
+    Stapelwächter-Meldung**, und am PC fällt es nicht auf, weil der Stapel
+    dort groß ist. Zu entscheiden ist, ob die Puffer aus dem Stapel in einen
+    festen Bereich wandern oder die Fäden wachsen — das Erste kostet
+    Gleichzeitigkeit, das Zweite RAM, den es nach Punkt 2 nicht gibt.
+    **Gemessen wird es mit `CONFIG_THREAD_ANALYZER` am Gerät**, und das geht
+    jetzt: die Hardware ist da.
+
+2b. **Ein Index-Block liegt zweimal im RAM.** `osk_vault_format.h:65` sagt
+    „64 × 320 B = 20 KiB RAM" für einen Index-Block — was dort nicht steht,
+    ist, dass der Block zweimal gehalten wird. **Der elfte Fall des Musters:
+    eine Zahl, die etwas anderes misst, als ihr Kommentar behauptet.**
+    Zu prüfen ist, ob das zweite Abbild nötig ist; 20 kB sind bei dieser
+    RAM-Lage kein Nebenbetrag.
 3. **Wie viele RSA-4096-Schlüssel** in den Nutzspeicher passen — hängt an
    Widerspruch 4.
 4. **AES-256-GCM-Durchsatz am Gerät.** Liegt er unter 3 MB/s, ist er die neue
