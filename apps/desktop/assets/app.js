@@ -557,6 +557,191 @@ if (lock) {
 	});
 }
 
+// Hinein und hinaus: CXF, Tabellen, KeePass, Leak-Pruefung.
+//
+// DIE ANZEIGE, DIE SAGT WOHIN, steht hier - aber sie ist nicht die
+// Bedingung. Die sitzt in CxfExport auf der anderen Seite: wer diese Seite
+// umgeht und /api/export selbst aufruft, bekommt ohne Ziel und ohne
+// Zustimmung eine Absage. Diese Zeilen sorgen nur dafuer, dass der Anwender
+// das Ziel LIEST, bevor er zustimmt.
+function setupExchange() {
+	const exportForm = document.getElementById("export");
+	if (!exportForm) {
+		return;
+	}
+	const where = document.getElementById("export-where");
+
+	exportForm.addEventListener("submit", async (event) => {
+		event.preventDefault();
+		const to = document.getElementById("export-to").value.trim();
+		if (!to) {
+			showProblem(t("error.cxf.nodestination"));
+			return;
+		}
+		// Das Ziel wird gezeigt, und erst die Bestaetigung schickt
+		// confirm: true. Ein Haken, der vorher gesetzt wird, waere kein
+		// Lesen.
+		where.textContent = t("cxf.export.where").replace("%s", to);
+		where.hidden = false;
+		const frage = where.textContent + "\n\n" + t("cxf.export.warning");
+		if (!window.confirm(frage)) {
+			showProblem(t("cxf.export.cancelled"));
+			return;
+		}
+		const data = await call("/api/export", { destination: to, confirm: true });
+		if (!data) {
+			return;
+		}
+		showReport(data.report);
+		saveTextFile(data.file, "opensecurekey-cxf.json");
+	});
+
+	const importForm = document.getElementById("import");
+	const formatField = document.getElementById("import-format");
+	const passwordRow = document.getElementById("import-password-row");
+	const report = document.getElementById("import-report");
+	const lines = document.getElementById("import-lines");
+	let pending = null;
+
+	// Das Kennwortfeld gibt es nur fuer KeePass. Es immer zu zeigen
+	// hiesse, nach einem Kennwort zu fragen, das niemand braucht.
+	const syncFormat = () => {
+		passwordRow.hidden = formatField.value !== "keepass";
+	};
+	formatField.addEventListener("change", syncFormat);
+	syncFormat();
+
+	importForm.addEventListener("submit", async (event) => {
+		event.preventDefault();
+		const file = document.getElementById("import-file").files[0];
+		if (!file) {
+			return;
+		}
+		pending = {
+			format: formatField.value,
+			data: await fileToBase64(file),
+			password: document.getElementById("import-password").value,
+			apply: false,
+		};
+		const data = await call("/api/import", pending);
+		if (!data) {
+			return;
+		}
+		// ERST der Bericht, DANN der Knopf. Was nicht mitkommt, steht
+		// vor der Entscheidung und nicht hinter ihr.
+		showImport(lines, data);
+		report.hidden = false;
+	});
+
+	document.getElementById("import-apply").addEventListener("click", async () => {
+		if (!pending) {
+			return;
+		}
+		pending.apply = true;
+		const data = await call("/api/import", pending);
+		pending = null;
+		document.getElementById("import-password").value = "";
+		if (!data) {
+			return;
+		}
+		showImport(lines, data);
+		if (data.report) {
+			showReport(data.report);
+		}
+	});
+
+	const leaksForm = document.getElementById("leaks");
+	const leaksLines = document.getElementById("leaks-lines");
+	leaksForm.addEventListener("submit", async (event) => {
+		event.preventDefault();
+		const consent = document.getElementById("leaks-consent").checked;
+		if (!consent) {
+			showProblem(t("error.leak.noconsent"));
+			return;
+		}
+		const data = await call("/api/leaks", { consent: true, all: true });
+		if (!data) {
+			return;
+		}
+		leaksLines.textContent = "";
+		(data.findings || []).forEach((finding) => {
+			const row = document.createElement("li");
+			if (finding.reason) {
+				row.textContent = finding.name + " - " + t(finding.reason);
+			} else if (finding.count > 0) {
+				row.textContent = finding.name + " - " +
+					t("leak.found").replace("%d", finding.count);
+			} else {
+				row.textContent = finding.name + " - " + t("leak.clean");
+			}
+			leaksLines.appendChild(row);
+		});
+	});
+}
+
+// showImport zeigt, was hineinkommt und was nicht. Die Liste der
+// zurueckgebliebenen Zeilen steht ZULETZT: was man zuletzt liest, bleibt
+// haengen.
+function showImport(lines, data) {
+	lines.textContent = "";
+	const add = (text) => {
+		const row = document.createElement("li");
+		row.textContent = text;
+		lines.appendChild(row);
+	};
+	add(t("cxf.import.from").replace("%s", data.from || ""));
+	(data.warnings || []).forEach((line) => add("! " + t(line.reason)));
+	add(t("cxf.import.ask").replace("%d", data.count || 0));
+	if ((data.left || []).length > 0) {
+		add(t("cxf.report.leftheader"));
+		data.left.forEach((line) => {
+			add("- " + (line.name || "") + " " + t(line.reason));
+		});
+	}
+}
+
+// showReport zeigt den Bericht eines Exports oder eines Anlegens. Was nicht
+// mitgekommen ist, steht darin - eine Sicherung, die stillschweigend die
+// Haelfte auslaesst, ist schlimmer als keine.
+function showReport(report) {
+	if (!report) {
+		return;
+	}
+	const teile = [t(reportKey(report))];
+	(report.flattened || []).forEach((line) => {
+		teile.push("~ " + (line.name || "") + " " + t(line.reason));
+	});
+	if ((report.left || []).length > 0) {
+		teile.push(t("cxf.report.leftheader"));
+		(report.left || []).forEach((line) => {
+			teile.push("- " + (line.name || "") + " " + t(line.reason));
+		});
+	}
+	showProblem(teile.join("\n"));
+}
+
+function reportKey(report) {
+	if ((report.left || []).length > 0) {
+		return "cxf.report.incomplete";
+	}
+	if ((report.flattened || []).length > 0) {
+		return "cxf.report.flattened";
+	}
+	return "cxf.report.complete";
+}
+
+// saveTextFile legt einen Text als Datei ab. Derselbe Weg wie saveBackup -
+// nur ohne das Umrechnen aus Base64, denn CXF ist schon Text.
+function saveTextFile(text, name) {
+	const url = URL.createObjectURL(new Blob([text],
+		{ type: "application/json" }));
+	const link = document.createElement("a");
+	link.href = url;
+	link.download = name;
+	link.click();
+	URL.revokeObjectURL(url);
+}
+
 // Erst die Texte, dann die Seiten - sonst stehen Knoepfe ohne Beschriftung da.
 async function init() {
 	texts = (await call("/api/texts")) || {};
@@ -567,6 +752,7 @@ async function init() {
 	setupCerts();
 	setupDevices();
 	setupBackup();
+	setupExchange();
 	setupFirmware();
 	setupSettings();
 	setupWizard();

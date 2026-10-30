@@ -58,6 +58,19 @@ type vault struct {
 	// setupPin ist die PIN, die beim Einrichten gesetzt wurde. Leer heisst:
 	// es gilt die eingebaute demoPin wie bisher.
 	setupPin string
+	// denied sind die Eintraege, die dieses Geraet NICHT herausgibt - es
+	// antwortet mit OSK_ERR_DENIED, so wie shared/protocol.md es fuer
+	// alles vorsieht, was abgeschaltet ist ("Das Geraet entscheidet, nie
+	// das Programm").
+	//
+	// WARUM ALS SCHALTER und nicht als Regel: welche Eintraege ein echtes
+	// Geraet verweigert, ist hier nicht bekannt - am 29.10.2026 hat sich
+	// dieses Projekt genau daran verletzt, dass eine Attrappe eine Regel
+	// fuehrte, die die echte Gegenseite nicht hat. Diese Attrappe
+	// behauptet darum keine Regel. Sie laesst sich nur sagen, welchen
+	// Eintrag sie verweigern soll, damit geprueft werden kann, was das
+	// Programm mit einer Absage MACHT.
+	denied map[string]bool
 }
 
 type record struct {
@@ -87,7 +100,8 @@ func newVault(noECDH, factory bool) *vault {
 		log.Println("Attrappe laesst sich nicht bauen:", err)
 		os.Exit(1)
 	}
-	v := &vault{nextID: 1, items: map[uint32]record{}, guard: guard}
+	v := &vault{nextID: 1, items: map[uint32]record{}, guard: guard,
+		denied: map[string]bool{}}
 	if factory {
 		// Ein Geraet im Werkszustand: keine Eintraege, keine Betriebsart,
 		// keine PIN. Es gibt nichts zu zeigen, bis `setup` kam.
@@ -157,6 +171,9 @@ func main() {
 	factory := flag.Bool("werkszustand", false,
 		"ein Geraet, das noch nichts haelt: keine Eintraege, keine "+
 			"Betriebsart, keine PIN - fuer den Einrichtungsassistenten")
+	revealDenied := flag.String("reveal-denied", "",
+		"Namen von Eintraegen, die dieses Geraet nicht herausgibt, mit Komma "+
+			"getrennt - es antwortet darauf mit OSK_ERR_DENIED")
 	noECDH := flag.Bool("no-ecdh", false,
 		"ein Stueck, das im Werk auf FIPS gestellt wurde und darum keinen "+
 			"Schluesselaustausch macht")
@@ -168,6 +185,12 @@ func main() {
 		os.Exit(1)
 	}
 	store := newVault(*noECDH, *factory)
+	for _, name := range strings.Split(*revealDenied, ",") {
+		if trimmed := strings.TrimSpace(name); trimmed != "" {
+			store.denied[trimmed] = true
+			fmt.Println("Dieses Geraet gibt", trimmed, "nicht heraus")
+		}
+	}
 	if *factory {
 		fmt.Printf("Attrappe laeuft auf 127.0.0.1:%d (Werkszustand: noch "+
 			"keine Betriebsart, noch keine PIN)\n", *port)
@@ -347,6 +370,10 @@ func handle(payload []byte, store *vault) classes.CborMap {
 		entry, found := store.items[uint32(id)]
 		if !found {
 			return reply(seq, 6, nil) // OSK_ERR_NOT_FOUND
+		}
+		if store.denied[entry.meta.Name] {
+			store.note("reveal-denied", askedBy, uint32(id))
+			return reply(seq, 4, nil) // OSK_ERR_DENIED
 		}
 		store.note("reveal", askedBy, uint32(id))
 		return reply(seq, 0, classes.CborMap{"sec": entry.secret})

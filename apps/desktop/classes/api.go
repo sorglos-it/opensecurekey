@@ -60,6 +60,10 @@ func (s *Server) routeAPI(mux *http.ServeMux) {
 	post("/api/firmware", s.apiFirmware)
 	post("/api/attest", s.apiAttest)
 	post("/api/settings", s.apiSettings)
+	// Die Wege hinein und hinaus, siehe exchange_api.go.
+	post("/api/export", s.apiExport)
+	post("/api/import", s.apiImport)
+	post("/api/leaks", s.apiLeaks)
 }
 
 func (s *Server) reply(w http.ResponseWriter, data any, err error) {
