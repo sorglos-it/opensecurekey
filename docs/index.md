@@ -17,6 +17,7 @@ The device does not exist yet and nobody has used it. The manual says what is pl
 - [display.md](display.md) — the display, the button, and how approval works
 - [hardware.md](hardware.md) — parts, test setup, target board
 - [pqc.md](pqc.md) — post-quantum: ML-KEM-768 together with X25519 (German)
+- [flash-und-ram.md](flash-und-ram.md) — measured flash, RAM and stack use per module (German)
 - [integration.md](integration.md) — how other programs reach the key
 - [../shared/protocol.md](../shared/protocol.md) — device ↔ program protocol
 - [../shared/vault-format.md](../shared/vault-format.md) — how the vault is stored
