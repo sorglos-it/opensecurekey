@@ -84,6 +84,32 @@ func run(path string) error {
 	}
 	fmt.Printf("ergebnis: verschlossen %d byte, wieder offen\n", len(blob))
 
+	// 2b. Ein verschluesselter PROGRAMMTEIL. Das ist der starke Weg: ohne
+	// Stick fehlt dem Angreifer nicht die Antwort, sondern der Teil selbst.
+	code := []byte("die Regeln, nach denen dieses Programm rechnet")
+	codeBlob, codeHash, err := guard.SealCode(s.Label, code)
+	if err != nil {
+		return err
+	}
+	gotCode, err := guard.UnsealCode(s.Label, codeBlob, codeHash)
+	if err != nil {
+		return err
+	}
+	if string(gotCode) != string(code) {
+		return fmt.Errorf("der Programmteil kam anders zurueck")
+	}
+	// Mit einem anderen Hash gibt es KEINE Bytes.
+	other := make([]byte, len(codeHash))
+	copy(other, codeHash)
+	other[0] ^= 0x01
+	if _, err := guard.UnsealCode(s.Label, codeBlob, other); err == nil {
+		return fmt.Errorf("ein fremder Programmteil ging auf")
+	} else if oskguard.Code(err) == "" {
+		return fmt.Errorf("kein Fehlerschluessel: %v", err)
+	}
+	fmt.Printf("ergebnis: programmteil %d byte, nur mit stick lesbar\n",
+		len(codeBlob))
+
 	// 3. Die Lizenz.
 	license, err := guard.License(s.Product)
 	if err != nil {

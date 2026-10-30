@@ -15,6 +15,7 @@ kein Erfolg: eine leere oder halbe Vektordatei darf nicht als gruener
 Pruefsatz durchgehen.
 """
 
+import io
 import json
 import os
 import socket
@@ -779,6 +780,155 @@ class TestWipe(unittest.TestCase):
         # Unveraenderliche bytes kann Python nicht ueberschreiben; wipe
         # tut dann nichts und behauptet auch nichts.
         osk_guard.wipe(b"geheim")
+
+
+# -------------------------------------------------- aufgezeichnete Antworten
+#
+# Die eine Pruefung, um die es bei Stufe 1 geht: eine AUFGEZEICHNETE
+# Antwort darf nicht wiederverwendbar sein. "Jede Frage ist neu" ist nicht
+# dasselbe - darum wird hier wirklich mitgeschnitten und wirklich noch
+# einmal eingereicht.
+#
+# Unterschrieben wird mit tools/ed25519.py, eigenem Code dieses Projekts.
+# Die Bibliothek selbst kann nur pruefen, und das ist Absicht: Unterschreiben
+# gehoert in den Chip.
+
+REPLAY_PATH = os.path.join(TESTS_DIR, "replay-vectors.json")
+_TOOLS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          os.pardir, os.pardir, os.pardir, "tools")
+
+
+def load_replay():
+    with io.open(REPLAY_PATH, encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _signer():
+    """tools/ed25519.py nachladen - nur fuer die Pruefung."""
+    import importlib.util
+    path = os.path.join(_TOOLS_DIR, "ed25519.py")
+    spec = importlib.util.spec_from_file_location("osk_tools_ed25519", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class RecordingAgent(threading.Thread):
+    """Ein Dienst, der die erste Frage ehrlich unterschreibt und danach
+    IMMER DIESELBE Antwort gibt - der Angreifer, der einmal mitgehoert
+    hat."""
+
+    def __init__(self, seed, pub):
+        super().__init__(daemon=True)
+        self.signer = _signer()
+        self.seed = seed
+        self.pub = pub
+        self.kept = None
+        self.rounds = 0
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.bind(("127.0.0.1", 0))
+        self.socket.listen(8)
+        self.address = "127.0.0.1:%d" % self.socket.getsockname()[1]
+        self.running = True
+
+    def run(self):
+        while self.running:
+            try:
+                connection, _ = self.socket.accept()
+            except OSError:
+                return
+            try:
+                line = connection.recv(1 << 20).decode("ascii", "replace")
+                answer = self.answer(line.split())
+                connection.sendall(answer.encode("ascii") + b"\n")
+            except OSError:
+                pass
+            finally:
+                connection.close()
+
+    def answer(self, fields):
+        if not fields:
+            return "ERR error.guard.request"
+        if fields[0] == "ping":
+            return "OK v=1"
+        if fields[0] != "attest" or len(fields) != 3:
+            return "ERR error.guard.verb"
+        self.rounds += 1
+        if self.kept is not None:
+            return self.kept
+        nonce = bytes.fromhex(fields[1])
+        bin_hash = bytes.fromhex(fields[2])
+        signed = (b"osk-guard/attest/1" + b"\x00" + nonce + bin_hash)
+        signature = self.signer.sign(self.seed, signed)
+        self.kept = ("OK sig=" + signature.hex() + " pub=" + self.pub.hex())
+        return self.kept
+
+    def close(self):
+        self.running = False
+        try:
+            self.socket.close()
+        except OSError:
+            pass
+
+
+class TestRecordedAnswer(unittest.TestCase):
+    """Mitschneiden und noch einmal einreichen, ueber die Leitung."""
+
+    def setUp(self):
+        signer = _signer()
+        self.seed = bytes(range(32))
+        self.pub = signer.public_key(self.seed)
+        self.agent = RecordingAgent(self.seed, self.pub)
+        self.agent.start()
+        self.addCleanup(self.agent.close)
+        self.binary = os.path.abspath(__file__)
+
+    def test_first_round_is_accepted(self):
+        """Die Messlatte. Ohne diesen Fall beweist kein abgewiesener Fall
+        etwas - eine Bibliothek, die alles abweist, waere auch gruen."""
+        guard = osk_guard.OskGuard(self.agent.address, self.pub)
+        guard.present(self.binary)
+
+    def test_recorded_answer_is_refused(self):
+        guard = osk_guard.OskGuard(self.agent.address, self.pub)
+        guard.present(self.binary)
+        with self.assertRaises(osk_guard.OskGuardError) as caught:
+            guard.present(self.binary)
+        self.assertEqual(caught.exception.code, "error.guard.signature")
+        self.assertEqual(self.agent.rounds, 2)
+
+    def test_recorded_answer_stays_refused(self):
+        guard = osk_guard.OskGuard(self.agent.address, self.pub)
+        guard.present(self.binary)
+        for _ in range(3):
+            with self.assertRaises(osk_guard.OskGuardError) as caught:
+                guard.present(self.binary)
+            self.assertEqual(caught.exception.code, "error.guard.signature")
+
+
+class TestReplayVectors(unittest.TestCase):
+    """Die eingecheckten Bytes - dieselbe Datei pruefen alle fuenf
+    Sprachen, und keine braucht dafuer einen Unterschreiber."""
+
+    def setUp(self):
+        self.file = load_replay()
+
+    def test_case_count(self):
+        self.assertGreaterEqual(len(self.file["cases"]), 6)
+        valid = [c for c in self.file["cases"] if c["valid"]]
+        self.assertTrue(valid, "kein gueltiger Fall - dann beweist kein "
+                               "abgewiesener Fall etwas")
+
+    def test_all_cases(self):
+        device_pub = bytes.fromhex(self.file["device_pub"])
+        for case in self.file["cases"]:
+            nonce = bytes.fromhex(case["nonce"])
+            bin_hash = bytes.fromhex(case["binhash"])
+            signature = bytes.fromhex(case["sig"])
+            signed = b"osk-guard/attest/1" + b"\x00" + nonce + bin_hash
+            got = ed25519_verify.verify(device_pub, signed, signature)
+            self.assertEqual(got, case["valid"],
+                             "%s: %s" % (case["name"], case["why"]))
 
 
 if __name__ == "__main__":

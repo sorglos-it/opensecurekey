@@ -1,0 +1,68 @@
+{
+  "kommentar": "Aufgezeichnete Antworten des Geraets. Erzeugt von make-replay-vectors.py, unterschrieben mit tools/ed25519.py. Die Bibliothek baut die Botschaft selbst: <zweck> 0x00 nonce(32) binhash(32).",
+  "domain": "osk-guard/attest/1",
+  "device_pub": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+  "other_pub": "ed54a59fb1ac3a51239351362941b868e85a60e3d7b2485d828821dc7a69c279",
+  "cases": [
+    {
+      "name": "echte Antwort auf ihre eigene Frage",
+      "nonce": "f871a3bc9b01c10358a330422b2d74d35dbe53860e69a4c2f0acee2c8b28a22d",
+      "binhash": "e1af8c15f4ff261fc6b6b6c8c52ca4e1dd1e852a1c4a575124ad61f57a8f7547",
+      "pub": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "sig": "a2546b5cb61ffaa11b5dc9b85d32ffcd681c8461783ce3a31f9a18ea57bc33c18d423df5257e4600c1990af8b7592cbcff7400fbf4ebf0c020e05d657afb5805",
+      "valid": true,
+      "expect": "",
+      "why": "die Messlatte: ohne diesen Fall beweist kein abgewiesener Fall etwas"
+    },
+    {
+      "name": "dieselbe Antwort auf eine neue Frage (Aufzeichnung)",
+      "nonce": "a4d8608725c065cbad1009f92b2ccab80b228170668cbf9d956634c6291b1a39",
+      "binhash": "e1af8c15f4ff261fc6b6b6c8c52ca4e1dd1e852a1c4a575124ad61f57a8f7547",
+      "pub": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "sig": "a2546b5cb61ffaa11b5dc9b85d32ffcd681c8461783ce3a31f9a18ea57bc33c18d423df5257e4600c1990af8b7592cbcff7400fbf4ebf0c020e05d657afb5805",
+      "valid": false,
+      "expect": "error.guard.signature",
+      "why": "eine aufgezeichnete Antwort ist die Antwort auf eine andere Frage"
+    },
+    {
+      "name": "Antwort fuer eine gepatchte Programmdatei",
+      "nonce": "f871a3bc9b01c10358a330422b2d74d35dbe53860e69a4c2f0acee2c8b28a22d",
+      "binhash": "e1af8c15f4ff261fc6b6b6c8c52ca4e1dd1e852a1c4a575124ad61f57a8f7547",
+      "pub": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "sig": "9dc4d49fba5d6339fb463456fc2a5e62ddd9032a6b05155780535abb96ff7a33ccbdc81d3ba1cca4dbd8f8a9cc3edb9132bd8f73bbc75186857ac85105c07a06",
+      "valid": false,
+      "expect": "error.guard.signature",
+      "why": "die Programmdatei steckt in der Frage"
+    },
+    {
+      "name": "echte Unterschrift, aber ein anderes Geraet",
+      "nonce": "f871a3bc9b01c10358a330422b2d74d35dbe53860e69a4c2f0acee2c8b28a22d",
+      "binhash": "e1af8c15f4ff261fc6b6b6c8c52ca4e1dd1e852a1c4a575124ad61f57a8f7547",
+      "pub": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "sig": "56dbe2c9494e494144b0ec76082afac30ccfc6d8e08b9e8bbd53a0e9c3fe001f0a9462d1d4a21c7b4beae8e13c6aa4ebde531839ccdff7973f5ce141574bb80c",
+      "valid": false,
+      "expect": "error.guard.signature",
+      "why": "geprueft wird gegen den eingetragenen Schluessel"
+    },
+    {
+      "name": "die alte attest-Form mit Zufallswert und Hash als Aufgabe",
+      "nonce": "f871a3bc9b01c10358a330422b2d74d35dbe53860e69a4c2f0acee2c8b28a22d",
+      "binhash": "e1af8c15f4ff261fc6b6b6c8c52ca4e1dd1e852a1c4a575124ad61f57a8f7547",
+      "pub": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "sig": "b5b8688cfeed56227add1b72ddbbaada930c88cbb0210ff31e597ad31dbea1043e261ab3b20dd106a6a64036b511e9e70cf8e2e1d6644f2544b2c9089ea44d00",
+      "valid": false,
+      "expect": "error.guard.signature",
+      "why": "getrennte Zweckzeichenfolgen; ohne sie waere dieser Fall gueltig und die Bindung an die Programmdatei weg"
+    },
+    {
+      "name": "eine Auftragsunterschrift als Praesenzantwort",
+      "nonce": "f871a3bc9b01c10358a330422b2d74d35dbe53860e69a4c2f0acee2c8b28a22d",
+      "binhash": "e1af8c15f4ff261fc6b6b6c8c52ca4e1dd1e852a1c4a575124ad61f57a8f7547",
+      "pub": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "sig": "4fcd98438de8d3c8975cdba79cfb797704563ec5e64b2c20b071d9f31a2b60c0161bc158ab250d8e63165f87040804ad117831b4d246b1ab3036d7da6eec9305",
+      "valid": false,
+      "expect": "error.guard.signature",
+      "why": "der Zweck steht vorn, und das Geraet setzt ihn"
+    }
+  ]
+}

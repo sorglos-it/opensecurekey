@@ -300,6 +300,75 @@ final class OskGuard
         return self::value($answer, 'plain', 0);
     }
 
+    // sealCode verschliesst einen Programmteil. Der erwartete Hash geht als
+    // zusaetzlich gepruefte Daten mit hinein, damit ein Behaelter fuer einen
+    // anderen Teil sich hier nicht oeffnen laesst. Zurueck kommen Behaelter
+    // und Hash; der Hash wird ins Programm eingetragen.
+    //
+    // @return array{0: string, 1: string} Behaelter und Hash
+    public function sealCode(string $label, string $code): array
+    {
+        if ($code === '') {
+            throw new OskGuardError('error.guard.size');
+        }
+        $codeHash = hash('sha256', $code, true);
+        return [$this->seal($label, $codeHash, $code), $codeHash];
+    }
+
+    // unsealCode macht einen verschluesselten Programmteil auf und haelt ihn
+    // gegen den Hash, den der Hersteller eingetragen hat. Das ist der starke
+    // Weg, und er ist der bequemste: es gibt keinen Aufruf, der nur Ja sagt.
+    //
+    // Ohne Stick kommt eine Ausnahme und KEINE Bytes - der Programmteil ist
+    // dann nicht da, nicht bloss abgelehnt. Genau darin unterscheidet sich
+    // Stufe 2 von present: hier gibt es keinen Zweig zum Herausschneiden.
+    public function unsealCode(string $label, string $blob,
+                               string $codeHash): string
+    {
+        if (strlen($codeHash) !== self::HASH_LEN) {
+            throw new OskGuardError('error.guard.codehash');
+        }
+        $code = $this->unseal($label, $codeHash, $blob);
+        if (!hash_equals($codeHash, hash('sha256', $code, true))) {
+            throw new OskGuardError('error.guard.codehash');
+        }
+        return $code;
+    }
+
+    // watch fragt in festem Abstand weiter und ruft $lost auf, sobald eine
+    // Runde scheitert - beim Abziehen also beim naechsten Durchgang. Danach
+    // kehrt watch zurueck. Ein geschuetztes Programm beendet sich in $lost.
+    // $rounds > 0 begrenzt die Durchgaenge, damit ein Beispiel von selbst
+    // endet.
+    //
+    // PHP laeuft meist als Anfrage und nicht als Dauerprogramm; dann ist ein
+    // present() je Anfrage richtig und watch() ueberfluessig. Fuer ein
+    // Dauerprogramm (ein Arbeiter, ein Dienst) gibt es watch() hier, damit
+    // alle fuenf Sprachen dieselbe Schnittstelle haben.
+    public function watch(float $every = 2.0, ?string $binaryPath = null,
+                          ?callable $lost = null, int $rounds = 0): void
+    {
+        if ($every <= 0.0) {
+            $every = 2.0;
+        }
+        $done = 0;
+        while (true) {
+            usleep((int) round($every * 1000000.0));
+            try {
+                $this->present($binaryPath);
+            } catch (OskGuardError $error) {
+                if ($lost !== null) {
+                    $lost($error);
+                }
+                return;
+            }
+            $done++;
+            if ($rounds > 0 && $done >= $rounds) {
+                return;
+            }
+        }
+    }
+
     // license holt die Lizenz fuer ein Produkt und prueft ihre
     // Unterschrift SELBST - siehe OskGuardLicenseReader. Der Dienst gibt
     // nur den unterschriebenen Block heraus; was darin steht, entscheidet

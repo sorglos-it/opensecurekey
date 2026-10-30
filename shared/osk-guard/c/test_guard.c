@@ -37,6 +37,11 @@
 
 #define MAX_FILE (4u << 20)
 
+/* Die Zahlen stehen hier, damit ein Lauf, der weniger Faelle findet, rot
+ * wird statt leise durchzugehen. */
+#define WANT_REPLAY_CASES 6
+#define WANT_REPLAY_VALID 1
+
 static int failures = 0;
 
 static void report(const char *name, const char *what)
@@ -640,6 +645,108 @@ static int run_license_cases(const char *text, size_t len, int *valid_seen,
 
 /* ------------------------------------------------------------- Hauptlauf */
 
+/* ------------------------------------------------- aufgezeichnete Antworten */
+
+/* Die eine Pruefung, um die es bei Stufe 1 geht: eine AUFGEZEICHNETE
+ * Antwort darf nicht wiederverwendbar sein. "Jede Frage ist neu" ist nicht
+ * dasselbe.
+ *
+ * Gelesen wird ../tests/replay-vectors.json - dieselben Bytes pruefen alle
+ * fuenf Sprachen. Die Botschaft wird hier gebaut, genau wie die Bibliothek
+ * sie baut: <zweck> 0x00 nonce(32) binhash(32). Der erste Fall MUSS gelten;
+ * ohne ihn beweist kein abgewiesener Fall etwas. */
+static int run_replay_cases(const char *text, size_t len, int *valid_seen)
+{
+    static const char domain[] = "osk-guard/attest/1";
+    size_t start, end, cursor;
+    int count = 0;
+    char *device_hex;
+    unsigned char *device_pub = NULL;
+    size_t device_len = 0;
+
+    *valid_seen = 0;
+    device_hex = field_string(text, 0u, len, "device_pub");
+    if (device_hex == NULL ||
+        !hex_to_bytes(device_hex, &device_pub, &device_len) ||
+        device_len != OSK_ED25519_KEY_LEN) {
+        report("replay", "device_pub fehlt oder ist unbrauchbar");
+        free(device_hex);
+        free(device_pub);
+        return 0;
+    }
+    free(device_hex);
+    if (!array_bounds(text, len, "cases", &start, &end)) {
+        report("replay", "das Feld \"cases\" steht nicht in der Datei");
+        free(device_pub);
+        return 0;
+    }
+    cursor = start;
+    for (;;) {
+        size_t object_start, object_end;
+        char *name;
+        char *nonce_hex;
+        char *hash_hex;
+        char *sig_hex;
+        int want;
+        unsigned char *nonce = NULL;
+        unsigned char *bin_hash = NULL;
+        unsigned char *signature = NULL;
+        size_t nonce_len = 0, hash_len = 0, sig_len = 0;
+
+        if (!find_block(text, cursor, end, '{', '}', &object_start,
+                        &object_end)) {
+            break;
+        }
+        cursor = object_end + 1;
+        name = field_string(text, object_start, object_end, "name");
+        nonce_hex = field_string(text, object_start, object_end, "nonce");
+        hash_hex = field_string(text, object_start, object_end, "binhash");
+        sig_hex = field_string(text, object_start, object_end, "sig");
+        want = field_bool(text, object_start, object_end, "valid");
+
+        if (name == NULL || nonce_hex == NULL || hash_hex == NULL ||
+            sig_hex == NULL || want < 0) {
+            report("replay", "ein Feld fehlt");
+        } else if (!hex_to_bytes(nonce_hex, &nonce, &nonce_len) ||
+                   !hex_to_bytes(hash_hex, &bin_hash, &hash_len) ||
+                   !hex_to_bytes(sig_hex, &signature, &sig_len)) {
+            report(name, "ein Wert ist kein Hex");
+        } else if (nonce_len != OSK_GUARD_NONCE_LEN ||
+                   hash_len != OSK_GUARD_HASH_LEN ||
+                   sig_len != OSK_ED25519_SIG_LEN) {
+            report(name, "eine Laenge passt nicht zum Verfahren");
+        } else {
+            unsigned char signed_bytes[sizeof(domain) + OSK_GUARD_NONCE_LEN
+                                      + OSK_GUARD_HASH_LEN];
+            int got;
+            memcpy(signed_bytes, domain, sizeof(domain) - 1u);
+            signed_bytes[sizeof(domain) - 1u] = 0u;
+            memcpy(signed_bytes + sizeof(domain), nonce, nonce_len);
+            memcpy(signed_bytes + sizeof(domain) + nonce_len, bin_hash,
+                   hash_len);
+            got = osk_ed25519_verify(device_pub, signed_bytes,
+                                     sizeof(signed_bytes), signature);
+            if (got != want) {
+                report(name, want ? "haette gelten muessen"
+                                  : "haette abgewiesen werden muessen");
+            }
+            if (want) {
+                (*valid_seen)++;
+            }
+            count++;
+        }
+        free(nonce);
+        free(bin_hash);
+        free(signature);
+        free(name);
+        free(nonce_hex);
+        free(hash_hex);
+        free(sig_hex);
+    }
+    free(device_pub);
+    return count;
+}
+
 static void expect(int got, int want, const char *what)
 {
     if (got != want) {
@@ -654,10 +761,13 @@ int main(int argc, char **argv)
     const char *path = (argc > 1) ? argv[1] : "../tests/vectors.json";
     const char *license_path = (argc > 2) ? argv[2]
                                           : "../tests/license-vectors.json";
+    const char *replay_path = (argc > 3) ? argv[3]
+                                         : "../tests/replay-vectors.json";
     char *text;
     size_t len = 0;
     int hash_cases, verify_cases, valid_seen = 0, invalid_seen = 0;
     int license_cases, license_valid = 0, license_invalid = 0, bent = 0;
+    int replay_cases, replay_valid = 0;
 
     text = read_file(path, &len);
     if (text == NULL) {
@@ -677,6 +787,14 @@ int main(int argc, char **argv)
                                       &license_invalid, &bent);
     free(text);
 
+    text = read_file(replay_path, &len);
+    if (text == NULL) {
+        printf("FEHLER: %s liess sich nicht lesen\n", replay_path);
+        return 1;
+    }
+    replay_cases = run_replay_cases(text, len, &replay_valid);
+    free(text);
+
     printf("hashwerte geprueft: %d (erwartet %d)\n", hash_cases,
            WANT_HASH_CASES);
     printf("unterschriften geprueft: %d (erwartet %d), davon gueltig %d "
@@ -689,6 +807,9 @@ int main(int argc, char **argv)
            WANT_LICENSE_VALID, license_invalid, WANT_LICENSE_INVALID);
     printf("mit verbogenem herstellerschluessel abgewiesen: %d "
            "(erwartet %d)\n", bent, WANT_LICENSE_VALID);
+    printf("aufgezeichnete antworten geprueft: %d (erwartet %d), davon "
+           "gueltig %d (erwartet %d)\n", replay_cases, WANT_REPLAY_CASES,
+           replay_valid, WANT_REPLAY_VALID);
 
     /* Null gelesene Faelle sind ein Fehler, kein Erfolg. */
     expect(hash_cases, WANT_HASH_CASES, "Hashwerte");
@@ -700,6 +821,9 @@ int main(int argc, char **argv)
     expect(license_invalid, WANT_LICENSE_INVALID, "abzuweisende Lizenzen");
     expect(bent, WANT_LICENSE_VALID,
            "Lizenzen mit verbogenem Herstellerschluessel");
+    expect(replay_cases, WANT_REPLAY_CASES, "aufgezeichnete Antworten");
+    expect(replay_valid, WANT_REPLAY_VALID,
+           "gueltige aufgezeichnete Antworten");
 
     if (failures > 0) {
         printf("%d Fehler\n", failures);

@@ -427,12 +427,41 @@ def check_format(root):
     return results
 
 
+def check_guard(root=common.ROOT):
+    """Der Vertrag der fuenf osk-guard-Fassungen gegen die Quellen.
+
+    Braucht keinen Chip, keinen Uebersetzer und keine Attrappe - er liest
+    die Dateien. Darum gehoert er hierher und nicht in run.py: er laeuft
+    immer, auch auf einem Rechner ohne Werkzeugkette.
+
+    Siehe docs/dongle-bau.md."""
+    script = os.path.join(root, 'shared', 'osk-guard', 'tests', 'vertrag.py')
+    if not os.path.isfile(script):
+        return [Result('guard', 'vertrag', SKIPPED,
+                       'shared/osk-guard/tests/vertrag.py fehlt')]
+    code, out = common.run([sys.executable, script], cwd=root, capture=True)
+    count = 0
+    for line in (out or '').splitlines():
+        if line.startswith('vertrag: '):
+            parts = line.split()
+            if len(parts) > 1 and parts[1].isdigit():
+                count = int(parts[1])
+    if code != 0:
+        return [fail('guard', 'vertrag', 'der Vertrag ist verletzt', out)]
+    if count == 0:
+        return [fail('guard', 'vertrag', 'kein einziger Fall geprueft', out)]
+    return [Result('guard', 'vertrag', OK,
+                   'contract.json gegen fuenf Sprachen (%d Faelle)' % count,
+                   count)]
+
+
 # --- Gesamt -----------------------------------------------------------------------
 
 def run_all(root=common.ROOT):
     results = [check_versions(root), check_tools(root), check_python_syntax(root)]
     results += check_firmware(root) + check_desktop(root) + check_web(root)
     results += check_lang(root) + check_format(root)
+    results += check_guard(root)
     return results
 
 

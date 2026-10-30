@@ -122,6 +122,7 @@
   "error.frame.size": "Un informe del dispositivo tiene una longitud incorrecta.",
   "error.guard.answer": "La respuesta del dispositivo no concuerda con el protocolo.",
   "error.guard.binary": "No se ha podido leer el archivo del programa.",
+  "error.guard.codehash": "La parte del programa descifrada no es la esperada.",
   "error.guard.curve": "Ese tipo de clave no existe (ed25519 o x25519).",
   "error.guard.internal": "Error interno de la protección por llave.",
   "error.guard.issuer": "Falta la clave para comprobar la licencia o no sirve.",

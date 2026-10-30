@@ -385,6 +385,34 @@ class OskGuard:
                            _hex_or_dash(extra) + " " + bytes(blob).hex())
         return answer_value(answer, "plain", 0)
 
+    def seal_code(self, label, code):
+        """Verschliesst einen Programmteil. Der erwartete Hash geht als
+        zusaetzlich gepruefte Daten mit hinein, damit ein Behaelter fuer
+        einen anderen Teil sich hier nicht oeffnen laesst. Zurueck kommen
+        Behaelter und Hash; der Hash wird ins Programm eingetragen."""
+        if not code:
+            raise _fail("error.guard.size")
+        code_hash = hashlib.sha256(bytes(code)).digest()
+        return self.seal(label, code_hash, code), code_hash
+
+    def unseal_code(self, label, blob, code_hash):
+        """Macht einen verschluesselten Programmteil auf und haelt ihn
+        gegen den Hash, den der Hersteller eingetragen hat. Das ist der
+        starke Weg, und er ist der bequemste: es gibt keinen Aufruf, der
+        nur Ja sagt.
+
+        Ohne Stick kommt ein Fehler und KEINE Bytes - der Programmteil ist
+        dann nicht da, nicht bloss abgelehnt. Genau darin unterscheidet
+        sich Stufe 2 von present: hier gibt es keinen Zweig, den jemand
+        herausschneiden kann."""
+        if code_hash is None or len(code_hash) != HASH_LEN:
+            raise _fail("error.guard.codehash")
+        code = self.unseal(label, code_hash, blob)
+        if not secrets.compare_digest(hashlib.sha256(code).digest(),
+                                      bytes(code_hash)):
+            raise _fail("error.guard.codehash")
+        return code
+
     def license(self, product):
         """Holt den unterschriebenen Lizenzblock und prueft ihn SELBST.
 
