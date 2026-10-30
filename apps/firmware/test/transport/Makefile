@@ -6,12 +6,30 @@
 # Ein gruener Lauf heisst: uebersetzt und ausgefuehrt. Es ist KEINE
 # Funkmessung dabei - es gibt noch keine Platine. Siehe docs/funk.md.
 
+# RSA=1 (Vorgabe) setzt CONFIG_OSK_RSA. Die Option entscheidet in
+# osk_ctap_core.c, welcher der beiden AAGUIDs gilt - ein AAGUID bezeichnet
+# nach FIDO eine Fassung mit denselben Faehigkeiten, darum zwei.
+#
+# BEIDE FASSUNGEN muessen gebaut und geprueft werden: eine Option, die nur
+# in einer Richtung geprueft ist, ist keine (docs/plan.md, Abschnitt 8).
+#   make RSA=0    - die Fassung OHNE RSA
+#
+# Ohne diese Option brach der Bau am 30.10.2026 ab: ohne CONFIG_OSK_RSA
+# nimmt osk_ctap_aaguid() den #else-Zweig, OSK_AAGUID_RSA bleibt unbenutzt,
+# und -Werror=unused-const-variable macht daraus einen Fehler. Der Prueflauf
+# war damit rot, nicht weil der Code falsch war, sondern weil nur eine
+# Richtung der Option gebaut wurde.
+RSA ?= 1
+ifeq ($(RSA),1)
+CFLAGS_RSA := -DCONFIG_OSK_RSA=1
+endif
+
 CC      ?= gcc
 SRC     := ../../src/classes/transport
 CTAP    := ../../src/classes/ctap
 INC     := -I../../include -I$(SRC) -I$(CTAP) -I../ctap -I.
 CFLAGS  := -std=c11 -Wall -Wextra -Werror -Wshadow -Wconversion -Wsign-conversion \
-           -Wpointer-arith -Wcast-qual -Wundef -O1 -g $(INC) -DOSK_CTAP_TEST_CLOCK
+           -Wpointer-arith -Wcast-qual -Wundef -O1 -g $(INC) -DOSK_CTAP_TEST_CLOCK $(CFLAGS_RSA)
 LDFLAGS :=
 
 # Sanitizer, wenn die Werkzeugkette sie hat. Die Parser sind der
@@ -30,9 +48,15 @@ MOCKS := ../ctap/mocks.c
 CRYPTO := $(CTAP)/osk_crypto.c ../../src/osk_mem.c
 # Der echte CTAP-Kern. Nur der Satz test_nfc nimmt ihn, damit dort wirklich
 # derselbe Kern antwortet wie am USB - und der Tastendruck echt gezaehlt wird.
+# Die drei letzten kamen mit CredentialManagement, Config und dem
+# Signaturzaehler hinzu. Sie standen im Makefile des CTAP-Strangs, hier aber
+# nicht - dadurch fand der Binder am 30.10.2026 osk_sigcount_next,
+# osk_ctap_cm_handle und osk_ctap_config_handle nicht. Wer hier eine Datei
+# zum CTAP-Kern hinzufuegt, muss sie in BEIDEN Makefiles nachtragen.
 CORE  := $(CTAP)/osk_cbor.c $(CTAP)/osk_crypto.c $(CTAP)/osk_credid.c \
          $(CTAP)/osk_ctap_key.c $(CTAP)/osk_ctap_ext.c $(CTAP)/osk_ctap_core.c \
-         $(CTAP)/osk_ctap_u2f.c $(CTAP)/osk_pin.c ../../src/osk_mem.c
+         $(CTAP)/osk_ctap_u2f.c $(CTAP)/osk_pin.c $(CTAP)/osk_ctap_cm.c \
+         $(CTAP)/osk_ctap_config.c $(CTAP)/osk_sigcount.c ../../src/osk_mem.c
 
 TESTS   := test_apdu test_isodep test_ndef test_ble test_nfc_chain test_nfc
 FUZZERS := fuzz_isodep fuzz_ndef

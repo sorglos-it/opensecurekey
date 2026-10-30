@@ -26,9 +26,14 @@ add_executable(store_tests
 	${STORE}/osk_shamir.c
 	${STORE}/osk_transfer.c
 	${STORE}/osk_wordlist.c
+	${STORE}/volume_core.c
+	${STORE}/volume_tree.c
+	${STORE}/volume_recv.c
 	fake_flash.c
 	fake_crypto.c
 	fake_se050.c
+	fake_card.c
+	fake_vcrypto.c
 	fake_ui.c
 	test_util.c
 	test_core.c
@@ -47,6 +52,8 @@ add_executable(store_tests
 	test_wipe.c
 	test_sigcount.c
 	test_capacity.c
+	test_volume.c
+	test_volume_modes.c
 	test_main.c)
 
 target_include_directories(store_tests PRIVATE ${STORE} ${INC}

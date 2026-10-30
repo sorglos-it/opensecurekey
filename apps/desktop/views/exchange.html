@@ -1,0 +1,52 @@
+{{template "head" .}}
+<p>{{.Texts.Get "exchange.intro"}}</p>
+
+<h2>{{.Texts.Get "action.export"}}</h2>
+<form id="export">
+  <p>
+    <label for="export-to">{{.Texts.Get "exchange.destination"}}</label>
+    <input type="text" id="export-to" name="to" maxlength="128" required>
+  </p>
+  <p class="hint">{{.Texts.Get "cxf.export.warning"}}</p>
+  <p id="export-where" class="hint" hidden></p>
+  <button type="submit">{{.Texts.Get "action.export"}}</button>
+</form>
+
+<h2>{{.Texts.Get "action.import"}}</h2>
+<form id="import">
+  <p>
+    <label for="import-format">{{.Texts.Get "field.format"}}</label>
+    <select id="import-format" name="format">
+      <option value="cxf">CXF</option>
+      <option value="csv">CSV</option>
+      <option value="keepass">KeePass</option>
+    </select>
+  </p>
+  <p>
+    <label for="import-file">{{.Texts.Get "field.file"}}</label>
+    <input type="file" id="import-file" name="file" accept=".json,.csv,.kdbx">
+  </p>
+  <p id="import-password-row" hidden>
+    <label for="import-password">{{.Texts.Get "cli.kdbx.pin"}}</label>
+    <input type="password" id="import-password" name="password" autocomplete="off">
+  </p>
+  <button type="submit">{{.Texts.Get "action.import"}}</button>
+</form>
+<div id="import-report" hidden>
+  <ul id="import-lines"></ul>
+  <button type="button" id="import-apply">{{.Texts.Get "action.save"}}</button>
+</div>
+
+<h2>{{.Texts.Get "action.leaks"}}</h2>
+<form id="leaks">
+  <p class="hint">{{.Texts.Get "leak.explain"}}</p>
+  <p>
+    <label for="leaks-consent">
+      <input type="checkbox" id="leaks-consent" name="consent">
+      {{.Texts.Get "field.leakconsent"}}
+    </label>
+  </p>
+  <button type="submit">{{.Texts.Get "action.leaks"}}</button>
+</form>
+<ul id="leaks-lines"></ul>
+{{template "foot" .}}

@@ -151,6 +151,53 @@ static osk_result_t reply_plain(osk_response_t *res, uint64_t seq, osk_result_t 
 
 /* --- Protokoll und Freigabe --------------------------------------------- */
 
+/* note_who schreibt einen Satz ins Protokoll und traegt dabei ein, WER
+ * ihn ausgeloest hat - soweit das Geraet das wissen kann.
+ *
+ * Mehr als den Weg, auf dem die Anfrage hereinkam, und den Namen des
+ * betroffenen Schluessels weiss es nicht: das Protokoll kennt kein Feld,
+ * in dem der Rechner sagt, wer dort am Werk ist, und ein Feld, das der
+ * Rechner selbst fuellt, waere ohnehin die Aussage des Verdaechtigen.
+ * Darum steht hier der Kanal und nicht ein Benutzername. Was dafuer
+ * noetig waere, steht als offener Punkt in docs/dongle-bau.md.
+ *
+ * Die Freischaltung ist der Satz, bei dem das zaehlt: wer sie einschaltet,
+ * nimmt dem ganzen Rechner den Tastendruck ab. */
+static void note_who(uint16_t what, const char *who, size_t who_len)
+{
+	osk_log_entry_t entry;
+	memset(&entry, 0, sizeof(entry));
+	/* Die Uhr des Geraets zaehlt ab dem Einschalten - siehe note(). */
+	entry.when_utc = osk_ctap_now_ms() / 1000u;
+	entry.link = OSK_LINK_USB_VENDOR;
+	entry.what = what;
+	if (who != NULL && who_len > 0u) {
+		size_t room = sizeof(entry.asked_by) - 1u;
+		size_t take = (who_len < room) ? who_len : room;
+		memcpy(entry.asked_by, who, take);
+		entry.asked_by[take] = '\0';
+	}
+	(void)osk_log_add(&entry);
+}
+
+/* grant_who baut den Eintrag "Kanal:Schluessel" fuer das Protokoll. Der
+ * Kanal ist das, was das Geraet selbst gesehen hat. */
+static void note_grant(const char *label, size_t label_len)
+{
+	char who[16u + 1u + OSK_GUARD_LABEL_MAX + 1u];
+	static const char channel[] = "usb-vendor";
+	size_t at = sizeof(channel) - 1u;
+
+	memcpy(who, channel, at);
+	if (label != NULL && label_len > 0u && label_len <= OSK_GUARD_LABEL_MAX) {
+		who[at++] = ':';
+		memcpy(who + at, label, label_len);
+		at += label_len;
+	}
+	who[at] = '\0';
+	note_who(OSK_GUARD_CMD_SESSION, who, at);
+}
+
 static void note(uint16_t what)
 {
 	osk_log_entry_t entry;
@@ -388,7 +435,7 @@ static osk_result_t do_session(const osk_cbor_reader_t *data, const osk_request_
 		/* Abschalten geht immer und ohne Nachfrage: die Latte wieder
 		 * hoeher zu legen ist nie das Gefaehrliche. */
 		osk_guard_grant_clear();
-		note(OSK_GUARD_CMD_SESSION);
+		note_grant(NULL, 0u);
 		return reply_plain(res, seq, OSK_OK);
 	}
 
@@ -446,7 +493,7 @@ static osk_result_t do_session(const osk_cbor_reader_t *data, const osk_request_
 		return reply_plain(res, seq, rc);
 	}
 
-	note(OSK_GUARD_CMD_SESSION);
+	note_grant(labels[0], lens[0]);
 
 	osk_cbor_writer_t w;
 	reply_begin(&w, res, 2u);

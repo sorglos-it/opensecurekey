@@ -38,6 +38,23 @@
     "denied": "Annullato",
     "timeout": "Tempo scaduto"
   },
+  "mode": {
+    "before_write": "Scrive:",
+    "open": "Non protetto",
+    "secret": "Protetto",
+    "title": "Modo",
+    "unknown": "Modo ?"
+  },
+  "pin": {
+    "hint": {
+      "bits": "Breve: 0 Lungo: 1",
+      "one": "Breve: avanti Lungo: prendi",
+      "two": "1: avanti 2: prendi"
+    },
+    "locked": "Bloccato",
+    "title": "PIN",
+    "wrong": "PIN errato"
+  },
   "status": {
     "busy": "Lavora",
     "error": "Errore",

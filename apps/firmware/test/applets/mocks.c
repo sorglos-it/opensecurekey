@@ -185,6 +185,68 @@ osk_result_t osk_se050_key_create(osk_key_id_t id, osk_curve_t curve,
 	return OSK_ERR_FULL;
 }
 
+/* ---- Was beim Unterschreiben ankam - siehe mocks.h -------------------- */
+
+static uint8_t g_sign_hash[64];
+static size_t g_sign_hash_len;
+static unsigned g_sign_count;
+
+const uint8_t *mock_sign_last_hash(size_t *len_out)
+{
+	if (len_out != NULL)
+		*len_out = g_sign_hash_len;
+	return g_sign_hash;
+}
+
+unsigned mock_sign_count(void)
+{
+	return g_sign_count;
+}
+
+/* ---- Echtes Schluesselmaterial - siehe mocks.h ------------------------- */
+
+/* Laengster Modulus und laengste Unterschrift: RSA-4096. Dieselbe Zahl
+ * steht in osk_rsa_card.h als OSK_RSA_MOD_MAX; hier steht sie noch einmal,
+ * weil die Attrappe absichtlich keine Kopfdatei der Firmware braucht, um
+ * einen Puffer zu bemessen. */
+#define OVER_MOD_MAX 512u
+
+static uint8_t g_pub_over[160];
+static size_t g_pub_over_len;
+static uint8_t g_mod_over[OVER_MOD_MAX];
+static size_t g_mod_over_len;
+static uint8_t g_exp_over[8];
+static size_t g_exp_over_len;
+static uint8_t g_sig_over[OVER_MOD_MAX];
+static size_t g_sig_over_len;
+
+static void over_set(uint8_t *dst, size_t cap, size_t *len_out, const uint8_t *src, size_t len)
+{
+	if (src == NULL || len == 0u || len > cap) {
+		*len_out = 0u;
+		return;
+	}
+	memcpy(dst, src, len);
+	*len_out = len;
+}
+
+void mock_se050_set_public(const uint8_t *point, size_t len)
+{
+	over_set(g_pub_over, sizeof(g_pub_over), &g_pub_over_len, point, len);
+}
+
+void mock_se050_set_rsa_public(const uint8_t *mod, size_t mod_len, const uint8_t *exp,
+			       size_t exp_len)
+{
+	over_set(g_mod_over, sizeof(g_mod_over), &g_mod_over_len, mod, mod_len);
+	over_set(g_exp_over, sizeof(g_exp_over), &g_exp_over_len, exp, exp_len);
+}
+
+void mock_se050_set_signature(const uint8_t *sig, size_t len)
+{
+	over_set(g_sig_over, sizeof(g_sig_over), &g_sig_over_len, sig, len);
+}
+
 /* ---- SE050: RSA -------------------------------------------------------- */
 
 /* Nachgestellt, nicht gerechnet: der Modulus ist aus der Kennung
@@ -330,6 +392,16 @@ osk_result_t osk_se050_rsa_public(osk_key_id_t id, uint8_t *mod_out, size_t mod_
 	n = (size_t)r->bits / 8u;
 	if (mod_cap < n || exp_cap < 3u)
 		return OSK_ERR_FULL;
+	if (g_mod_over_len > 0u && g_exp_over_len > 0u) {
+		/* Echtes Material von aussen - siehe mocks.h. */
+		if (mod_cap < g_mod_over_len || exp_cap < g_exp_over_len)
+			return OSK_ERR_FULL;
+		memcpy(mod_out, g_mod_over, g_mod_over_len);
+		memcpy(exp_out, g_exp_over, g_exp_over_len);
+		*mod_len_out = g_mod_over_len;
+		*exp_len_out = g_exp_over_len;
+		return OSK_OK;
+	}
 	for (size_t i = 0; i < n; i++)
 		mod_out[i] = (uint8_t)(r->seed[i % sizeof(r->seed)] ^ (uint8_t)i);
 	/* Oberstes Bit gesetzt: ein echter Modulus dieser Bitlaenge hat es
@@ -371,6 +443,17 @@ osk_result_t osk_se050_rsa_sign(osk_key_id_t id, osk_rsa_pad_t pad, osk_hash_t h
 	n = (size_t)r->bits / 8u;
 	if (sig_out == NULL || cap < n)
 		return OSK_ERR_FULL;
+	if (g_sig_over_len > 0u) {
+		/* Echte Unterschrift von aussen - siehe mocks.h. Die Angaben
+		 * oben (Auffuellung, Hashverfahren, Hash) sind trotzdem
+		 * mitgeschrieben worden, damit die Pruefung sie ansehen
+		 * kann. */
+		if (cap < g_sig_over_len)
+			return OSK_ERR_FULL;
+		memcpy(sig_out, g_sig_over, g_sig_over_len);
+		*len_out = g_sig_over_len;
+		return OSK_OK;
+	}
 	osk_hmac_sha1(r->seed, sizeof(r->seed), hash, hash_len, mac);
 	for (size_t i = 0; i < n; i++)
 		sig_out[i] = mac[i % sizeof(mac)];
@@ -441,7 +524,7 @@ osk_result_t osk_se050_key_public(osk_key_id_t id, uint8_t *out, size_t cap, siz
 
 	if (s == NULL)
 		return OSK_ERR_NOT_FOUND;
-	point_len = curve_point_len(s->curve);
+	point_len = (g_pub_over_len > 0u) ? g_pub_over_len : curve_point_len(s->curve);
 	/* Der echte Chip haengt den Punkt hinten an eine Verpackung. Zwei
 	 * Bytes davor stellen das nach, damit die Pruefung genau den Weg
 	 * geht, den der Chip verlangt. */
@@ -450,6 +533,13 @@ osk_result_t osk_se050_key_public(osk_key_id_t id, uint8_t *out, size_t cap, siz
 		return OSK_ERR_FULL;
 	out[0] = 0x30u;
 	out[1] = (uint8_t)point_len;
+	if (g_pub_over_len > 0u) {
+		/* Ein echter Punkt, von aussen hineingelegt. Nur so kann ein
+		 * fremdes Programm die Anfrage nachrechnen (mocks.h). */
+		memcpy(out + 2, g_pub_over, g_pub_over_len);
+		*len_out = total;
+		return OSK_OK;
+	}
 	out[2] = 0x04u;
 	for (size_t i = 1; i < point_len; i++)
 		out[2u + i] = (uint8_t)(s->seed[i % sizeof(s->seed)] ^ (uint8_t)i);
@@ -490,6 +580,21 @@ osk_result_t osk_se050_sign(osk_key_id_t id, const uint8_t *hash, size_t hash_le
 		return OSK_ERR_NOT_FOUND;
 	if (hash == NULL || hash_len == 0u)
 		return OSK_ERR_ARG;
+	if (hash_len <= sizeof(g_sign_hash)) {
+		memcpy(g_sign_hash, hash, hash_len);
+		g_sign_hash_len = hash_len;
+	}
+	g_sign_count++;
+	if (g_sig_over_len > 0u) {
+		/* Eine echte Unterschrift, von aussen hineingelegt - siehe
+		 * mocks.h. Sie wird NICHT geprueft: wer sie hineinlegt, muss
+		 * wissen, ueber welche Bytes sie geht. */
+		if (sig_out == NULL || cap < g_sig_over_len)
+			return OSK_ERR_FULL;
+		memcpy(sig_out, g_sig_over, g_sig_over_len);
+		*len_out = g_sig_over_len;
+		return OSK_OK;
+	}
 	half = (s->curve == OSK_CURVE_P384) ? 48u : 32u;
 
 	/* r und s aus HMAC(seed, hash) - deterministisch, aber keine Kurve. */
@@ -984,6 +1089,12 @@ void mock_reset_all(void)
 	g_rsa_sign_count = 0u;
 	g_rsa_decrypt_count = 0u;
 	g_hkdf_fail = false;
+	g_sign_hash_len = 0u;
+	g_sign_count = 0u;
+	g_pub_over_len = 0u;
+	g_mod_over_len = 0u;
+	g_exp_over_len = 0u;
+	g_sig_over_len = 0u;
 	memset(g_items, 0, sizeof(g_items));
 	g_next_id = 1u;
 	g_reveal_count = 0u;

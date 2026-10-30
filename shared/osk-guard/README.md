@@ -22,6 +22,13 @@ ever been involved.**
 Stage 1 alone is a yes/no answer inside your own program. Ship stage 2 for
 anything that matters.
 
+There is deliberately **no call that returns true or false**. `Present()`
+returns an error or nothing; `UnsealCode()` returns the program part or
+nothing. A library whose most convenient function were `IsUnlocked()` would
+teach everyone to build the removable kind of protection —
+[`tests/vertrag.py`](tests/vertrag.py) refuses that name, and six other
+spellings of it, in all five languages.
+
 ## Start in 3 steps
 
 1. Read your key's public key once and put it in your program:
@@ -44,6 +51,17 @@ anything that matters.
    if err := guard.Present(""); err != nil { os.Exit(1) }
    ```
 
+## One contract, five languages
+
+Five implementations of one decision drift apart. So the decision lives in
+[`contract.json`](contract.json) — the wire, the purpose strings, the sizes,
+the container formats, the mandatory calls with their name in each language,
+the forbidden names, the rule for error codes — and
+[`tests/vertrag.py`](tests/vertrag.py) measures the sources against it.
+No chip, no compiler, no mock: it reads the files, and it runs inside
+`tools/check.py`. How and why is in
+[`../../docs/dongle-bau.md`](../../docs/dongle-bau.md).
+
 ## The same interface in all five
 
 | Call | Does |
@@ -51,6 +69,8 @@ anything that matters.
 | `Open(address, devicePublicKey, issuerPublicKey)` | connect to the local service, check it answers; the issuer key may be empty, and then `License` refuses rather than returning something unchecked |
 | `Present(binaryPath)` | one round of question and answer, verified **here**; empty path = the running file |
 | `Seal(label, extra, plain)` | close data with a key that never leaves the chip |
+| `SealCode(label, code)` | close a **program part**; returns the container and the hash to write into your program |
+| `UnsealCode(label, blob, codeHash)` | open that part again and check it against that hash — **this is the strong way, and it is the shortest one** |
 | `Unseal(label, extra, blob)` | open it again; impossible without the key |
 | `License(product)` | read the licence from the vault and check the maker's signature |
 | `NodePublic(label, curve)` | public part of a node key (`ed25519` or `x25519`) |
@@ -207,8 +227,28 @@ there": it finds `gcc`/`mingw32-make` in an unrelated toolchain, and builds the
 no .NET SDK is present. Whatever it cannot find, it reports together with the
 list of places it looked.
 
-Measured on 24.10.2026: **10 of 10 runs green** (five languages, two chip
-variants each), nothing skipped. No real device was involved.
+Measured on 30.10.2026: **8 of 10 runs green**, C skipped (this machine has no
+C compiler for Windows; the C library itself is measured in WSL). No real
+device was involved.
+
+### A recorded answer must be refused
+
+"Every question is new" is not the same sentence. So a recording is really
+made and really resubmitted: a service that signs the first question honestly
+and from then on returns exactly those bytes. Round one must be **accepted**
+— without it, a library that refuses everything would be green too — and
+every round after it must fail with `error.guard.signature`.
+
+```powershell
+python shared\osk-guard\tests\make-replay-vectors.py
+```
+
+[`tests/replay-vectors.json`](tests/replay-vectors.json) holds six genuine
+signatures, one valid for the question it belongs to and five that must be
+refused: the recording, a patched program file, another device, the old
+free-length `attest` form carrying `nonce||hash`, and a job signature
+submitted as a presence answer. All five languages run that file; none of them
+needs a signer for it.
 
 ### Measuring the checks themselves
 

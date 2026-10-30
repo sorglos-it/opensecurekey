@@ -22,6 +22,9 @@ void fake_panel_reset(void);
 /* Die Griffe fuer osk_ui_begin(): Anzeige, Taster, Uhr, LED. */
 const osk_ui_port_t *fake_panel_port(void);
 
+/* Dieselben Griffe mit einem zweiten Taster. */
+const osk_ui_port_t *fake_panel_port_two(void);
+
 /* --- was der Treiber gesendet hat ------------------------------------------ */
 
 size_t fake_panel_cmd_count(void);
@@ -54,6 +57,9 @@ void fake_panel_push(bool down, uint32_t ms);
 
 /* Kurzer Druck samt Pause danach - ergibt ein OSK_BTN_SHORT. */
 void fake_panel_tap(uint32_t hold_ms);
+
+/* Dasselbe fuer den zweiten Taster, eigenes Drehbuch, dieselbe Uhr. */
+void fake_panel_push2(bool down, uint32_t ms);
 
 /* --- Bild als Text --------------------------------------------------------- */
 

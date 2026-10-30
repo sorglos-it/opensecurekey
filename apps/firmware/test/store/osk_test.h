@@ -86,5 +86,7 @@ void test_logchain(void);
 void test_wipe(void);
 void test_sigcount(void);
 void test_capacity(void);
+void test_volume(void);
+void test_volume_modes(void);
 
 #endif

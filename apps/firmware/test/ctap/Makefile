@@ -12,12 +12,30 @@
 # bei test/se050 fehlte in der einen Beschreibung eine Quelle, die die andere
 # fuehrte, und der Windows-Weg band deshalb nie.
 
+# RSA=1 (Vorgabe) setzt CONFIG_OSK_RSA. Die Option entscheidet in
+# osk_ctap_core.c, welcher der beiden AAGUIDs gilt - ein AAGUID bezeichnet
+# nach FIDO eine Fassung mit denselben Faehigkeiten, darum zwei.
+#
+# BEIDE FASSUNGEN muessen gebaut und geprueft werden: eine Option, die nur
+# in einer Richtung geprueft ist, ist keine (docs/plan.md, Abschnitt 8).
+#   make RSA=0    - die Fassung OHNE RSA
+#
+# Ohne diese Option brach der Bau am 30.10.2026 ab: ohne CONFIG_OSK_RSA
+# nimmt osk_ctap_aaguid() den #else-Zweig, OSK_AAGUID_RSA bleibt unbenutzt,
+# und -Werror=unused-const-variable macht daraus einen Fehler. Der Prueflauf
+# war damit rot, nicht weil der Code falsch war, sondern weil nur eine
+# Richtung der Option gebaut wurde.
+RSA ?= 1
+ifeq ($(RSA),1)
+CFLAGS_RSA := -DCONFIG_OSK_RSA=1
+endif
+
 CC      ?= gcc
 SRC     := ../../src/classes/ctap
 TRANS   := ../../src/classes/transport
 INC     := -I../../include -I$(SRC) -I$(TRANS) -I.
 CFLAGS  := -std=c11 -Wall -Wextra -Werror -Wshadow -Wconversion -Wsign-conversion \
-           -Wpointer-arith -Wcast-qual -Wundef -O1 -g $(INC) -DOSK_CTAP_TEST_CLOCK
+           -Wpointer-arith -Wcast-qual -Wundef -O1 -g $(INC) -DOSK_CTAP_TEST_CLOCK $(CFLAGS_RSA)
 LDFLAGS :=
 
 # Sanitizer, wenn die Werkzeugkette sie hat. Der Parser ist der

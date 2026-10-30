@@ -69,6 +69,7 @@ int main(void)
 	    {"Umbruch und UTF-8", test_text}, {"Sprachen", test_lang},
 	    {"Taster", test_button},	      {"Treiber der Anzeige", test_panel},
 	    {"Freigabebilder", test_confirm}, {"Ablauf der Freigabe", test_flow},
+	    {"PIN am Geraet", test_pin},
 	};
 
 	printf("Anzeige von opensecurekey - Pruefsaetze am PC (%s)\n", OSK_DISPLAY_NAME);

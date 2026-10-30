@@ -41,12 +41,20 @@
  * (docs/plan.md, offener Punkt 10: AAGUID eintragen). Sie unterscheiden sich
  * im letzten Byte, damit beim Nachsehen im Protokoll sofort zu erkennen ist,
  * welche Fassung geantwortet hat. */
+/* Nur der Wert der gebauten Fassung wird definiert. Beide unbedingt zu
+ * definieren und erst in osk_ctap_aaguid() zu waehlen sieht sauberer aus,
+ * laesst aber in JEDER Richtung die andere Konstante unbenutzt - und
+ * -Werror=unused-const-variable macht daraus einen Fehler. So gebaut hat
+ * dieser Satz am 30.10.2026 in keiner Richtung uebersetzt. */
+#if defined(CONFIG_OSK_RSA)
 static const uint8_t OSK_AAGUID_RSA[16] = {
     0x6f, 0x73, 0x6b, 0x2d, 0x6f, 0x70, 0x65, 0x6e, 0x73, 0x65, 0x63, 0x6b, 0x65, 0x79, 0x00, 0x01,
 };
+#else
 static const uint8_t OSK_AAGUID_NO_RSA[16] = {
     0x6f, 0x73, 0x6b, 0x2d, 0x6f, 0x70, 0x65, 0x6e, 0x73, 0x65, 0x63, 0x6b, 0x65, 0x79, 0x00, 0x02,
 };
+#endif
 
 const uint8_t *osk_ctap_aaguid(void)
 {

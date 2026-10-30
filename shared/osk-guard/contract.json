@@ -1,0 +1,185 @@
+{
+  "kommentar": "Der Vertrag der fuenf Umsetzungen von osk-guard, an EINER Stelle. Wer eine Sprache aendert, aendert zuerst hier. Beschrieben ist er in docs/dongle-bau.md; geprueft wird er von tests/vertrag.py.",
+  "version": 1,
+  "wire": {
+    "transport": "TCP, nur Rueckschleife, eine Zeile hin, eine Zeile zurueck",
+    "max_line": 4194304,
+    "encoding": "jedes Feld kleingeschriebenes Hex; '-' heisst nicht gesetzt",
+    "requests": [
+      "ping",
+      "attest <nonce32> <binhash32>",
+      "seal <label> <extra|-> <plain>",
+      "unseal <label> <extra|-> <blob>",
+      "license <product>",
+      "nodepub <label> <curve>",
+      "nodesign <label> <job>",
+      "nodeagree <label> <peerpub32>"
+    ],
+    "answers": [
+      "OK <schluessel>=<wert> ...",
+      "ERR <fehlerschluessel>"
+    ]
+  },
+  "domains": {
+    "attest": "osk-guard/attest/1",
+    "attest_raw": "osk-guard/attest-raw/1",
+    "sign": "osk-guard/sign/1",
+    "regel": "Den Zweck setzt das Geraet, nicht der Rechner. Die Bibliothek baut dieselbe Bytefolge zum Pruefen: <zweck> 0x00 nonce(32) binhash(32) bzw. <zweck> 0x00 label 0x00 sha256(auftrag)."
+  },
+  "sizes": {
+    "nonce": 32,
+    "hash": 32,
+    "key": 32,
+    "signature": 64,
+    "secret": 32,
+    "max_plain": 1048576,
+    "max_label": 64
+  },
+  "seal": {
+    "magic": "OSKSEAL1",
+    "layout": "magic(8) | version(1) | salt(16) | nonce(12) | AES-256-GCM(ciphertext+tag)",
+    "key": "HKDF-SHA256(chipKey(label), salt, \"OSKSEAL1\"), extra als zusaetzlich gepruefte Daten"
+  },
+  "license": {
+    "magic": "OSKLIC1",
+    "layout": "magic(7) | version(1) | length(2) | CBOR | Ed25519(64)",
+    "regel": "Jede Umsetzung prueft die Unterschrift selbst und liest die Felder erst aus der geprueften Nutzlast."
+  },
+  "calls": [
+    {
+      "name": "open",
+      "pflicht": true,
+      "zweck": "verbinden, Laengen pruefen, Adresse auf die Rueckschleife festnageln",
+      "namen": {
+        "c": "osk_guard_open",
+        "go": "func Open(",
+        "php": "function open(",
+        "dotnet": "static Guard Open(",
+        "python": "def open("
+      }
+    },
+    {
+      "name": "present",
+      "pflicht": true,
+      "zweck": "Stufe 1: eigene frische Frage, Unterschrift hier geprueft. Schwache Stufe - herausschneidbar.",
+      "namen": {
+        "c": "osk_guard_present",
+        "go": ") Present(",
+        "php": "function present(",
+        "dotnet": "void Present(",
+        "python": "def present("
+      }
+    },
+    {
+      "name": "seal",
+      "pflicht": true,
+      "zweck": "Stufe 2: verschliessen mit einem Schluessel, der den Chip nie verlaesst",
+      "namen": {
+        "c": "osk_guard_seal",
+        "go": ") Seal(",
+        "php": "function seal(",
+        "dotnet": "byte[] Seal(",
+        "python": "def seal("
+      }
+    },
+    {
+      "name": "unseal",
+      "pflicht": true,
+      "zweck": "Stufe 2: wieder aufmachen; ohne Stick gibt es den Schluessel nicht",
+      "namen": {
+        "c": "osk_guard_unseal",
+        "go": ") Unseal(",
+        "php": "function unseal(",
+        "dotnet": "byte[] Unseal(",
+        "python": "def unseal("
+      }
+    },
+    {
+      "name": "seal_code",
+      "pflicht": true,
+      "zweck": "Stufe 2: einen Programmteil verschliessen; der erwartete Hash geht als zusaetzlich gepruefte Daten mit hinein",
+      "namen": {
+        "c": "osk_guard_seal_code",
+        "go": ") SealCode(",
+        "php": "function sealCode(",
+        "dotnet": "byte[] SealCode(",
+        "python": "def seal_code("
+      }
+    },
+    {
+      "name": "unseal_code",
+      "pflicht": true,
+      "zweck": "Stufe 2 fuer Programmteile: einen verschluesselten Programmteil aufmachen und seine Pruefsumme gegen die erwartete halten. Der bequeme Weg ist der starke.",
+      "namen": {
+        "c": "osk_guard_unseal_code",
+        "go": ") UnsealCode(",
+        "php": "function unsealCode(",
+        "dotnet": "byte[] UnsealCode(",
+        "python": "def unseal_code("
+      }
+    },
+    {
+      "name": "license",
+      "pflicht": true,
+      "zweck": "unterschriebenen Lizenzblock holen und selbst pruefen",
+      "namen": {
+        "c": "osk_guard_license",
+        "go": ") License(",
+        "php": "function license(",
+        "dotnet": "OskGuard.License License(",
+        "python": "def license("
+      }
+    },
+    {
+      "name": "node_sign",
+      "pflicht": true,
+      "zweck": "einen Auftrag mit dem Knotenschluessel im Chip unterschreiben",
+      "namen": {
+        "c": "osk_guard_node_sign",
+        "go": ") NodeSign(",
+        "php": "function nodeSign(",
+        "dotnet": "byte[] NodeSign(",
+        "python": "def node_sign("
+      }
+    },
+    {
+      "name": "watch",
+      "pflicht": true,
+      "zweck": "weiterfragen und beim Abziehen genau einmal melden; der Anwender beendet in der Rueckmeldung",
+      "namen": {
+        "c": "osk_guard_watch",
+        "go": ") Watch(",
+        "php": "function watch(",
+        "dotnet": "void Watch(",
+        "python": "def watch("
+      }
+    }
+  ],
+  "verboten": [
+    {
+      "name": "ist_freigeschaltet",
+      "warum": "Eine reine Ja/Nein-Abfrage als bequemster Aufruf erzieht jeden Anwender zum herausschneidbaren Schutz. Es gibt keinen Aufruf, der true/false zurueckgibt - present() gibt einen Fehler oder nichts, und unseal_code() gibt den Programmteil oder nichts.",
+      "muster": [
+        "is_unlocked",
+        "ist_freigeschaltet",
+        "IsUnlocked",
+        "stick_da",
+        "has_key",
+        "IsPresent"
+      ]
+    },
+    {
+      "name": "session/grant",
+      "warum": "Den Dauerbetrieb einschalten darf keine eingebundene Bibliothek. Das liegt im Programm osk und braucht einen Druck am Geraet.",
+      "muster": [
+        "grant_on",
+        "session_on",
+        "SessionOn",
+        "GrantOn",
+        "setGrant"
+      ]
+    }
+  ],
+  "fehlerregel": "Jeder Aufruf scheitert mit einem Fehlerschluessel aus lang/*.json, in allen fuenf derselbe. Nie errno, nie eine eigene Zeichenfolge. Die gemeinsamen Faelle stehen in tests/fehlerfaelle.json.",
+  "abziehen": "Beim Abziehen sperrt das Geraet sofort. Die Bibliothek merkt es bei der naechsten Runde: present() scheitert mit error.guard.nodevice, watch() meldet es genau einmal und kehrt zurueck. Ein laufender Auftrag bricht ab - es gibt keine Warteschlange und kein Wiederaufsetzen. Siehe docs/dongle-bau.md."
+}

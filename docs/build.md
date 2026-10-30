@@ -19,7 +19,21 @@ Fehlt etwas, sagen die Skripte es klar und bauen nicht. „Übersprungen" heißt
 python tools/check.py
 ```
 
-Prüft, was ohne Hardware geht: Versionsdateien, Werkzeug-Tests, Übersetzen und Tests je Teilprogramm, Sprachdateien (Schlüssel gleich in de, en, fr, it, es), Formatierung. Am Ende steht, wie viele Schritte liefen, was übersprungen wurde und wie viele Tests ausgeführt wurden. Der Ausstiegscode ist nur 0, wenn nichts scheiterte **und** mindestens ein Test lief.
+Prüft, was ohne Hardware geht: **ob ein privater Schlüssel im Projektordner liegt** (erster Schritt – er braucht kein Werkzeug und läuft überall), Versionsdateien, Werkzeug-Tests, **ob zweimaliges Verpacken dieselben Bytes ergibt**, **ob die zwei Fassungen auseinanderzuhalten sind**, Übersetzen und Tests je Teilprogramm, Sprachdateien (Schlüssel gleich in de, en, fr, it, es), Formatierung. Am Ende steht, wie viele Schritte liefen, was übersprungen wurde und wie viele Tests ausgeführt wurden. Der Ausstiegscode ist nur 0, wenn nichts scheiterte **und** mindestens ein Test lief.
+
+Einzelne Teile davon auch für sich:
+
+```powershell
+python tools/keyguard.py
+```
+
+```powershell
+python tools/variant.py --check dist/osk-firmware-0.0.1.0-nrf52840dk-norsa.bin --expect norsa
+```
+
+```powershell
+python tools/repro.py
+```
 
 ## Bauen
 
@@ -31,15 +45,25 @@ python tools/build.py desktop
 python tools/build.py web
 ```
 
+Die Firmware braucht zwei Dinge mehr: **welche Fassung** (mit oder ohne RSA) und **den Signaturschlüssel**. Ohne Schlüssel bricht der Bau ab – ohne ihn nähme MCUboot seinen eigenen, öffentlich bekannten Beispielschlüssel, und der Bau wäre grün. Begründung und Einzelheiten: `docs/signatur.md`.
+
 ```powershell
-python tools/build.py firmware
+$env:OSK_MCUBOOT_KEY = "$env:USERPROFILE\.osk-keys\mcuboot-ed25519.pem"
+```
+
+```powershell
+python tools/build.py firmware --variant norsa
+```
+
+```powershell
+python tools/build.py firmware --variant rsa
 ```
 
 ```powershell
 python tools/build.py all
 ```
 
-Ergebnisse liegen in `dist/`: `osk-<Version>-<System>-<Architektur>[.exe]`, `osk-web-<Version>.zip`, `osk-firmware-<Version>-<Board>.hex`. Die Version kommt aus `apps/<typ>/VERSION` und wird beim Bauen eingestempelt:
+Ergebnisse liegen in `dist/`: `osk-<Version>-<System>-<Architektur>[.exe]`, `osk-web-<Version>.zip`, `osk-firmware-<Version>-<Board>-<Fassung>.hex`. **Die Fassung steht im Dateinamen und im Abbildkopf**, und `build.py` vergleicht beide gleich nach dem Bau mit der `.config` – sonst spielt jemand die falsche auf. Die Version kommt aus `apps/<typ>/VERSION` und wird beim Bauen eingestempelt:
 
 - Firmware: CMake-Variable `OSK_VERSION` (die `CMakeLists.txt` der Firmware muss sie auswerten).
 - Desktop: Go-Variable `main.version` (in `package main` als `var version = "dev"` anlegen).
@@ -63,14 +87,16 @@ $env:OSK_NCS = 'v3.0.0'
 ```
 
 ```powershell
-python tools/build.py firmware
+python tools/build.py firmware --variant norsa
 ```
 
 Anderes Board (Dongle):
 
 ```powershell
-python tools/build.py firmware --board nrf52840dongle/nrf52840
+python tools/build.py firmware --variant norsa --board nrf52840dongle/nrf52840
 ```
+
+Jede Fassung baut in ihren **eigenen** Bauordner (`build/firmware-<Board>-<Fassung>/`). Zwei Fassungen in einem Ordner heißt: der zweite Bau läuft auf den Resten des ersten, und welche Fassung im Abbild steckt, hängt daran, was `--pristine` gerade räumt.
 
 ## Der erste Bau für ARM (24./25.10.2026)
 

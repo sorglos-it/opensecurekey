@@ -25,6 +25,25 @@ def write(root, rel, text):
     return path
 
 
+# Die beiden AAGUIDs stehen im echten Baum in osk_ctap_core.c, und tools/
+# liest sie DORT (eine Zahl nur an einer Stelle). Ein Wegwerf-Repo hat die
+# Datei nicht, und ein Bau ohne AAGUID bricht zu Recht ab - er koennte die
+# Fassung nicht in den Abbildkopf schreiben. Darum bekommt jedes Wegwerf-Repo
+# eine kleine Fassung davon. Die Werte sind hier egal; wichtig ist, dass es
+# zwei verschiedene sind.
+AAGUID_STUB = '''static const uint8_t OSK_AAGUID_RSA[16] = {
+    0x6f, 0x73, 0x6b, 0x2d, 0x6f, 0x70, 0x65, 0x6e, 0x73, 0x65, 0x63, 0x6b, 0x65, 0x79, 0x00, 0x01,
+};
+static const uint8_t OSK_AAGUID_NO_RSA[16] = {
+    0x6f, 0x73, 0x6b, 0x2d, 0x6f, 0x70, 0x65, 0x6e, 0x73, 0x65, 0x63, 0x6b, 0x65, 0x79, 0x00, 0x02,
+};
+'''
+
+
+def write_aaguid_table(root):
+    return write(root, 'apps/firmware/src/classes/ctap/osk_ctap_core.c', AAGUID_STUB)
+
+
 def repo(version='0.0.0.0'):
     root = tempfile.mkdtemp()
     for part in common.PARTS:
@@ -66,10 +85,35 @@ class FirmwareSdk(unittest.TestCase):
     def test_missing_sdk_is_reported_and_aborts_cleanly(self):
         root = repo()
         write(root, 'apps/firmware/CMakeLists.txt', 'project(osk)\n')
+        # Seit dem 30.10.2026 wird der Signaturschluessel VOR dem SDK geprueft
+        # (ein fehlender Schluessel ist schlimmer als ein fehlendes SDK, siehe
+        # build.mcuboot_key). Damit dieser Test weiter das SDK misst und nicht
+        # den Schluessel, bekommt er beides mit: die Baudatei der Fassung und
+        # einen Schluesselpfad AUSSERHALB dieses Baums.
+        write(root, 'apps/firmware/variant-norsa.conf', 'CONFIG_OSK_RSA=n\n')
+        write_aaguid_table(root)
+        key = os.path.join(tempfile.gettempdir(), 'osk-test-attrappe.pem')
+        with io.open(key, 'w', encoding='utf-8') as handle:
+            handle.write('kein echter Schluessel\n')
         called = []
-        result = build.build_firmware('0.0.0.0', root, environ={}, runner=lambda *a, **k: called.append(a))
+        result = build.build_firmware('0.0.0.0', root, environ={'OSK_MCUBOOT_KEY': key},
+                                      runner=lambda *a, **k: called.append(a))
         self.assertEqual(result.status, SKIPPED)
         self.assertIn('nRF Connect SDK nicht gefunden', result.detail)
+        self.assertEqual(called, [])
+
+    def test_missing_key_is_a_failure_before_the_sdk_is_even_looked_for(self):
+        """Ohne Schluessel nimmt MCUboot seinen oeffentlich bekannten
+        Beispielschluessel. 'uebersprungen' waere hier das Schlimmste: dann
+        faellt es erst auf dem Rechner auf, der wirklich baut."""
+        root = repo()
+        write(root, 'apps/firmware/CMakeLists.txt', 'project(osk)\n')
+        write(root, 'apps/firmware/variant-norsa.conf', 'CONFIG_OSK_RSA=n\n')
+        called = []
+        result = build.build_firmware('0.0.0.0', root, environ={},
+                                      runner=lambda *a, **k: called.append(a))
+        self.assertEqual(result.status, FAILED)
+        self.assertIn('Signaturschluessel', result.detail)
         self.assertEqual(called, [])
 
     def test_sdk_through_nrfutil_needs_version(self):

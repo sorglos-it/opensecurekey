@@ -69,6 +69,7 @@ static const char err_signature[] = "error.guard.signature";
 static const char err_wrongdevice[] = "error.guard.wrongdevice";
 static const char err_random[] = "error.guard.random";
 static const char err_binary[] = "error.guard.binary";
+static const char err_codehash[] = "error.guard.codehash";
 static const char err_size[] = "error.guard.size";
 static const char err_label[] = "error.guard.label";
 static const char err_peerkey[] = "error.guard.peerkey";
@@ -996,6 +997,101 @@ const char *osk_guard_unseal(osk_guard *guard, const char *label,
     }
     return seal_call(guard, "unseal", "plain", label, extra, extra_len,
                      blob, blob_len, plain, plain_len);
+}
+
+const char *osk_guard_seal_code(osk_guard *guard, const char *label,
+                                const unsigned char *code, size_t code_len,
+                                unsigned char **blob, size_t *blob_len,
+                                unsigned char code_hash[OSK_GUARD_HASH_LEN])
+{
+    if (code == NULL || code_len == 0u || code_hash == NULL) {
+        return err_size;
+    }
+    osk_sha256(code, code_len, code_hash);
+    return osk_guard_seal(guard, label, code_hash, OSK_GUARD_HASH_LEN,
+                          code, code_len, blob, blob_len);
+}
+
+const char *osk_guard_unseal_code(osk_guard *guard, const char *label,
+                                  const unsigned char *blob, size_t blob_len,
+                                  const unsigned char *code_hash,
+                                  size_t code_hash_len,
+                                  unsigned char **code, size_t *code_len)
+{
+    unsigned char got[OSK_GUARD_HASH_LEN];
+    const char *problem;
+    unsigned char diff = 0u;
+    size_t i;
+
+    if (code_hash == NULL || code_hash_len != OSK_GUARD_HASH_LEN) {
+        return err_codehash;
+    }
+    problem = osk_guard_unseal(guard, label, code_hash, code_hash_len,
+                               blob, blob_len, code, code_len);
+    if (problem != NULL) {
+        return problem;
+    }
+    osk_sha256(*code, *code_len, got);
+    for (i = 0u; i < OSK_GUARD_HASH_LEN; i++) {
+        diff = (unsigned char)(diff | (got[i] ^ code_hash[i]));
+    }
+    if (diff != 0u) {
+        /* Nicht der erwartete Teil: ueberschreiben und nichts herausgeben.
+         * Halbe Daten sind schlimmer als keine. */
+        memset(*code, 0, *code_len);
+        free(*code);
+        *code = NULL;
+        *code_len = 0u;
+        return err_codehash;
+    }
+    return NULL;
+}
+
+/* osk_guard_watch schlaeft zwischen den Runden. Eine eigene Schleife, damit
+ * die Bibliothek keinen Strang aufmacht: wer einen will, ruft watch in
+ * seinem eigenen. */
+static void guard_sleep_ms(unsigned long ms)
+{
+#ifdef _WIN32
+    Sleep((DWORD)ms);
+#else
+    struct timespec wait;
+    wait.tv_sec = (time_t)(ms / 1000ul);
+    wait.tv_nsec = (long)((ms % 1000ul) * 1000000ul);
+    while (nanosleep(&wait, &wait) == -1) {
+        /* unterbrochen: weiterschlafen, was uebrig ist */
+    }
+#endif
+}
+
+const char *osk_guard_watch(osk_guard *guard, unsigned long every_ms,
+                            const char *binary_path, unsigned long rounds,
+                            void (*lost)(const char *problem, void *user),
+                            void *user)
+{
+    unsigned long done = 0ul;
+
+    if (guard == NULL) {
+        return err_internal;
+    }
+    if (every_ms == 0ul) {
+        every_ms = 2000ul;
+    }
+    for (;;) {
+        const char *problem;
+        guard_sleep_ms(every_ms);
+        problem = osk_guard_present(guard, binary_path);
+        if (problem != NULL) {
+            if (lost != NULL) {
+                lost(problem, user);
+            }
+            return problem;
+        }
+        done++;
+        if (rounds != 0ul && done >= rounds) {
+            return NULL;
+        }
+    }
 }
 
 /* ------------------------------------------------------------- Lizenz */

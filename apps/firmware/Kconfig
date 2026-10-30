@@ -1,0 +1,42 @@
+# Eigene Einstellungen der Firmware. Zephyr liest diese Datei von selbst
+# (Kconfig.zephyr sucht im Anwendungsordner nach "Kconfig"), darum steht in
+# apps/firmware/CMakeLists.txt keine Zeile dafuer.
+#
+# Hier steht die Option, die die ZWEI FASSUNGEN der Firmware trennt. Bis
+# zum 30.10.2026 war sie nirgends deklariert: der Quelltext fragte
+# CONFIG_OSK_RSA an sechs Stellen ab, aber Kconfig kannte den Namen nicht -
+# ein "CONFIG_OSK_RSA=y" in einer .conf-Datei haette Zephyr still verworfen
+# (nur eine Warnung, siehe prj.conf) und JEDER Bau waere die Fassung ohne
+# RSA geworden. Die Fassung mit RSA war damit nicht gebaut, sondern nur
+# geschrieben.
+
+mainmenu "openSecureKey"
+
+config OSK_RSA
+	bool "RSA mitbauen (zweite Firmware-Fassung)"
+	default n
+	help
+	  Zwei Fassungen der Firmware, mit und ohne RSA. Die Option wirkt an
+	  GENAU EINER Stelle im Quelltext: osk_rsa_available() antwortet ohne
+	  sie immer false (src/classes/applets/osk_rsa_card.h sagt, warum).
+
+	  Zwei Folgen, die keine Geschmacksfrage sind:
+
+	  - Jede Fassung hat ihren EIGENEN AAGUID. FIDO verlangt, dass ein
+	    AAGUID eine Fassung mit denselben Faehigkeiten bezeichnet, und die
+	    Fassung mit RSA kann mehr als die ohne. Die beiden Werte stehen an
+	    einer Stelle: src/classes/ctap/osk_ctap_core.c.
+	  - Die Fassung gehoert in den DATEINAMEN und in den ABBILDKOPF.
+	    Sonst spielt jemand die falsche auf, und das Geraet verspricht
+	    Faehigkeiten, die es nicht hat. Beides macht tools/build.py,
+	    geprueft wird es von tools/variant.py.
+
+	  Nicht von Hand setzen, sondern ueber die Fassung waehlen:
+	    python tools/build.py firmware --variant rsa
+	    python tools/build.py firmware --variant norsa
+
+	  Der Chip muss es ausserdem koennen: der SE051A2 kann RSA nicht, der
+	  C2 kann es. "Gebaut" und "im Chip vorhanden" sind zwei Fragen, und
+	  beide muessen ja sagen.
+
+source "Kconfig.zephyr"

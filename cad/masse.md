@@ -64,7 +64,10 @@ die es gibt.
 > obere Schranke, nachdem der Akku entfiel. **Die gezeichnete Platine im Repo
 > ist 70,0 mm lang** — gemessen am `BOARD_OUTLINE` in
 > `../hardware/pcb-source-PCB1.txt` (2755,9055 mil), und hinter `y` = 59,55
-> liegen noch vier Pads, das hinterste bei `y` = 66,0 mm.
+> liegen **vier Bauteile mit zwölf Pads** (D1 und R10/R11/R12); die hinterste
+> **Kupferkante** liegt bei **66,985 mm**, die 66,0 mm sind nur die Mitte von
+> D1. **Die kürzeste Länge, bei der kein Bauteil wandern muss, ist 67,30 mm**
+> — siehe `../hardware/layout-notes.md`, Weg C1.
 >
 > **Dieses Gehäuse ist damit 10,45 mm zu kurz für die Platine, die es
 > umschließen soll.** Die Höhenrechnung ist davon nicht betroffen: alle

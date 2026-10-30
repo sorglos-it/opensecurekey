@@ -53,6 +53,8 @@ const char *osk_test_rtext(osk_result_t r)
 		return "UNSUPPORTED";
 	case OSK_ERR_INTERNAL:
 		return "INTERNAL";
+	case OSK_ERR_ROLLBACK:
+		return "ROLLBACK";
 	default:
 		return "?";
 	}
@@ -77,6 +79,8 @@ int main(void)
 	    {"Verkettetes Protokoll", test_logchain},
 	    {"Wisch-PIN", test_wipe},
 	    {"Signaturzaehler", test_sigcount},
+	    {"Datentraeger", test_volume},
+	    {"Datentraeger: die drei Arten", test_volume_modes},
 	};
 
 	printf("Tresor von opensecurekey - Pruefsaetze am PC\n");

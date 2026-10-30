@@ -44,6 +44,7 @@ var uiPages = []page{
 	{"/certs", "certs", "page.certs"},
 	{"/devices", "devices", "page.devices"},
 	{"/backup", "backup", "page.backup"},
+	{"/exchange", "exchange", "page.exchange"},
 	{"/firmware", "firmware", "page.firmware"},
 	{"/settings", "settings", "page.settings"},
 }

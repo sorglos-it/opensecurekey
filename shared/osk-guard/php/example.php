@@ -68,6 +68,30 @@ function main(array $argv): int
         }
         printf("ergebnis: verschlossen %d byte, wieder offen\n", strlen($blob));
 
+        // 2b. Ein verschluesselter PROGRAMMTEIL - der starke Weg: ohne
+        // Stick fehlt dem Angreifer nicht die Antwort, sondern der Teil.
+        $code = 'die Regeln, nach denen dieses Programm rechnet';
+        [$codeBlob, $codeHash] = $guard->sealCode($label, $code);
+        if ($guard->unsealCode($label, $codeBlob, $codeHash) !== $code) {
+            fwrite(STDERR, "FEHLER: der Programmteil kam anders zurueck\n");
+            return 1;
+        }
+        // Mit einem anderen Hash gibt es KEINE Bytes.
+        $other = $codeHash;
+        $other[0] = chr(ord($other[0]) ^ 1);
+        try {
+            $guard->unsealCode($label, $codeBlob, $other);
+            fwrite(STDERR, "FEHLER: ein fremder Programmteil ging auf\n");
+            return 1;
+        } catch (OskGuardError $expected) {
+            if ($expected->errorKey() === '') {
+                fwrite(STDERR, "FEHLER: kein Fehlerschluessel\n");
+                return 1;
+            }
+        }
+        printf("ergebnis: programmteil %d byte, nur mit stick lesbar\n",
+            strlen($codeBlob));
+
         // 3. Die Lizenz.
         $license = $guard->license((string) $stand['product']);
         if ($license->expired()) {

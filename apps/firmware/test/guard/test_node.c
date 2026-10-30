@@ -411,6 +411,78 @@ static void test_init_is_off(void)
 	       !osk_guard_grant_allows(SIGN_LABEL, strlen(SIGN_LABEL), 0u));
 }
 
+/* Im Protokoll muss stehen, WER die Freischaltung eingeschaltet hat und
+ * WANN. Ohne das ist "protokolliert" eine Behauptung: ein Satz, der nur
+ * sagt, dass irgendwann irgendetwas freigeschaltet wurde, hilft hinterher
+ * niemandem.
+ *
+ * Was das Geraet wissen kann, ist der Kanal und der Name des Schluessels -
+ * ein Benutzername stuende nur da, weil der Rechner ihn behauptet hat.
+ * Siehe docs/dongle-bau.md, offener Punkt. */
+static void test_session_is_logged_with_who_and_when(void)
+{
+	gh_frame_t frame;
+	gh_reply_t reply;
+	const char *labels[1] = {SIGN_LABEL};
+	size_t len;
+	unsigned before, at;
+	const char *who;
+
+	setup();
+	mock_clock_set(123000u);
+
+	before = mock_log_count();
+	len = build_session_on(&frame, labels, 1u, 3600u);
+	T_EQ("einschalten", gh_call(frame.buf, len, OSK_LINK_USB_VENDOR, &reply), OSK_OK);
+	T_EQ("einschalten: ok", reply.result, OSK_OK);
+	T_EQ("ein Satz mehr im Protokoll", mock_log_count(), before + 1u);
+
+	at = mock_log_count() - 1u;
+	T_EQ("der Satz ist die Freischaltung", mock_log_what(at), OSK_GUARD_CMD_SESSION);
+
+	who = mock_log_who(at);
+	T_TRUE("es steht ein Wer dabei", who != NULL && who[0] != '\0');
+	T_TRUE("der Kanal steht drin", strstr(who, "usb-vendor") != NULL);
+	T_TRUE("der freigeschaltete Schluessel steht drin",
+	       strstr(who, SIGN_LABEL) != NULL);
+	T_EQ("und die Zeit des Geraets", (unsigned long)mock_log_when(at), 123ul);
+
+	/* Abschalten steht auch drin - sonst stuende im Protokoll eine
+	 * Freischaltung, die nie endete. */
+	before = mock_log_count();
+	gh_begin(&frame, OSK_GUARD_CMD_SESSION, 7u, 1u);
+	osk_cbor_put_text(&frame.w, "on");
+	osk_cbor_put_bool(&frame.w, false);
+	T_EQ("abschalten", gh_call(frame.buf, gh_end(&frame), OSK_LINK_USB_VENDOR, &reply),
+	     OSK_OK);
+	T_EQ("abschalten: ok", reply.result, OSK_OK);
+	T_EQ("auch das Abschalten steht im Protokoll", mock_log_count(), before + 1u);
+	who = mock_log_who(mock_log_count() - 1u);
+	T_TRUE("und auch dort der Kanal", who != NULL && strstr(who, "usb-vendor") != NULL);
+}
+
+/* Eine abgelehnte Freischaltung darf NICHT als eingeschaltet im Protokoll
+ * stehen. Ein Protokoll, das Versuche wie Erfolge fuehrt, ist schlimmer
+ * als keines. */
+static void test_refused_session_is_not_logged_as_on(void)
+{
+	gh_frame_t frame;
+	gh_reply_t reply;
+	const char *labels[1] = {SIGN_LABEL};
+	size_t len;
+	unsigned before;
+
+	setup();
+	mock_ui_set_confirm(OSK_ERR_DENIED);
+	before = mock_log_count();
+	len = build_session_on(&frame, labels, 1u, 3600u);
+	T_EQ("einschalten", gh_call(frame.buf, len, OSK_LINK_USB_VENDOR, &reply), OSK_OK);
+	T_EQ("ohne Freigabe abgewiesen", reply.result, OSK_ERR_DENIED);
+	T_TRUE("nichts freigeschaltet",
+	       !osk_guard_grant_allows(SIGN_LABEL, strlen(SIGN_LABEL), 0u));
+	T_EQ("und kein Satz im Protokoll", mock_log_count(), before);
+}
+
 int main(void)
 {
 	test_sign();
@@ -422,5 +494,7 @@ int main(void)
 	test_session_expires();
 	test_session_fences();
 	test_init_is_off();
+	test_session_is_logged_with_who_and_when();
+	test_refused_session_is_not_logged_as_on();
 	return t_report("guard-knoten");
 }

@@ -9,9 +9,11 @@
  * Laeuft die Zeit ab, kommt OSK_ERR_TIMEOUT; will der Nutzer nicht,
  * OSK_ERR_DENIED. Ohne Anzeige gibt es keine Freigabe. */
 
+#include <stdint.h>
 #include <string.h>
 #include "osk_button.h"
 #include "osk_lang.h"
+#include "osk_pin.h"
 #include "osk_ui.h"
 #include "osk_ui_port.h"
 #include "osk_views.h"
@@ -19,6 +21,7 @@
 static osk_ui_port_t g_port;
 static bool g_ready;
 static osk_gfx_t g_frame;
+static const osk_pin_sink_t *g_pin_sink;
 
 osk_result_t osk_ui_begin(const osk_ui_port_t *port)
 {
@@ -47,6 +50,7 @@ void osk_ui_end(void)
 		(void)osk_display_sleep();
 	}
 	g_ready = false;
+	g_pin_sink = NULL;
 	memset(&g_port, 0, sizeof(g_port));
 }
 
@@ -191,6 +195,81 @@ osk_result_t osk_ui_confirm(const osk_ask_req_t *req)
 	}
 }
 
+/* --- PIN am Geraet --------------------------------------------------------- */
+
+void osk_ui_set_pin_sink(const osk_pin_sink_t *sink)
+{
+	g_pin_sink = sink;
+}
+
+static bool pin_button(void *ctx, uint8_t button)
+{
+	(void)ctx;
+	if (button == 0) {
+		return g_port.button_down(g_port.ctx);
+	}
+	if (g_port.button2_down != NULL) {
+		return g_port.button2_down(g_port.ctx);
+	}
+	return false;
+}
+
+static uint32_t pin_now(void *ctx)
+{
+	(void)ctx;
+	return g_port.now_ms(g_port.ctx);
+}
+
+static void pin_idle(void *ctx)
+{
+	(void)ctx;
+	if (g_port.idle != NULL) {
+		g_port.idle(g_port.ctx);
+	}
+}
+
+/* Der Stand der Eingabe aufs Glas. Die genommenen Ziffern kommen hier nicht
+ * an - osk_pin_ask() gibt sie nicht heraus. */
+static void pin_draw(void *ctx, uint8_t pos, uint8_t want, uint8_t value, uint8_t left)
+{
+	osk_pin_scheme_t scheme = (osk_pin_scheme_t)(uintptr_t)ctx;
+
+	osk_view_pin(&g_frame, pos, want, value, left, scheme);
+	show();
+	set_led(OSK_LED_BLUE);
+}
+
+static void pin_report(void *ctx, osk_result_t result, bool submitted, uint8_t left)
+{
+	(void)ctx;
+	(void)left;
+	osk_view_pin_result(&g_frame, result, submitted);
+	show();
+	set_led((result == OSK_OK) ? OSK_LED_GREEN : OSK_LED_RED);
+}
+
+osk_result_t osk_ui_pin(osk_pin_scheme_t scheme, uint8_t want, uint32_t timeout_ms)
+{
+	osk_pin_io_t io = {pin_button, pin_now, pin_draw, pin_report, pin_idle, NULL};
+
+	if (g_pin_sink == NULL) {
+		/* Kein Chip, keine PIN. Es gibt hier absichtlich keinen
+		 * Ersatzweg: ein Vergleich im Flash haette keinen Zaehler. */
+		return OSK_ERR_UNSUPPORTED;
+	}
+	if (!g_ready) {
+		return OSK_ERR_INTERNAL;
+	}
+	if (osk_pin_buttons(scheme) > 1 && g_port.button2_down == NULL) {
+		return OSK_ERR_UNSUPPORTED;
+	}
+	io.ctx = (void *)(uintptr_t)scheme;
+	if (timeout_ms == 0) {
+		timeout_ms = OSK_UI_PIN_TIMEOUT_MS;
+	}
+	return osk_pin_ask(g_pin_sink, &io, scheme, want, timeout_ms);
+}
+
 osk_result_t osk_ui_verify_user(bool *verified_out)
 {
 	osk_button_t btn;
@@ -211,6 +290,15 @@ osk_result_t osk_ui_verify_user(bool *verified_out)
 		*verified_out = true;
 		osk_ui_status("verify.ok");
 		return OSK_OK;
+	}
+	/* Ist ein Sicherheitschip eingehaengt, wird die PIN AM GERAET
+	 * eingegeben - der Rechner sieht sie nie. Das ist der Weg, den FIPS
+	 * 140-3 Stufe 3 verlangt. Nur ohne Chip bleibt der alte Hinweis. */
+	if (g_pin_sink != NULL) {
+		osk_result_t result = osk_ui_pin(OSK_PIN_SCHEME_DEFAULT, OSK_UI_PIN_LEN, 0);
+
+		*verified_out = (result == OSK_OK);
+		return result;
 	}
 	osk_view_verify(&g_frame);
 	show();

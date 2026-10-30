@@ -70,5 +70,6 @@ void test_button(void);
 void test_panel(void);
 void test_confirm(void);
 void test_flow(void);
+void test_pin(void);
 
 #endif
