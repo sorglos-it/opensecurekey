@@ -131,6 +131,30 @@ How it works:
 2. Enter the PIN when asked.
 3. On the key, read the name, **press long**, **press long.**
 
+### Software that insists on a key file
+
+**This is where most people fail. Read it before you go searching.**
+
+**The key hands out the certificate.** A certificate is public — passing it on costs nothing. For everything that only needs the attestation, that is enough.
+
+**There is no private key as a file. Never.** There is no export, no checkbox for it, no passphrase that unlocks it. Do not go looking.
+
+That is **not a shortcoming but the purpose of the device:** whatever exists as a file can be copied. A key that can be copied is no longer a hardware key.
+
+**The consequence, stated openly:** software that insists on a key file — a `.pem` with `PRIVATE KEY` in it, or a `.pfx` with a passphrase — **fundamentally cannot operate this device.** Not with a detour, not with a setting.
+
+**The way out is called PKCS#11.** That is a fixed interface for keys that stay inside a device. Programs that know it accept a **key address** instead of a file path, and it looks like this:
+
+```
+pkcs11:object=my-key
+```
+
+Among others `openssl`, the nginx web server, Java, many VPN programs and the usual signing tools can do this. Whoever can do PKCS#11 needs no file.
+
+**Whoever cannot is left out.** Then the only help is: take a program that speaks PKCS#11, or stay with a key file on the hard disk for that one purpose — with everything that means.
+
+The library for it is called `osk-pkcs11` (as `.dll` and `.so`). **Status:** with the simulator, `openssl` checked a signature with it as "Verified OK". With a real key never.
+
 ### With SSH and Git
 
 **Status:** Checked with the test device. `git push` through the agent worked on Windows and Linux.
@@ -206,6 +230,16 @@ Secrets are never in the log.
 
 One key has up to **four profiles**, each with its own PIN. The PIN of one does not open any other. A locked profile shows nothing, not even the names of the entries. Space: **768 entries per profile**, **3072 in the key.**
 
+**A limit that is not the key's fault:** signing in with passkeys (FIDO) knows **no profiles.** That technology assumes that one key belongs to one person. The key cannot change that.
+
+What this means day to day:
+
+- If you switch the profile, you have to **sign in at the services again.** The passkeys of the other profile are not available there.
+- So a profile is not a second face for the same service but a separate set of accesses.
+- Whoever wants to switch between two profiles often is better off with **two keys**.
+
+**Status:** never tried in a browser.
+
 ## Entry types
 
 Login, one-time code (time), one-time code (counter), SSH key, certificate, PGP key, API key, recovery codes, wallet seed, licence key, bank card, identity, Wi-Fi, note, file.
@@ -217,3 +251,14 @@ Each entry carries three marks that you set yourself:
 | may be mirrored | goes to your second key, and only there |
 | paired computers only | is given out only to a paired computer |
 | write-protected | cannot be changed or deleted, not even by you, until you lift it |
+
+## A memory card on the key
+
+**This does not exist yet.** Planned is a memory card for your own files.
+
+Two things about it you should know **before** it exists, because both can cost you secrets:
+
+- Of **three operating modes**, one does **not** encrypt. It only seals, and any openSecureKey can read it.
+- A signature proves that the content is **unchanged** — not **who** it comes from.
+
+Both at length in [how-it-works.md](how-it-works.md), section "The encrypted data carrier".

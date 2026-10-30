@@ -17,6 +17,10 @@ Tu n’as besoin d’**aucune installation** ni d’**aucun droit d’administra
 - Il range ses réglages **à côté de lui**, pas dans le système.
 - Il n’existe pas encore de programme prêt à télécharger. Aucune version n’est construite. Si tu veux le construire toi-même, lis [development.md](development.md).
 
+**Il est prévu** que la clé apporte elle-même les programmes : au branchement, elle montre un petit lecteur en lecture seule.
+
+**Alors ceci vaut : « brancher et démarrer » veut dire attendre plus d’une minute.** La clé donne ses données lentement. C’est normal et ce n’est pas une panne. Combien de temps exactement et pourquoi se trouve dans [how-it-works.md](how-it-works.md), section « Le lecteur avec les programmes prend son temps ».
+
 ## Étape 2 : Brancher la clé, lancer le programme
 
 1. Branche la clé sur un port USB.
@@ -58,6 +62,7 @@ Aucune des deux voies n’est la plus sûre par principe. Cela dépend de ce que
 
 - Il n’y a qu’un moyen : **créer un nouveau profil** et te **réinscrire sur chaque service.**
 - Une clé peut contenir jusqu’à **quatre profils.** Chacun a son propre code PIN.
+- Cela **doit** être ainsi : la connexion avec des passkeys ne connaît pas de profils. Même pour un simple passage d’un profil à l’autre, tu te réinscris auprès des services. Voir [usage.md](usage.md), section « Plusieurs personnes sur une clé ».
 
 Avant de continuer, tu dois cocher : « J’ai compris que cela ne pourra plus être modifié ».
 
@@ -77,7 +82,9 @@ C’est l’étape la plus importante. Fais-la **tout de suite**, pas « plus ta
 2. **Enregistrer une sauvegarde.** Voir plus bas.
 3. **Écrire la feuille de secours.** Voir plus bas.
 
-L’assistant de configuration doit t’obliger à avoir une seconde clé **ou** une feuille de secours imprimée : c’est prévu. Ce n’est pas encore construit. Fais les deux.
+**Pourquoi cela ne peut pas attendre « plus tard » :** qui oublie sa phrase secrète principale et perd les deux clés **a tout perdu.** Pas « presque tout » et pas « récupérable avec des efforts ». Il n’y a pas de porte dérobée, pas de procédure de secours et personne qui puisse aider. C’est pourquoi la feuille de secours dans l’assistant de configuration **ne peut pas être sautée :** pas de « passer », pas de « me le rappeler plus tard ». Soit une seconde clé est appariée, soit la feuille est écrite.
+
+**État :** cette obligation est prévue et **n’est pas construite.** Tant que l’assistant n’existe pas, personne ne t’oblige. Fais les deux quand même, et fais-le maintenant.
 
 ### Appairer la seconde clé
 

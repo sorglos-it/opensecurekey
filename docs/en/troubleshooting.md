@@ -62,6 +62,17 @@ The order of your safety:
 - Second key only: A fire or theft of the bag takes both away.
 - None of these: A lost key is a total loss.
 
+## The key is slow and I think it is broken
+
+It probably is not.
+
+- The drive with the programs does **not** open at once. Reckon with more than a minute until the programs are read.
+- That comes from how much the key gets through over the USB port. The numbers and the reason are in [how-it-works.md](how-it-works.md), section "The program drive needs its time".
+- **Do not pull the key out during that time.** It looks like a hang and is none.
+- Copy the program to the hard disk **once.** Then you only wait the first time.
+
+**Status:** the drive is planned and not built. The waiting time is calculated, not measured on the device.
+
 ## The key is not recognised
 
 In the program under **Devices** it says "No device found."
@@ -186,6 +197,32 @@ So that you do not search for long:
 - **Signing in to the computer,** unlocking the hard disk, the key as a keyboard
 - a ready-printed emergency page from the program
 - **macOS**
+
+## I wanted to encrypt and only sealed
+
+**Then the data is open, and open to anybody holding any openSecureKey.**
+
+This concerns the planned memory card. One of its three operating modes does **not** encrypt. It only seals, so that a change can be told.
+
+What to do:
+
+1. Assume it was read. Whatever passphrases or keys lay there, **change them** — not just the card.
+2. There is no "encrypt it afterwards". The card has to be **written again,** in one of the two secret operating modes.
+3. Check on the display beforehand which operating mode it says. It stays on the display as long as the card is plugged in.
+
+The three operating modes side by side: [how-it-works.md](how-it-works.md), section "The encrypted data carrier".
+
+**Status:** the card does not exist. This section is here so that the mistake does not happen once it does.
+
+## The key does not say "card checked"
+
+That is on purpose, and it would be a lie if it did.
+
+- Checking a card **completely** means reading all of it. How long that takes is in [how-it-works.md](how-it-works.md) — too long to wait for when plugging in.
+- So the key checks **every block at the moment it reads that block.** What you open is checked.
+- **A changed block in a file nobody opens is not noticed.** That is the price, and it stands here because you are owed it.
+
+More on this in [how-it-works.md](how-it-works.md), section "The encrypted data carrier".
 
 ## If you cannot find it
 

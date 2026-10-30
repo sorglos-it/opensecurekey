@@ -131,6 +131,30 @@ Procedura:
 2. Inserisci il PIN, quando richiesto.
 3. Sulla chiave leggi il nome, **premi a lungo**, **premi a lungo.**
 
+### Software che pretende un file di chiave
+
+**Qui è dove la maggior parte fallisce. Leggilo prima di cercare.**
+
+**Il certificato la chiave lo dà.** Un certificato è pubblico: passarlo non costa nulla. Per tutto ciò che ha bisogno solo dell’attestato, questo basta.
+
+**La chiave privata non esiste come file. Mai.** Non c’è esportazione, non c’è una casella per questo, non c’è password che la liberi. Non cercarla.
+
+Questo **non è una mancanza ma lo scopo dell’apparecchio:** ciò che esiste come file è copiabile. Una chiave che si può copiare non è più una chiave hardware.
+
+**La conseguenza, detta aperta:** il software che pretende per forza un file di chiave — un `.pem` con `PRIVATE KEY` dentro, o un `.pfx` con password — **non può in alcun modo servirsi di questo apparecchio.** Né con un giro, né con un’impostazione.
+
+**La via d’uscita si chiama PKCS#11.** È un’interfaccia fissata per chiavi che restano dentro un apparecchio. I programmi che la conoscono accettano, invece di un percorso di file, un **indirizzo di chiave**, e ha questo aspetto:
+
+```
+pkcs11:object=mia-chiave
+```
+
+Sanno farlo, tra gli altri, `openssl`, il server web nginx, Java, molti programmi VPN e i soliti strumenti di firma. Chi sa fare PKCS#11 non ha bisogno di file.
+
+**Chi non sa resta fuori.** Allora aiuta solo: prendere un programma che parli PKCS#11, oppure restare per quel solo scopo con un file di chiave sul disco rigido, con tutto quel che significa.
+
+La libreria per questo si chiama `osk-pkcs11` (come `.dll` e `.so`). **Stato:** con il simulatore, `openssl` ha così controllato una firma come «Verified OK». Con una chiave vera, mai.
+
 ### Con SSH e Git
 
 **Stato:** Verificato con il dispositivo di prova. `git push` tramite l'agente ha funzionato su Windows e Linux.
@@ -206,6 +230,16 @@ I segreti non compaiono mai nel registro.
 
 Una chiave ha fino a **quattro profili**, ognuno con il proprio PIN. Il PIN di uno non apre nessun altro. Un profilo bloccato non mostra nulla, nemmeno i nomi delle voci. Spazio: **768 voci per profilo**, **3072 nella chiave.**
 
+**Un limite che non è colpa della chiave:** l’accesso con le passkey (FIDO) non conosce **nessun profilo.** Quella tecnica dà per scontato che una chiave appartenga a una persona. La chiave non può cambiarlo.
+
+Che cosa vuol dire ogni giorno:
+
+- Se cambi profilo, devi **registrarti di nuovo presso i servizi.** Le passkey dell’altro profilo lì non sono disponibili.
+- Un profilo non è dunque un secondo volto per lo stesso servizio, ma un insieme di accessi separato.
+- Chi vuole passare spesso da un profilo all’altro fa meglio con **due chiavi**.
+
+**Stato:** mai provato in un browser.
+
 ## Tipi di voce
 
 Accesso, Codice unico (tempo), Codice unico (contatore), Chiave SSH, Certificato, Chiave PGP, Chiave API, Codici di ripristino, Frase del portafoglio, Chiave di licenza, Carta bancaria, Identità, Wi-Fi, Nota, File.
@@ -217,3 +251,14 @@ Ogni voce porta tre segni, che imposti tu:
 | può essere copiata | va sulla tua seconda chiave, e solo lì |
 | solo computer accoppiati | viene consegnata solo a un computer accoppiato |
 | protetta da scrittura | non si può modificare né cancellare, nemmeno da te, finché non la sblocchi |
+
+## Una scheda di memoria sulla chiave
+
+**Questo non esiste ancora.** È prevista una scheda di memoria per i tuoi file.
+
+Due cose su di essa che dovresti conoscere **prima** che esista, perché entrambe possono costarti dei segreti:
+
+- Di **tre modi di funzionamento**, uno **non** cifra. Sigilla soltanto, e qualunque openSecureKey può leggere.
+- Una firma dimostra che il contenuto è **inalterato**, non **da chi** viene.
+
+Entrambe per esteso in [how-it-works.md](how-it-works.md), sezione «Il supporto dati cifrato».

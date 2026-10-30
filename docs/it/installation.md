@@ -17,6 +17,10 @@ Per il programma `osk` **non serve nessuna installazione** e **nessun diritto di
 - Salva le sue impostazioni **accanto a sé**, non nel sistema.
 - Un programma pronto da scaricare non esiste ancora. Non è stata costruita nessuna versione ufficiale. Chi vuole costruirlo da sé legge [development.md](development.md).
 
+**È previsto** che la chiave porti con sé i programmi: all’inserimento mostra una piccola unità di sola lettura.
+
+**Allora vale questo: «inserire e avviare» vuol dire aspettare più di un minuto.** La chiave dà i suoi dati piano. È normale e non è un guasto. Quanto esattamente e perché sta in [how-it-works.md](how-it-works.md), sezione «L’unità con i programmi si prende il suo tempo».
+
 ## Passo 2: Inserire la chiave, avviare il programma
 
 1. Inserisci la chiave in una porta USB.
@@ -58,6 +62,7 @@ Nessuna delle due strade è in assoluto la più sicura. Dipende da che cosa temi
 
 - Si può fare solo così: **creare un nuovo profilo** e **registrarti di nuovo su ogni servizio.**
 - Una chiave contiene fino a **quattro profili.** Ognuno ha un proprio PIN.
+- **Deve** essere così: l’accesso con le passkey non conosce profili. Anche al semplice passaggio da un profilo all’altro ti registri di nuovo presso i servizi. Vedi [usage.md](usage.md), sezione «Più persone su una chiave».
 
 Prima di proseguire devi spuntare: "Ho capito che questo non potrà più essere cambiato".
 
@@ -77,7 +82,9 @@ Questo è il passo più importante. Fallo **subito**, non "più tardi".
 2. **Salvare la copia di sicurezza.** Vedi sotto.
 3. **Scrivere il foglio di emergenza.** Vedi sotto.
 
-È previsto che la procedura guidata ti obblighi a fare una seconda chiave **oppure** un foglio di emergenza stampato. Non è ancora costruito. Fai entrambe le cose.
+**Perché questo non può aspettare «dopo»:** chi dimentica la frase segreta principale e perde entrambe le chiavi **ha perso tutto.** Non «quasi tutto» e non «recuperabile con fatica». Non esiste una porta di servizio, non esiste una procedura di riserva e non c’è nessuno che possa aiutare. Per questo il foglio di emergenza nella procedura guidata **non si può saltare:** nessun «salta», nessun «ricordamelo dopo». O una seconda chiave è accoppiata, o il foglio è scritto.
+
+**Stato:** questo obbligo è previsto e **non è costruito.** Finché la procedura guidata non esiste, nessuno ti obbliga. Fai entrambe le cose comunque, e fallo adesso.
 
 ### Accoppiare la seconda chiave
 

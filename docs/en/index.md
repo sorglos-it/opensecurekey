@@ -34,6 +34,7 @@ The key has its own small screen. The screen shows **what** you are approving. T
 - **One question during setup can never be changed later:** Should a spare key be possible later? Read it calmly. See [installation.md](installation.md).
 - **With no spare key and no backup, a lost key is a total loss.**
 - **Whoever loses the main passphrase and all keys loses everything.** There is no back door. See [troubleshooting.md](troubleshooting.md).
+- **The emergency sheet during setup cannot be skipped.** For exactly that reason. See [installation.md](installation.md).
 - There is **no outside review** and **no test on real hardware.** Do not rely yet on anything you cannot replace.
 
 ## What the key cannot do
@@ -44,6 +45,10 @@ Explained in detail in [how-it-works.md](how-it-works.md). In short:
 - It does **not** protect you if someone forces you to press the button.
 - It does **not** protect against changed firmware.
 - It does **not** save you if the main passphrase and all keys are gone.
+- **It hands out no private key as a file. Never.** Software that insists on a key file (`.pem`, `.pfx`) fundamentally cannot operate it. The certificate may leave, the key may not. See [usage.md](usage.md).
+- It knows **no profiles for passkeys.** When you switch the profile you sign in at the services again.
+- **"Plug in and start" means waiting more than a minute.** The key hands out its data slowly.
+- On the planned memory card, **one of three operating modes does not encrypt.** And a signature proves that the content is unchanged, not its authorship. See [how-it-works.md](how-it-works.md).
 
 ## Status of the parts
 

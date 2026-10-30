@@ -142,8 +142,88 @@ Verlierst du Stick, Zweitstick, Sicherungsdatei und Umschläge zugleich, ist der
 - Der **Unterschriftszähler** der Anmeldung beginnt bei jedem Einschalten bei null. Manche Seiten könnten das für einen kopierten Schlüssel halten.
 - Der Stick schickt eine **Selbstbeglaubigung,** kein Zertifikat des Herstellers. Das ist gut für den Datenschutz, aber manche Firmenseiten verlangen mehr.
 - Ob der gelieferte Chip **Schlüsselaustausch** (ECDH) erlaubt, hängt von seiner Werkseinstellung ab. Erlaubt er es nicht, **fällt der Serverbetrieb mit Schlüssel im Chip weg.** Das Unterschreiben geht weiter. Das Programm sagt es dann ehrlich, statt wie ein PIN-Fehler zu wirken.
+- **Es gibt den privaten Schlüssel nicht als Datei.** Programme, die zwingend eine Schlüsseldatei verlangen, können mit dem Stick nicht arbeiten. Siehe [usage.md](usage.md), Abschnitt „Software, die eine Schlüsseldatei verlangt“.
 - **Mac:** nie ausprobiert.
 - **Speicherplatz in der Firmware** ist knapp. Ob alle Funktionen hineinpassen, ist offen.
+
+## Das Laufwerk mit den Programmen braucht seine Zeit
+
+**Stand:** gerechnet, nicht am Gerät gemessen. Das Laufwerk ist geplant und nicht gebaut.
+
+Der Stick zeigt beim Einstecken ein kleines, nur lesbares Laufwerk mit den Verwaltungsprogrammen. Wer es öffnet, wartet.
+
+**Hier stehen die drei Zahlen dazu. Alle anderen Stellen im Handbuch verweisen hierher.**
+
+| Was | Zahl |
+| --- | ---: |
+| Was der Funkchip am USB durchbringt | rund **400 kB in der Sekunde** |
+| Wie groß die Programme sind | **29,10 MB** (gemessen am 23.10.2026 am fertigen Abbild) |
+| Wie lange das Lesen also dauert | rund **73 Sekunden** |
+
+„Einstecken und starten" heißt in Wahrheit: einstecken, **über eine Minute warten,** starten. Wer das nicht weiß, hält den Stick für kaputt und zieht ihn ab.
+
+Warum so langsam? Der Funkchip hängt an einem USB-Anschluss nach dem alten Standard 1.1. Daraus lassen sich auf dem Papier 1,5 MB in der Sekunde rechnen, aber der Stick muss jedes Stück erst aus seinem Speicher holen und beantworten. Was übrig bleibt, sind die 400 kB. Die 400 kB sind an einem Entwicklungsbrett **gemessen**, die beiden anderen Zahlen sind daraus gerechnet.
+
+Die Programme wachsen. Wächst die Datei, wächst die Wartezeit im gleichen Verhältnis.
+
+## Der verschlüsselte Datenträger
+
+**Stand: Papier.** Es gibt keinen Baustein, keine Platine und keine Zeile Programm dazu. Dieser Abschnitt steht hier, damit niemand später etwas Falsches glaubt — nicht, weil es das gäbe.
+
+Geplant ist eine Speicherkarte am Stick, 8 bis 16 GB, für eigene Dateien.
+
+**Die Karte braucht immer einen openSecureKey.** In einem gewöhnlichen Kartenleser ist mit ihr nichts zu machen. Auf ihr liegt ein eigenes Format, kein Windows-Format. Sie ist **kein** Datenträger, den man jemandem ohne Stick in die Hand drückt.
+
+### Drei Betriebsarten — und eine davon ist nicht geheim
+
+Das ist die Stelle, an der man sich am leichtesten selbst schadet. Darum die drei Arten nebeneinander:
+
+| Art | Name | Wer kann lesen | Inhalt geheim? |
+| --- | --- | --- | --- |
+| 1 | **nur dieser Stick** | nur der Stick, der geschrieben hat | **ja** |
+| 2 | **jeder unserer Sticks, mit Kartenwort** | jeder openSecureKey, der das Kartenwort hat | **ja** |
+| 3 | **jeder unserer Sticks, nur gesiegelt** | **jeder** openSecureKey, ohne Kennwort | **nein** |
+
+**Art 3 verschlüsselt nichts.** Sie siegelt nur: man erkennt, ob jemand den Inhalt verändert hat. Lesen kann ihn jeder, der irgendeinen openSecureKey hat.
+
+**Wer glaubt verschlüsselt zu haben und hat nur gesiegelt, gibt seine Geheimnisse weg.** Das ist der schlimmste Fehler, den dieses Gerät machen kann, und er entsteht nicht durch einen Angriff, sondern durch eine Verwechslung.
+
+Deshalb ist geplant:
+
+- Der Bildschirm nennt die Betriebsart im Klartext, **bevor** geschrieben wird, und dein Druck bestätigt genau diesen Text. Bei Art 3 steht dort „**OFFEN — nur gesiegelt**".
+- Art 3 sieht am Bildschirm deutlich anders aus, nicht dieselbe Zeile mit einem anderen Wort darin.
+- Solange die Karte steckt, steht die Betriebsart an.
+- **Umstellen heißt neu beschreiben.** Es gibt kein „nachträglich verschlüsseln".
+
+### Echtheit ist nicht Urheberschaft
+
+Die Unterschrift auf der Karte beweist: **der Inhalt ist unverändert,** seit er unterschrieben wurde.
+
+Sie beweist **nicht,** von wem er kommt.
+
+Dass eine Karte von einer bestimmten Person stammt, folgt aus der Unterschrift **nur dann,** wenn du den öffentlichen Schlüssel dieser Person **vorher** kennst — von einem Treffen, einer Visitenkarte, einem anderen Weg. Sonst weißt du nur: hier hat irgendein openSecureKey unterschrieben.
+
+| Behauptung | durch die Unterschrift gedeckt? |
+| --- | --- |
+| „Dieser Inhalt ist unverändert." | **ja** |
+| „Ein openSecureKey hat unterschrieben." | ja |
+| „*Dieses* Gerät hat unterschrieben." | ja |
+| „Dieses Gerät gehört einer bestimmten Person." | **nein** |
+| „Der Inhalt stammt von dieser Person." | **nein** |
+
+Geplant ist deshalb: Beim Einstecken nennt der Bildschirm den Absenderschlüssel als kurze Zeichenfolge und sagt dazu „**unbekannter Absender**" oder den Namen, den du diesem Absender einmal gegeben hast.
+
+### Geprüft wird beim Lesen, nicht beim Einstecken
+
+Eine 16-GB-Karte **vollständig** zu prüfen heißt, sie ganz zu lesen. Das dauert **rund anderthalb Stunden** (gerechnet mit der Geschwindigkeit der Karte selbst, nicht mit der des USB-Anschlusses aus dem Abschnitt oben — das sind zwei verschiedene Wege). Niemand wartet das beim Einstecken ab, und darum tut der Stick es nicht.
+
+Stattdessen prüft er **jeden Block in dem Moment, in dem er ihn liest.**
+
+Das heißt im Guten: Keine Datei, die du öffnest, kommt ungeprüft bei dir an.
+
+Und im Schlechten: **Ein veränderter Block in einer Datei, die niemand öffnet, fällt nicht auf.**
+
+Darum sagt der Stick nie „Karte geprüft". Das wäre eine Lüge. Er sagt „dieser Block geprüft", und das ist die Wahrheit.
 
 ## Programm und Stick reden miteinander
 

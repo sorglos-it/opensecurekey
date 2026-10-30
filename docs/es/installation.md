@@ -17,6 +17,10 @@
 - Guarda sus ajustes **junto a sí mismo**, no en el sistema.
 - Todavía no hay un programa terminado para descargar. No se ha construido ninguna versión (release). Quien quiera construirlo por su cuenta lee [development.md](development.md).
 
+**Está previsto** que la llave traiga ella misma los programas: al enchufarla muestra una pequeña unidad de solo lectura.
+
+**Entonces vale esto: «enchufar y arrancar» significa esperar más de un minuto.** La llave entrega sus datos despacio. Es normal y no es un fallo. Cuánto exactamente y por qué está en [how-it-works.md](how-it-works.md), sección «La unidad con los programas necesita su tiempo».
+
 ## Paso 2: Conectar la llave, iniciar el programa
 
 1. Conecta la llave a un puerto USB.
@@ -58,6 +62,7 @@ Ninguno de los dos caminos es el más seguro en general. Depende de qué temas m
 
 - Solo se puede así: **crear un perfil nuevo** y **registrarte otra vez en cada servicio.**
 - Una llave admite hasta **cuatro perfiles.** Cada uno tiene su propio PIN.
+- **Tiene** que ser así: el inicio de sesión con passkeys no conoce perfiles. También al simple cambio de un perfil a otro te registras de nuevo en los servicios. Mira [usage.md](usage.md), sección «Varias personas en una llave».
 
 Antes de seguir tienes que marcar: "Entiendo que esto ya no se podrá cambiar".
 
@@ -77,7 +82,9 @@ Este es el paso más importante. Hazlo **enseguida**, no "más tarde".
 2. **Guardar una copia de seguridad.** Mira abajo.
 3. **Escribir la hoja de emergencia.** Mira abajo.
 
-Está previsto que el asistente de configuración te obligue a crear una segunda llave **o** una hoja de emergencia impresa. Todavía no está construido. Haz las dos cosas.
+**Por qué esto no puede dejarse «para luego»:** quien olvida su frase secreta principal y pierde las dos llaves **lo ha perdido todo.** No «casi todo» ni «recuperable con esfuerzo». No hay puerta trasera, no hay procedimiento de reserva y no hay nadie que pueda ayudar. Por eso la hoja de emergencia en el asistente de configuración **no se puede omitir:** ningún «omitir», ningún «recordármelo luego». O hay una segunda llave emparejada, o la hoja está escrita.
+
+**Estado:** esta obligación está prevista y **no está construida.** Hasta que exista el asistente, nadie te obliga. Haz las dos cosas de todos modos, y hazlo ahora.
 
 ### Emparejar la segunda llave
 
