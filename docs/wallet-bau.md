@@ -43,10 +43,72 @@ die Anzeige zu bemühen. Geprüft in `test_confirm.c`
 Taster, der Ja sagen *würde*, und `mock_ui_calls()` bleibt 0.
 
 Im Drahtformat bleibt ein Rest stehen: `GET_CONFIG` liefert im ersten
-Byte weiterhin das Bit `0x01`, das einmal „blind ist möglich" hieß. Es
-ist auf 0 festgenagelt. Das Byte bleibt, damit eine Gegenstelle, die es
-liest, nicht ins Leere greift — und damit ein Rechner **vorher** erfährt,
-dass er es nicht versuchen muss.
+Byte weiterhin das Bit `0x01` (`OSK_APDU_FLAG_BLIND`), das einmal „blind
+ist möglich" hieß. Es ist auf 0 festgenagelt. Das Byte bleibt, damit eine
+Gegenstelle, die es liest, nicht ins Leere greift — und damit ein Rechner
+**vorher** erfährt, dass er es nicht versuchen muss.
+
+### Und wer sie trotzdem verlangt, bekommt einen Fehler
+
+Das Feld auf 0 festzunageln **reicht nicht.** Eine gemeldete 0 sagt nur,
+was das Gerät *kann* — sie sagt nichts darüber, was passiert, wenn ein
+Rechner das Blindsignieren **verlangt**.
+
+Würde eine solche Bitte still überlesen oder auf 0 zurechtgebogen, wäre
+das schlimmer als gar keine Prüfung: der Rechner bekäme ein `0x9000` und
+glaubte, er habe es eingeschaltet; der Nutzer glaubte, es sei aus. Beide
+hätten recht in ihrer eigenen Vorstellung, und niemand merkte den
+Unterschied — bis etwas unterschrieben ist. **Ein stiller Riegel ist
+schlimmer als ein laut krachender.**
+
+Genau dieser Fehler ist in diesem Projekt am **29.10.2026** schon einmal
+gebaut worden: `osk_store_add()` machte eine Kennung 0 klammheimlich zu
+1, statt einen Fehler zu geben. Folge wären zwei Einträge mit derselben
+Kennung gewesen — und `osk_store_reveal` hätte unter einer Kennung das
+Geheimnis des **falschen** Eintrags herausgegeben.
+
+Darum, mit eigenem Statuswort:
+
+```
+#define OSK_SW_BLIND_REFUSED 0x6A81u   /* ISO 7816-4: nicht unterstützt */
+```
+
+Eigener Code und **nicht** `OSK_SW_DENIED` (`0x6985`), damit eine
+Gegenstelle „der Nutzer hat nein gesagt" von „danach zu fragen ist in
+diesem Gerät nicht vorgesehen" unterscheiden kann.
+
+Abgewiesen wird die Bitte auf **jedem** Weg, auf dem sie ankommen kann:
+
+| Weg | Antwort |
+|---|---|
+| `GET_CONFIG` mit `FLAG_BLIND` in P1 | `0x6A81` |
+| `GET_CONFIG` mit `FLAG_BLIND` in P2 | `0x6A81` |
+| `GET_CONFIG` mit einem Datenbyte, `FLAG_BLIND` gesetzt | `0x6A81` |
+| `GET_CONFIG` mit anderen Daten oder anderem P1/P2 | `0x6A80` |
+
+`GET_CONFIG` hat keine Eingabe. Wer trotzdem Daten schickt, will
+Eigenschaften **setzen** — und die einzige, die es hier je gab, ist das
+Blindsignieren. Die Daten einfach wegzuwerfen wäre der stille Riegel.
+
+### Dasselbe Prinzip für P1 und P2 überall
+
+Der stille Riegel ist eine Fehlerklasse, nicht ein Einzelfall. Überall,
+wo ein Feld vom Rechner kommt, wird ein unbekannter Wert jetzt
+**abgewiesen** statt auf einen bekannten zurechtgebogen:
+
+- **Sign-Befehle, P2**: `0` heißt „das war das letzte Stück", `1` heißt
+  „es kommt noch mehr". Ein dritter Wert wird nicht als `0` gelesen. Das
+  ist der gefährlichste stille Riegel in dieser Schicht: „es kommt noch
+  mehr" versehentlich als „jetzt unterschreiben" zu verstehen hieße, ein
+  **halbes PSBT zu unterschreiben**. Ein angefangener Zusammenbau wird
+  dabei verworfen.
+- **`GET_PUBKEY`, P2**: `0` = nicht anzeigen, `1` = am Gerät anzeigen.
+  Alles andere ist keine der beiden Bedeutungen.
+
+Wie ernst der erste Punkt ist, zeigt die Mutationsprüfung: nimmt man die
+P2-Prüfung heraus, antwortet das Gerät auf ein vollständiges PSBT mit
+`P2 = 0x02` nicht mit einer Abweisung, sondern mit `0x9000` — es
+**unterschreibt wirklich**.
 
 ---
 
@@ -212,6 +274,17 @@ beiden, auf die es ankommt:
   `psbt_vectors.h` ordentlich zerteilt durchgeschickt, und am Ende wird
   gezählt, wie oft die Freigabe wirklich verlangt wurde. Nie = rot.
 
+Dazu eine siebte: **wer das Blindsignieren verlangt, bekommt nie ein
+`0x9000`.** Der Lauf baut die Bitte gezielt (aus zufälligen Bytes
+entsteht sie kaum), zählt mit, wie oft sie wirklich vorkam, und gilt als
+rot, wenn das nie passiert ist.
+
+Diese Zusicherung gilt nur für Rahmen, die *sonst* in Ordnung sind. Lügt
+das Längenbyte, wird die APDU vorher als kaputt abgewiesen — das ist
+richtig und auch nicht still, der Rechner bekommt einen Fehler. Ich
+hatte das zuerst nicht unterschieden, und der Fuzzer hat mir prompt eine
+Abweisung mit `0x6700` als Verstoß gemeldet, die keiner war.
+
 Zwei Dinge, die diesen Fuzzer von einem beruhigenden unterscheiden:
 
 - Jede APDU wird in einen **passgenauen** Puffer umkopiert, bevor sie
@@ -230,14 +303,15 @@ Zwei Dinge, die diesen Fuzzer von einem beruhigenden unterscheiden:
 
 | | vorher | nachher |
 |---|---|---|
-| Fälle | 1099 | **1281** |
+| Fälle | 1099 | **1323** |
 | Fehler | 0 | **0** |
 
-Je Baustein: bip32 270, psbt 206, eth 132, confirm 126, apdu 118, bip39
-115, btc 67, ec 69, codec 63, rlp 61, bn 28, hash 26.
+Je Baustein: bip32 270, psbt 206, apdu 160, eth 132, confirm 126, bip39
+115, ec 69, btc 67, codec 63, rlp 61, bn 28, hash 26.
 
-Fuzzläufe (20 s je Lauf): `fuzz_psbt` 1441 Durchgänge (91 unterschrieben),
-`fuzz_rlp` 4,0 Mio, `fuzz_apdu` 4823 APDUs (261 mal bis zur Freigabe).
+Fuzzläufe (15 s je Lauf): `fuzz_psbt` 1043 Durchgänge (66 unterschrieben),
+`fuzz_rlp` 2,9 Mio, `fuzz_apdu` 5642 APDUs (288 mal bis zur Freigabe,
+**769 mal wurde das Blindsignieren verlangt** und 769 mal abgewiesen).
 Alle grün, kein Absturz.
 
 ### Amtliche Testwerte — der Beleg, der nicht von uns kommt
@@ -287,7 +361,8 @@ grün.
 ### Jede neue Prüfung wurde zum Anschlagen gebracht
 
 Eine Prüfung, die man nicht hat anschlagen sehen, ist keine. Der Code
-wurde absichtlich kaputtgemacht; alle sieben Mutationen wurden gefunden:
+wurde absichtlich kaputtgemacht; alle **zwölf** Mutationen wurden
+gefunden:
 
 | Mutation | gefunden von |
 |---|---|
@@ -299,9 +374,24 @@ wurde absichtlich kaputtgemacht; alle sieben Mutationen wurden gefunden:
 | Daten trotz Fehlerstatus | `fuzz_apdu` (8 Byte trotz 0x6e00) |
 | Erfundenes Statuswort | `fuzz_apdu` (unbekanntes Statuswort 0x1234) |
 | Längenbyte ungeprüft | `fuzz_apdu` → **ASan**: heap-buffer-overflow |
+| Blind-Bitte still überlesen | `test_apdu.c` + `fuzz_apdu` (mit `0x9000` beantwortet) |
+| Blind-Bitte in P1/P2 auf 0 zurechtgebogen | `test_apdu.c` + `fuzz_apdu` |
+| Mit `DENIED` statt eigenem Code abgewiesen | `fuzz_apdu` (`0x6985` statt `0x6a81`) |
+| P2 still zurechtgebogen | `test_apdu.c` (`0x9000` statt Abweisung) |
 
-Zur letzten Zeile eine Warnung für den nächsten, der dieses Werkzeug
-benutzt: die Mutation schien zuerst *nicht* anzuschlagen. Sie schlug an —
+Zur Zeile „P2 still zurechtgebogen" gehört eine zweite Lehre, denn sie
+hat mich beinahe getäuscht: meine erste Fassung dieser Prüfung schickte
+**Unsinnsbytes** mit `P2 = 0x02`. Sie schlug nicht an — und zwar zu
+Recht, denn ein kaputtes PSBT wird mit „falsche Daten" abgewiesen, ob P2
+geprüft wird oder nicht. Die Prüfung war **leer**, und ich hätte sie für
+bestanden gehalten. Erst mit einem **echten, gültigen** PSBT ist der
+Unterschied eindeutig: wird P2 geprüft, kommt eine Abweisung; wird es
+zurechtgebogen, wird wirklich unterschrieben. Jede dieser Prüfungen hat
+darum eine **Gegenprobe**, die zeigt, dass der Weg ohne den Fehler
+funktioniert.
+
+Zur Zeile „Längenbyte ungeprüft" eine Warnung für den nächsten, der
+dieses Werkzeug benutzt: die Mutation schien zuerst *nicht* anzuschlagen. Sie schlug an —
 nur schreibt ASan kein „FEHLER", sondern bricht mit einem eigenen Bericht
 ab. Das Mess-Skript sah auf die falsche Zeile. **Das Prüfwerkzeug maß
 etwas anderes als gemeint**, nicht der Fuzzer versagte.
@@ -438,6 +528,8 @@ Gebraucht werden in **de, en, fr, it, es**:
    Anzeige, die es noch nicht gibt.
 4. **MetaMask kann kein EIP-712** über dieses Gerät (Abschnitt 3). Ein
    Befehl, der die Struktur statt ihres Hashes überträgt, wäre baubar.
+   Wer in `apps/desktop` auf das Eigenschaftsbit baut: es ist immer 0,
+   und eine Bitte darum beantwortet das Gerät mit `0x6A81`.
 5. **Der Schlüssel liegt kurz im RAM** (Abschnitt 6, Punkt 4). Das
    widerspricht einer Zusage in `docs/wallet.md`, die ich nicht ändere.
 6. **Der monotone Zähler wird nicht benutzt** (Abschnitt 6, Punkt 2).

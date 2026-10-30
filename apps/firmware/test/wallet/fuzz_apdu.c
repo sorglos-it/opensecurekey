@@ -32,7 +32,12 @@
  *   5. Ein Statuswort ist immer eines der bekannten - nie eine Zahl, die
  *      sich aus einem uninitialisierten Byte ergeben hat.
  *   6. Der Lauf muss echte Befehle durchbekommen und echte Abweisungen
- *      erzeugt haben - sonst hat er nur die erste Wand getroffen. */
+ *      erzeugt haben - sonst hat er nur die erste Wand getroffen.
+ *   7. **Wer das Blindsignieren VERLANGT, bekommt nie ein 0x9000.** Ein
+ *      gesetztes Eigenschaftsbit still zu ueberlesen waere schlimmer als
+ *      gar keine Pruefung: der Rechner haelte es fuer eingeschaltet. Die
+ *      Antwort muss OSK_SW_BLIND_REFUSED sein, und der Lauf zaehlt mit,
+ *      wie oft wirklich danach gefragt wurde - nie = rot. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -92,6 +97,7 @@ static bool known_sw(uint16_t sw)
 	case OSK_SW_CLA_UNKNOWN:
 	case OSK_SW_LOCKED:
 	case OSK_SW_BUSY:
+	case OSK_SW_BLIND_REFUSED:
 		return true;
 	default:
 		return false;
@@ -146,6 +152,26 @@ static size_t build(uint8_t *out, size_t cap, bool *plausible_out)
 		for (size_t i = 0; i < n; i++)
 			out[i] = (uint8_t)rnd();
 		return n;
+	}
+	if (kind == 3u) {
+		/* DIE BITTE UM DIE BLINDUNTERSCHRIFT. Ein Rechner, der das
+		 * Eigenschaftsbit setzt, muss einen Fehler bekommen und nicht
+		 * ein stilles 0x9000. Aus zufaelligen Bytes entsteht dieser
+		 * Fall kaum - also wird er gebaut. */
+		out[0] = (uint8_t)OSK_APDU_CLA;
+		out[1] = (uint8_t)OSK_APDU_INS_GET_CONFIG;
+		if ((rnd() % 2u) == 0u) {
+			/* ueber P1 oder P2 */
+			out[2] = (uint8_t)(((rnd() % 2u) == 0u) ? OSK_APDU_FLAG_BLIND : 0u);
+			out[3] = (uint8_t)((out[2] == 0u) ? OSK_APDU_FLAG_BLIND : 0u);
+			return 4u;
+		}
+		/* oder ueber ein Datenbyte */
+		out[2] = 0x00u;
+		out[3] = 0x00u;
+		out[4] = 0x01u;
+		out[5] = (uint8_t)OSK_APDU_FLAG_BLIND;
+		return 6u;
 	}
 	if (kind == 2u) {
 		/* DER ABGESCHNITTENE BEFEHL: das Laengenbyte kuendigt viel an,
@@ -325,7 +351,7 @@ int main(int argc, char **argv)
 	uint8_t out[OSK_APDU_ASSEMBLY_MAX + 64];
 	osk_apdu_state_t state;
 	unsigned long runs = 0, answered = 0, ok_count = 0, refused = 0;
-	unsigned long plausible = 0, out_bytes = 0, deep = 0;
+	unsigned long plausible = 0, out_bytes = 0, deep = 0, blind_asked = 0;
 	time_t start;
 
 	g_rng = (argc > 2) ? strtoull(argv[2], NULL, 10) : 0x5ec0de5eed1234ULL;
@@ -442,6 +468,39 @@ int main(int argc, char **argv)
 			return 1;
 		}
 
+		/* Zusicherung 7: wer das Blindsignieren verlangt, bekommt NIE
+		 * ein 0x9000. Ein stilles Ja waere hier der ganze Schaden. */
+		if (in_len >= 4u && apdu[0] == (uint8_t)OSK_APDU_CLA &&
+		    apdu[1] == (uint8_t)OSK_APDU_INS_GET_CONFIG) {
+			/* Nur bei einem Rahmen, der SONST in Ordnung ist.
+			 * Luegt das Laengenbyte, wird die APDU vorher als
+			 * kaputt abgewiesen - das ist richtig und auch nicht
+			 * still: der Rechner bekommt einen Fehler. Diese
+			 * Zusicherung gilt dem Fall, in dem nur die Bitte
+			 * selbst der Grund zur Abweisung ist. */
+			const bool rahmen_ok = (in_len == 4u) || (in_len == 5u + (size_t)apdu[4]);
+			const bool asked_blind =
+			    rahmen_ok &&
+			    ((((apdu[2] | apdu[3]) & OSK_APDU_FLAG_BLIND) != 0u) ||
+			     (in_len >= 6u && apdu[4] >= 1u &&
+			      (apdu[5] & OSK_APDU_FLAG_BLIND) != 0u));
+
+			if (asked_blind) {
+				blind_asked++;
+				if (sw == OSK_SW_OK) {
+					printf("FEHLER: das Blindsignieren wurde verlangt und "
+					       "mit 0x9000 beantwortet\n");
+					return 1;
+				}
+				if (sw != OSK_SW_BLIND_REFUSED) {
+					printf("FEHLER: Blindsignieren verlangt, Antwort 0x%04x "
+					       "statt 0x%04x\n",
+					       sw, OSK_SW_BLIND_REFUSED);
+					return 1;
+				}
+			}
+		}
+
 		answered++;
 		out_bytes += out_len;
 		if (sw == OSK_SW_OK)
@@ -460,8 +519,9 @@ int main(int argc, char **argv)
 	}
 
 	printf("fuzz_apdu: %lu APDUs, %lu beantwortet, %lu gut, %lu abgewiesen, "
-	       "%lu plausibel gebaut, %lu Byte Antwortdaten, %lu mal bis zur Freigabe\n",
-	       runs, answered, ok_count, refused, plausible, out_bytes, deep);
+	       "%lu plausibel gebaut, %lu Byte Antwortdaten, %lu mal bis zur Freigabe, "
+	       "%lu mal blind verlangt\n",
+	       runs, answered, ok_count, refused, plausible, out_bytes, deep, blind_asked);
 
 	/* Zusicherung 6: ein Lauf, der nur die erste Wand getroffen hat,
 	 * hat nichts geprueft. */
@@ -481,6 +541,11 @@ int main(int argc, char **argv)
 	if (deep == 0u) {
 		printf("FEHLER: der Lauf kam nie bis zur Freigabe - Zusicherung 4 wurde nicht "
 		       "geprueft\n");
+		return 1;
+	}
+	if (blind_asked == 0u) {
+		printf("FEHLER: im ganzen Lauf hat nie jemand das Blindsignieren verlangt - "
+		       "Zusicherung 7 wurde nicht geprueft\n");
 		return 1;
 	}
 	if (ok_count == 0u || refused == 0u) {
