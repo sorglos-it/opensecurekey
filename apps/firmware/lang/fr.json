@@ -38,6 +38,23 @@
     "denied": "Annulé",
     "timeout": "Temps écoulé"
   },
+  "mode": {
+    "before_write": "Écrit :",
+    "open": "Non protégé",
+    "secret": "Protégé",
+    "title": "Mode",
+    "unknown": "Mode ?"
+  },
+  "pin": {
+    "hint": {
+      "bits": "Court: 0 Long: 1",
+      "one": "Court: suite Long: prendre",
+      "two": "1: suite 2: prendre"
+    },
+    "locked": "Bloqué",
+    "title": "PIN",
+    "wrong": "PIN faux"
+  },
   "status": {
     "busy": "Travaille",
     "error": "Erreur",

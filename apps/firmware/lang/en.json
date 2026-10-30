@@ -38,6 +38,23 @@
     "denied": "Cancelled",
     "timeout": "Time ran out"
   },
+  "mode": {
+    "before_write": "Writing:",
+    "open": "Unprotected",
+    "secret": "Protected",
+    "title": "Mode",
+    "unknown": "Mode ?"
+  },
+  "pin": {
+    "hint": {
+      "bits": "Short: 0 Long: 1",
+      "one": "Short: next Long: take",
+      "two": "1: next 2: take"
+    },
+    "locked": "Locked",
+    "title": "PIN",
+    "wrong": "Wrong PIN"
+  },
   "status": {
     "busy": "Working",
     "error": "Error",

@@ -38,6 +38,23 @@
     "denied": "Abgebrochen",
     "timeout": "Zeit abgelaufen"
   },
+  "mode": {
+    "before_write": "Schreibt:",
+    "open": "Ungeschützt",
+    "secret": "Geschützt",
+    "title": "Modus",
+    "unknown": "Modus ?"
+  },
+  "pin": {
+    "hint": {
+      "bits": "Kurz: 0 Lang: 1",
+      "one": "Kurz: weiter Lang: nehmen",
+      "two": "1: weiter 2: nehmen"
+    },
+    "locked": "Gesperrt",
+    "title": "PIN",
+    "wrong": "PIN falsch"
+  },
   "status": {
     "busy": "Arbeitet",
     "error": "Fehler",
