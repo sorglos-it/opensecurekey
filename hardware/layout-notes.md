@@ -26,10 +26,23 @@ kann, ist, welche Zahl heute gilt. Darum dieser Kopf.
 > ausdrücklich — „die Platine ist nicht angefaßt, nichts verschoben, der
 > Umriss unverändert". **Weitergereicht wurde trotzdem nur die Zahl.**
 >
-> **Gegenprobe am 30.10.2026:** hinter `y` = 59,55 mm liegen noch **vier
-> Pads**, das hinterste bei `y` = 66,0 mm. Die kürzere Platine ist also nicht
-> bloß ungezeichnet — sie ist mit der heutigen Platzierung unvereinbar,
-> solange diese Teile nicht wandern.
+> **Gegenprobe am 30.10.2026, berichtigt am selben Tag:** hinter `y` = 59,55
+> mm liegen **vier Bauteile mit zwölf Pads** — D1 (RGB-LED, 6 Pads) und
+> R10/R11/R12 (je 2). **Ich hatte hier zuerst „vier Pads" geschrieben: das
+> waren Bauteil-MITTEN, nicht Pads.** Und die 66,0 mm sind die Mitte von D1,
+> die **Kupferkante** liegt bei **66,985 mm**. Gemessen am Gerber, nicht am
+> Platinen-Export — der nennt die Pads gar nicht. *(Padmitten gegen Kupfer,
+> die erste der Verwechslungen in diesem Projekt, und ich bin ihr selbst
+> hineingelaufen.)*
+> Die kürzere Platine ist also nicht bloß ungezeichnet — sie ist mit der
+> heutigen Platzierung unvereinbar, solange diese Teile nicht wandern.
+>
+> **Und der Akku steht in diesem Stand noch drin.** Der Schaltplan-Export
+> trägt 16 × `VBAT`, 3 × `CHG`, 3 × `STAT`, die Netzliste 19 × `VBAT`. Die
+> Tabelle oben sagt „entfällt seit 25.10.2026" — das ist die Entscheidung,
+> nicht der Stand. Ob der Eingriff nie geschehen oder nur nie exportiert
+> worden ist, ist offen (`docs/plan.md`, Punkt 18). **Solange das offen ist,
+> gilt kein Gerber und keine Stückliste als Fertigungsstand.**
 >
 > **Folge, die eine Entscheidung braucht:** `../cad/parameters.csv` setzt
 > `pcb_len` auf 59,55 mm. Das Gehäuse ist damit auf eine Platine gerechnet,
