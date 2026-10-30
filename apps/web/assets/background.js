@@ -27,6 +27,8 @@ const CLIPBOARD_WIPE_MS = 20000;
 
 let port = null;
 let nextId = 1;
+// Welche Eintraege zuletzt zu welcher Adresse gehoerten. Siehe handle.
+let allowed = { origin: '', ids: new Set() };
 const waiting = new Map();
 
 // connect haelt eine Verbindung zum Wirt. Sie wird beim ersten Bedarf
@@ -116,7 +118,10 @@ async function activeOrigin() {
   if (where.error) {
     return where;
   }
-  return { tabId: tab.id, origin: where.origin, shown: where.shown };
+  return {
+    tabId: tab.id, origin: where.origin, host: where.host,
+    shown: where.shown, foreign: oskLooksForeign(where.host),
+  };
 }
 
 // Die Fragen des Anzeigefensters. Es bekommt NIE die Erlaubnis, eine
@@ -150,9 +155,24 @@ async function handle(request) {
     if (!list.ok) {
       return { ok: false, reason: 'device', error: list.error, shown: where.shown };
     }
+    // DER ZWEITE RIEGEL AUF DIESER SEITE DES KANALS.
+    //
+    // osk hat schon gefiltert (replyList) und prueft bei jedem reveal noch
+    // einmal. Trotzdem wird hier NACHGEMESSEN: was ankommt, ist eine
+    // Antwort aus einem anderen Programm, und ein Riegel, der sich auf die
+    // Zusage der Gegenseite verlaesst, ist keiner. Kommt ein Eintrag mit
+    // einer fremden Adresse herein, fliegt er hier raus - und mit ihm die
+    // Moeglichkeit, ihn ueberhaupt anzuklicken.
+    const matches = (list.matches || []).filter(
+      (match) => oskMatches(match.site, where.host));
+    // Die erlaubten Nummern werden gemerkt. Ausgefuellt wird spaeter NUR,
+    // was hier durchgekommen ist - das Fenster kann keine Nummer nennen,
+    // die diese Liste nie enthielt.
+    allowed = { origin: where.origin, ids: new Set(matches.map((m) => m.id)) };
     return {
       ok: true, unlocked: true, shown: where.shown, origin: where.origin,
-      matches: list.matches || [], device: hello.device, claim: hello.claim,
+      foreign: where.foreign, matches, device: hello.device,
+      claim: hello.claim,
     };
   }
 
@@ -174,6 +194,12 @@ async function handle(request) {
     const item = Number(request.item);
     if (!Number.isInteger(item) || item <= 0) {
       return { ok: false, reason: 'item' };
+    }
+    // Nur ein Eintrag, der fuer GENAU DIESE Adresse schon in der Liste
+    // stand. Hat sich der Reiter seit dem Aufbau der Liste bewegt, passt
+    // die Adresse nicht mehr, und es wird nichts herausgegeben.
+    if (allowed.origin !== where.origin || !allowed.ids.has(item)) {
+      return { ok: false, reason: 'wrongsite' };
     }
     // Benutzername und Geheimnis werden getrennt geholt: der Name braucht
     // keine Freigabe am Geraet, das Geheimnis schon.
@@ -220,7 +246,10 @@ async function fillTab(tabId, origin, user, secret) {
   }
   const first = results && results[0] && results[0].result;
   if (!first || !first.ok) {
-    return { ok: false, reason: (first && first.reason) || 'nofield' };
+    return {
+      ok: false, reason: (first && first.reason) || 'nofield',
+      frame: (first && first.frame) || '',
+    };
   }
   return { ok: true };
 }
