@@ -67,6 +67,100 @@ foreach(f IN LISTS VERSION_FILE)
   endif()
 endforeach()
 
+# --- Signierter Bootloader, zwei Plaetze, zwei Fassungen -------------------
+#
+# Die drei Zeilen, die apps/firmware/boot/app_update.conf und
+# boot/mcuboot.conf beim Bau-Strang ANGEFORDERT haben, stehen hier. Sie
+# muessen VOR find_package(Zephyr) stehen: danach ist die Aufteilung der
+# Partitionen schon gelesen und ein Kind-Abbild schon eingerichtet.
+#
+# UNGEPRUEFT: Auf diesem Rechner ist kein nRF Connect SDK. Dieser Block ist
+# geschrieben, nicht uebersetzt - siehe docs/signatur.md, "Was geprueft ist
+# und was nicht".
+
+# (1) Die feste Aufteilung der Speicher. Ohne sie legt das SDK den zweiten
+#     Platz selbst ins INTERNE Flash - dann passt er nicht, und der Tresor
+#     waere in Gefahr (boot/pm_static.yml sagt, warum die Reihenfolge nicht
+#     verhandelbar ist).
+set(PM_STATIC_YML_FILE ${CMAKE_CURRENT_SOURCE_DIR}/boot/pm_static.yml
+    CACHE FILEPATH "Feste Aufteilung der Speicher" FORCE)
+
+# (2) Die Einstellungen von MCUboot als Kind-Abbild.
+#     Der Name dieser Variablen hat sich zwischen den SDK-Fassungen geaendert
+#     (mcuboot_EXTRA_CONF_FILE, frueher mcuboot_OVERLAY_CONFIG). Es werden
+#     beide gesetzt: die Fassung, die das SDK nicht kennt, bleibt einfach
+#     liegen - eine unbekannte CMake-Variable ist kein Fehler. Verlassen darf
+#     man sich darauf nicht, darum sagt der erste echte Bau, welche greift.
+set(OSK_MCUBOOT_CONF ${CMAKE_CURRENT_SOURCE_DIR}/boot/mcuboot.conf)
+set(mcuboot_EXTRA_CONF_FILE ${OSK_MCUBOOT_CONF} CACHE STRING "MCUboot-Einstellungen" FORCE)
+set(mcuboot_OVERLAY_CONFIG ${OSK_MCUBOOT_CONF} CACHE STRING "MCUboot-Einstellungen (alt)" FORCE)
+
+# (3) Der Pfad des MCUboot-Schluessels - von AUSSEN, nie aus dem Repo.
+#
+# DAS IST DIE ZEILE, DEREN FEHLEN DAS ENDE DER GANZEN ABSICHERUNG WAERE:
+# Ohne CONFIG_BOOT_SIGNATURE_KEY_FILE nimmt MCUboot seinen EIGENEN
+# Beispielschluessel, und der ist oeffentlich bekannt. Ein Geraet, das damit
+# gebaut ist, nimmt Firmware von jedem an, der die Datei aus dem Netz laedt.
+# Es gibt dafuer keine Warnung - der Bau wird gruen.
+#
+# Darum: kein Schluessel, kein Bau. Lieber kein Abbild als ein Abbild, das
+# so aussieht wie ein unterschriebenes.
+if(NOT DEFINED OSK_MCUBOOT_KEY)
+  set(OSK_MCUBOOT_KEY "$ENV{OSK_MCUBOOT_KEY}")
+endif()
+if(OSK_MESSBAU)
+  # Der Messbau ist ausdruecklich kein Abbild fuer ein Geraet (siehe weiter
+  # unten: sechs Platzhalter sind dabei). Er darf darum ohne Schluessel
+  # laufen - und sagt es auch.
+  message(WARNING "osk: MESSBAU ohne Signaturschluessel - das Ergebnis ist eine Groesse, kein Abbild")
+elseif(NOT OSK_MCUBOOT_KEY)
+  message(FATAL_ERROR
+    "Kein MCUboot-Signaturschluessel.\n"
+    "Ohne ihn baut MCUboot mit seinem eigenen BEISPIELSCHLUESSEL, und der ist\n"
+    "oeffentlich bekannt: das Geraet nimmt dann Firmware von jedem an. Der Bau\n"
+    "bricht hier ab, weil er sonst gruen wuerde.\n\n"
+    "Setzen (PowerShell, Pfad AUSSERHALB des Projektordners):\n"
+    "  $env:OSK_MCUBOOT_KEY = \"$env:USERPROFILE\\.osk-keys\\mcuboot-ed25519.pem\"\n\n"
+    "Siehe docs/signatur.md.")
+else()
+  get_filename_component(OSK_MCUBOOT_KEY "${OSK_MCUBOOT_KEY}" ABSOLUTE)
+  if(NOT EXISTS "${OSK_MCUBOOT_KEY}")
+    message(FATAL_ERROR "Der MCUboot-Schluessel steht in OSK_MCUBOOT_KEY, liegt aber nicht da: "
+                        "${OSK_MCUBOOT_KEY}")
+  endif()
+  # Dieselbe Regel wie in tools/sign.py: nicht im Projektordner, auch nicht
+  # ausdruecklich. Ein Schluessel, der einmal in einem Commit steckt, ist aus
+  # der Geschichte nicht mehr herauszuholen.
+  get_filename_component(OSK_REPO_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../.. ABSOLUTE)
+  string(FIND "${OSK_MCUBOOT_KEY}" "${OSK_REPO_ROOT}" OSK_KEY_INSIDE)
+  if(OSK_KEY_INSIDE EQUAL 0)
+    message(FATAL_ERROR
+      "Der MCUboot-Schluessel liegt IM Projektordner: ${OSK_MCUBOOT_KEY}\n"
+      "Er gehoert ausserhalb. Verschieben, nicht nur in .gitignore eintragen -\n"
+      "ignoriert ist nicht weg (tools/keyguard.py sieht beides).")
+  endif()
+  set(mcuboot_CONFIG_BOOT_SIGNATURE_KEY_FILE "\"${OSK_MCUBOOT_KEY}\""
+      CACHE STRING "MCUboot-Signaturschluessel" FORCE)
+  # Der Pfad selbst wird NICHT protokolliert: Bauprotokolle wandern in
+  # Fehlerberichte, und der Pfad verraet, wo der Schluessel liegt.
+  message(STATUS "osk: MCUboot-Schluessel von aussen uebernommen")
+endif()
+
+# Die Fassung (mit oder ohne RSA) gehoert in den ABBILDKOPF, nicht nur in den
+# Dateinamen: ein Dateiname ist umbenannt, bevor man zweimal hinsieht. Der
+# AAGUID wandert als GESCHUETZTES TLV in den MCUboot-Kopf - geschuetzt heisst,
+# von der Signatur gedeckt, also nicht austauschbar, ohne die Signatur zu
+# brechen. Welcher Wert gilt, entscheidet nicht diese Datei: tools/variant.py
+# liest ihn aus osk_ctap_core.c, wo ihn auch der Quelltext liest. Geprueft
+# wird das fertige Abbild mit
+#   python tools/variant.py --check <abbild> --expect <rsa|norsa>
+if(OSK_AAGUID_TLV)
+  set(mcuboot_CONFIG_MCUBOOT_EXTRA_IMGTOOL_ARGS
+      "--custom-tlv 0x00a1 ${OSK_AAGUID_TLV}"
+      CACHE STRING "AAGUID im Abbildkopf" FORCE)
+  message(STATUS "osk: AAGUID als geschuetztes TLV 0x00a1 im Abbildkopf")
+endif()
+
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(opensecurekey C)
 

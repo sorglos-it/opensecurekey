@@ -93,6 +93,13 @@ vergleicht beide Zahlensaetze.
 
 ## Nur unterschriebene Pakete
 
+> Wie der signierte Bootloader eingestellt und gebaut wird, wie der
+> Schluessel von aussen hereinkommt und wie die zwei Fassungen (mit und ohne
+> RSA) auseinandergehalten werden, steht in **`docs/signatur.md`**. Dort steht
+> auch, warum der signierte Bootloader frueh ins Abbild muss: wird die
+> Auslesesperre erst spaeter gesetzt, muesste man sie zum Nachruesten loesen,
+> und das loescht den Chip.
+
 ```powershell
 python tools/sign.py --gen-key
 ```
@@ -297,9 +304,13 @@ Drei Proben haben echte Luecken gezeigt und wurden behoben, nicht wegerklaert:
   Solange sie fehlen, antwortet `apps/firmware/boot/boot_se050.c` ehrlich
   `OSK_ERR_UNSUPPORTED`, und jede Paketpruefung scheitert - lieber kein
   Update als ein Update ohne Rueckschritt-Sperre.
-- Drei Zeilen fuer den Bau (gehoert dem Bau-Strang, siehe
-  `apps/firmware/boot/app_update.conf`): die Partitionsdatei, die
-  MCUboot-Einstellungen und der Pfad des MCUboot-Schluessels.
+- ~~Drei Zeilen fuer den Bau: die Partitionsdatei, die MCUboot-Einstellungen
+  und der Pfad des MCUboot-Schluessels.~~ **Erledigt am 30.10.2026**: die drei
+  stehen in `apps/firmware/CMakeLists.txt`, und der Bau bricht ab, wenn der
+  Schluessel fehlt. Geschrieben, nicht uebersetzt - es gibt kein SDK auf
+  diesem Rechner. Einzelheiten und was daran gemessen ist:
+  `docs/signatur.md`. Was noch fehlt, ist die Uebernahme der Zeilen aus
+  `apps/firmware/boot/app_update.conf` nach `apps/firmware/prj.conf`.
 - Der Geraetebaum des eigenen Bretts: welcher Anschluss die Taste ist.
 - Die Seite der Firmware fuer Befehl 13 - die Schicht hier entscheidet,
   aber den Rahmen in CBOR auspacken muss der Transport.
