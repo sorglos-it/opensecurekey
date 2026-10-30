@@ -62,6 +62,17 @@ El orden de tu seguridad:
 - Solo segunda llave: un incendio o el robo del bolso se lleva las dos.
 - Nada de eso: perder la llave es una pérdida total.
 
+## La llave va lenta y creo que está rota
+
+Probablemente no lo está.
+
+- La unidad con los programas **no** se abre enseguida. Cuenta con más de un minuto hasta que los programas estén leídos.
+- Eso viene de cuánto deja pasar la llave por el puerto USB. Las cifras y el motivo están en [how-it-works.md](how-it-works.md), sección «La unidad con los programas necesita su tiempo».
+- **No desenchufes la llave durante ese tiempo.** Parece un cuelgue y no lo es.
+- Copia el programa al disco duro **una vez.** Así solo esperas la primera vez.
+
+**Estado:** la unidad está prevista y no está construida. La espera está calculada, no medida en el aparato.
+
 ## La llave no se reconoce
 
 En el programa, en **Dispositivos**, pone "No se encontró ningún dispositivo."
@@ -186,6 +197,32 @@ Para que no busques mucho:
 - **Iniciar sesión en el ordenador,** desbloquear el disco duro, la llave como teclado
 - una hoja de emergencia ya impresa por el programa
 - **macOS**
+
+## Quería cifrar y solo he sellado
+
+**Entonces los datos están abiertos, y abiertos para cualquiera que tenga un openSecureKey cualquiera.**
+
+Esto afecta a la tarjeta de memoria prevista. Uno de sus tres modos de funcionamiento **no** cifra. Solo sella, para que se reconozca un cambio.
+
+Qué hacer:
+
+1. Da por supuesto que se ha leído. Las contraseñas o claves que estuvieran allí, **cámbialas**, no solo la tarjeta.
+2. No existe «cifrar después». La tarjeta hay que **escribirla de nuevo,** en uno de los dos modos secretos.
+3. Comprueba antes en la pantalla qué modo pone allí. Queda en la pantalla mientras la tarjeta está puesta.
+
+Los tres modos uno al lado del otro: [how-it-works.md](how-it-works.md), sección «El soporte de datos cifrado».
+
+**Estado:** la tarjeta no existe. Esta sección está aquí para que el error no ocurra cuando exista.
+
+## La llave no dice «tarjeta comprobada»
+
+Es a propósito, y sería una mentira si lo dijera.
+
+- Comprobar **del todo** una tarjeta significa leerla entera. Cuánto dura eso está en [how-it-works.md](how-it-works.md): demasiado para esperarlo al enchufar.
+- Por eso la llave comprueba **cada bloque en el momento en que lo lee.** Lo que abres está comprobado.
+- **Un bloque cambiado en un archivo que nadie abre no se nota.** Ese es el precio, y está aquí porque te corresponde saberlo.
+
+Más sobre esto en [how-it-works.md](how-it-works.md), sección «El soporte de datos cifrado».
 
 ## Si no lo encuentras
 

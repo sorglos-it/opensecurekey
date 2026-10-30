@@ -62,6 +62,17 @@ L’ordre de ta sécurité :
 - Seulement une seconde clé : un incendie ou le vol du sac emporte les deux.
 - Rien de tout cela : une clé perdue est une perte totale.
 
+## La clé est lente et je la crois cassée
+
+Elle ne l’est probablement pas.
+
+- Le lecteur avec les programmes ne s’ouvre **pas** tout de suite. Compte plus d’une minute jusqu’à ce que les programmes soient lus.
+- Cela vient de ce que la clé fait passer par le port USB. Les chiffres et la raison se trouvent dans [how-it-works.md](how-it-works.md), section « Le lecteur avec les programmes prend son temps ».
+- **Ne débranche pas la clé pendant ce temps.** Cela ressemble à un blocage et n’en est pas un.
+- Copie le programme **une fois** sur le disque dur. Ainsi tu n’attends qu’à la première fois.
+
+**État :** le lecteur est prévu et n’est pas construit. L’attente est calculée, pas mesurée sur l’appareil.
+
 ## La clé n’est pas reconnue
 
 Dans le programme, sous **Appareils**, il est écrit « Aucun appareil trouvé. »
@@ -186,6 +197,32 @@ Pour que tu ne cherches pas longtemps :
 - **Se connecter à l’ordinateur,** déverrouiller le disque dur, la clé comme clavier
 - une feuille de secours déjà imprimée par le programme
 - **macOS**
+
+## Je voulais chiffrer et je n’ai que scellé
+
+**Alors les données sont ouvertes, et ouvertes à quiconque a une openSecureKey quelconque.**
+
+Cela concerne la carte mémoire prévue. L’un de ses trois modes de fonctionnement **ne** chiffre **pas**. Il scelle seulement, pour qu’une modification se reconnaisse.
+
+Ce qu’il faut faire :
+
+1. Part du principe que cela a été lu. Les mots de passe ou clés qui s’y trouvaient, **change-les**, pas seulement la carte.
+2. Il n’existe pas de « chiffrer après coup ». La carte doit être **réécrite,** dans l’un des deux modes secrets.
+3. Vérifie avant, à l’écran, quel mode y est écrit. Il reste à l’écran tant que la carte est en place.
+
+Les trois modes côte à côte : [how-it-works.md](how-it-works.md), section « Le support de données chiffré ».
+
+**État :** la carte n’existe pas. Cette section est ici pour que la faute n’arrive pas quand elle existera.
+
+## La clé ne dit pas « carte vérifiée »
+
+C’est volontaire, et ce serait un mensonge si elle le disait.
+
+- Vérifier **entièrement** une carte veut dire la lire en entier. Combien de temps cela dure se trouve dans [how-it-works.md](how-it-works.md) : trop longtemps pour l’attendre au branchement.
+- La clé vérifie donc **chaque bloc au moment où elle le lit.** Ce que tu ouvres est vérifié.
+- **Un bloc modifié dans un fichier que personne n’ouvre ne se remarque pas.** C’est le prix, et il est écrit ici parce qu’il te revient de le savoir.
+
+Plus là-dessus dans [how-it-works.md](how-it-works.md), section « Le support de données chiffré ».
 
 ## Si tu ne le trouves pas
 

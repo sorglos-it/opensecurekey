@@ -142,8 +142,88 @@ If you lose the key, the second key, the backup file and the envelopes all at on
 - The sign-in **signature counter** starts at zero at every power-on. Some sites might take that for a copied key.
 - The key sends a **self-attestation,** not a certificate from the manufacturer. That is good for privacy, but some company sites demand more.
 - Whether the supplied chip allows **key agreement** (ECDH) depends on its factory setting. If it does not allow it, **server operation with the key in the chip is dropped.** Signing continues to work. The program then says so honestly, instead of looking like a PIN error.
+- **There is no private key as a file.** Programs that insist on a key file cannot work with the key. See [usage.md](usage.md), section "Software that insists on a key file".
 - **Mac:** never tried.
 - **Memory space in the firmware** is tight. Whether all functions fit is open.
+
+## The program drive needs its time
+
+**Status:** calculated, not measured on the device. The drive is planned and not built.
+
+When plugged in, the key shows a small, read-only drive holding the management programs. Whoever opens it waits.
+
+**The three numbers for this live here. Every other place in the manual points here.**
+
+| What | Number |
+| --- | ---: |
+| What the radio chip gets through over USB | about **400 kB per second** |
+| How big the programs are | **29.10 MB** (measured on 23.10.2026 on the finished image) |
+| So how long the reading takes | about **73 seconds** |
+
+"Plug in and start" really means: plug in, **wait more than a minute,** start. Whoever does not know this thinks the key is broken and pulls it out.
+
+Why so slow? The radio chip sits on a USB port of the old 1.1 standard. On paper that gives 1.5 MB per second, but the key has to fetch every piece from its memory first and answer. What is left are the 400 kB. The 400 kB are **measured** on a development board; the other two numbers are calculated from them.
+
+The programs grow. As the file grows, the waiting time grows in the same proportion.
+
+## The encrypted data carrier
+
+**Status: paper.** There is no chip, no board and not one line of program for it. This section is here so that nobody later believes something false — not because it exists.
+
+Planned is a memory card on the key, 8 to 16 GB, for your own files.
+
+**The card always needs an openSecureKey.** In an ordinary card reader there is nothing to be done with it. It carries a format of its own, not a Windows format. It is **not** a data carrier you hand to somebody who has no key.
+
+### Three operating modes — and one of them is not secret
+
+This is the place where it is easiest to harm yourself. So here are the three side by side:
+
+| Mode | Name | Who can read | Content secret? |
+| --- | --- | --- | --- |
+| 1 | **only this key** | only the key that wrote it | **yes** |
+| 2 | **any of our keys, with the card word** | any openSecureKey that has the card word | **yes** |
+| 3 | **any of our keys, sealed only** | **any** openSecureKey, with no passphrase | **no** |
+
+**Mode 3 encrypts nothing.** It only seals: you can tell whether somebody changed the content. Anybody holding any openSecureKey can read it.
+
+**Whoever believes they encrypted and only sealed gives their secrets away.** That is the worst mistake this device can make, and it does not come from an attack but from a mix-up.
+
+That is why this is planned:
+
+- The display names the operating mode in plain words **before** anything is written, and your press confirms exactly that text. For mode 3 it says "**OPEN — sealed only**".
+- Mode 3 looks clearly different on the display, not the same line with a different word in it.
+- As long as the card is plugged in, the operating mode stays on the display.
+- **Changing the mode means writing the card again.** There is no "encrypt it afterwards".
+
+### Authenticity is not authorship
+
+The signature on the card proves: **the content is unchanged** since it was signed.
+
+It does **not** prove who it comes from.
+
+That a card comes from a particular person follows from the signature **only** if you know that person's public key **beforehand** — from a meeting, a business card, some other channel. Otherwise you know only this: some openSecureKey signed here.
+
+| Claim | covered by the signature? |
+| --- | --- |
+| "This content is unchanged." | **yes** |
+| "An openSecureKey signed it." | yes |
+| "*This* device signed it." | yes |
+| "This device belongs to a particular person." | **no** |
+| "The content comes from that person." | **no** |
+
+Planned therefore: when plugged in, the display names the sender key as a short string of characters and adds "**unknown sender**" or the name you once gave that sender.
+
+### Checking happens while reading, not when plugging in
+
+Checking a 16 GB card **completely** means reading all of it. That takes **about an hour and a half** (calculated with the speed of the card itself, not that of the USB port from the section above — those are two different paths). Nobody waits for that when plugging in, and so the key does not do it.
+
+Instead it checks **every block at the moment it reads that block.**
+
+The good part: no file you open reaches you unchecked.
+
+The bad part: **a changed block in a file nobody opens is not noticed.**
+
+That is why the key never says "card checked". That would be a lie. It says "this block checked", and that is the truth.
 
 ## Program and key talk to each other
 

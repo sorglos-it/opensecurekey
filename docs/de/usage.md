@@ -131,6 +131,30 @@ Ablauf:
 2. PIN eingeben, wenn gefragt.
 3. Am Stick den Namen lesen, **lang drücken**, **lang drücken.**
 
+### Software, die eine Schlüsseldatei verlangt
+
+**Das ist der Punkt, an dem die meisten scheitern. Lies ihn, bevor du suchst.**
+
+**Das Zertifikat gibt der Stick heraus.** Ein Zertifikat ist öffentlich — es weiterzugeben kostet nichts. Für alles, was nur die Bescheinigung braucht, genügt das.
+
+**Den privaten Schlüssel gibt es nicht als Datei. Nie.** Es gibt keine Ausfuhr, keinen Haken dafür, kein Kennwort, das sie freischaltet. Such nicht danach.
+
+Das ist **kein Mangel, sondern der Zweck des Geräts:** Was als Datei vorliegt, ist kopierbar. Ein Schlüssel, den man kopieren kann, ist kein Hardware-Schlüssel mehr.
+
+**Die Folge, offen gesagt:** Software, die zwingend eine Schlüsseldatei verlangt — ein `.pem`, in dem `PRIVATE KEY` steht, oder ein `.pfx` mit Kennwort — **kann dieses Gerät grundsätzlich nicht bedienen.** Nicht mit einem Umweg, nicht mit einer Einstellung.
+
+**Der Ausweg heißt PKCS#11.** Das ist eine festgelegte Schnittstelle für Schlüssel, die in einem Gerät bleiben. Programme, die sie kennen, nehmen statt eines Dateipfads eine **Schlüssel-Adresse** entgegen, die so aussieht:
+
+```
+pkcs11:object=mein-schluessel
+```
+
+Das können unter anderem `openssl`, der Webserver nginx, Java, viele VPN-Programme und die üblichen Signierwerkzeuge. Wer PKCS#11 kann, braucht keine Datei.
+
+**Wer es nicht kann, bleibt außen vor.** Dann hilft nur: ein Programm nehmen, das PKCS#11 spricht, oder für diesen einen Zweck bei einer Schlüsseldatei auf der Festplatte bleiben — mit allem, was das bedeutet.
+
+Die Bibliothek dafür heißt `osk-pkcs11` (als `.dll` und `.so`). **Stand:** Mit der Attrappe hat `openssl` damit eine Unterschrift als „Verified OK“ geprüft. Mit einem echten Stick nie.
+
 ### Per SSH und Git
 
 **Stand:** Mit der Attrappe geprüft. `git push` über den Agenten ging unter Windows und Linux.
@@ -206,6 +230,16 @@ Geheimnisse stehen nie im Protokoll.
 
 Ein Stick hat bis zu **vier Profile**, jedes mit eigener PIN. Die PIN des einen öffnet kein anderes. Ein gesperrtes Profil zeigt nichts, nicht einmal die Namen der Einträge. Platz: **768 Einträge je Profil**, **3072 im Stick.**
 
+**Eine Grenze, die nicht am Stick liegt:** Die Anmeldung mit Passkeys (FIDO) kennt **keine Profile.** Diese Technik geht davon aus, dass ein Stick einem Menschen gehört. Der Stick kann daran nichts ändern.
+
+Was das im Alltag bedeutet:
+
+- Wechselst du das Profil, musst du dich **bei den Diensten neu anmelden.** Die Passkeys des anderen Profils stehen dort nicht zur Verfügung.
+- Ein Profil ist also kein zweites Gesicht für denselben Dienst, sondern ein getrennter Satz Zugänge.
+- Wer zwischen zwei Profilen oft hin und her will, fährt mit **zwei Sticks** besser.
+
+**Stand:** Nie in einem Browser ausprobiert.
+
 ## Eintragsarten
 
 Zugang, Einmalcode (Zeit), Einmalcode (Zähler), SSH-Schlüssel, Zertifikat, PGP-Schlüssel, API-Schlüssel, Wiederherstellungscodes, Wallet-Satz, Lizenzschlüssel, Bankkarte, Ausweis, WLAN, Notiz, Datei.
@@ -217,3 +251,14 @@ Jeder Eintrag trägt drei Markierungen, die du selbst setzt:
 | darf gespiegelt werden | geht auf deinen Zweitstick, und nur dorthin |
 | nur gekoppelte Rechner | wird nur an einen gekoppelten Rechner herausgegeben |
 | schreibgeschützt | lässt sich nicht ändern oder löschen, auch nicht von dir, bis du es aufhebst |
+
+## Eine Speicherkarte am Stick
+
+**Das gibt es noch nicht.** Geplant ist eine Speicherkarte für eigene Dateien.
+
+Zwei Dinge dazu solltest du kennen, **bevor** es sie gibt, weil beide Geheimnisse kosten können:
+
+- Von **drei Betriebsarten** verschlüsselt eine **nicht.** Sie siegelt nur, und jeder openSecureKey kann lesen.
+- Eine Unterschrift beweist, dass der Inhalt **unverändert** ist — nicht, **von wem** er kommt.
+
+Beides steht ausführlich in [how-it-works.md](how-it-works.md), Abschnitt „Der verschlüsselte Datenträger“.

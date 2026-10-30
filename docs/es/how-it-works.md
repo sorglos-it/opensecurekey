@@ -142,8 +142,88 @@ Si pierdes a la vez la llave, la segunda llave, el archivo de copia de seguridad
 - El **contador de firmas** del inicio de sesión empieza en cero cada vez que se enciende. Algunas páginas podrían tomarlo por una clave copiada.
 - La llave envía una **autocertificación**, no un certificado del fabricante. Eso es bueno para la privacidad, pero algunas páginas de empresas exigen más.
 - Si el chip suministrado permite el **acuerdo de claves** (ECDH) depende de su configuración de fábrica. Si no lo permite, **desaparece el modo servidor con la clave en el chip.** Firmar sigue funcionando. El programa lo dice entonces con honestidad, en lugar de parecer un error de PIN.
+- **La clave privada no existe como archivo.** Los programas que exigen un archivo de clave no pueden trabajar con la llave. Mira [usage.md](usage.md), sección «Software que exige un archivo de clave».
 - **Mac:** nunca probado.
 - **El espacio de memoria en el firmware** es escaso. Si caben todas las funciones, está abierto.
+
+## La unidad con los programas necesita su tiempo
+
+**Estado:** calculado, no medido en el aparato. La unidad está prevista y no está construida.
+
+Al enchufarla, la llave muestra una pequeña unidad de solo lectura con los programas de administración. Quien la abre, espera.
+
+**Las tres cifras sobre esto están aquí. Todos los demás sitios del manual remiten aquí.**
+
+| Qué | Cifra |
+| --- | ---: |
+| Lo que el chip de radio deja pasar por USB | unos **400 kB por segundo** |
+| Lo que ocupan los programas | **29,10 MB** (medido el 23.10.2026 sobre la imagen terminada) |
+| Lo que tarda entonces la lectura | unos **73 segundos** |
+
+«Enchufar y arrancar» significa en realidad: enchufar, **esperar más de un minuto,** arrancar. Quien no lo sabe cree que la llave está rota y la desenchufa.
+
+¿Por qué tan lento? El chip de radio está en un puerto USB del estándar antiguo 1.1. Sobre el papel salen de ahí 1,5 MB por segundo, pero la llave tiene que sacar cada trozo de su memoria antes de responder. Lo que queda son los 400 kB. Los 400 kB están **medidos** en una placa de desarrollo; las otras dos cifras están calculadas a partir de ellos.
+
+Los programas crecen. Si crece el archivo, crece la espera en la misma proporción.
+
+## El soporte de datos cifrado
+
+**Estado: papel.** No hay chip, no hay placa y no hay una sola línea de programa para esto. Esta sección está aquí para que nadie crea después algo falso, no porque exista.
+
+Está prevista una tarjeta de memoria en la llave, de 8 a 16 GB, para tus propios archivos.
+
+**La tarjeta necesita siempre un openSecureKey.** En un lector de tarjetas corriente no se puede hacer nada con ella. Lleva un formato propio, no un formato de Windows. **No** es un soporte que se le ponga en la mano a alguien sin llave.
+
+### Tres modos de funcionamiento, y uno de ellos no es secreto
+
+Este es el punto en el que es más fácil hacerse daño uno mismo. Así que aquí están los tres uno al lado del otro:
+
+| Modo | Nombre | Quién puede leer | ¿Contenido secreto? |
+| --- | --- | --- | --- |
+| 1 | **solo esta llave** | solo la llave que escribió | **sí** |
+| 2 | **cualquiera de nuestras llaves, con la palabra de tarjeta** | cualquier openSecureKey que tenga la palabra de tarjeta | **sí** |
+| 3 | **cualquiera de nuestras llaves, solo sellado** | **cualquier** openSecureKey, sin contraseña | **no** |
+
+**El modo 3 no cifra nada.** Solo sella: se reconoce si alguien ha cambiado el contenido. Leerlo puede cualquiera que tenga un openSecureKey cualquiera.
+
+**Quien cree haber cifrado y solo ha sellado entrega sus secretos.** Es el peor error que este aparato puede cometer, y no nace de un ataque sino de una confusión.
+
+Por eso está previsto:
+
+- La pantalla dice el modo con palabras claras **antes** de escribir, y tu pulsación confirma exactamente ese texto. En el modo 3 pone «**ABIERTO — solo sellado**».
+- El modo 3 se ve claramente distinto en la pantalla, no la misma línea con otra palabra dentro.
+- Mientras la tarjeta está puesta, el modo queda en la pantalla.
+- **Cambiar de modo significa escribir la tarjeta de nuevo.** No existe «cifrar después».
+
+### La autenticidad no es la autoría
+
+La firma en la tarjeta demuestra: **el contenido no ha cambiado** desde que se firmó.
+
+**No** demuestra de quién viene.
+
+Que una tarjeta venga de una persona determinada se sigue de la firma **solo** si conoces **de antemano** la clave pública de esa persona: de un encuentro, de una tarjeta de visita, de otra vía. Si no, solo sabes esto: aquí ha firmado algún openSecureKey.
+
+| Afirmación | ¿cubierta por la firma? |
+| --- | --- |
+| «Este contenido no ha cambiado.» | **sí** |
+| «Lo ha firmado un openSecureKey.» | sí |
+| «Lo ha firmado *este* aparato.» | sí |
+| «Este aparato pertenece a una persona determinada.» | **no** |
+| «El contenido viene de esa persona.» | **no** |
+
+Por eso está previsto: al enchufar, la pantalla dice la clave del remitente como una cadena corta de caracteres y añade «**remitente desconocido**» o el nombre que una vez le diste a ese remitente.
+
+### Se comprueba al leer, no al enchufar
+
+Comprobar **del todo** una tarjeta de 16 GB significa leerla entera. Eso dura **alrededor de hora y media** (calculado con la velocidad de la propia tarjeta, no con la del puerto USB de la sección anterior: son dos caminos distintos). Nadie espera eso al enchufar, y por eso la llave no lo hace.
+
+En su lugar comprueba **cada bloque en el momento en que lo lee.**
+
+Lo bueno: ningún archivo que abres te llega sin comprobar.
+
+Lo malo: **un bloque cambiado en un archivo que nadie abre no se nota.**
+
+Por eso la llave nunca dice «tarjeta comprobada». Sería una mentira. Dice «este bloque comprobado», y eso es la verdad.
 
 ## Programa y llave hablan entre sí
 
