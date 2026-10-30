@@ -481,4 +481,22 @@ static const struct psbt_case PSBT_VALID[] = {
      "10d90c6a4f00000080000000800500008000"},
 };
 
+/* Das eigene PSBT aus test_psbt.c: mit ihm kommt ein Lauf bis ins
+ * Unterschreiben, denn der Seed dazu liegt im Tresor. Steht hier und
+ * nicht in einem der Fuzzer, weil beide es brauchen - und eine Zahl
+ * gehoert an eine Stelle. */
+static const char *const OWN_PSBT =
+    "70736274ff0100710200000001aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    "aa0000000000feffffff0260ea000000000000160014751e76e8199196d454941c45d1b3a323f1433bd63075"
+    "0000000000001600143e34985dca6fddc9fb369940e4c7d8e2873f529c000000000001011fa0860100000000"
+    "00160014c0cebcd6c3d3ca8c75dc5ec62ebe55330ef910e222060330d54fd0dd420a6e5f8d3624f5f3482cae"
+    "350f79d5f0753bf5beef9c2d91af3c1873c5da0a540000800000008000000080000000000000000000002202"
+    "03025324888e429ab8e3dbaf1f7802648b9cd01e9b418485c5fa4c1b9b5700e1a61873c5da0a540000800000"
+    "008000000080010000000000000000";
+
+/* Der Seed, der zu OWN_PSBT passt. */
+static const char *const OWN_MNEMONIC =
+    "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon"
+    " about";
+
 #endif

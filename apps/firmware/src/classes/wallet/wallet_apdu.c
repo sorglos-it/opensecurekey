@@ -160,7 +160,7 @@ static uint16_t cmd_sign_tx(osk_apdu_state_t *state, uint8_t *out, size_t cap, s
 	if (cap < 65u)
 		return OSK_SW_WRONG_LENGTH;
 	res = osk_eth_sign_tx(state->assembly, state->assembly_len, state->seed_id, "apdu",
-			      state->path, state->eth_unit, state->allow_blind, r, s, &v);
+			      state->path, state->eth_unit, r, s, &v);
 	if (res != OSK_OK)
 		return sw_for(res);
 	/* Antwort: v, r, s. v wird als ein Byte gesendet; passt es nicht
@@ -185,7 +185,7 @@ static uint16_t cmd_sign_message(osk_apdu_state_t *state, uint8_t *out, size_t c
 	if (cap < 65u)
 		return OSK_SW_WRONG_LENGTH;
 	res = osk_eth_sign_message(state->assembly, state->assembly_len, state->seed_id, "apdu",
-				   state->path, state->allow_blind, r, s, &v);
+				   state->path, r, s, &v);
 	if (res != OSK_OK)
 		return sw_for(res);
 	out[0] = (uint8_t)(v & 0xFFu);
@@ -214,7 +214,7 @@ static uint16_t cmd_sign_typed(osk_apdu_state_t *state, const uint8_t *data, siz
 	if (len != used + 64u)
 		return OSK_SW_WRONG_LENGTH;
 	res = osk_eth_sign_typed(data + used, data + used + 32u, state->seed_id, "apdu", path,
-				 state->allow_blind, r, s, &v);
+				 r, s, &v);
 	if (res != OSK_OK)
 		return sw_for(res);
 	out[0] = (uint8_t)(v & 0xFFu);
@@ -236,7 +236,7 @@ static uint16_t cmd_sign_psbt(osk_apdu_state_t *state, uint8_t *out, size_t cap,
 	if (res != OSK_OK)
 		return sw_for(res);
 	res = osk_psbt_sign(&psbt, state->seed_id, "apdu", state->btc_hrp, state->btc_p2pkh_version,
-			    state->btc_p2sh_version, state->allow_blind, out, cap, out_len,
+			    state->btc_p2sh_version, out, cap, out_len,
 			    &signed_count);
 	if (res != OSK_OK)
 		return sw_for(res);
@@ -286,9 +286,13 @@ osk_result_t osk_apdu_handle(osk_apdu_state_t *state, const uint8_t *in, size_t 
 	case OSK_APDU_INS_GET_CONFIG:
 		if (cap < 4u)
 			return OSK_OK;
-		/* Erstes Byte sind Eigenschaften; 0 heisst: keine
-		 * Besonderheiten, blind nur nach Freigabe am Geraet. */
-		out[0] = state->allow_blind ? 0x01u : 0x00u;
+		/* Erstes Byte sind Eigenschaften. Das Bit 0x01 hiess einmal
+		 * "blind unterschreiben ist moeglich". Es ist auf 0 festgenagelt
+		 * und bleibt es: dieses Geraet unterschreibt nichts, was es nicht
+		 * lesbar anzeigen kann, und ein Rechner soll das erfahren, bevor
+		 * er es versucht. Das Byte bleibt im Drahtformat stehen, damit
+		 * eine Gegenstelle, die es liest, nicht ins Leere greift. */
+		out[0] = 0x00u;
 		out[1] = APDU_VERSION_MAJOR;
 		out[2] = APDU_VERSION_MINOR;
 		out[3] = APDU_VERSION_PATCH;

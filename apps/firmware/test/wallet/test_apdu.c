@@ -289,19 +289,33 @@ static void test_sign_typed(void)
 	memset(apdu + 26, 0x11, 32);
 	memset(apdu + 58, 0x22, 32);
 
-	/* Ohne Extrafreigabe: nein, denn der Inhalt ist unbekannt. */
-	T_EQ("bearbeitet",
-	     osk_apdu_handle(&state, apdu, 5u + 21u + 64u, out, sizeof(out), &out_len, &sw),
-	     OSK_OK);
-	T_EQ("abgelehnt", sw, OSK_SW_DENIED);
-
-	/* Mit Extrafreigabe geht es. */
-	state.allow_blind = true;
-	T_EQ("bearbeitet",
-	     osk_apdu_handle(&state, apdu, 5u + 21u + 64u, out, sizeof(out), &out_len, &sw),
-	     OSK_OK);
-	T_EQ("ok", sw, OSK_SW_OK);
-	T_EQ("65 Byte", out_len, 65);
+	/* EIP-712 ueber diesen Befehl wird IMMER abgelehnt, und daran gibt
+	 * es nichts zu drehen.
+	 *
+	 * Warum: der Befehl uebergibt zwei Hashes - den Bereichstrenner und
+	 * den Hash der Struktur. Aus zwei Hashes kann das Geraet nicht
+	 * zurueckrechnen, was da eigentlich steht. Es koennte also nur
+	 * "unterschreibe etwas" anzeigen, und das ist die Blindunterschrift
+	 * mit einem hoeflichen Namen.
+	 *
+	 * Das kostet echte Vertraeglichkeit: MetaMask kann ueber diesen Weg
+	 * keine typisierte Nachricht unterschreiben lassen. Das ist der
+	 * Preis der Regel, und er ist in docs/wallet-bau.md aufgeschrieben.
+	 *
+	 * Auch beim zehnten Versuch bleibt es dabei - es gibt keinen
+	 * Zustand, der sich dabei aufweicht. */
+	for (unsigned i = 0; i < 10u; i++) {
+		mock_ui_reset();
+		mock_ui_answer(OSK_OK); /* der Nutzer WUERDE ja sagen */
+		T_EQ("bearbeitet",
+		     osk_apdu_handle(&state, apdu, 5u + 21u + 64u, out, sizeof(out), &out_len,
+				     &sw),
+		     OSK_OK);
+		T_EQ("abgelehnt", sw, OSK_SW_DENIED);
+		T_EQ("nichts herausgegeben", (long long)out_len, 0);
+		/* Und es wurde nicht einmal gefragt. */
+		T_EQ("nicht gefragt", (long long)mock_ui_calls(), 0);
+	}
 
 	/* Falsche Laenge: nicht 64 Byte hinter dem Pfad. */
 	apdu[4] = (uint8_t)(21u + 60u);

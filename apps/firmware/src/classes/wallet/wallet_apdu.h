@@ -20,7 +20,16 @@
  *    angestecktes Ledger-Geraet. Das steht so in docs/wallet.md.
  *
  * Diese Schicht entscheidet nichts: sie liest Bytes, ruft die Module und
- * schreibt Bytes zurueck. Jede Freigabe faellt weiter in wallet_confirm. */
+ * schreibt Bytes zurueck. Jede Freigabe faellt weiter in wallet_confirm.
+ *
+ * Es gibt KEINEN Schalter fuer die Blindunterschrift - nicht in dieser
+ * Schicht und nirgends sonst. Ein Rechner kann sie nicht erbitten, und
+ * der Nutzer kann sie nicht einschalten. GET_CONFIG sagt das im ersten
+ * Byte der Antwort, damit eine Gegenstelle es vorher weiss.
+ *
+ * Diese Schicht ist die Stelle, die ein Angreifer unmittelbar erreicht:
+ * sie liest Bytes von einem Rechner, dem niemand vertraut. Darum wird
+ * sie gefuzzt - test/wallet/fuzz_apdu.c. */
 #ifndef WALLET_APDU_H
 #define WALLET_APDU_H
 
@@ -58,9 +67,6 @@
 typedef struct {
 	/* Der Tresoreintrag mit dem Seed. Wird vom Aufrufer gesetzt. */
 	osk_item_id_t seed_id;
-	/* Darf blind unterschrieben werden? Das schaltet der Nutzer am
-	 * Geraet ein, nicht der Rechner. */
-	bool allow_blind;
 	/* Netzangaben fuer die Anzeige. */
 	const char *btc_hrp;
 	uint8_t btc_p2pkh_version;
