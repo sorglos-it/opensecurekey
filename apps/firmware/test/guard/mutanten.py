@@ -13,7 +13,7 @@ Fassung sich so verhaelt. Darum legt dieses Skript die Zwecke absichtlich
 zusammen und verlangt, dass test_forgery dabei ROT wird. Wird es gruen, ist
 der Fall ein hohler Riegel.
 
-Zwei Kontrollen sind Pflicht (Z:\\GitHub\\claude-md\\messen.md):
+Zwei Kontrollen sind Pflicht (Z:\\GitHub\\claude\\docs\\messen.md):
   - Mutanten, die STERBEN muessen (zusammengelegte Zwecke)
   - ein Mutant, der LEBEN muss (eine umbenannte lokale Variable)
 Verhaelt sich einer falsch, ist der ganze Lauf wertlos.
