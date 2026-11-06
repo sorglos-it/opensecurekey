@@ -54,7 +54,7 @@ typedef struct {
 	uint16_t header_len;
 	uint16_t format;
 	uint32_t board_id;
-	uint32_t version[4]; /* v.x.y.z nach claude-md/version.md */
+	uint32_t version[4]; /* v.x.y.z nach claude/docs/version.md */
 	uint32_t counter;    /* Rueckschritt-Sperre, steigt nie ab */
 	uint32_t image_len;
 	uint8_t image_hash[OSK_BOOT_HASH_LEN];

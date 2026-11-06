@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Das Symbol des Projekts zeichnen - nach dem CI (claude-md/CI.md).
+"""Das Symbol des Projekts zeichnen - nach dem CI (claude/docs/CI.md).
 
     python tools/logo.py                 schreibt apps/web/assets/icon-128.png
     python tools/logo.py --out <datei>   an einen anderen Platz
@@ -78,7 +78,7 @@ def build(target, size):
         return 1
     if not os.path.isfile(SPECTRUM):
         common.say('FEHLER: die Spektrum-Vorlage fehlt: %s' % SPECTRUM)
-        common.say('Sie gehoert zu den CI-Dateien, siehe claude-md/CI.md.')
+        common.say('Sie gehoert zu den CI-Dateien, siehe claude/docs/CI.md.')
         return 1
 
     big = 256 * SCALE
